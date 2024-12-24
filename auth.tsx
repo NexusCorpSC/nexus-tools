@@ -8,7 +8,7 @@ import VerifyEmail from "@/mails/verify-email";
 
 const generateAuthCode = customAlphabet("0123456789", 6);
 
-const resend = new Resend();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: MongoDBAdapter(db),
