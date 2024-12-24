@@ -8,14 +8,6 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ userId: string }> },
 ): Promise<NextResponse> {
-  const session = await auth();
-
-  const userId = (await params).userId;
-
-  if (!session || session.user?.id !== userId) {
-    throw new Error("Not authenticated.");
-  }
-
   const body = (await request.json()) as HandleUploadBody;
 
   try {
@@ -23,6 +15,14 @@ export async function POST(
       body,
       request,
       onBeforeGenerateToken: async () => {
+        const session = await auth();
+
+        const userId = (await params).userId;
+
+        if (!session || session.user?.id !== userId) {
+          throw new Error("Not authenticated.");
+        }
+
         return {
           allowedContentTypes: ["image/jpeg", "image/png"],
           tokenPayload: JSON.stringify({
