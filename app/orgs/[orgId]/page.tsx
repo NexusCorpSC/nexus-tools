@@ -8,7 +8,7 @@ import { handleRemoveMember } from "@/app/orgs/actions";
 export default async function OrganizationPage({
   params,
 }: {
-  params: { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
   const session = await auth();
