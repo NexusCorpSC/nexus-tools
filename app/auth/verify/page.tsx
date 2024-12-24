@@ -1,14 +1,12 @@
 export default async function Verify({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams: Promise<{ [_: string]: string | string[] | undefined }>;
 }) {
   const sParams = await searchParams;
   const email = sParams.email || "";
   const token = sParams.token || "";
   const callbackUrl = sParams.callbackUrl ?? "";
-
-  console.log({ email, token, callbackUrl });
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

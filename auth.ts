@@ -18,8 +18,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async sendVerificationRequest({ identifier, url, token }) {
         const callbackUrl = new URL(url);
 
-        console.log(callbackUrl.searchParams);
-
         const signInURL = new URL(
           `/auth/verify?${callbackUrl.searchParams}`,
           callbackUrl.origin,

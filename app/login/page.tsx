@@ -3,7 +3,7 @@ import { signIn } from "@/auth";
 export default async function Login({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams: Promise<{ [_: string]: string | string[] | undefined }>;
 }) {
   const sParams = await searchParams;
   const callbackUrl = (sParams.callbackUrl as string) ?? "";
