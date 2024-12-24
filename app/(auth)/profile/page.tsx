@@ -3,7 +3,7 @@ import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
-import { Organization } from "@/app/(auth)/orgs/page";
+import { Organization } from "@/app/orgs/page";
 import Image from "next/image";
 
 export type User = {
