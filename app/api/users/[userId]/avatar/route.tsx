@@ -23,6 +23,8 @@ export async function POST(
           throw new Error("Not authenticated.");
         }
 
+        console.log(pathname);
+
         if (pathname.match(/^users\/[A-z0-9]+\/avatar\.[a-z0-9]{1,6}$/)) {
           throw new Error("Invalid pathname.");
         }
