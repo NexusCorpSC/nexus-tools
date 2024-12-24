@@ -25,7 +25,10 @@ export async function POST(
 
         console.log(pathname);
 
-        if (pathname.match(/^users\/[A-z0-9]+\/avatar\.[a-z0-9]{1,6}$/i)) {
+        if (
+          !pathname.startsWith(`users/${userId}`) ||
+          pathname.match(/^users\/[A-z0-9]+\/avatar\.[a-z0-9]{1,6}$/i)
+        ) {
           throw new Error("Invalid pathname.");
         }
 
