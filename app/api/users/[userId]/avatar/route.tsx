@@ -20,10 +20,7 @@ export async function POST(
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async (
-        pathname,
-        /* clientPayload */
-      ) => {
+      onBeforeGenerateToken: async () => {
         return {
           allowedContentTypes: ["image/jpeg", "image/png"],
           tokenPayload: JSON.stringify({
@@ -45,7 +42,7 @@ export async function POST(
               { _id: new ObjectId(userId) },
               { $set: { avatar: blob.url } },
             );
-        } catch (error) {
+        } catch {
           throw new Error("Could not update user");
         }
       },
