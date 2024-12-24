@@ -6,11 +6,13 @@ import { ObjectId } from "bson";
 
 export async function POST(
   request: Request,
-  { params }: { params: { userId: string } },
+  { params }: { params: Promise<{ userId: string }> },
 ): Promise<NextResponse> {
   const session = await auth();
 
-  if (!session || session.user?.id !== params.userId) {
+  const userId = (await params).userId;
+
+  if (!session || session.user?.id !== userId) {
     throw new Error("Not authenticated.");
   }
 
@@ -24,7 +26,7 @@ export async function POST(
         return {
           allowedContentTypes: ["image/jpeg", "image/png"],
           tokenPayload: JSON.stringify({
-            userId: params.userId,
+            userId,
           }),
         };
       },
