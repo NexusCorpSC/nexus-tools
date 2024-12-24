@@ -121,10 +121,12 @@ export default async function OrganizationPage({
               {organization.members.map((member, index) => (
                 <li key={index} className="flex justify-between gap-x-6 py-5">
                   <div className="flex min-w-0 gap-x-4">
-                    <img
+                    <Image
                       alt=""
                       src={member.avatar}
                       className="size-12 flex-none rounded-full bg-gray-50"
+                      height={50}
+                      width={50}
                     />
                     <div className="min-w-0 flex-auto">
                       <p className="text-sm/6 font-semibold text-gray-900">

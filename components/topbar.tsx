@@ -14,6 +14,7 @@ import { auth, signIn, signOut } from "@/auth";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import Image from "next/image";
 
 const navigation = [
   { name: "Dashboard", href: "/", current: true },
@@ -114,10 +115,12 @@ export default async function Topbar() {
                   <MenuButton className="relative flex rounded-full bg-gray-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
                     <span className="absolute -inset-1.5" />
                     <span className="sr-only">Ouvrir le menu utilisateur</span>
-                    <img
+                    <Image
                       alt=""
                       src={user.avatar}
                       className="h-8 w-8 rounded-full"
+                      width={50}
+                      height={50}
                     />
                   </MenuButton>
                 </div>
@@ -216,10 +219,12 @@ export default async function Topbar() {
             <>
               <div className="flex items-center px-4">
                 <div className="flex-shrink-0">
-                  <img
+                  <Image
                     alt=""
                     src={user.avatar}
                     className="h-10 w-10 rounded-full"
+                    width={50}
+                    height={50}
                   />
                 </div>
                 <div className="ml-3">
