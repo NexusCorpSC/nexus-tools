@@ -117,7 +117,7 @@ export default async function Topbar() {
                     <span className="sr-only">Ouvrir le menu utilisateur</span>
                     <Image
                       alt=""
-                      src={user.avatar}
+                      src={user.avatar ?? "/avatar_empty.png"}
                       className="h-8 w-8 rounded-full"
                       width={50}
                       height={50}
@@ -221,7 +221,7 @@ export default async function Topbar() {
                 <div className="flex-shrink-0">
                   <Image
                     alt=""
-                    src={user.avatar}
+                    src={user.avatar ?? "/avatar_empty.png"}
                     className="h-10 w-10 rounded-full"
                     width={50}
                     height={50}

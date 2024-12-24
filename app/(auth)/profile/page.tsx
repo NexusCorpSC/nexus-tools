@@ -5,9 +5,11 @@ import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
 import Image from "next/image";
+import { AvatarUpdateComponent } from "@/app/(auth)/profile/components";
 
 export type User = {
   _id: ObjectId;
+  avatar: string;
   name: string;
   email: string;
 };
@@ -53,9 +55,25 @@ export default async function ProfilePage() {
       <div className="mt-6 border-t border-gray-100">
         <dl className="divide-y divide-gray-100">
           <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+            <dt className="text-sm/6 font-medium text-gray-900">Avatar</dt>
+            <dd className="mt-1 flex text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
+              <div className="grow text-gray-500">
+                <Image
+                  src={user.avatar ?? "/avatar_empty.png"}
+                  alt="Your profile picture"
+                  height={100}
+                  width={100}
+                />
+              </div>
+              <span className="ml-4 shrink-0">
+                <AvatarUpdateComponent userId={user._id.toString()} />
+              </span>
+            </dd>
+          </div>
+          <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
             <dt className="text-sm/6 font-medium text-gray-900">Pseudo</dt>
             <dd className="mt-1 flex text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
-              <span className="grow">{user.name}</span>
+              <span className="grow">{user.name ?? "-"}</span>
               <span className="ml-4 shrink-0">
                 <button
                   type="button"
