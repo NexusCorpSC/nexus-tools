@@ -1,8 +1,12 @@
-export default async function Verify({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default async function Verify({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const sParams = await searchParams;
   const email = sParams.email || "";
   const token = sParams.token || "";
-  const callbackUrl = sParams.callbackUrl ?? '';
+  const callbackUrl = sParams.callbackUrl ?? "";
 
   console.log({ email, token, callbackUrl });
 
@@ -12,11 +16,15 @@ export default async function Verify({ searchParams }: { searchParams: Promise<{
         <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
         <form
           className="space-y-4"
-          action="/api/auth/callback/email" method="get"
+          action="/api/auth/callback/email"
+          method="get"
         >
           {!email ? (
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email :
               </label>
               <input
@@ -47,7 +55,10 @@ export default async function Verify({ searchParams }: { searchParams: Promise<{
             required
           />
           <div>
-            <label htmlFor="token" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="token"
+              className="block text-sm font-medium text-gray-700"
+            >
               Code de validation :
             </label>
             <input

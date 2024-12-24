@@ -1,8 +1,12 @@
 import { signIn } from "@/auth";
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default async function Login({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const sParams = await searchParams;
-  const callbackUrl = sParams.callbackUrl as string ?? '';
+  const callbackUrl = (sParams.callbackUrl as string) ?? "";
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -13,11 +17,17 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           action={async (formData) => {
             "use server";
 
-            await signIn("email", { email: formData.get("email"), redirectTo: callbackUrl });
+            await signIn("email", {
+              email: formData.get("email"),
+              redirectTo: callbackUrl,
+            });
           }}
         >
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
               Email :
             </label>
             <input

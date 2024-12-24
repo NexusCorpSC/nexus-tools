@@ -1,34 +1,51 @@
-import {Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems} from '@headlessui/react'
-import {MagnifyingGlassIcon} from '@heroicons/react/20/solid'
-import {Bars3Icon, BellIcon, XMarkIcon} from '@heroicons/react/24/outline'
-import {cn} from "@/lib/utils";
-import {auth, signIn, signOut} from "@/auth";
-import {ArrowLeftEndOnRectangleIcon} from "@heroicons/react/16/solid";
+import {
+  Disclosure,
+  DisclosureButton,
+  DisclosurePanel,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuItems,
+} from "@headlessui/react";
+import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
+import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { cn } from "@/lib/utils";
+import { auth, signIn, signOut } from "@/auth";
+import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
+import db from "@/lib/db";
+import { ObjectId } from "bson";
 
-const user = {
-  name: 'Tom Cook',
-  email: 'tom@example.com',
-  imageUrl:
-    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-};
 const navigation = [
-  {name: 'Dashboard', href: '/', current: true},
-  {name: 'Crafting', href: '/crafting'},
+  { name: "Dashboard", href: "/", current: true },
+  { name: "Crafting", href: "/crafting" },
 ];
 const userNavigation = [
-  {name: 'Mon Profil', href: '/profile'},
-  {name: 'Paramètres', href: '/settings'},
+  { name: "Mon Profil", href: "/profile" },
+  { name: "Paramètres", href: "/settings" },
   {
-    name: 'Déconnexion', action: async () => {
-      'use server';
+    name: "Déconnexion",
+    action: async () => {
+      "use server";
 
       await signOut();
-    }
+    },
   },
 ];
 
 export default async function Topbar() {
   const session = await auth();
+
+  const user = session?.user
+    ? await db
+        .db()
+        .collection<{
+          _id: ObjectId;
+          name: string;
+          avatar: string;
+          email: string;
+        }>("users")
+        .findOne({ _id: new ObjectId(session?.user?.id) })
+    : null;
 
   return (
     <Disclosure as="header" className="bg-gray-800">
@@ -50,7 +67,10 @@ export default async function Topbar() {
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <MagnifyingGlassIcon aria-hidden="true" className="h-5 w-5 text-gray-400"/>
+                  <MagnifyingGlassIcon
+                    aria-hidden="true"
+                    className="h-5 w-5 text-gray-400"
+                  />
                 </div>
                 <input
                   id="search"
@@ -64,33 +84,41 @@ export default async function Topbar() {
           </div>
           <div className="relative z-10 flex items-center lg:hidden">
             {/* Mobile menu button */}
-            <DisclosureButton
-              className="group relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
-              <span className="absolute -inset-0.5"/>
+            <DisclosureButton className="group relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+              <span className="absolute -inset-0.5" />
               <span className="sr-only">Ouvrir le menu</span>
-              <Bars3Icon aria-hidden="true" className="block h-6 w-6 group-data-[open]:hidden"/>
-              <XMarkIcon aria-hidden="true" className="hidden h-6 w-6 group-data-[open]:block"/>
+              <Bars3Icon
+                aria-hidden="true"
+                className="block h-6 w-6 group-data-[open]:hidden"
+              />
+              <XMarkIcon
+                aria-hidden="true"
+                className="hidden h-6 w-6 group-data-[open]:block"
+              />
             </DisclosureButton>
           </div>
-          {session ? (
+          {user ? (
             <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center">
               <button
                 type="button"
                 className="relative flex-shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
               >
-                <span className="absolute -inset-1.5"/>
+                <span className="absolute -inset-1.5" />
                 <span className="sr-only">Voir les notifications</span>
-                <BellIcon aria-hidden="true" className="h-6 w-6"/>
+                <BellIcon aria-hidden="true" className="h-6 w-6" />
               </button>
 
               {/* Profile dropdown */}
               <Menu as="div" className="relative ml-4 flex-shrink-0">
                 <div>
-                  <MenuButton
-                    className="relative flex rounded-full bg-gray-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
-                    <span className="absolute -inset-1.5"/>
+                  <MenuButton className="relative flex rounded-full bg-gray-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
+                    <span className="absolute -inset-1.5" />
                     <span className="sr-only">Ouvrir le menu utilisateur</span>
-                    <img alt="" src={user.imageUrl} className="h-8 w-8 rounded-full"/>
+                    <img
+                      alt=""
+                      src={user.avatar}
+                      className="h-8 w-8 rounded-full"
+                    />
                   </MenuButton>
                 </div>
                 <MenuItems
@@ -100,15 +128,18 @@ export default async function Topbar() {
                   {userNavigation.map((item) => (
                     <MenuItem key={item.name}>
                       {item.href ? (
-                        <a href={item.href} className="block px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100">
+                        <a
+                          href={item.href}
+                          className="block px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100"
+                        >
                           {item.name}
                         </a>
                       ) : (
-                        <form action={item.action}
-                              className="block px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100">
-                          <button>
-                            {item.name}
-                          </button>
+                        <form
+                          action={item.action}
+                          className="block px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100"
+                        >
+                          <button>{item.name}</button>
                         </form>
                       )}
                     </MenuItem>
@@ -120,31 +151,39 @@ export default async function Topbar() {
             <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center">
               <form
                 action={async () => {
-                  "use server"
-                  await signIn()
+                  "use server";
+                  await signIn();
                 }}
               >
                 <button
                   type="submit"
                   className="relative flex-shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
                 >
-                  <span className="absolute -inset-1.5"/>
+                  <span className="absolute -inset-1.5" />
                   <span className="sr-only">Connexion</span>
-                  <ArrowLeftEndOnRectangleIcon aria-hidden="true" className="h-6 w-6"/>
+                  <ArrowLeftEndOnRectangleIcon
+                    aria-hidden="true"
+                    className="h-6 w-6"
+                  />
                 </button>
               </form>
             </div>
           )}
         </div>
-        <nav aria-label="Global" className="hidden lg:flex lg:space-x-8 lg:py-2">
+        <nav
+          aria-label="Global"
+          className="hidden lg:flex lg:space-x-8 lg:py-2"
+        >
           {navigation.map((item) => (
             <a
               key={item.name}
               href={item.href}
-              aria-current={item.current ? 'page' : undefined}
+              aria-current={item.current ? "page" : undefined}
               className={cn(
-                item.current ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white',
-                'inline-flex items-center rounded-md px-3 py-2 text-sm font-medium',
+                item.current
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white",
+                "inline-flex items-center rounded-md px-3 py-2 text-sm font-medium",
               )}
             >
               {item.name}
@@ -160,10 +199,12 @@ export default async function Topbar() {
               key={item.name}
               as="a"
               href={item.href}
-              aria-current={item.current ? 'page' : undefined}
+              aria-current={item.current ? "page" : undefined}
               className={cn(
-                item.current ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white',
-                'block rounded-md px-3 py-2 text-base font-medium',
+                item.current
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white",
+                "block rounded-md px-3 py-2 text-base font-medium",
               )}
             >
               {item.name}
@@ -171,58 +212,70 @@ export default async function Topbar() {
           ))}
         </div>
         <div className="border-t border-gray-700 pb-3 pt-4">
-          {session ? (
+          {user ? (
             <>
               <div className="flex items-center px-4">
                 <div className="flex-shrink-0">
-                  <img alt="" src={user.imageUrl} className="h-10 w-10 rounded-full"/>
+                  <img
+                    alt=""
+                    src={user.avatar}
+                    className="h-10 w-10 rounded-full"
+                  />
                 </div>
                 <div className="ml-3">
-                  <div className="text-base font-medium text-white">{user.name}</div>
-                  <div className="text-sm font-medium text-gray-400">{user.email}</div>
+                  <div className="text-base font-medium text-white">
+                    {user.name}
+                  </div>
+                  <div className="text-sm font-medium text-gray-400">
+                    {user.email}
+                  </div>
                 </div>
                 <button
                   type="button"
                   className="relative ml-auto flex-shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
                 >
-                  <span className="absolute -inset-1.5"/>
+                  <span className="absolute -inset-1.5" />
                   <span className="sr-only">Voir les notifications</span>
-                  <BellIcon aria-hidden="true" className="h-6 w-6"/>
+                  <BellIcon aria-hidden="true" className="h-6 w-6" />
                 </button>
               </div>
               <div className="mt-3 space-y-1 px-2">
-                {userNavigation.map((item) => item.href ? (
-                  <DisclosureButton
-                    key={item.name}
-                    as="a"
-                    href={item.href}
-                    className="block rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
-                  >
-                    {item.name}
-                  </DisclosureButton>
-                ) : (
-                  <form
-                    key={item.name}
-                    action={item.action}
-                    className="rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
-                  >
-                    <button type="submit" className="w-full text-left">
+                {userNavigation.map((item) =>
+                  item.href ? (
+                    <DisclosureButton
+                      key={item.name}
+                      as="a"
+                      href={item.href}
+                      className="block rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
+                    >
                       {item.name}
-                    </button>
-                  </form>
-                ))}
+                    </DisclosureButton>
+                  ) : (
+                    <form
+                      key={item.name}
+                      action={item.action}
+                      className="rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
+                    >
+                      <button type="submit" className="w-full text-left">
+                        {item.name}
+                      </button>
+                    </form>
+                  ),
+                )}
               </div>
             </>
           ) : (
             <form
               action={async () => {
-                "use server"
-                await signIn()
+                "use server";
+                await signIn();
               }}
               className="mt-3 space-y-1 px-2"
             >
-              <button type="submit"
-                      className="w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white">
+              <button
+                type="submit"
+                className="w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
+              >
                 Connexion
               </button>
             </form>
@@ -230,5 +283,5 @@ export default async function Topbar() {
         </div>
       </DisclosurePanel>
     </Disclosure>
-  )
+  );
 }
