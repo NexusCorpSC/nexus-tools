@@ -3,8 +3,12 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import db from "@/lib/db";
 import authConfig from "@/auth.config";
 import { customAlphabet } from "nanoid";
+import { Resend } from "resend";
+import VerifyEmail from "@/mails/verify-email";
 
 const generateAuthCode = customAlphabet("0123456789", 6);
+
+const resend = new Resend();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: MongoDBAdapter(db),
@@ -23,12 +27,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           callbackUrl.origin,
         );
 
-        console.log(
-          "sendVerificationRequest",
-          identifier,
-          token,
-          signInURL.toString(),
-        );
+        await resend.emails.send({
+          from: "tools@services.nexus",
+          to: identifier,
+          subject: "Verify your email to access Nexus Tools",
+          react: (
+            <VerifyEmail
+              url={signInURL.toString()}
+              email={identifier}
+              token={token}
+            />
+          ),
+        });
       },
       async generateVerificationToken() {
         return generateAuthCode();
