@@ -18,6 +18,7 @@ import Image from "next/image";
 
 const navigation = [
   { name: "Dashboard", href: "/", current: true },
+  { name: "Magasins", href: "/shops" },
   { name: "Crafting", href: "/crafting" },
 ];
 const userNavigation = [
