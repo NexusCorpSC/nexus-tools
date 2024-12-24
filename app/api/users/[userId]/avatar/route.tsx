@@ -36,6 +36,7 @@ export async function POST(
             userId,
           }),
           maximumSizeInBytes: 4000000,
+          addRandomSuffix: false,
         };
       },
       onUploadCompleted: async ({ blob, tokenPayload }) => {
