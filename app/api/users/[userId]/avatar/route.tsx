@@ -14,7 +14,7 @@ export async function POST(
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async () => {
+      onBeforeGenerateToken: async (pathname) => {
         const session = await auth();
 
         const userId = (await params).userId;
@@ -23,11 +23,16 @@ export async function POST(
           throw new Error("Not authenticated.");
         }
 
+        if (pathname.match(/^users\/[A-z0-9]+\/avatar\.[a-z0-9]{1,6}$/)) {
+          throw new Error("Invalid pathname.");
+        }
+
         return {
           allowedContentTypes: ["image/jpeg", "image/png"],
           tokenPayload: JSON.stringify({
             userId,
           }),
+          maximumSizeInBytes: 2 * 1024 * 1024,
         };
       },
       onUploadCompleted: async ({ blob, tokenPayload }) => {

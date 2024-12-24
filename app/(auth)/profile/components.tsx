@@ -11,9 +11,9 @@ export function AvatarUpdateComponent({ userId }: { userId: string }) {
       return;
     }
 
-    console.log(file);
+    const ext = file.name.split(".").pop();
 
-    await upload(file.name, file, {
+    await upload(`users/${userId}/avatar.${ext}`, file, {
       access: "public",
       handleUploadUrl: `/api/users/${userId}/avatar`,
     });
