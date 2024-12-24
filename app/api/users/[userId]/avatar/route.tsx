@@ -25,16 +25,18 @@ export async function POST(
 
         console.log(pathname);
 
-        if (pathname.match(/^users\/[A-z0-9]+\/avatar\.[a-z0-9]{1,6}$/)) {
+        if (pathname.match(/^users\/[A-z0-9]+\/avatar\.[a-z0-9]{1,6}$/i)) {
           throw new Error("Invalid pathname.");
         }
+
+        console.log("Upload");
 
         return {
           allowedContentTypes: ["image/jpeg", "image/png"],
           tokenPayload: JSON.stringify({
             userId,
           }),
-          maximumSizeInBytes: 2 * 1024 * 1024,
+          maximumSizeInBytes: 4000000,
         };
       },
       onUploadCompleted: async ({ blob, tokenPayload }) => {
