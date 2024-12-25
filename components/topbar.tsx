@@ -15,10 +15,15 @@ import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import Image from "next/image";
+import Link from "next/link";
+import {
+  TopBarNavItem,
+  TopBarNavMenuItem,
+} from "@/components/topbar-components";
 
 const navigation = [
   { name: "Dashboard", href: "/", current: true },
-  { name: "Magasins", href: "/shops" },
+  { name: "Shopping", href: "/shopping" },
   { name: "Crafting", href: "/crafting" },
 ];
 const userNavigation = [
@@ -54,13 +59,15 @@ export default async function Topbar() {
       <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:divide-y lg:divide-gray-700 lg:px-8">
         <div className="relative flex h-16 justify-between">
           <div className="relative z-10 flex px-2 lg:px-0">
-            <div className="flex flex-shrink-0 items-center">
-              <img
-                alt="Your Company"
-                src="https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=500"
+            <Link href="/" className="flex flex-shrink-0 items-center">
+              <Image
+                alt="Nexus Tools"
+                src="/nexus_logo_square.png"
                 className="h-8 w-auto"
+                width={32}
+                height={32}
               />
-            </div>
+            </Link>
           </div>
           <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
             <div className="w-full sm:max-w-xs">
@@ -179,19 +186,7 @@ export default async function Topbar() {
           className="hidden lg:flex lg:space-x-8 lg:py-2"
         >
           {navigation.map((item) => (
-            <a
-              key={item.name}
-              href={item.href}
-              aria-current={item.current ? "page" : undefined}
-              className={cn(
-                item.current
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white",
-                "inline-flex items-center rounded-md px-3 py-2 text-sm font-medium",
-              )}
-            >
-              {item.name}
-            </a>
+            <TopBarNavItem name={item.name} href={item.href} key={item.name} />
           ))}
         </nav>
       </div>
@@ -199,20 +194,11 @@ export default async function Topbar() {
       <DisclosurePanel as="nav" aria-label="Global" className="lg:hidden">
         <div className="space-y-1 px-2 pb-3 pt-2">
           {navigation.map((item) => (
-            <DisclosureButton
-              key={item.name}
-              as="a"
+            <TopBarNavMenuItem
+              name={item.name}
               href={item.href}
-              aria-current={item.current ? "page" : undefined}
-              className={cn(
-                item.current
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white",
-                "block rounded-md px-3 py-2 text-base font-medium",
-              )}
-            >
-              {item.name}
-            </DisclosureButton>
+              key={item.name}
+            />
           ))}
         </div>
         <div className="border-t border-gray-700 pb-3 pt-4">

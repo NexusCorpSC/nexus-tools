@@ -12,6 +12,7 @@ export type User = {
   avatar: string;
   name: string;
   email: string;
+  defaultShopId?: string;
 };
 
 export default async function ProfilePage() {

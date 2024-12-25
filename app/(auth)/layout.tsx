@@ -8,7 +8,6 @@ export default async function RootLayout({
   const session = await auth();
 
   if (!session) {
-    // signIn
     return signIn(undefined, { redirectTo: "/profile" });
   }
 
