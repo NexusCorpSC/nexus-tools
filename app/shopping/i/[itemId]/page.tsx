@@ -3,6 +3,8 @@ import Link from "next/link";
 import { CheckIcon, CrossCircledIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
+import { Suspense } from "react";
+import { StockModificationSection } from "@/app/shopping/i/[itemId]/server-components";
 
 export default async function ShopItemDetailsPage({
   params,
@@ -89,6 +91,11 @@ export default async function ShopItemDetailsPage({
                 <p className="ml-2 text-sm text-gray-500">En stock</p>
               </div>
             )}
+            <div className="pt-4">
+              <Suspense fallback={<></>}>
+                <StockModificationSection item={item} />
+              </Suspense>
+            </div>
           </section>
         </div>
 

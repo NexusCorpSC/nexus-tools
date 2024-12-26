@@ -56,6 +56,9 @@ export async function getFeaturedItems(): Promise<ShopItem[]> {
     .collection("shopItems")
     .aggregate<ShopItem>([
       {
+        $match: { stock: { $gte: 1 } },
+      },
+      {
         $lookup: {
           from: "shops",
           localField: "shopId",
@@ -145,10 +148,10 @@ export async function getShopItem(itemId: string): Promise<ShopItem | null> {
 export async function getShopItemsOfShop(
   shopId: string,
   { offset, limit }: { offset: number; limit: number },
-): Promise<ShopItem[]> {
+): Promise<ShopItemDbModel[]> {
   return db
     .db()
-    .collection<ShopItem>("shopItems")
+    .collection<ShopItemDbModel>("shopItems")
     .find({ shopId })
     .skip(offset)
     .limit(limit)
@@ -184,4 +187,13 @@ export async function getShop(shopId: string): Promise<Shop | null> {
       },
     ])
     .next();
+}
+
+export async function isUserSellerOfShop(shopId: string, userId: ObjectId) {
+  const shop = await db
+    .db()
+    .collection<ShopDbModel>("shops")
+    .findOne({ id: shopId, sellers: userId });
+
+  return !!shop;
 }
