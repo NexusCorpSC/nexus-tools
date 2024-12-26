@@ -10,11 +10,25 @@ export type ShopItem = {
   description: string;
   image: string;
   price: string;
+  stock: number;
   createdAt: string;
   shop: {
     id: string;
     name: string;
   };
+};
+
+export type ShopItemDbModel = {
+  _id: ObjectId;
+  id: string;
+  name: string;
+  type: "OBJECT" | "SERVICE";
+  description: string;
+  image: string;
+  price: string;
+  stock: number;
+  shopId: string;
+  createdAt: string;
 };
 
 export type Shop = {
@@ -25,6 +39,15 @@ export type Shop = {
   };
   name: string;
   description: string;
+};
+
+export type ShopDbModel = {
+  _id: ObjectId;
+  id: string;
+  ownerId: ObjectId;
+  name: string;
+  description: string;
+  sellers: ObjectId[];
 };
 
 export async function getFeaturedItems(): Promise<ShopItem[]> {

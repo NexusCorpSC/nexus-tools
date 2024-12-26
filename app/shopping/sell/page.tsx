@@ -38,7 +38,7 @@ export default async function SellPage() {
   const userShops = await db
     .db()
     .collection<Shop>("shops")
-    .find({ ownerId: user._id })
+    .find({ sellers: user._id })
     .toArray();
 
   if (userShops.length === 0) {

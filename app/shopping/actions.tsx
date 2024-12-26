@@ -7,6 +7,7 @@ import { put } from "@vercel/blob";
 import Ajv from "ajv";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ObjectId } from "bson";
 
 const ajv = new Ajv({ coerceTypes: true });
 const validateShopItem = ajv.compile({
@@ -34,14 +35,13 @@ export async function addArticleToShop(formData: FormData) {
     throw new Error("Missing shopId");
   }
 
-  const shop = await db.db().collection("shops").findOne({ id: shopId });
+  const shop = await db
+    .db()
+    .collection("shops")
+    .findOne({ id: shopId, sellers: new ObjectId(session.user.id) });
 
   if (!shop) {
-    throw new Error("Shop not found");
-  }
-
-  if (!shop.ownerId.equals(session.user.id)) {
-    throw new Error("User is not the owner of the shop");
+    throw new Error("Shop not found or not accessible to user");
   }
 
   const itemData = {
@@ -77,6 +77,7 @@ export async function addArticleToShop(formData: FormData) {
     shopId: itemData.shopId,
     type: itemData.type,
     image: imageBlob.url,
+    stock: 1,
     createdAt: new Date().toISOString(),
   };
 

@@ -1,7 +1,8 @@
 import { getShopItem } from "@/lib/shop-items";
 import Link from "next/link";
-import { CheckIcon } from "@radix-ui/react-icons";
+import { CheckIcon, CrossCircledIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
 export default async function ShopItemDetailsPage({
   params,
@@ -61,13 +62,33 @@ export default async function ShopItemDetailsPage({
               <p className="text-base text-gray-500">{item.description}</p>
             </div>
 
-            <div className="mt-6 flex items-center">
-              <CheckIcon
-                aria-hidden="true"
-                className="size-5 shrink-0 text-green-500"
-              />
-              <p className="ml-2 text-sm text-gray-500">En stock</p>
-            </div>
+            {item.stock <= 0 && (
+              <div className="mt-6 flex items-center">
+                <CrossCircledIcon
+                  aria-hidden="true"
+                  className="size-5 shrink-0 text-red-500"
+                />
+                <p className="ml-2 text-sm text-gray-500">Epuisé !</p>
+              </div>
+            )}
+            {item.stock > 0 && item.stock <= 5 && (
+              <div className="mt-6 flex items-center">
+                <ExclamationTriangleIcon
+                  aria-hidden="true"
+                  className="size-5 shrink-0 text-orange-500"
+                />
+                <p className="ml-2 text-sm text-gray-500">Stock faible !</p>
+              </div>
+            )}
+            {item.stock > 5 && (
+              <div className="mt-6 flex items-center">
+                <CheckIcon
+                  aria-hidden="true"
+                  className="size-5 shrink-0 text-green-500"
+                />
+                <p className="ml-2 text-sm text-gray-500">En stock</p>
+              </div>
+            )}
           </section>
         </div>
 
