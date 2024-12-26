@@ -1,15 +1,9 @@
-import {
-  getFeaturedItems,
-  getFeaturedShops,
-  Shop,
-  ShopItem,
-} from "@/lib/shop-items";
+import { getFeaturedItems, ShopItem } from "@/lib/shop-items";
 import Link from "next/link";
 import Image from "next/image";
 
 export default async function ShoppingPage() {
   const showcasedItems: ShopItem[] = await getFeaturedItems();
-  const shops: Shop[] = await getFeaturedShops();
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4 h-dvh">

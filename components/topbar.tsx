@@ -9,7 +9,6 @@ import {
 } from "@headlessui/react";
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { cn } from "@/lib/utils";
 import { auth, signIn, signOut } from "@/auth";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
 import db from "@/lib/db";

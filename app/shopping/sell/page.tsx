@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@radix-ui/react-select";
 import { PhotoIcon } from "@heroicons/react/24/solid";
 import { addArticleToShop } from "@/app/shopping/actions";
 import Link from "next/link";

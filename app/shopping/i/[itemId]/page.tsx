@@ -1,7 +1,6 @@
 import { getShopItem } from "@/lib/shop-items";
 import Link from "next/link";
 import { CheckIcon } from "@radix-ui/react-icons";
-import { ShieldCheckIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 
 export default async function ShopItemDetailsPage({
