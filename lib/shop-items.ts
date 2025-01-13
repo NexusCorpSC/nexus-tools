@@ -197,3 +197,41 @@ export async function isUserSellerOfShop(shopId: string, userId: ObjectId) {
 
   return !!shop;
 }
+
+export async function searchShopItems(query: string): Promise<ShopItem[]> {
+  return db
+    .db()
+    .collection("shopItems")
+    .aggregate<ShopItem>([
+      {
+        $match: {
+          $text: {
+            $search: query,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "shops",
+          localField: "shopId",
+          foreignField: "id",
+          as: "shop",
+          pipeline: [
+            {
+              $project: {
+                id: -1,
+                name: -1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$shop",
+        },
+      },
+    ])
+    .limit(10)
+    .toArray();
+}

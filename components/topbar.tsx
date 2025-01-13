@@ -7,7 +7,6 @@ import {
   MenuItem,
   MenuItems,
 } from "@headlessui/react";
-import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { auth, signIn, signOut } from "@/auth";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
@@ -18,6 +17,7 @@ import Link from "next/link";
 import {
   TopBarNavItem,
   TopBarNavMenuItem,
+  TopBarSearch,
 } from "@/components/topbar-components";
 
 const navigation = [
@@ -69,26 +69,7 @@ export default async function Topbar() {
             </Link>
           </div>
           <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
-            <div className="w-full sm:max-w-xs">
-              <label htmlFor="search" className="sr-only">
-                Search
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <MagnifyingGlassIcon
-                    aria-hidden="true"
-                    className="h-5 w-5 text-gray-400"
-                  />
-                </div>
-                <input
-                  id="search"
-                  name="search"
-                  type="search"
-                  placeholder="Search"
-                  className="block w-full rounded-md border-0 bg-gray-700 py-1.5 pl-10 pr-3 text-gray-300 placeholder:text-gray-400 focus:bg-white focus:text-gray-900 focus:ring-0 focus:placeholder:text-gray-500 sm:text-sm/6"
-                />
-              </div>
-            </div>
+            <TopBarSearch />
           </div>
           <div className="relative z-10 flex items-center lg:hidden">
             {/* Mobile menu button */}
