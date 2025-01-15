@@ -33,7 +33,7 @@ export default function LocaleSwitcherSelect({
         <Select.Trigger
           aria-label={label}
           className={clsx(
-            "rounded-sm p-2 transition-colors hover:bg-slate-200",
+            "rounded-sm transition-colors hover:bg-slate-200 ring-0 outline-0",
             isPending && "pointer-events-none opacity-60",
           )}
         >
@@ -51,7 +51,7 @@ export default function LocaleSwitcherSelect({
               {items.map((item) => (
                 <Select.Item
                   key={item.value}
-                  className="flex cursor-default items-center px-3 py-2 text-base data-[highlighted]:bg-slate-100"
+                  className="flex cursor-default items-center px-3 py-2 text-base data-[highlighted]:bg-slate-100 outline-0 "
                   value={item.value}
                 >
                   <div className="mr-2 w-[1rem]">
