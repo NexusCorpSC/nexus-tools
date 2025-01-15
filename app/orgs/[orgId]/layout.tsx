@@ -1,4 +1,3 @@
-import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import db from "@/lib/db";
 import { Organization } from "@/app/orgs/page";
@@ -11,8 +10,6 @@ export default async function OrgLayout({
   params: Promise<{ orgId: string }>;
   children: React.ReactNode;
 }) {
-  const t = await getTranslations("Organizations");
-
   const { orgId } = await params;
   const session = await auth();
 
