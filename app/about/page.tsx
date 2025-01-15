@@ -14,7 +14,8 @@ export default function Page() {
       <p>
         Votre email est conservé afin de permettre votre connexion. Aucun
         courriel promotionnel ne vous sera envoyé et cette information
-        n&apos;est pas partagée avec des tiers.
+        n&apos;est pas partagée avec des tiers ni même les autres joueurs (sauf
+        si vous choisissez de le faire avec certaines personnes précises).
       </p>
     </div>
   );
