@@ -135,5 +135,12 @@
     "title": "New organization",
     "error": "For now, organizations can only be created with beta access assigned by Nexus Corporation. Contact us to create your account!",
     "backToOrgs": "Back to organizations"
+  },
+  "Reputations": {
+    "title": "Reputations",
+    "connectToUse": "Sign in to your account to note and keep track of your reputations. Share them with your guildmates!",
+    "backToHome": "Back to home page.",
+    "noFactions": "Factions are not configured by administrator.",
+    "selectCurrentLevelInstructions": "Select your current level (completed) for each faction."
   }
 }

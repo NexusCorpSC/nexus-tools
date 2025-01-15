@@ -135,5 +135,12 @@
     "title": "Nouvelle organisation",
     "error": "Pour le moment, les organisations ne peuvent être créées qu'avec un accès bêta assigné par la Nexus Corporation. Contactez-nous pour la création de votre compte !",
     "backToOrgs": "Retour aux organisations"
+  },
+  "Reputations": {
+    "title": "Réputations",
+    "connectToUse": "Connectez-vous pour garder note de vos réputation et partagez-les avec votre organisation.",
+    "backToHome": "Retour à l'accueil",
+    "noFactions": "Les factions ne sont pas configurées par l'administrateur.",
+    "selectCurrentLevelInstructions": "Sélectionnez le niveau actuellement atteint (complété) pour chaque faction."
   }
 }
