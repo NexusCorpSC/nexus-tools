@@ -28,7 +28,7 @@ export function FactionsList({
   playerReputation,
 }: {
   factions: Faction[];
-  playerReputation: Record<string, { level: number; name: string }>;
+  playerReputation: Record<string, { level: number; name: string } | undefined>;
 }) {
   const [openQuery, setOpenQuery] = useState(false);
   const [selectedFactionName, setSelectedFactionName] = useState("");
@@ -102,7 +102,7 @@ export function FactionsList({
             onChange={async (event) => {
               await setPlayerReputation(selectedFaction.name, event);
             }}
-            value={playerReputation[selectedFaction.name].name ?? undefined}
+            value={playerReputation?.[selectedFaction.name]?.name ?? undefined}
           >
             {selectedFaction.levels.map((level) => (
               <Radio
@@ -160,7 +160,7 @@ export function FactionsList({
                 onChange={async (event) => {
                   await setPlayerReputation(faction.name, event);
                 }}
-                value={playerReputation[faction.name].name ?? undefined}
+                value={playerReputation?.[faction.name]?.name ?? undefined}
               >
                 {faction.levels.map((level) => (
                   <Radio
