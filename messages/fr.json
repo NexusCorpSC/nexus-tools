@@ -142,5 +142,8 @@
     "backToHome": "Retour à l'accueil",
     "noFactions": "Les factions ne sont pas configurées par l'administrateur.",
     "selectCurrentLevelInstructions": "Sélectionnez le niveau actuellement atteint (complété) pour chaque faction."
+  },
+  "OrganizationReputations": {
+    "title": "Réputation des membres"
   }
 }

@@ -1,203 +1,132 @@
-"use client";
-
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
-
+import db from "@/lib/db";
+import { getTranslations } from "next-intl/server";
+import { getFactions } from "@/lib/reputations";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
-export default function ReputationPage() {
-  const reputations = [
-    {
-      name: "Hurston Dynamics",
-      level: {
-        id: 3,
-        name: "Veteran",
+export default async function ReputationPage({
+  params,
+}: {
+  params: Promise<{ orgId: string }>;
+}) {
+  const t = await getTranslations("OrganizationReputations");
+
+  const { orgId } = await params;
+
+  const aggregation = await db
+    .db()
+    .collection("organizations")
+    .aggregate([
+      { $match: { _id: orgId } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "members.userId",
+          foreignField: "_id",
+          as: "users",
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                avatar: 1,
+                reputations: 1,
+              },
+            },
+          ],
+        },
       },
-      player: {
-        name: "Nakasar",
-        id: "player-nakasar",
-      },
-    },
-    {
-      name: "MicroTech",
-      level: {
-        id: 5,
-        name: "Confirmed",
-      },
-      player: {
-        name: "Nakasar",
-        id: "player-nakasar",
-      },
-    },
-    {
-      name: "Citizens for Prosperity",
-      level: {
-        id: -1,
-        name: "Hostile",
-      },
-      player: {
-        name: "Nakasar",
-        id: "player-nakasar",
-      },
-    },
-    {
-      name: "Headhunters",
-      level: {
-        id: 0,
-        name: "Applicant",
-      },
-      player: {
-        name: "Nakasar",
-        id: "player-nakasar",
-      },
-    },
-    {
-      name: "Xenothreat",
-      level: {
-        id: 1,
-        name: "Journeyman",
-      },
-      player: {
-        name: "Nakasar",
-        id: "player-nakasar",
-      },
-    },
-    {
-      name: "Hurston Dynamics",
-      level: {
-        id: 1,
-        name: "Journeyman",
-      },
-      player: {
-        name: "Eowen",
-        id: "player-eowen",
-      },
-    },
-    {
-      name: "MicroTech",
-      level: {
-        id: -1,
-        name: "Hostile",
-      },
-      player: {
-        name: "Eowen",
-        id: "player-eowen",
-      },
-    },
-    {
-      name: "MicroTech",
-      level: {
-        id: 3,
-        name: "Veteran",
-      },
-      player: {
-        name: "Max",
-        id: "player-max",
-      },
-    },
-    {
-      name: "MicroTech",
-      level: {
-        id: 3,
-        name: "Veteran",
-      },
-      player: {
-        name: "Genesix",
-        id: "player-genesix",
-      },
-    },
-  ];
-  const orgReputationsStatsByFaction = reputations.reduce(
-    (
-      acc: {
+    ])
+    .project<{
+      name: string;
+      users: {
+        avatar: string;
         name: string;
-        levels: { [name: string]: number };
-      }[],
-      rep,
+        reputations: { [faction: string]: { level: number; name: string } };
+      }[];
+    }>({ users: 1, name: 1 })
+    .toArray();
+
+  const factions = await getFactions();
+
+  if (!factions) {
+    return <div>loading...</div>;
+  }
+
+  const organisation = aggregation[0];
+
+  const usersByFactionLevel = factions.reduce(
+    (
+      acc: { [faction: string]: { [level: string]: { name: string }[] } },
+      faction,
     ) => {
-      const faction = acc.find((f) => f.name === rep.name);
-      if (faction) {
-        if (faction.levels[rep.level.name]) {
-          faction.levels[rep.level.name]++;
-        } else {
-          faction.levels[rep.level.name] = 1;
-        }
-      } else {
-        acc.push({
-          name: rep.name,
-          levels: { [rep.level.id]: 1 },
-        });
-      }
+      acc[faction.name] = faction.levels.reduce(
+        (levelAcc: { [level: string]: { name: string }[] }, level) => {
+          levelAcc[level.name] = organisation.users.filter((user) => {
+            const userReputation = user.reputations?.[faction.name];
+            return userReputation && userReputation.level === level.level;
+          });
+
+          return levelAcc;
+        },
+        {},
+      );
+
       return acc;
     },
-    [],
+    {},
   );
-
-  console.log(orgReputationsStatsByFaction);
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4 h-dvh">
-      <h1 className="text-2xl font-bold mb-4">Réputation</h1>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/orgs">Organisations</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/orgs/${orgId}`}>
+              {organisation.name}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Réputations</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
       <div>
-        <div>
-          <ChartContainer
-            config={{
-              "levels.-1": {
-                label: "Hostile",
-                color: "darkred",
-              },
-              "levels.0": {
-                label: "Applicant",
-                color: "gray",
-              },
-              "levels.1": {
-                label: "Journeyman",
-                color: "gray",
-              },
-              "levels.2": {
-                label: "Beginner",
-                color: "gray",
-              },
-              "levels.3": {
-                label: "Veteran",
-                color: "gray",
-              },
-              "levels.4": {
-                label: "Applicant",
-                color: "gray",
-              },
-              "levels.5": {
-                label: "Confirmed",
-                color: "darkgreen",
-              },
-            }}
-          >
-            <BarChart accessibilityLayer data={orgReputationsStatsByFaction}>
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="name"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-                tickFormatter={(value) => value}
-              />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="dashed" />}
-              />
-              <Bar dataKey="levels.-1" fill="darkred" radius={4} />
-              <Bar dataKey="levels.0" fill="gray" radius={4} />
-              <Bar dataKey="levels.1" fill="darkblue" radius={4} />
-              <Bar dataKey="levels.3" fill="darkblue" radius={4} />
-              <Bar dataKey="levels.4" fill="darkblue" radius={4} />
-              <Bar dataKey="levels.5" fill="darkgreen" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        </div>
+        {Object.entries(usersByFactionLevel).map(([factionName, levels]) => (
+          <div key={factionName}>
+            <h2 className="text-xl font-semibold mb-2">{factionName}</h2>
+            {Object.entries(levels).map(([levelName, users]) => (
+              <div key={levelName} className="mb-4">
+                <h3 className="text-lg font-medium">{levelName}</h3>
+                <ul className="list-disc list-inside">
+                  {users.map((user, index) => (
+                    <li key={index} className="text-sm">
+                      {user.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

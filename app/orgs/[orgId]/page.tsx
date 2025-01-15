@@ -5,6 +5,15 @@ import { ObjectId } from "bson";
 import Image from "next/image";
 import { handleRemoveMember } from "@/app/orgs/actions";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export default async function OrganizationPage({
   params,
@@ -37,7 +46,7 @@ export default async function OrganizationPage({
           localField: "members.userId",
           foreignField: "_id",
           as: "users",
-          pipeline: [{ $project: { name: 1, avatar: 1, email: 1, _id: 1 } }],
+          pipeline: [{ $project: { name: 1, avatar: 1, _id: 1 } }],
         },
       },
       {
@@ -68,6 +77,22 @@ export default async function OrganizationPage({
   if (!organization) {
     return (
       <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/orgs">Organisations</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Non trouvée</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <h1 className="tex-2xl">Organisation inexistante</h1>
       </div>
     );
@@ -81,6 +106,22 @@ export default async function OrganizationPage({
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/orgs">Organisations</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{organization.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <Image
         src={organization.image}
         alt={`Logo de l'organization ${organization.name}`}
@@ -96,6 +137,15 @@ export default async function OrganizationPage({
       <div>
         <h2 className="text-xl font-semibold mb-2">{t("description")}</h2>
         <p className="text-lg">{organization.description}</p>
+      </div>
+
+      <div>
+        <Link
+          href={`/orgs/${orgId}/reps`}
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+        >
+          Réputations
+        </Link>
       </div>
 
       {session?.user &&
