@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import ImgCrafting from "./img-crafting.png";
 import ImgReputation from "./img-reputation.png";
+import ImgShopping from "./img-shopping.png";
 
 export default function Home() {
   return (
@@ -46,10 +47,10 @@ export default function Home() {
                 </p>
               </div>
               <div className="relative min-h-[30rem] w-full grow [container-type:inline-size] max-lg:mx-auto max-lg:max-w-sm">
-                <div className="absolute inset-x-10 bottom-0 top-10 overflow-hidden rounded-t-[12cqw] border-x-[3cqw] border-t-[3cqw] border-gray-700 bg-gray-900 shadow-2xl">
-                  <img
+                <div className="absolute inset-x-10 bottom-0 top-10 overflow-hidden rounded-t-[12cqw] bg-gray-900 shadow-2xl">
+                  <Image
                     className="size-full object-cover object-top"
-                    src="https://tailwindui.com/plus/img/component-images/bento-03-mobile-friendly.png"
+                    src={ImgShopping}
                     alt=""
                   />
                 </div>
@@ -124,11 +125,11 @@ export default function Home() {
               </div>
               <div className="relative min-h-[30rem] w-full grow [container-type:inline-size] max-lg:mx-auto max-lg:max-w-sm">
                 <div className="absolute inset-x-10 bottom-0 top-10 overflow-hidden rounded-t-[12cqw] border-x-[3cqw] border-t-[3cqw] border-gray-700 bg-gray-900 shadow-2xl">
-                  <img
-                    className="size-full object-cover object-top"
-                    src="https://tailwindui.com/plus/img/component-images/bento-03-mobile-friendly.png"
-                    alt=""
-                  />
+                  <pre className="text-white pt-10 pl-4 text-wrap">
+                    const playersWithRep = await
+                    <br />
+                    fetch('https://tools.nexus.services/reps');
+                  </pre>
                 </div>
               </div>
             </Link>
