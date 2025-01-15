@@ -70,7 +70,7 @@ export default function Home() {
                 </p>
                 <p className="mt-2 max-w-lg text-sm/6 text-gray-600 max-lg:text-center">
                   Gérez vos recettes au sein de votre organisation et louez vos
-                  compétences aux acheteurs interessés.
+                  compétences aux acheteurs intéressés.
                 </p>
               </div>
               <div className="flex flex-1 items-center justify-center px-8 max-lg:pb-12 max-lg:pt-10 sm:px-10 lg:pb-2">
@@ -128,7 +128,7 @@ export default function Home() {
                   <pre className="text-white pt-10 pl-4 text-wrap">
                     const playersWithRep = await
                     <br />
-                    fetch('https://tools.nexus.services/reps');
+                    fetch(&apos;https://tools.nexus.services/reps&apos;);
                   </pre>
                 </div>
               </div>
