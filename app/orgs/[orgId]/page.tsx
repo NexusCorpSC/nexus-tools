@@ -73,22 +73,6 @@ export default async function OrganizationPage({
     );
   }
 
-  if (
-    !organization.public &&
-    (!session?.user ||
-      !organization.members.some((member) =>
-        member.userId.equals(session.user?.id),
-      ))
-  ) {
-    return (
-      <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
-        <h1 className="tex-2xl">
-          Accréditation insuffisante pour accéder à cette organisation.
-        </h1>
-      </div>
-    );
-  }
-
   const userIsEditor =
     session?.user &&
     organization.members.some(

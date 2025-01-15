@@ -25,6 +25,8 @@ const navigation = [
   { name: "dashboard", href: "/", current: true },
   { name: "shopping", href: "/shopping" },
   { name: "crafting", href: "/crafting" },
+  { name: "reputation", href: "/reps" },
+  { name: "organizations", href: "/orgs" },
 ];
 const userNavigation = [
   { name: "myProfile", href: "/profile" },
