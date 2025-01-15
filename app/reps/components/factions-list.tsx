@@ -21,8 +21,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { setPlayerReputation } from "@/app/reps/actions";
 
-export function FactionsList({ factions }: { factions: Faction[] }) {
+export function FactionsList({
+  factions,
+  playerReputation,
+}: {
+  factions: Faction[];
+  playerReputation: Record<string, { level: number; name: string }>;
+}) {
   const [openQuery, setOpenQuery] = useState(false);
   const [selectedFactionName, setSelectedFactionName] = useState("");
 
@@ -90,7 +97,13 @@ export function FactionsList({ factions }: { factions: Faction[] }) {
           <legend className="text-sm/6 font-semibold text-gray-900">
             {selectedFaction.name}
           </legend>
-          <RadioGroup className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4">
+          <RadioGroup
+            className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
+            onChange={async (event) => {
+              await setPlayerReputation(selectedFaction.name, event);
+            }}
+            value={playerReputation[selectedFaction.name].name ?? undefined}
+          >
             {selectedFaction.levels.map((level) => (
               <Radio
                 key={level.name}
@@ -138,11 +151,17 @@ export function FactionsList({ factions }: { factions: Faction[] }) {
       ) : (
         <div className="space-y-4">
           {factions.map((faction) => (
-            <fieldset>
+            <fieldset key={faction.name}>
               <legend className="text-sm/6 font-semibold text-gray-900">
                 {faction.name}
               </legend>
-              <RadioGroup className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4">
+              <RadioGroup
+                className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
+                onChange={async (event) => {
+                  await setPlayerReputation(faction.name, event);
+                }}
+                value={playerReputation[faction.name].name ?? undefined}
+              >
                 {faction.levels.map((level) => (
                   <Radio
                     key={level.name}

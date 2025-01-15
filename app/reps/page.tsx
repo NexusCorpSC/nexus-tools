@@ -2,11 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
-import db from "@/lib/db";
-import { Faction } from "@/lib/reputations";
-import { Radio, RadioGroup } from "@headlessui/react";
-import { CheckCircleIcon } from "@heroicons/react/24/outline";
-import { cn } from "@/lib/utils";
+import { getFactions, getPlayerReputations } from "@/lib/reputations";
 import { FactionsList } from "@/app/reps/components/factions-list";
 
 export default async function ReputationPage() {
@@ -14,7 +10,7 @@ export default async function ReputationPage() {
 
   const session = await auth();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return (
       <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
         <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
@@ -28,12 +24,9 @@ export default async function ReputationPage() {
     );
   }
 
-  const factionsConfig = await db
-    .db()
-    .collection<{ factions: Faction[] }>("configuration")
-    .findOne({ key: "reputations" });
+  const factions = await getFactions();
 
-  if (!factionsConfig) {
+  if (!factions) {
     return (
       <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
         <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
@@ -42,7 +35,8 @@ export default async function ReputationPage() {
       </div>
     );
   }
-  const factions = factionsConfig.factions;
+
+  const playerReputation = await getPlayerReputations(session.user.id);
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
@@ -50,7 +44,7 @@ export default async function ReputationPage() {
 
       <p>{t("selectCurrentLevelInstructions")}</p>
 
-      <FactionsList factions={factions} />
+      <FactionsList factions={factions} playerReputation={playerReputation} />
     </div>
   );
 }
