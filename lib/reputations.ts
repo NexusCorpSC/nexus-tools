@@ -49,5 +49,5 @@ export async function getPlayerReputations(playerId: string) {
     throw new Error(`Player not found.`);
   }
 
-  return player.reputations;
+  return player.reputations ?? {};
 }
