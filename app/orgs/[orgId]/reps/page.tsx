@@ -3,7 +3,6 @@
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 import {
-  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
