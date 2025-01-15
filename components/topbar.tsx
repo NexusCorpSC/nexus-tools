@@ -19,17 +19,18 @@ import {
   TopBarNavItem,
   TopBarNavMenuItem,
 } from "@/components/topbar-components";
+import { getTranslations } from "next-intl/server";
 
 const navigation = [
-  { name: "Dashboard", href: "/", current: true },
-  { name: "Shopping", href: "/shopping" },
-  { name: "Crafting", href: "/crafting" },
+  { name: "dashboard", href: "/", current: true },
+  { name: "shopping", href: "/shopping" },
+  { name: "crafting", href: "/crafting" },
 ];
 const userNavigation = [
-  { name: "Mon Profil", href: "/profile" },
-  { name: "Paramètres", href: "/settings" },
+  { name: "myProfile", href: "/profile" },
+  { name: "settings", href: "/settings" },
   {
-    name: "Déconnexion",
+    name: "signOut",
     action: async () => {
       "use server";
 
@@ -39,6 +40,7 @@ const userNavigation = [
 ];
 
 export default async function Topbar() {
+  const t = await getTranslations("TopBar");
   const session = await auth();
 
   const user = session?.user
@@ -71,7 +73,7 @@ export default async function Topbar() {
           <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
             <div className="w-full sm:max-w-xs">
               <label htmlFor="search" className="sr-only">
-                Search
+                t('search')
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -84,7 +86,7 @@ export default async function Topbar() {
                   id="search"
                   name="search"
                   type="search"
-                  placeholder="Search"
+                  placeholder={t("search")}
                   className="block w-full rounded-md border-0 bg-gray-700 py-1.5 pl-10 pr-3 text-gray-300 placeholder:text-gray-400 focus:bg-white focus:text-gray-900 focus:ring-0 focus:placeholder:text-gray-500 sm:text-sm/6"
                 />
               </div>
@@ -94,7 +96,7 @@ export default async function Topbar() {
             {/* Mobile menu button */}
             <DisclosureButton className="group relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
               <span className="absolute -inset-0.5" />
-              <span className="sr-only">Ouvrir le menu</span>
+              <span className="sr-only">{t("openMenu")}</span>
               <Bars3Icon
                 aria-hidden="true"
                 className="block h-6 w-6 group-data-[open]:hidden"
@@ -112,7 +114,7 @@ export default async function Topbar() {
                 className="relative flex-shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
               >
                 <span className="absolute -inset-1.5" />
-                <span className="sr-only">Voir les notifications</span>
+                <span className="sr-only">{t("readNotifications")}</span>
                 <BellIcon aria-hidden="true" className="h-6 w-6" />
               </button>
 
@@ -121,7 +123,7 @@ export default async function Topbar() {
                 <div>
                   <MenuButton className="relative flex rounded-full bg-gray-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
                     <span className="absolute -inset-1.5" />
-                    <span className="sr-only">Ouvrir le menu utilisateur</span>
+                    <span className="sr-only">{t("openUserMenu")}</span>
                     <Image
                       alt=""
                       src={user.avatar ?? "/avatar_empty.png"}
@@ -142,14 +144,14 @@ export default async function Topbar() {
                           href={item.href}
                           className="block px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100"
                         >
-                          {item.name}
+                          {t(`nav.${item.name}`)}
                         </a>
                       ) : (
                         <form
                           action={item.action}
                           className="block px-4 py-2 text-sm text-gray-700 data-[focus]:bg-gray-100"
                         >
-                          <button>{item.name}</button>
+                          <button>{t(`nav.${item.name}`)}</button>
                         </form>
                       )}
                     </MenuItem>
@@ -170,7 +172,7 @@ export default async function Topbar() {
                   className="relative flex-shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
                 >
                   <span className="absolute -inset-1.5" />
-                  <span className="sr-only">Connexion</span>
+                  <span className="sr-only">{t("nav.signIn")}</span>
                   <ArrowLeftEndOnRectangleIcon
                     aria-hidden="true"
                     className="h-6 w-6"
@@ -185,7 +187,11 @@ export default async function Topbar() {
           className="hidden lg:flex lg:space-x-8 lg:py-2"
         >
           {navigation.map((item) => (
-            <TopBarNavItem name={item.name} href={item.href} key={item.name} />
+            <TopBarNavItem
+              name={t(`nav.${item.name}`)}
+              href={item.href}
+              key={item.name}
+            />
           ))}
         </nav>
       </div>
@@ -194,7 +200,7 @@ export default async function Topbar() {
         <div className="space-y-1 px-2 pb-3 pt-2">
           {navigation.map((item) => (
             <TopBarNavMenuItem
-              name={item.name}
+              name={t(`nav.${item.name}`)}
               href={item.href}
               key={item.name}
             />
@@ -239,7 +245,7 @@ export default async function Topbar() {
                       href={item.href}
                       className="block rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
                     >
-                      {item.name}
+                      {t(`nav.${item.name}`)}
                     </DisclosureButton>
                   ) : (
                     <form
@@ -248,7 +254,7 @@ export default async function Topbar() {
                       className="rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
                     >
                       <button type="submit" className="w-full text-left">
-                        {item.name}
+                        {t(`nav.${item.name}`)}
                       </button>
                     </form>
                   ),
@@ -267,7 +273,7 @@ export default async function Topbar() {
                 type="submit"
                 className="w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
               >
-                Connexion
+                {t("nav.signIn")}
               </button>
             </form>
           )}

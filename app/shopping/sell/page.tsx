@@ -13,8 +13,11 @@ import {
 import { PhotoIcon } from "@heroicons/react/24/solid";
 import { addArticleToShop } from "@/app/shopping/actions";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 export default async function SellPage() {
+  const t = await getTranslations("ShoppingNewItem");
+
   const session = await auth();
 
   if (!session || !session.user) {
@@ -44,27 +47,20 @@ export default async function SellPage() {
   if (userShops.length === 0) {
     return (
       <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4 h-dvh">
-        <h1 className="text-2xl font-bold mb-4">Vente</h1>
+        <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
-        <p>
-          Vous n&apos;êtes membre d&apos;aucun magasin et ne pouvez donc pas
-          vendre d&apos;objets sur cette plateforme.
-        </p>
+        <p>{t("noShop.error")}</p>
 
-        <p>
-          Nous limitons les accès aux vendeurs pour garantir la qualité du
-          service. Nous ingénieurs systèmes travaillent dur pour ouvrir la
-          plateforme à tout les vendeurs du Verse!
-        </p>
+        <p>{t("noShop.explanation")}</p>
 
-        <p>Contactez la Nexus Corporation pour obtenir une license de vente.</p>
+        <p>{t("noShop.contact")}</p>
       </div>
     );
   }
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4 h-dvh">
-      <h1 className="text-2xl font-bold mb-4">Vente</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
       <form action={addArticleToShop}>
         <div>
@@ -72,13 +68,13 @@ export default async function SellPage() {
             htmlFor="shopId"
             className="block text-sm/6 font-medium text-gray-900"
           >
-            Magasin de vente
+            {t("itemShop")}
           </label>
 
           <div className="mt-2">
             <Select name="shopId" defaultValue={selectedShop?.id} required>
               <SelectTrigger>
-                <SelectValue placeholder="Choisissez votre magasin" />
+                <SelectValue placeholder={t("itemShopChoose")} />
               </SelectTrigger>
               <SelectContent>
                 {userShops.map((shop) => (
@@ -96,14 +92,14 @@ export default async function SellPage() {
             htmlFor="name"
             className="block text-sm/6 font-medium text-gray-900"
           >
-            Nom de l&apos;article
+            {t("itemName")}
           </label>
           <div className="mt-2">
             <input
               id="name"
               name="name"
               type="text"
-              placeholder="Un objet..."
+              placeholder={t("itemNamePlaceholder")}
               required
               className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
               maxLength={500}
@@ -116,16 +112,18 @@ export default async function SellPage() {
             htmlFor="type"
             className="block text-sm/6 font-medium text-gray-900"
           >
-            Type d&apos;article
+            {t("itemType")}
           </label>
           <div className="mt-2">
             <Select name="type" required>
               <SelectTrigger>
-                <SelectValue placeholder="Type d'article" />
+                <SelectValue placeholder={t("itemType")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="OBJECT">Bien/objet</SelectItem>
-                <SelectItem value="SERVICE">Service</SelectItem>
+                <SelectItem value="OBJECT">{t("itemTypes.OBJECT")}</SelectItem>
+                <SelectItem value="SERVICE">
+                  {t("itemTypes.SERVICE")}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -136,7 +134,7 @@ export default async function SellPage() {
             htmlFor="description"
             className="block text-sm/6 font-medium text-gray-900"
           >
-            Description de l&apos;article
+            {t("itemDescription")}
           </label>
           <div className="mt-2">
             <textarea
@@ -150,8 +148,7 @@ export default async function SellPage() {
             />
           </div>
           <p className="mt-3 text-sm/6 text-gray-600">
-            Décrivez le produit ou le service en quelques lignes. Restez concis
-            pour maximiser l&apos;impact de votre annonce !
+            {t("itemDescriptionHelper")}
           </p>
         </div>
 
@@ -160,7 +157,7 @@ export default async function SellPage() {
             htmlFor="price"
             className="block text-sm/6 font-medium text-gray-900"
           >
-            Prix de vente (aUEC) (ou prix minimum pour un service)
+            {t("itemPrice")}
           </label>
           <div className="mt-2">
             <input
@@ -181,7 +178,7 @@ export default async function SellPage() {
             htmlFor="image-cover"
             className="block text-sm/6 font-medium text-gray-900"
           >
-            Image de l&apos;article
+            {t("itemImage")}
           </label>
           <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
             <div className="text-center">
@@ -194,7 +191,7 @@ export default async function SellPage() {
                   htmlFor="image"
                   className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
                 >
-                  <span>Téléversez une image</span>
+                  <span>{t("itemImageUpload")}</span>
                   <input
                     id="image"
                     name="image"
@@ -204,9 +201,9 @@ export default async function SellPage() {
                     required
                   />
                 </label>
-                <p className="pl-1">ou glisser-déposer</p>
+                <p className="pl-1">{t("itemImageDrop")}</p>
               </div>
-              <p className="text-xs/5 text-gray-600">PNG ou JPG, max 2MB</p>
+              <p className="text-xs/5 text-gray-600">{t("itemImageFormats")}</p>
             </div>
           </div>
         </div>
@@ -216,13 +213,13 @@ export default async function SellPage() {
             href="/shopping"
             className="text-sm/6 font-semibold text-gray-900"
           >
-            Annuler
+            {t("cancel")}
           </Link>
           <button
             type="submit"
             className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
-            Ajouter l&apos;article au magasin
+            {t("addArticle")}
           </button>
         </div>
       </form>

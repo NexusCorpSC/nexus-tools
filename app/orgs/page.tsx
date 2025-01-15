@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import { ObjectId } from "bson";
+import { getTranslations } from "next-intl/server";
 
 export type Organization = {
   _id: string;
@@ -16,6 +17,8 @@ export type Organization = {
 };
 
 export default async function OrganizationsPage() {
+  const t = await getTranslations("Organizations");
+
   const session = await auth();
 
   const organizations = await db
@@ -45,17 +48,17 @@ export default async function OrganizationsPage() {
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
-      <h1 className="text-2xl font-bold mb-4">Organisations</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
       {session?.user && (
         <div className="">
-          <h2 className="text-xl">Mes organisations</h2>
+          <h2 className="text-xl">{t("myOrgs")}</h2>
 
           <Link
             href={"/orgs/new"}
             className="uppercase block rounded-lg bg-primary bg-gradient-to-r from-orange-800 hover:from-orange-600 to-blue-800 hover:to-blue-600 p-8 m-4 text-secondary font-bold"
           >
-            Ajouter une nouvelle organisation
+            {t("ctaNewOrg")}
           </Link>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -86,7 +89,7 @@ export default async function OrganizationsPage() {
       )}
 
       <div>
-        <h2 className="text-xl">Organisations publiques</h2>
+        <h2 className="text-xl">{t("publicOrgs")}</h2>
 
         {organizations.map((org, index) => (
           <Link

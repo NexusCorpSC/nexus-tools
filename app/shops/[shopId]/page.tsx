@@ -1,18 +1,20 @@
 import { getShop, getShopItemsOfShop } from "@/lib/shop-items";
 import Image from "next/image";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 export default async function ShopPage({
   params,
 }: {
   params: Promise<{ shopId: string }>;
 }) {
+  const t = await getTranslations("ShopDetails");
   const shop = await getShop((await params).shopId);
 
   if (!shop) {
     return (
       <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
-        <h1 className="text-2xl font-bold mb-4">Boutique non trouvée</h1>
+        <h1 className="text-2xl font-bold mb-4">{t("notFound")}</h1>
       </div>
     );
   }

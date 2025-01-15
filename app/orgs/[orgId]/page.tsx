@@ -4,12 +4,15 @@ import { auth } from "@/auth";
 import { ObjectId } from "bson";
 import Image from "next/image";
 import { handleRemoveMember } from "@/app/orgs/actions";
+import { getTranslations } from "next-intl/server";
 
 export default async function OrganizationPage({
   params,
 }: {
   params: Promise<{ orgId: string }>;
 }) {
+  const t = await getTranslations("Organizations");
+
   const { orgId } = await params;
   const session = await auth();
 
@@ -107,7 +110,7 @@ export default async function OrganizationPage({
       </h1>
 
       <div>
-        <h2 className="text-xl font-semibold mb-2">Description</h2>
+        <h2 className="text-xl font-semibold mb-2">{t("description")}</h2>
         <p className="text-lg">{organization.description}</p>
       </div>
 
@@ -116,7 +119,7 @@ export default async function OrganizationPage({
           member.userId.equals(session.user?.id),
         ) && (
           <div>
-            <h2 className="text-xl font-semibold mb-2">Membres</h2>
+            <h2 className="text-xl font-semibold mb-2">{t("members")}</h2>
             <ul className="divide-y divide-gray-100">
               {organization.members.map((member, index) => (
                 <li key={index} className="flex justify-between gap-x-6 py-5">
@@ -152,8 +155,8 @@ export default async function OrganizationPage({
                           />
                           <button className="text-red-500 hover:text-red-700">
                             {member.userId.equals(session.user?.id)
-                              ? "Quitter"
-                              : "Expulser"}
+                              ? t("leaveOrg")
+                              : t("kickMember")}
                           </button>
                         </form>
                       </>

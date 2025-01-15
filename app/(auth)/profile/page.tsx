@@ -6,6 +6,7 @@ import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
 import Image from "next/image";
 import { AvatarUpdateComponent } from "@/app/(auth)/profile/components";
+import { getTranslations } from "next-intl/server";
 
 export type User = {
   _id: ObjectId;
@@ -16,6 +17,7 @@ export type User = {
 };
 
 export default async function ProfilePage() {
+  const t = await getTranslations("Profile");
   const session = await auth();
 
   if (!session) {
@@ -51,12 +53,14 @@ export default async function ProfilePage() {
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
-      <h1 className="text-2xl font-bold mb-4">Mon profil</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
       <div className="mt-6 border-t border-gray-100">
         <dl className="divide-y divide-gray-100">
           <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
-            <dt className="text-sm/6 font-medium text-gray-900">Avatar</dt>
+            <dt className="text-sm/6 font-medium text-gray-900">
+              {t("avatar")}
+            </dt>
             <dd className="mt-1 flex text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
               <div className="grow text-gray-500">
                 <Image
@@ -72,7 +76,9 @@ export default async function ProfilePage() {
             </dd>
           </div>
           <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
-            <dt className="text-sm/6 font-medium text-gray-900">Pseudo</dt>
+            <dt className="text-sm/6 font-medium text-gray-900">
+              {t("username")}
+            </dt>
             <dd className="mt-1 flex text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
               <span className="grow">{user.name ?? "-"}</span>
               <span className="ml-4 shrink-0">
@@ -80,13 +86,15 @@ export default async function ProfilePage() {
                   type="button"
                   className="rounded-md bg-white font-medium text-indigo-600 hover:text-indigo-500"
                 >
-                  Modifier
+                  {t("edit")}
                 </button>
               </span>
             </dd>
           </div>
           <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
-            <dt className="text-sm/6 font-medium text-gray-900">Email</dt>
+            <dt className="text-sm/6 font-medium text-gray-900">
+              {t("email")}
+            </dt>
             <dd className="mt-1 flex text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
               <span className="grow">{user.email}</span>
             </dd>
@@ -95,7 +103,7 @@ export default async function ProfilePage() {
       </div>
 
       <div className="mb-4">
-        <h2 className="text-xl font-semibold mb-2">Organisations</h2>
+        <h2 className="text-xl font-semibold mb-2">{t("organizations")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {organizations.map((org, index) => (
             <Link
@@ -130,7 +138,7 @@ export default async function ProfilePage() {
         }}
       >
         <button className="bg-primary text-primary-foreground py-2 px-4 rounded hover:bg-primary/90">
-          Se déconnecter
+          {t("signOut")}
         </button>
       </form>
     </div>

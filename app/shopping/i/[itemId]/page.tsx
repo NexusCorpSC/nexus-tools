@@ -5,20 +5,23 @@ import Image from "next/image";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import { Suspense } from "react";
 import { StockModificationSection } from "@/app/shopping/i/[itemId]/server-components";
+import { getTranslations } from "next-intl/server";
 
 export default async function ShopItemDetailsPage({
   params,
 }: {
   params: Promise<{ itemId: string }>;
 }) {
+  const t = await getTranslations("ShoppingItem");
+
   const item = await getShopItem((await params).itemId);
 
   if (!item) {
     return (
       <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
-        <h1 className="text-2xl font-bold mb-4">Objet non trouvé</h1>
+        <h1 className="text-2xl font-bold mb-4">{t("notFound")}</h1>
 
-        <Link href="/shopping">Retour au shopping</Link>
+        <Link href="/shopping">{t("backToShopping")}</Link>
       </div>
     );
   }
@@ -39,7 +42,7 @@ export default async function ShopItemDetailsPage({
 
           <section aria-labelledby="information-heading" className="mt-4">
             <h2 id="information-heading" className="sr-only">
-              Product information
+              {t("productInfo")}
             </h2>
 
             <div className="flex items-center">
@@ -50,7 +53,7 @@ export default async function ShopItemDetailsPage({
 
             <div className="flex items-center">
               <p className="text-md text-gray-600 sm:text-lg">
-                Vendu par :{" "}
+                {t("soldBy")}{" "}
                 <Link
                   href={`/shops/${item.shop.id}`}
                   className="text-blue-600 hover:text-blue-800"
@@ -70,7 +73,7 @@ export default async function ShopItemDetailsPage({
                   aria-hidden="true"
                   className="size-5 shrink-0 text-red-500"
                 />
-                <p className="ml-2 text-sm text-gray-500">Epuisé !</p>
+                <p className="ml-2 text-sm text-gray-500">{t("soldOut")}</p>
               </div>
             )}
             {item.stock > 0 && item.stock <= 5 && (
@@ -79,7 +82,7 @@ export default async function ShopItemDetailsPage({
                   aria-hidden="true"
                   className="size-5 shrink-0 text-orange-500"
                 />
-                <p className="ml-2 text-sm text-gray-500">Stock faible !</p>
+                <p className="ml-2 text-sm text-gray-500">{t("lowStock")}</p>
               </div>
             )}
             {item.stock > 5 && (
@@ -88,7 +91,7 @@ export default async function ShopItemDetailsPage({
                   aria-hidden="true"
                   className="size-5 shrink-0 text-green-500"
                 />
-                <p className="ml-2 text-sm text-gray-500">En stock</p>
+                <p className="ml-2 text-sm text-gray-500">{t("inStock")}</p>
               </div>
             )}
             <div className="pt-4">
@@ -117,7 +120,7 @@ export default async function ShopItemDetailsPage({
                   type="submit"
                   className="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50"
                 >
-                  Acheter
+                  {t("buy")}
                 </button>
               </div>
             </form>

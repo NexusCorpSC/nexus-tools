@@ -1,0 +1,137 @@
+{
+  "LocaleSwitcher": {
+    "fr": "Français",
+    "en": "English",
+    "label": "Language"
+  },
+  "TopBar": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "shopping": "Marketplace",
+      "crafting": "Crafting",
+      "myProfile": "My Profile",
+      "settings": "Settings",
+      "signOut": "Sign Out",
+      "signIn": "Sign In"
+    },
+    "openMenu": "Open menu",
+    "openUserMenu": "Open user menu",
+    "readNotifications": "Read notifications",
+    "search": "Search"
+  },
+  "HomePage": {
+    "title": "Welcome!",
+    "intro1": "Nexus Tools is a set of tools at your disposal to organize your activity in the Verse.",
+    "intro2": "The toolbox is under development and some features are reserved for a group of brave testers. If you want to join the adventure, contact the Nexus Corporation! In any case, your feedback on public features is welcome!",
+    "features": {
+      "title": "Get Organized!",
+      "subtitle": "Tools to make community life easier.",
+      "marketplace": {
+        "title": "Marketplace",
+        "description": "Sell your items and services to other explorers of the Verse or find what you need!"
+      },
+      "crafting": {
+        "title": "Crafting",
+        "description": "Manage your recipes within your organization and rent your skills to interested buyers."
+      },
+      "reputation": {
+        "title": "Reputation",
+        "description": "Centralize the reputations of your guild members to facilitate your outings and mission sharing."
+      },
+      "developers": {
+        "title": "Modular",
+        "description": "Integrate our tools directly into your applications via our open API."
+      }
+    }
+  },
+  "Footer": {
+    "copyright": "© 2025 Nexus Corporation. All rights reserved. Images and assets from Star Citizen owned by Cloud Imperium Games.",
+    "links": {
+      "about": "About",
+      "blog": "Blog"
+    }
+  },
+  "Crafting": {
+    "title": "Crafting",
+    "wip": "We are working on creating this page, and we are waiting for new information on crafting in the Verse to complete this feature.",
+    "backButton": "Back to the main page"
+  },
+  "Shopping": {
+    "title": "Marketplace",
+    "ctaSellButton": "Sell an item or service",
+    "featuredItemsTitle": "Featured Items",
+    "shop": "Shop",
+    "shops": "Shops",
+    "buy": "Buy"
+  },
+  "ShoppingItem": {
+    "notFound": "Item not found",
+    "backToShopping": "Back to shopping",
+    "productInfo": "Product information",
+    "soldBy": "Sold by:",
+    "soldOut": "Sold out!",
+    "lowStock": "Low stock!",
+    "inStock": "In stock",
+    "buy": "Buy"
+  },
+  "ShopItemManagement": {
+    "currentStock": "Current stock:",
+    "addToStock": "Add to stock",
+    "removeFromStock": "Remove from stock",
+    "addOne": "Add 1",
+    "removeOne": "Remove 1"
+  },
+  "ShoppingNewItem": {
+    "title": "Sell",
+    "noShop": {
+      "error": "You are not a member of any shop and therefore cannot sell items on this platform.",
+      "explanation": "We limit access to sellers to ensure the quality of service. Our system engineers are working hard to open the platform to all sellers in the Verse!",
+      "contact": "Contact Nexus Corporation to obtain a sales license."
+    },
+    "itemShop": "Sales shop",
+    "itemShopChoose": "Choose your shop",
+    "itemName": "Item name",
+    "itemNamePlaceholder": "An item...",
+    "itemType": "Item type",
+    "itemTypes": {
+      "OBJECT": "Item/object",
+      "SERVICE": "Service"
+    },
+    "itemDescription": "Item description",
+    "itemDescriptionHelper": "Describe the product or service in a few lines. Be concise to maximize the impact of your ad!",
+    "itemPrice": "Sale price (aUEC) (or minimum price for a service)",
+    "itemImage": "Item image",
+    "itemImageUpload": "Upload an image",
+    "itemImageDrop": "or drag and drop",
+    "itemImageFormats": "PNG or JPG, max 2MB",
+    "cancel": "Cancel",
+    "addArticle": "Add the item to the shop"
+  },
+  "ShopDetails": {
+    "notFound": "Shop not found"
+  },
+  "Profile": {
+    "title": "My Profile",
+    "avatar": "Avatar",
+    "username": "Username",
+    "edit": "Edit",
+    "email": "Email",
+    "organizations": "Organizations",
+    "signOut": "Sign Out"
+  },
+  "Organizations": {
+    "title": "Organizations",
+    "myOrgs": "My Orgs",
+    "ctaNewOrg": "Add a new organization",
+    "publicOrgs": "Public organizations",
+    "description": "Description",
+    "members": "Members",
+    "leaveOrg": "Leave",
+    "kickMember": "Kick"
+  },
+  "NewOrganization": {
+    "title": "New organization",
+    "error": "For now, organizations can only be created with beta access assigned by Nexus Corporation. Contact us to create your account!",
+    "backToOrgs": "Back to organizations"
+  }
+}

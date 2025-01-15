@@ -1,19 +1,18 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export default function NewOrgPage() {
+  const t = useTranslations("NewOrganization");
+
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
-      <h1 className="text-2xl font-bold mb-4">Nouvelle Organisation</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
-      <p>
-        Pour le moment, les organisations ne peuvent être créées qu&apos;avec un
-        accès bêta assigné par la Nexus Corporation. Contactez-nous pour la
-        création de votre compte !
-      </p>
+      <p>{t("error")}</p>
 
       <Button asChild>
-        <Link href="/orgs">Retour aux organisations.</Link>
+        <Link href="/orgs">{t("backToOrgs")}</Link>
       </Button>
     </div>
   );

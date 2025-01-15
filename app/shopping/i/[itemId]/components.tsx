@@ -3,8 +3,11 @@
 import { MinusIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
 import { incrementShopItemStock } from "@/app/shopping/actions";
+import { useTranslations } from "next-intl";
 
 export function StockModificationForm({ itemId }: { itemId: string }) {
+  const t = useTranslations("ShopItemManagement");
+
   const [stockModification, setStockModification] = useState(0);
 
   return (
@@ -23,7 +26,7 @@ export function StockModificationForm({ itemId }: { itemId: string }) {
           className="relative inline-flex items-center rounded-l-md bg-white px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
           onClick={() => setStockModification(stockModification - 1)}
         >
-          <span className="sr-only">Retirer 1</span>
+          <span className="sr-only">{t("removeOne")}</span>
           <MinusIcon aria-hidden="true" className="size-5" />
         </button>
         <input
@@ -41,14 +44,14 @@ export function StockModificationForm({ itemId }: { itemId: string }) {
           className="relative -ml-px inline-flex items-center rounded-r-md bg-white px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
           onClick={() => setStockModification(stockModification + 1)}
         >
-          <span className="sr-only">Ajouter 1</span>
+          <span className="sr-only">{t("addOne")}</span>
           <PlusIcon aria-hidden="true" className="size-5" />
         </button>
         <button
           type="submit"
           className="ml-4 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
         >
-          {stockModification < 0 ? "Retirer du" : "Ajouter au"} stock
+          {stockModification < 0 ? t("removeFromStock") : t("addToStock")}
         </button>
       </span>
     </form>

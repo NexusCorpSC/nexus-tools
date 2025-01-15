@@ -1,34 +1,28 @@
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 import ImgCrafting from "./img-crafting.png";
 import ImgReputation from "./img-reputation.png";
 import ImgShopping from "./img-shopping.png";
 
 export default function Home() {
+  const t = useTranslations("HomePage");
+
   return (
     <div className="m-2 p-6 mx-auto bg-white rounded-xl shadow-md space-y-4">
-      <h1 className="text-2xl font-bold mb-4">Bienvenue !</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
-      <p>
-        Nexus Tools est un ensemble d&apos;outils à votre disposition pour
-        organiser votre activité dans le Verse.
-      </p>
+      <p>{t("intro1")}</p>
 
-      <p>
-        La boîte à outils est en période de développement et certaines
-        fonctionnalités sont réservées à un ensemble de courageux testeurs. Si
-        vous souhaitez participer à l&apos;aventure, contactez la Nexus
-        Corporation ! Dans tous les cas, vos retours sur les fonctionnalités
-        publiques sont les bienvenus !
-      </p>
+      <p>{t("intro2")}</p>
 
       <div className="mx-auto max-w-2xl px-6 lg:max-w-7xl lg:px-8">
         <h2 className="text-center text-base/7 font-semibold text-indigo-600">
-          Organisez-vous !
+          {t("features.title")}
         </h2>
         <p className="mx-auto mt-2 max-w-lg text-balance text-center text-4xl font-semibold tracking-tight text-gray-950 sm:text-5xl">
-          Des outils pour faciliter la vie en communauté.
+          {t("features.subtitle")}
         </p>
         <div className="mt-10 grid gap-4 sm:mt-16 lg:grid-cols-3 lg:grid-rows-2">
           <div className="relative lg:row-span-2">
@@ -39,11 +33,10 @@ export default function Home() {
             >
               <div className="px-8 pb-3 pt-8 sm:px-10 sm:pb-0 sm:pt-10">
                 <p className="mt-2 text-lg font-medium tracking-tight text-gray-950 max-lg:text-center">
-                  Marketplace
+                  {t("features.marketplace.title")}
                 </p>
                 <p className="mt-2 max-w-lg text-sm/6 text-gray-600 max-lg:text-center">
-                  Vendez vos objets et services aux autres explorateurs du Verse
-                  ou trouvez ce dont vous avez besoin !
+                  {t("features.marketplace.description")}
                 </p>
               </div>
               <div className="relative min-h-[30rem] w-full grow [container-type:inline-size] max-lg:mx-auto max-lg:max-w-sm">
@@ -66,11 +59,10 @@ export default function Home() {
             >
               <div className="px-8 pt-8 sm:px-10 sm:pt-10">
                 <p className="mt-2 text-lg font-medium tracking-tight text-gray-950 max-lg:text-center">
-                  Artisanat
+                  {t("features.crafting.title")}
                 </p>
                 <p className="mt-2 max-w-lg text-sm/6 text-gray-600 max-lg:text-center">
-                  Gérez vos recettes au sein de votre organisation et louez vos
-                  compétences aux acheteurs intéressés.
+                  {t("features.crafting.description")}
                 </p>
               </div>
               <div className="flex flex-1 items-center justify-center px-8 max-lg:pb-12 max-lg:pt-10 sm:px-10 lg:pb-2">
@@ -91,11 +83,10 @@ export default function Home() {
             >
               <div className="px-8 pt-8 sm:px-10 sm:pt-10">
                 <p className="mt-2 text-lg font-medium tracking-tight text-gray-950 max-lg:text-center">
-                  Réputation
+                  {t("features.reputation.title")}
                 </p>
                 <p className="mt-2 max-w-lg text-sm/6 text-gray-600 max-lg:text-center">
-                  Centralisez les réputations des membres de votre guilde pour
-                  faciliter vos sorties et les partages de missions.
+                  {t("features.reputation.description")}
                 </p>
               </div>
               <div className="flex flex-1 items-center [container-type:inline-size] max-lg:py-6 lg:pb-2">
@@ -116,11 +107,10 @@ export default function Home() {
             >
               <div className="px-8 pb-3 pt-8 sm:px-10 sm:pb-0 sm:pt-10">
                 <p className="mt-2 text-lg font-medium tracking-tight text-gray-950 max-lg:text-center">
-                  API first
+                  {t("features.developers.title")}
                 </p>
                 <p className="mt-2 max-w-lg text-sm/6 text-gray-600 max-lg:text-center">
-                  Intégrez nos outils directement dans vos applications via
-                  notre API ouverte.
+                  {t("features.developers.description")}
                 </p>
               </div>
               <div className="relative min-h-[30rem] w-full grow [container-type:inline-size] max-lg:mx-auto max-lg:max-w-sm">

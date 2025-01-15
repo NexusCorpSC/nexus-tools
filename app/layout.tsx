@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Footer from "@/components/footer";
 import Topbar from "@/components/topbar";
+import { getLocale, getMessages } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -20,19 +22,25 @@ export const metadata: Metadata = {
   description: "A collection of tools for Star Citizen.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+
+  const messages = await getMessages();
+
   return (
     <html lang="fr">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Topbar />
-        <div className="min-h-dvh">{children}</div>
-        <Footer />
+        <NextIntlClientProvider messages={messages}>
+          <Topbar />
+          <div className="min-h-dvh">{children}</div>
+          <Footer />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

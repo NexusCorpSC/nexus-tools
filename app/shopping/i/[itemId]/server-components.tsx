@@ -2,8 +2,11 @@ import { auth } from "@/auth";
 import { isUserSellerOfShop, ShopItem } from "@/lib/shop-items";
 import { ObjectId } from "bson";
 import { StockModificationForm } from "@/app/shopping/i/[itemId]/components";
+import { getTranslations } from "next-intl/server";
 
 export async function StockModificationSection({ item }: { item: ShopItem }) {
+  const t = await getTranslations("ShopItemManagement");
+
   const session = await auth();
 
   if (!session?.user) {
@@ -13,7 +16,10 @@ export async function StockModificationSection({ item }: { item: ShopItem }) {
   if (await isUserSellerOfShop(item.shop.id, new ObjectId(session.user.id))) {
     return (
       <>
-        <p>Stock actuel : {item.stock}</p>
+        <p>
+          {t("currentStock")}
+          {item.stock}
+        </p>
         <StockModificationForm itemId={item.id} />
       </>
     );

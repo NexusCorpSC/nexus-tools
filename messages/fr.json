@@ -1,0 +1,137 @@
+{
+  "LocaleSwitcher": {
+    "fr": "Français",
+    "en": "English",
+    "label": "Langage"
+  },
+  "TopBar": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "shopping": "Marketplace",
+      "crafting": "Artisanat",
+      "myProfile": "Mon Profil",
+      "settings": "Paramètres",
+      "signOut": "Déconnexion",
+      "signIn": "Connexion"
+    },
+    "openMenu": "Ouvrir le menu",
+    "openUserMenu": "Ouvrir le menu utilisateur",
+    "readNotifications": "Voir les notifications",
+    "search": "Rechercher"
+  },
+  "HomePage": {
+    "title": "Bienvenue !",
+    "intro1": "Nexus Tools est un ensemble d'outils à votre disposition pour organiser votre activité dans le Verse.",
+    "intro2": "La boîte à outils est en période de développement et certaines fonctionnalités sont réservées à un ensemble de courageux testeurs. Si vous souhaitez participer à l'aventure, contactez la Nexus Corporation ! Dans tous les cas, vos retours sur les fonctionnalités publiques sont les bienvenus !",
+    "features": {
+      "title": "Organisez-vous !",
+      "subtitle": "Des outils pour faciliter la vie en communauté.",
+      "marketplace": {
+        "title": "Marketplace",
+        "description": "Vendez vos objets et services aux autres explorateurs du Verse ou trouvez ce dont vous avez besoin !"
+      },
+      "crafting": {
+        "title": "Artisanat",
+        "description": "Gérez vos recettes au sein de votre organisation et louez vos compétences aux acheteurs intéressés."
+      },
+      "reputation": {
+        "title": "Réputation",
+        "description": "Centralisez les réputations des membres de votre guilde pour faciliter vos sorties et les partages de missions."
+      },
+      "developers": {
+        "title": "Modular",
+        "description": "Intégrez nos outils directement dans vos applications via notre API ouverte."
+      }
+    }
+  },
+  "Footer": {
+    "copyright": "© 2025 Nexus Corporation. Tous droits réservés. Images et assets de Star Citizen appartiennent à Cloud Imperium Games.",
+    "links": {
+      "about": "A propos",
+      "blog": "Blog"
+    }
+  },
+  "Crafting": {
+    "title": "Artisanat",
+    "wip": "Nous travaillons à créer cette page, et nous attendons d'avoir de nouvelles informations sur l'artisanat dans le Verse pour compléter cette fonctionnalité.",
+    "backButton": "Retour à la page principale"
+  },
+  "Shopping": {
+    "title": "Marketplace",
+    "ctaSellButton": "Vendre un bien ou un service",
+    "featuredItemsTitle": "Articles mis en avant",
+    "shop": "Magasin",
+    "shops": "Magasins",
+    "buy": "Acheter"
+  },
+  "ShoppingItem": {
+    "notFound": "Objet non trouvé",
+    "backToShopping": "Retour au shoppinh",
+    "productInfo": "Informations sur le produit",
+    "soldBy": "Vendu par :",
+    "soldOut": "Épuisé !",
+    "lowStock": "Stock faible !",
+    "inStock": "En stock",
+    "buy": "Acheter"
+  },
+  "ShopItemManagement": {
+    "currentStock": "Stock actuel :",
+    "addToStock": "Ajouter au stock",
+    "removeFromStock": "Retirer du stock",
+    "addOne": "Ajouter 1",
+    "removeOne": "Retirer 1"
+  },
+  "ShoppingNewItem": {
+    "title": "Vente",
+    "noShop": {
+      "error": "Vous n'êtes membre d'aucun magasin et ne pouvez donc pas vendre d'objets sur cette plateforme.",
+      "explanation" : "Nous limitons les accès aux vendeurs pour garantir la qualité du service. Nous ingénieurs systèmes travaillent dur pour ouvrir la plateforme à tout les vendeurs du Verse!",
+      "contact": "Contactez la Nexus Corporation pour obtenir une license de vente."
+    },
+    "itemShop": "Magasin de vente",
+    "itemShopChoose": "Choisissez votre magasin",
+    "itemName": "Nom de l'article",
+    "itemNamePlaceholder": "Un objet...",
+    "itemType": "Type d'article",
+    "itemTypes": {
+      "OBJECT": "Bien/objet",
+      "SERVICE": "Service"
+    },
+    "itemDescription": "Description de l'article",
+    "itemDescriptionHelper": "Décrivez le produit ou le service en quelques lignes. Restez concis pour maximiser l'impact de votre annonce !",
+    "itemPrice": "Prix de vente (aUEC) (ou prix minimum pour un service)",
+    "itemImage": "Image de l'article",
+    "itemImageUpload": "Téléverser une image",
+    "itemImageDrop": "ou glisser-déposer",
+    "itemImageFormats": "PNG ou JPG, max 2MB",
+    "cancel": "Annuler",
+    "addArticle": "Ajouter l'article au magasin"
+  },
+  "ShopDetails": {
+    "notFound": "Boutique non trouvée"
+  },
+  "Profile": {
+    "title": "Mon Profil",
+    "avatar": "Avatar",
+    "username": "Pseudo",
+    "edit": "Modifier",
+    "email": "Courriel",
+    "organizations": "Organisations",
+    "signOut": "Se déconnecter"
+  },
+  "Organizations": {
+    "title": "Organisations",
+    "myOrgs": "Mes organisations",
+    "ctaNewOrg": "Ajouter une nouvelle organisation",
+    "publicOrgs": "Organisations publiques",
+    "description": "Description",
+    "members": "Membres",
+    "leaveOrg": "Quitter",
+    "kickMember": "Expulser"
+  },
+  "NewOrganization": {
+    "title": "Nouvelle organisation",
+    "error": "Pour le moment, les organisations ne peuvent être créées qu'avec un accès bêta assigné par la Nexus Corporation. Contactez-nous pour la création de votre compte !",
+    "backToOrgs": "Retour aux organisations"
+  }
+}
