@@ -14,6 +14,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 
 export default async function OrganizationPage({
   params,
@@ -139,6 +140,8 @@ export default async function OrganizationPage({
         <p className="text-lg">{organization.description}</p>
       </div>
 
+      <hr />
+
       <div>
         <Link
           href={`/orgs/${orgId}/reps`}
@@ -148,12 +151,17 @@ export default async function OrganizationPage({
         </Link>
       </div>
 
+      <hr />
+
       {session?.user &&
         organization.members.some((member) =>
           member.userId.equals(session.user?.id),
         ) && (
           <div>
-            <h2 className="text-xl font-semibold mb-2">{t("members")}</h2>
+            <div className="flex justify-between">
+              <h2 className="text-xl font-semibold mb-2">{t("members")}</h2>
+              <Button>Invite member</Button>
+            </div>
             <ul className="divide-y divide-gray-100">
               {organization.members.map((member, index) => (
                 <li key={index} className="flex justify-between gap-x-6 py-5">
