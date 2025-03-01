@@ -27,18 +27,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           callbackUrl.origin,
         );
 
-        await resend.emails.send({
-          from: "tools@services.nexus",
-          to: identifier,
-          subject: "Verify your email to access Nexus Tools",
-          react: (
-            <VerifyEmail
-              url={signInURL.toString()}
-              email={identifier}
-              token={token}
-            />
-          ),
-        });
+        if (process.env.RESEND_API_KEY === 'CONSOLE') {
+
+          console.log('Verify your email to access Nexus Tools');
+          console.log(`URL: ${signInURL.toString()}`);
+          console.log(`Email: ${identifier}`);
+          console.log(`Token: ${token}`);
+        } else {
+          await resend.emails.send({
+            from: "tools@services.nexus",
+            to: identifier,
+            subject: "Verify your email to access Nexus Tools",
+            react: (
+              <VerifyEmail
+                url={signInURL.toString()}
+                email={identifier}
+                token={token}
+              />
+            ),
+          });
+        }
       },
       async generateVerificationToken() {
         return generateAuthCode();
