@@ -5,6 +5,7 @@ import Footer from "@/components/footer";
 import Topbar from "@/components/topbar";
 import { getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -38,6 +39,7 @@ export default async function RootLayout({
           <Topbar />
           <div className="min-h-dvh">{children}</div>
           <Footer />
+          <Toaster />
         </NextIntlClientProvider>
       </body>
     </html>
