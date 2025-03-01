@@ -5,7 +5,7 @@ import db from "@/lib/db";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
-import { RefiningJob } from "@/lib/refining-jobs";
+import { DbRefiningJob, RefiningJob } from "@/lib/refining-jobs";
 import Ajv from "ajv";
 
 const ajv = new Ajv({ coerceTypes: true });
@@ -43,7 +43,7 @@ export async function addRefiningJob(formData: FormData) {
     throw new Error("Invalid refining job data");
   }
 
-  const job: RefiningJob = {
+  const job: DbRefiningJob = {
     id: randomUUID(),
     userId: new ObjectId(session.user.id),
     location: jobData.location as string,

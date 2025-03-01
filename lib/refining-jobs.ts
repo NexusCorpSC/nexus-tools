@@ -12,7 +12,7 @@ export interface RefiningJob {
 }
 
 // Internal interface for database operations
-interface DbRefiningJob {
+export interface DbRefiningJob {
   id: string;
   userId: ObjectId;
   location: string;
