@@ -38,6 +38,11 @@ export default async function Login({
               required
             />
           </div>
+          
+          <div className="mt-2 text-xs text-gray-500">
+            <p>Note: Votre adresse email ne sera utilisée que pour l'authentification sur ce site et ne sera pas partagée avec des tiers. Vous pouvez demander la suppression de vos données à tout moment.</p>
+          </div>
+          
           <button
             type="submit"
             className="w-full py-2 px-4 bg-primary text-primary-foreground font-semibold rounded-md shadow hover:bg-primary/90 focus:outline-none focus:ring-2"
