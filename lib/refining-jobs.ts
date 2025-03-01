@@ -1,6 +1,5 @@
 import { ObjectId } from "mongodb";
 import db from "./db";
-import { _ } from "ajv";
 
 export interface RefiningJob {
   id: string;
