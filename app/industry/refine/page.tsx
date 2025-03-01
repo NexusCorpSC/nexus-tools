@@ -41,7 +41,7 @@ export default async function RefinePage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <h1 className="text-2xl font-bold">Refining Job Board</h1>
+      <h1 className="text-2xl font-bold">{t('title')}</h1>
       <p className="text-gray-600">
         Manage your Star Citizen refining jobs - track progress and stay organized
       </p>

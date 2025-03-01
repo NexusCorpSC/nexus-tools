@@ -147,5 +147,7 @@
   "OrganizationReputations": {
     "title": "Réputation des membres"
   },
-  "Refining": {}
+  "Refining": {
+    "title": "Travaux de raffinage"
+  }
 }

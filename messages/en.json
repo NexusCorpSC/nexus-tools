@@ -147,5 +147,7 @@
   "OrganizationReputations": {
     "title": "Members reputations"
   },
-  "Refining": {}
+  "Refining": {
+    "title": "Refining Job Board"
+  }
 }
