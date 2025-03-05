@@ -15,6 +15,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { EditIcon } from "lucide-react";
 
 export default async function OrganizationPage({
   params,
@@ -131,9 +132,19 @@ export default async function OrganizationPage({
         priority={true}
       />
 
-      <h1 className="text-2xl font-bold mb-4">
-        {organization.name} [{organization.tag}]
-      </h1>
+      <div className="flex flex-row justify-between">
+        <h1 className="text-2xl font-bold mb-4">
+          {organization.name} [{organization.tag}]
+        </h1>
+        {userIsEditor && (
+          <Button variant="outline" asChild>
+            <Link href={`/orgs/${organization._id}/edit`}>
+              <EditIcon className="size-5" />
+              Editer
+            </Link>
+          </Button>
+        )}
+      </div>
 
       <div>
         <h2 className="text-xl font-semibold mb-2">{t("description")}</h2>
