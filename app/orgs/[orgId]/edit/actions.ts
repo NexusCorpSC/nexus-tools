@@ -41,13 +41,21 @@ export async function updateOrgProfileAction(formData: FormData) {
   };
 
   if (avatar.size > 0) {
+    if (["image/jpeg", "image/png"].includes(avatar.type)) {
+      throw new Error("Invalid file type");
+    }
+    if (avatar.size > 4000000) {
+      throw new Error("File too large.");
+    }
+
     const extension = avatar.name.split(".").pop();
+
     const blob = await put(`/orgs/${orgId}/avatar.${extension}`, avatar, {
       access: "public",
       addRandomSuffix: false,
     });
 
-    update.image = blob.pathname;
+    update.image = blob.url;
   }
 
   await db.db().collection<Organization>("organizations").updateOne(
