@@ -12,9 +12,11 @@ import db from "@/lib/db";
 import { Organization } from "@/app/orgs/page";
 import { ObjectId } from "bson";
 import { Button } from "@/components/ui/button";
-import { ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { updateOrgProfileAction } from "@/app/orgs/[orgId]/edit/actions";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default async function EditOrgPage({
   params,
@@ -157,7 +159,7 @@ export default async function EditOrgPage({
 
       <form className="space-y-4" action={updateOrgProfileAction}>
         <div className="grid w-full gap-4">
-          <input
+          <Input
             type="text"
             id="orgId"
             name="orgId"
@@ -165,10 +167,10 @@ export default async function EditOrgPage({
             className="hidden"
           />
           <div className="grid gap-2">
-            <label htmlFor="name" className="font-medium">
+            <Label htmlFor="name" className="font-medium">
               Nom
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               id="name"
               name="name"
@@ -178,10 +180,10 @@ export default async function EditOrgPage({
           </div>
 
           <div className="grid gap-2">
-            <label htmlFor="tag" className="font-medium">
+            <Label htmlFor="tag" className="font-medium">
               Tag
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               id="tag"
               name="tag"
@@ -191,9 +193,9 @@ export default async function EditOrgPage({
           </div>
 
           <div className="grid gap-2">
-            <label htmlFor="avatar" className="font-medium">
+            <Label htmlFor="avatar" className="font-medium">
               Avatar
-            </label>
+            </Label>
             <Image
               src={organization.image}
               alt={`Logo de l'organization ${organization.name}`}
@@ -201,7 +203,7 @@ export default async function EditOrgPage({
               width={200}
               priority={true}
             />
-            <input
+            <Input
               type="file"
               id="avatar"
               name="avatar"
@@ -210,10 +212,10 @@ export default async function EditOrgPage({
           </div>
 
           <div className="grid gap-2">
-            <label htmlFor="description" className="font-medium">
+            <Label htmlFor="description" className="font-medium">
               Description
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               id="description"
               name="description"
               rows={5}
