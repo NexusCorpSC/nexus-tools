@@ -87,7 +87,7 @@ export default async function EditOrgPage({
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href="/orgs">Organisations</BreadcrumbLink>
+              <BreadcrumbLink href="/orgs">{t("title")}</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -96,7 +96,7 @@ export default async function EditOrgPage({
           </BreadcrumbList>
         </Breadcrumb>
 
-        <h1 className="tex-2xl">Organisation inexistante</h1>
+        <h1 className="tex-2xl">{t("notFound")}</h1>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default async function EditOrgPage({
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href="/orgs">Organisations</BreadcrumbLink>
+              <BreadcrumbLink href="/orgs">{t("title")}</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -126,9 +126,7 @@ export default async function EditOrgPage({
           </BreadcrumbList>
         </Breadcrumb>
 
-        <h1 className="tex-2xl">
-          Vous ne pouvez pas éditer cette organisation.
-        </h1>
+        <h1 className="tex-2xl">{t("Edit.forbidden")}</h1>
       </div>
     );
   }
@@ -168,7 +166,7 @@ export default async function EditOrgPage({
           />
           <div className="grid gap-2">
             <Label htmlFor="name" className="font-medium">
-              Nom
+              {t("name")}
             </Label>
             <Input
               type="text"
@@ -181,7 +179,7 @@ export default async function EditOrgPage({
 
           <div className="grid gap-2">
             <Label htmlFor="tag" className="font-medium">
-              Tag
+              {t("tag")}
             </Label>
             <Input
               type="text"
@@ -194,7 +192,7 @@ export default async function EditOrgPage({
 
           <div className="grid gap-2">
             <Label htmlFor="avatar" className="font-medium">
-              Avatar
+              {t("avatar")}
             </Label>
             <Image
               src={organization.image}
@@ -213,7 +211,7 @@ export default async function EditOrgPage({
 
           <div className="grid gap-2">
             <Label htmlFor="description" className="font-medium">
-              Description
+              {t("description")}
             </Label>
             <Textarea
               id="description"
@@ -225,7 +223,7 @@ export default async function EditOrgPage({
           </div>
 
           <Button type="submit" className="w-full">
-            Enregistrer les modifications
+            {t("Edit.save")}
           </Button>
         </div>
       </form>

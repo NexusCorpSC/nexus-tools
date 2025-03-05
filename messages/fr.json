@@ -130,7 +130,15 @@
     "description": "Description",
     "members": "Membres",
     "leaveOrg": "Quitter",
-    "kickMember": "Expulser"
+    "kickMember": "Expulser",
+    "name": "Nom",
+    "tag": "Tag",
+    "avatar": "Avatar",
+    "notFound": "Organisation inexistante.",
+    "Edit": {
+      "save": "Enregistrer les modifications",
+      "forbidden": "Vous n'êtes pas autorisé à modifier cette organisation."
+    }
   },
   "NewOrganization": {
     "title": "Nouvelle organisation",

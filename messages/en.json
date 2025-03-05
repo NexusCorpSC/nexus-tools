@@ -130,7 +130,15 @@
     "description": "Description",
     "members": "Members",
     "leaveOrg": "Leave",
-    "kickMember": "Kick"
+    "kickMember": "Kick",
+    "name": "Name",
+    "tag": "Tag",
+    "avatar": "Avatar",
+    "notFound": "Organization not found.",
+    "Edit": {
+      "save": "Save",
+      "forbidden": "You are not allowed to edit this organization."
+    }
   },
   "NewOrganization": {
     "title": "New organization",
