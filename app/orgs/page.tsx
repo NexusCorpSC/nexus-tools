@@ -99,7 +99,7 @@ export default async function OrganizationsPage() {
           >
             <div className="flex justify-between">
               <Image
-                className="rounded-l-lg"
+                className="rounded-l-lg aspect-square"
                 src={org.image}
                 height={100}
                 width={100}

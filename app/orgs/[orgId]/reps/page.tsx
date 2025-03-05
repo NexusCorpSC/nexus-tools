@@ -9,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 export default async function ReputationPage({
   params,
@@ -84,7 +85,7 @@ export default async function ReputationPage({
   );
 
   return (
-    <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4 h-dvh">
+    <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -108,24 +109,27 @@ export default async function ReputationPage({
       </Breadcrumb>
 
       <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
+      <p>{t("description")}</p>
 
-      <div>
+      <div className="space-y-4">
         {Object.entries(usersByFactionLevel).map(([factionName, levels]) => (
-          <div key={factionName}>
-            <h2 className="text-xl font-semibold mb-2">{factionName}</h2>
-            {Object.entries(levels).map(([levelName, users]) => (
-              <div key={levelName} className="mb-4">
-                <h3 className="text-lg font-medium">{levelName}</h3>
-                <ul className="list-disc list-inside">
-                  {users.map((user, index) => (
-                    <li key={index} className="text-sm">
-                      {user.name}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <Card key={factionName} className="p-4">
+            <CardTitle>{factionName}</CardTitle>
+            <CardContent>
+              {Object.entries(levels).map(([levelName, users]) => (
+                <div key={levelName}>
+                  <h3 className="text-lg font-medium">{levelName}</h3>
+                  <ul className="list-disc list-inside">
+                    {users.map((user, index) => (
+                      <li key={index} className="text-sm">
+                        {user.name ?? "Unnamed user"}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

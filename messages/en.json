@@ -153,7 +153,8 @@
     "selectCurrentLevelInstructions": "Select your current level (completed) for each faction."
   },
   "OrganizationReputations": {
-    "title": "Members reputations"
+    "title": "Members reputations",
+    "description": "Centralize the reputations of your guild members to facilitate your outings and mission sharing."
   },
   "Refining": {
     "title": "Refining Job Board"
