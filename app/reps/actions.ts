@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 
 export async function setPlayerReputation(
   factionName: string,
+  careerName: string,
   levelName: string,
 ) {
   const session = await auth();
@@ -22,7 +23,13 @@ export async function setPlayerReputation(
     throw new Error("Faction not found");
   }
 
-  const level = faction.levels.find((l) => l.name === levelName);
+  const career = faction.careers.find((c) => c.name === careerName);
+
+  if (!career) {
+    throw new Error("Invalid career");
+  }
+
+  const level = career.levels.find((l) => l.name === levelName);
 
   if (!level) {
     throw new Error("Invalid level");
@@ -37,10 +44,45 @@ export async function setPlayerReputation(
       },
       {
         $set: {
-          [`reputations.${factionName}`]: level,
+          [`reputations.${factionName}.careers.${careerName}.level`]: level,
         },
       },
     );
 
   revalidatePath("/reps");
+}
+
+export async function setPlayerReputationStandingAction(
+  factionName: string,
+  standing: string,
+) {
+  const session = await auth();
+
+  if (!session || !session.user) {
+    throw new Error("User not authenticated");
+  }
+
+  const faction = await getFaction(factionName);
+
+  if (!faction) {
+    throw new Error("Faction not found");
+  }
+
+  if (!faction.standings || !faction.standings.includes(standing)) {
+    throw new Error("Invalid standing");
+  }
+
+  await db
+    .db()
+    .collection("users")
+    .updateOne(
+      {
+        _id: new ObjectId(session.user.id),
+      },
+      {
+        $set: {
+          [`reputations.${factionName}.standing`]: standing,
+        },
+      },
+    );
 }

@@ -1,17 +1,7 @@
 import "server-only";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
-
-export type FactionLevel = {
-  level: number;
-  name: string;
-  isDefault: boolean;
-};
-
-export type Faction = {
-  name: string;
-  levels: FactionLevel[];
-};
+import { Faction } from "@/types/reputations";
 
 export async function getFactions() {
   const factionsConfig = await db

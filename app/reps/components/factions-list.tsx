@@ -1,6 +1,5 @@
 "use client";
 
-import { Faction } from "@/lib/reputations";
 import { Radio, RadioGroup } from "@headlessui/react";
 import { cn } from "@/lib/utils";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
@@ -21,15 +20,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { setPlayerReputation } from "@/app/reps/actions";
-import { Card } from "@/components/ui/card";
+import {
+  setPlayerReputation,
+  setPlayerReputationStandingAction,
+} from "@/app/reps/actions";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Faction, PlayerReputations } from "@/types/reputations";
 
 export function FactionsList({
   factions,
   playerReputation,
 }: {
   factions: Faction[];
-  playerReputation: Record<string, { level: number; name: string } | undefined>;
+  playerReputation: PlayerReputations;
 }) {
   const [openQuery, setOpenQuery] = useState(false);
   const [selectedFactionName, setSelectedFactionName] = useState("");
@@ -94,127 +97,293 @@ export function FactionsList({
       </div>
 
       {selectedFaction ? (
-        <Card className="p-4">
-          <fieldset>
-            <legend className="text-sm/6 font-semibold text-gray-900">
-              {selectedFaction.name}
-            </legend>
-            <RadioGroup
-              className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
-              onChange={async (event) => {
-                await setPlayerReputation(selectedFaction.name, event);
-              }}
-              value={
-                playerReputation?.[selectedFaction.name]?.name ?? undefined
-              }
-            >
-              {selectedFaction.levels.map((level) => (
-                <Radio
-                  key={level.name}
-                  value={level.name}
-                  aria-label={level.name}
-                  className={cn(
-                    "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
-                    level.isDefault && "border-indigo-600",
-                  )}
-                >
-                  <span className="flex flex-1">
-                    <span className="flex flex-col">
-                      <span
-                        className={cn(
-                          "block text-sm font-medium text-gray-900",
-                          level.level === -1
-                            ? "group-data-[checked]:text-red-600"
-                            : "group-data-[checked]:text-emerald-600",
-                        )}
+        <div>
+          <Card className="p-4">
+            <CardTitle>{selectedFaction.name}</CardTitle>
+            <CardContent>
+              <div>
+                {selectedFaction.standings && (
+                  <div className="space-y-2">
+                    <h3>Réputation</h3>
+
+                    <RadioGroup
+                      className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
+                      onChange={async (standing) => {
+                        await setPlayerReputationStandingAction(
+                          selectedFaction.name,
+                          standing,
+                        );
+                      }}
+                      value={
+                        playerReputation?.[selectedFaction.name]?.standing ?? ""
+                      }
+                    >
+                      {selectedFaction.standings.map((standing) => (
+                        <Radio
+                          key={standing}
+                          value={standing}
+                          aria-label={standing}
+                          className={cn(
+                            "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
+                            standing == selectedFaction.defaultStanding &&
+                              "border-indigo-600",
+                          )}
+                        >
+                          <span className="flex flex-1">
+                            <span className="flex flex-col">
+                              <span
+                                className={cn(
+                                  "block text-sm font-medium text-gray-900",
+                                  standing === "Hostile" &&
+                                    "group-data-[checked]:text-red-600",
+                                  standing === "Ally" &&
+                                    "group-data-[checked]:text-emerald-600",
+                                )}
+                              >
+                                {standing}
+                              </span>
+                            </span>
+                          </span>
+                          <CheckCircleIcon
+                            aria-hidden="true"
+                            className={cn(
+                              "size-5 group-[&:not([data-checked])]:invisible",
+                              standing === "Hostile" && "text-red-600",
+                              standing === "Ally" && "text-emerald-600",
+                            )}
+                          />
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
+                              standing === "Hostile" &&
+                                "group-data-[checked]:border-red-600",
+                              standing === "Ally" &&
+                                "group-data-[checked]:border-emerald-600",
+                            )}
+                          />
+                        </Radio>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                )}
+
+                {selectedFaction.careers &&
+                  selectedFaction.careers.map((career) => (
+                    <div key={career.name}>
+                      <h3>{career.name}</h3>
+                      <RadioGroup
+                        className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
+                        onChange={async (levelname) => {
+                          await setPlayerReputation(
+                            selectedFaction.name,
+                            career.name,
+                            levelname,
+                          );
+                        }}
+                        value={
+                          playerReputation?.[selectedFaction.name]?.careers?.[
+                            career.name
+                          ]?.level.name ?? ""
+                        }
                       >
-                        {level.name}
-                      </span>
-                    </span>
-                  </span>
-                  <CheckCircleIcon
-                    aria-hidden="true"
-                    className={cn(
-                      "size-5 group-[&:not([data-checked])]:invisible",
-                      level.level === -1 ? "text-red-600" : "text-emerald-600",
-                    )}
-                  />
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
-                      level.level === -1
-                        ? "group-data-[checked]:border-red-600"
-                        : "group-data-[checked]:border-emerald-600",
-                    )}
-                  />
-                </Radio>
-              ))}
-            </RadioGroup>
-          </fieldset>
-        </Card>
+                        {career.levels.map((level) => (
+                          <Radio
+                            key={level.name}
+                            value={level.name}
+                            aria-label={level.name}
+                            className={cn(
+                              "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
+                              level.isDefault && "border-indigo-600",
+                            )}
+                          >
+                            <span className="flex flex-1">
+                              <span className="flex flex-col">
+                                <span
+                                  className={cn(
+                                    "block text-sm font-medium text-gray-900",
+                                    level.level === -1
+                                      ? "group-data-[checked]:text-red-600"
+                                      : "group-data-[checked]:text-emerald-600",
+                                  )}
+                                >
+                                  {level.name}
+                                </span>
+                              </span>
+                            </span>
+                            <CheckCircleIcon
+                              aria-hidden="true"
+                              className={cn(
+                                "size-5 group-[&:not([data-checked])]:invisible",
+                                level.level === -1
+                                  ? "text-red-600"
+                                  : "text-emerald-600",
+                              )}
+                            />
+                            <span
+                              aria-hidden="true"
+                              className={cn(
+                                "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
+                                level.level === -1
+                                  ? "group-data-[checked]:border-red-600"
+                                  : "group-data-[checked]:border-emerald-600",
+                              )}
+                            />
+                          </Radio>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <div className="space-y-4">
           {factions.map((faction) => (
-            <Card key={faction.name} className="p-4">
-              <fieldset>
-                <legend className="text-sm/6 font-semibold text-gray-900">
-                  {faction.name}
-                </legend>
-                <RadioGroup
-                  className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
-                  onChange={async (event) => {
-                    await setPlayerReputation(faction.name, event);
-                  }}
-                  value={playerReputation?.[faction.name]?.name ?? undefined}
-                >
-                  {faction.levels.map((level) => (
-                    <Radio
-                      key={level.name}
-                      value={level.name}
-                      aria-label={level.name}
-                      className={cn(
-                        "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
-                        level.isDefault && "border-indigo-600",
-                      )}
-                    >
-                      <span className="flex flex-1">
-                        <span className="flex flex-col">
-                          <span
-                            className={cn(
-                              "block text-sm font-medium text-gray-900",
-                              level.level === -1
-                                ? "group-data-[checked]:text-red-600"
-                                : "group-data-[checked]:text-emerald-600",
-                            )}
-                          >
-                            {level.name}
-                          </span>
-                        </span>
-                      </span>
-                      <CheckCircleIcon
-                        aria-hidden="true"
-                        className={cn(
-                          "size-5 group-[&:not([data-checked])]:invisible",
-                          level.level === -1
-                            ? "text-red-600"
-                            : "text-emerald-600",
-                        )}
-                      />
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
-                          level.level === -1
-                            ? "group-data-[checked]:border-red-600"
-                            : "group-data-[checked]:border-emerald-600",
-                        )}
-                      />
-                    </Radio>
-                  ))}
-                </RadioGroup>
-              </fieldset>
-            </Card>
+            <div key={faction.name}>
+              <Card className="p-4">
+                <CardTitle>{faction.name}</CardTitle>
+                <CardContent>
+                  <div>
+                    {faction.standings && (
+                      <div className="space-y-2">
+                        <h3>Réputation</h3>
+
+                        <RadioGroup
+                          className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
+                          onChange={async (standing) => {
+                            await setPlayerReputationStandingAction(
+                              faction.name,
+                              standing,
+                            );
+                          }}
+                          value={
+                            playerReputation?.[faction.name]?.standing ?? ""
+                          }
+                        >
+                          {faction.standings.map((standing) => (
+                            <Radio
+                              key={standing}
+                              value={standing}
+                              aria-label={standing}
+                              className={cn(
+                                "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
+                                standing == faction.defaultStanding &&
+                                  "border-indigo-600",
+                              )}
+                            >
+                              <span className="flex flex-1">
+                                <span className="flex flex-col">
+                                  <span
+                                    className={cn(
+                                      "block text-sm font-medium text-gray-900",
+                                      standing === "Hostile" &&
+                                        "group-data-[checked]:text-red-600",
+                                      standing === "Ally" &&
+                                        "group-data-[checked]:text-emerald-600",
+                                    )}
+                                  >
+                                    {standing}
+                                  </span>
+                                </span>
+                              </span>
+                              <CheckCircleIcon
+                                aria-hidden="true"
+                                className={cn(
+                                  "size-5 group-[&:not([data-checked])]:invisible",
+                                  standing === "Hostile" && "text-red-600",
+                                  standing === "Ally" && "text-emerald-600",
+                                )}
+                              />
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
+                                  standing === "Hostile" &&
+                                    "group-data-[checked]:border-red-600",
+                                  standing === "Ally" &&
+                                    "group-data-[checked]:border-emerald-600",
+                                )}
+                              />
+                            </Radio>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      {faction.careers &&
+                        faction.careers.map((career) => (
+                          <div key={career.name}>
+                            <h3>{career.name}</h3>
+                            <RadioGroup
+                              className="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
+                              onChange={async (levelname) => {
+                                await setPlayerReputation(
+                                  faction.name,
+                                  career.name,
+                                  levelname,
+                                );
+                              }}
+                              value={
+                                playerReputation?.[faction.name]?.careers?.[
+                                  career.name
+                                ]?.level.name ?? ""
+                              }
+                            >
+                              {career.levels.map((level) => (
+                                <Radio
+                                  key={level.name}
+                                  value={level.name}
+                                  aria-label={level.name}
+                                  className={cn(
+                                    "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
+                                    level.isDefault && "border-indigo-600",
+                                  )}
+                                >
+                                  <span className="flex flex-1">
+                                    <span className="flex flex-col">
+                                      <span
+                                        className={cn(
+                                          "block text-sm font-medium text-gray-900",
+                                          level.level === -1
+                                            ? "group-data-[checked]:text-red-600"
+                                            : "group-data-[checked]:text-emerald-600",
+                                        )}
+                                      >
+                                        {level.name}
+                                      </span>
+                                    </span>
+                                  </span>
+                                  <CheckCircleIcon
+                                    aria-hidden="true"
+                                    className={cn(
+                                      "size-5 group-[&:not([data-checked])]:invisible",
+                                      level.level === -1
+                                        ? "text-red-600"
+                                        : "text-emerald-600",
+                                    )}
+                                  />
+                                  <span
+                                    aria-hidden="true"
+                                    className={cn(
+                                      "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
+                                      level.level === -1
+                                        ? "group-data-[checked]:border-red-600"
+                                        : "group-data-[checked]:border-emerald-600",
+                                    )}
+                                  />
+                                </Radio>
+                              ))}
+                            </RadioGroup>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
       )}

@@ -1,333 +1,501 @@
 {
-    "_id": {
-        "$oid": "6787ef7246343a15ccb8110b"
-    },
-    "id": "9ae5d8fb-cbb5-408d-83d6-ace973661d30",
-    "factions": [
+  "factions": [
+    {
+      "name": "MicroTech Protection Services",
+      "standings": [
+        "Hostile",
+        "Neutral",
+        "Ally"
+      ],
+      "defaultStanding": "Neutral",
+      "careers": [
         {
-            "name": "MicroTech Protection Services - Security",
-            "levels": [
-                {
-                    "level": {
-                        "$numberInt": "-1"
-                    },
-                    "name": "Not Eligibile"
-                },
-                {
-                    "level": {
-                        "$numberInt": "0"
-                    },
-                    "name": "Applicant",
-                    "isDefault": true
-                },
-                {
-                    "level": {
-                        "$numberInt": "1"
-                    },
-                    "name": "Security Trainee"
-                },
-                {
-                    "level": {
-                        "$numberInt": "2"
-                    },
-                    "name": "Jr. Security Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "3"
-                    },
-                    "name": "Security Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "4"
-                    },
-                    "name": "Sr. Security Contractor"
-                }
-            ]
+          "name": "Bounty Hunting",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "-1"
+              },
+              "name": "Not Eligible"
+            },
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Applicant",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "Tracker Trainee"
+            },
+            {
+              "level": {
+                "$numberInt": "2"
+              },
+              "name": "Associate Tracker"
+            },
+            {
+              "level": {
+                "$numberInt": "3"
+              },
+              "name": "Tracker"
+            },
+            {
+              "level": {
+                "$numberInt": "4"
+              },
+              "name": "Advanced Tracker"
+            },
+            {
+              "level": {
+                "$numberInt": "5"
+              },
+              "name": "Senior Tracker"
+            },
+            {
+              "level": {
+                "$numberInt": "6"
+              },
+              "name": "Master Tracker"
+            }
+          ]
         },
         {
-            "name": "Hurston Dynamics",
-            "levels": [
-                {
-                    "level": {
-                        "$numberInt": "-1"
-                    },
-                    "name": "Hostile"
-                },
-                {
-                    "level": {
-                        "$numberInt": "0"
-                    },
-                    "name": "Applicant",
-                    "isDefault": true
-                },
-                {
-                    "level": {
-                        "$numberInt": "1"
-                    },
-                    "name": "Security Trainee"
-                },
-                {
-                    "level": {
-                        "$numberInt": "2"
-                    },
-                    "name": "Jr. Security Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "3"
-                    },
-                    "name": "Security Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "4"
-                    },
-                    "name": "Sr. Security Contractor"
-                }
-            ]
-        },
-        {
-            "name": "UDM",
-            "levels": [
-                {
-                    "level": {
-                        "$numberInt": "0"
-                    },
-                    "name": "Applicant",
-                    "isDefault": true
-                },
-                {
-                    "level": {
-                        "$numberInt": "1"
-                    },
-                    "name": "Jr. Runner"
-                }
-            ]
-        },
-        {
-            "name": "Citizens for Prosperity",
-            "levels": [
-                {
-                    "level": {
-                        "$numberInt": "-1"
-                    },
-                    "name": "Hostile"
-                },
-                {
-                    "level": {
-                        "$numberInt": "0"
-                    },
-                    "name": "Neutral",
-                    "isDefault": true
-                },
-                {
-                    "level": {
-                        "$numberInt": "1"
-                    },
-                    "name": "Applicant"
-                }
-                ,
-                {
-                    "level": {
-                        "$numberInt": "2"
-                    },
-                    "name": "Jr. Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "3"
-                    },
-                    "name": "Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "4"
-                    },
-                    "name": "Sr. Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "5"
-                    },
-                    "name": "Veteran Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "6"
-                    },
-                    "name": "Head Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "7"
-                    },
-                    "name": "Elite Contractor"
-                }
-            ]
-        },
-        {
-            "name": "Headhunters",
-            "levels": [
-                {
-                    "level": {
-                        "$numberInt": "-1"
-                    },
-                    "name": "Hostile"
-                },
-                {
-                    "level": {
-                        "$numberInt": "0"
-                    },
-                    "name": "Neutral",
-                    "isDefault": true
-                },
-                {
-                    "level": {
-                        "$numberInt": "1"
-                    },
-                    "name": "Applicant"
-                }
-                ,
-                {
-                    "level": {
-                        "$numberInt": "2"
-                    },
-                    "name": "Jr. Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "3"
-                    },
-                    "name": "Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "4"
-                    },
-                    "name": "Sr. Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "5"
-                    },
-                    "name": "Veteran Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "6"
-                    },
-                    "name": "Head Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "7"
-                    },
-                    "name": "Elite Contractor"
-                }
-            ]
-        },
-        {
-            "name": "Crusader Industries - Security",
-            "levels": [
-                {
-                    "level": {
-                        "$numberInt": "-1"
-                    },
-                    "name": "Not Eligibile"
-                },
-                {
-                    "level": {
-                        "$numberInt": "0"
-                    },
-                    "name": "Applicant",
-                    "isDefault": true
-                },
-                {
-                    "level": {
-                        "$numberInt": "1"
-                    },
-                    "name": "Security Trainee"
-                },
-                {
-                    "level": {
-                        "$numberInt": "2"
-                    },
-                    "name": "Jr. Security Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "3"
-                    },
-                    "name": "Security Contractor"
-                },
-                {
-                    "level": {
-                        "$numberInt": "4"
-                    },
-                    "name": "Sr. Security Contractor"
-                }
-            ]
-        },
-        {
-            "name": "Red Wind Linehaul",
-            "levels": [
-                {
-                    "level": {
-                        "$numberInt": "-1"
-                    },
-                    "name": "Not Eligibile"
-                },
-                {
-                    "level": {
-                        "$numberInt": "0"
-                    },
-                    "name": "Trainee",
-                    "isDefault": true
-                },
-                {
-                    "level": {
-                        "$numberInt": "1"
-                    },
-                    "name": "Rookie"
-                },
-                {
-                    "level": {
-                        "$numberInt": "2"
-                    },
-                    "name": "Junior"
-                },
-                {
-                    "level": {
-                        "$numberInt": "3"
-                    },
-                    "name": "Member"
-                },
-                {
-                    "level": {
-                        "$numberInt": "4"
-                    },
-                    "name": "Experienced"
-                },
-                {
-                    "level": {
-                        "$numberInt": "5"
-                    },
-                    "name": "Senior"
-                },
-                {
-                    "level": {
-                        "$numberInt": "6"
-                    },
-                    "name": "Master"
-                }
-            ]
-        },
-        {
-            "name": "",
-            "levels": []
+          "name": "Security",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "-1"
+              },
+              "name": "Not Eligibile"
+            },
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Applicant",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "Security Trainee"
+            },
+            {
+              "level": {
+                "$numberInt": "2"
+              },
+              "name": "Jr. Security Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "3"
+              },
+              "name": "Security Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "4"
+              },
+              "name": "Sr. Security Contractor"
+            }
+          ]
         }
-    ],
-    "key": "reputations"
+      ]
+    },
+    {
+      "name": "Hurston Dynamics",
+      "standings": [
+        "Hostile",
+        "Neutral",
+        "Ally"
+      ],
+      "defaultStanding": "Neutral",
+      "careers": [
+        {
+          "name": "Security",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "-1"
+              },
+              "name": "Not Eligible"
+            },
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Applicant",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "Security Trainee"
+            },
+            {
+              "level": {
+                "$numberInt": "2"
+              },
+              "name": "Jr. Security Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "3"
+              },
+              "name": "Security Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "4"
+              },
+              "name": "Sr. Security Contractor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UDM",
+      "standings": [
+        "Hostile",
+        "Neutral",
+        "Ally"
+      ],
+      "defaultStanding": "Neutral",
+      "careers": [
+        {
+          "name": "Hauling",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Applicant",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "Jr. Runner"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Citizens for Prosperity",
+      "standings": [
+        "Hostile",
+        "Neutral",
+        "Ally"
+      ],
+      "defaultStanding": "Neutral",
+      "careers": [
+        {
+          "name": "Security",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "-1"
+              },
+              "name": "Hostile"
+            },
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Neutral",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "Applicant"
+            },
+            {
+              "level": {
+                "$numberInt": "2"
+              },
+              "name": "Jr. Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "3"
+              },
+              "name": "Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "4"
+              },
+              "name": "Sr. Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "5"
+              },
+              "name": "Veteran Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "6"
+              },
+              "name": "Head Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "7"
+              },
+              "name": "Elite Contractor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Headhunters",
+      "standings": [
+        "Hostile",
+        "Neutral",
+        "Ally"
+      ],
+      "defaultStanding": "Neutral",
+      "careers": [
+        {
+          "name": "Standing",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "-1"
+              },
+              "name": "Hostile"
+            },
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Neutral",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "Applicant"
+            },
+            {
+              "level": {
+                "$numberInt": "2"
+              },
+              "name": "Jr. Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "3"
+              },
+              "name": "Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "4"
+              },
+              "name": "Sr. Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "5"
+              },
+              "name": "Veteran Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "6"
+              },
+              "name": "Head Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "7"
+              },
+              "name": "Elite Contractor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Crusader Industries",
+      "standings": [
+        "Hostile",
+        "Neutral",
+        "Ally"
+      ],
+      "defaultStanding": "Neutral",
+      "careers": [
+        {
+          "name": "Security",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "-1"
+              },
+              "name": "Not Eligibile"
+            },
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Applicant",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "Security Trainee"
+            },
+            {
+              "level": {
+                "$numberInt": "2"
+              },
+              "name": "Jr. Security Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "3"
+              },
+              "name": "Security Contractor"
+            },
+            {
+              "level": {
+                "$numberInt": "4"
+              },
+              "name": "Sr. Security Contractor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Red Wind Linehaul",
+      "standings": [
+        "Hostile",
+        "Neutral",
+        "Ally"
+      ],
+      "defaultStanding": "Neutral",
+      "careers": [
+        {
+          "name": "Hauling",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "-1"
+              },
+              "name": "Not Eligibile"
+            },
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Trainee",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "Rookie"
+            },
+            {
+              "level": {
+                "$numberInt": "2"
+              },
+              "name": "Junior"
+            },
+            {
+              "level": {
+                "$numberInt": "3"
+              },
+              "name": "Member"
+            },
+            {
+              "level": {
+                "$numberInt": "4"
+              },
+              "name": "Experienced"
+            },
+            {
+              "level": {
+                "$numberInt": "5"
+              },
+              "name": "Senior"
+            },
+            {
+              "level": {
+                "$numberInt": "6"
+              },
+              "name": "Master"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Civilian Defense Force",
+      "standings": [
+        "Hostile",
+        "Neutral",
+        "Ally"
+      ],
+      "defaultStanding": "Neutral",
+      "careers": [
+        {
+          "name": "Emergency Support",
+          "levels": [
+            {
+              "level": {
+                "$numberInt": "-1"
+              },
+              "name": "Not Eligible"
+            },
+            {
+              "level": {
+                "$numberInt": "0"
+              },
+              "name": "Applicant",
+              "isDefault": true
+            },
+            {
+              "level": {
+                "$numberInt": "1"
+              },
+              "name": "First Responder Trainee"
+            },
+            {
+              "level": {
+                "$numberInt": "2"
+              },
+              "name": "First Responder"
+            },
+            {
+              "level": {
+                "$numberInt": "3"
+              },
+              "name": "Veteran First Responder"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "key": "reputations"
 }
