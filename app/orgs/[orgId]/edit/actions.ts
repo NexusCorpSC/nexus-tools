@@ -41,7 +41,8 @@ export async function updateOrgProfileAction(formData: FormData) {
   };
 
   if (avatar.size > 0) {
-    if (["image/jpeg", "image/png"].includes(avatar.type)) {
+    console.log(avatar.type);
+    if (!["image/jpeg", "image/png", "image/webp"].includes(avatar.type)) {
       throw new Error("Invalid file type");
     }
     if (avatar.size > 4000000) {
