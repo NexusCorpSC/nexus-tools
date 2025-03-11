@@ -10,10 +10,10 @@ export async function getFactions() {
     .findOne({ key: "reputations" });
 
   if (!factionsConfig) {
-    return null;
+    return [];
   }
 
-  return factionsConfig.factions;
+  return factionsConfig.factions.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getFaction(factionName: string) {
