@@ -10,6 +10,8 @@ export async function searchBlueprints(
 ): Promise<(Blueprint & { owned?: boolean })[]> {
   const collection = db.db().collection<Blueprint>("blueprints");
 
+  console.log("Searching blueprints with query:", query, "fuzzy:", fuzzy);
+
   if (fuzzy) {
     const results = await collection
       .aggregate([

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { createBlueprintAction } from "@/app/crafting/blueprints/actions";
+import { BlueprintNameInput } from "./blueprint-name-input";
 
 export default async function NewBlueprintPage() {
   await requirePermission("blueprints:edit");
@@ -71,7 +72,7 @@ export default async function NewBlueprintPage() {
       >
         <div className="space-y-1.5">
           <Label htmlFor="name">{tAdmin("fieldName")}</Label>
-          <Input id="name" name="name" required />
+          <BlueprintNameInput />
         </div>
 
         <div className="space-y-1.5">
