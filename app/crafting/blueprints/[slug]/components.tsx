@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 import { BlueprintOrgMember } from "@/lib/crafting";
@@ -26,32 +26,47 @@ export function BlueprintOrgOwnersClient({
   loadingLabel,
   noOrgsLabel,
 }: Props) {
-  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+  const firstOrgId = organizations[0]?.id ?? "";
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(firstOrgId);
   const [members, setMembers] = useState<BlueprintOrgMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
-  const handleOrgChange = async (orgId: string) => {
-    setSelectedOrgId(orgId);
-    if (!orgId) {
-      setMembers([]);
+  const fetchMembers = useCallback(
+    async (orgId: string) => {
+      if (!orgId) {
+        setMembers([]);
+        setHasFetched(false);
+        return;
+      }
+      setIsLoading(true);
       setHasFetched(false);
-      return;
+      try {
+        const res = await fetch(
+          `/api/blueprints/${blueprintId}/org-owners?orgId=${encodeURIComponent(orgId)}`,
+        );
+        const data: BlueprintOrgMember[] = await res.json();
+        setMembers(data);
+      } catch {
+        setMembers([]);
+      } finally {
+        setIsLoading(false);
+        setHasFetched(true);
+      }
+    },
+    [blueprintId],
+  );
+
+  // Fetch automatiquement au montage pour la première organisation
+  useEffect(() => {
+    if (firstOrgId) {
+      fetchMembers(firstOrgId);
     }
-    setIsLoading(true);
-    setHasFetched(false);
-    try {
-      const res = await fetch(
-        `/api/blueprints/${blueprintId}/org-owners?orgId=${encodeURIComponent(orgId)}`,
-      );
-      const data: BlueprintOrgMember[] = await res.json();
-      setMembers(data);
-    } catch {
-      setMembers([]);
-    } finally {
-      setIsLoading(false);
-      setHasFetched(true);
-    }
+  }, [firstOrgId, fetchMembers]);
+
+  const handleOrgChange = (orgId: string) => {
+    setSelectedOrgId(orgId);
+    fetchMembers(orgId);
   };
 
   return (
@@ -70,7 +85,6 @@ export function BlueprintOrgOwnersClient({
             onChange={(e) => handleOrgChange(e.target.value)}
             className="w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="">{selectPlaceholder}</option>
             {organizations.map((org) => (
               <option key={org.id} value={org.id}>
                 {org.name}
