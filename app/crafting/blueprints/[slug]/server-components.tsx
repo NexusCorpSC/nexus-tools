@@ -12,9 +12,10 @@ import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
-import { BlueprintOrgOwnersClient } from "./components";
+import { AdminBlueprintMenu, BlueprintOrgOwnersClient } from "./components";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { isAdmin } from "@/lib/permissions";
 
 export async function BlueprintOwnershipCard({
   blueprint,
@@ -138,6 +139,33 @@ export async function BlueprintOrgOwnersSection({
       emptyLabel={t("orgOwnersEmpty")}
       loadingLabel={t("orgOwnersLoading")}
       noOrgsLabel={t("orgOwnersNoOrgs")}
+    />
+  );
+}
+
+export async function AdminBlueprintSection({
+  blueprint,
+}: {
+  blueprint: Blueprint;
+}) {
+  const adminUser = await isAdmin();
+  if (!adminUser) return null;
+
+  const t = await getTranslations("Crafting.Blueprints.Admin");
+
+  return (
+    <AdminBlueprintMenu
+      blueprintId={blueprint.id}
+      blueprintSlug={blueprint.slug}
+      labels={{
+        menuLabel: t("menuLabel"),
+        edit: t("edit"),
+        delete: t("delete"),
+        deleteConfirmTitle: t("deleteConfirmTitle"),
+        deleteConfirmDescription: t("deleteConfirmDescription"),
+        deleteConfirmCancel: t("deleteConfirmCancel"),
+        deleteConfirmConfirm: t("deleteConfirmConfirm"),
+      }}
     />
   );
 }

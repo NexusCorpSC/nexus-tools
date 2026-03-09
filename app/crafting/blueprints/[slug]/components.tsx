@@ -2,8 +2,25 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { UserGroupIcon } from "@heroicons/react/24/outline";
+import {
+  UserGroupIcon,
+  EllipsisVerticalIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { BlueprintOrgMember } from "@/lib/crafting";
+import { deleteBlueprintAction } from "@/app/crafting/blueprints/actions";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 type Org = { id: string; name: string };
 
@@ -125,6 +142,99 @@ export function BlueprintOrgOwnersClient({
           )}
         </>
       )}
+    </div>
+  );
+}
+
+type AdminBlueprintMenuProps = {
+  blueprintId: string;
+  blueprintSlug: string;
+  labels: {
+    menuLabel: string;
+    edit: string;
+    delete: string;
+    deleteConfirmTitle: string;
+    deleteConfirmDescription: string;
+    deleteConfirmCancel: string;
+    deleteConfirmConfirm: string;
+  };
+};
+
+export function AdminBlueprintMenu({
+  blueprintId,
+  blueprintSlug,
+  labels,
+}: AdminBlueprintMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    await deleteBlueprintAction(blueprintId);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        aria-label={labels.menuLabel}
+        onClick={() => setOpen((v) => !v)}
+        className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+      >
+        <EllipsisVerticalIcon className="size-5 text-gray-500" />
+      </button>
+
+      {open && (
+        <>
+          {/* Overlay to close on outside click */}
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-gray-200 bg-white shadow-md py-1">
+            <Link
+              href={`/crafting/blueprints/${blueprintSlug}/edit`}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              <PencilIcon className="size-4 text-gray-500" />
+              {labels.edit}
+            </Link>
+            <button
+              onClick={() => {
+                setOpen(false);
+                setConfirmOpen(true);
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <TrashIcon className="size-4" />
+              {labels.delete}
+            </button>
+          </div>
+        </>
+      )}
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{labels.deleteConfirmTitle}</DialogTitle>
+            <DialogDescription>
+              {labels.deleteConfirmDescription}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <DialogClose asChild>
+              <Button variant="outline" disabled={isDeleting}>
+                {labels.deleteConfirmCancel}
+              </Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "..." : labels.deleteConfirmConfirm}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

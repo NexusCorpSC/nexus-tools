@@ -83,7 +83,24 @@
       "orgOwnersEmpty": "Aucun membre de cette organisation ne possède ce plan.",
       "orgOwnersLoading": "Chargement des membres...",
       "orgOwnersNoOrgs": "Vous n'êtes membre d'aucune organisation.",
-      "owned": "Possédé"
+      "owned": "Possédé",
+      "Admin": {
+        "menuLabel": "Actions administrateur",
+        "edit": "Modifier le plan",
+        "delete": "Supprimer le plan",
+        "deleteConfirmTitle": "Supprimer ce plan ?",
+        "deleteConfirmDescription": "Cette action est irréversible. Le plan et tous les enregistrements de possession seront définitivement supprimés.",
+        "deleteConfirmCancel": "Annuler",
+        "deleteConfirmConfirm": "Supprimer",
+        "editPageTitle": "Modifier le plan",
+        "fieldName": "Nom",
+        "fieldDescription": "Description",
+        "fieldCategory": "Catégorie",
+        "fieldSubcategory": "Sous-catégorie (optionnel)",
+        "fieldSlug": "Slug",
+        "editSave": "Enregistrer les modifications",
+        "editCancel": "Annuler"
+      }
     }
   },
   "Shopping": {

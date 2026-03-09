@@ -79,7 +79,24 @@
       "orgOwnersEmpty": "No member of this organization owns this blueprint.",
       "orgOwnersLoading": "Loading members...",
       "orgOwnersNoOrgs": "You are not a member of any organization.",
-      "owned": "Owned"
+      "owned": "Owned",
+      "Admin": {
+        "menuLabel": "Admin actions",
+        "edit": "Edit blueprint",
+        "delete": "Delete blueprint",
+        "deleteConfirmTitle": "Delete this blueprint?",
+        "deleteConfirmDescription": "This action is irreversible. The blueprint and all user ownership records will be permanently deleted.",
+        "deleteConfirmCancel": "Cancel",
+        "deleteConfirmConfirm": "Delete",
+        "editPageTitle": "Edit blueprint",
+        "fieldName": "Name",
+        "fieldDescription": "Description",
+        "fieldCategory": "Category",
+        "fieldSubcategory": "Subcategory (optional)",
+        "fieldSlug": "Slug",
+        "editSave": "Save changes",
+        "editCancel": "Cancel"
+      }
     },
     "Inventory": {
       "title": "Inventory",

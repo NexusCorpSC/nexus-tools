@@ -14,6 +14,7 @@ import { Suspense } from "react";
 import {
   BlueprintOwnershipCard,
   BlueprintOrgOwnersSection,
+  AdminBlueprintSection,
 } from "./server-components";
 
 export default async function BlueprintDetailPage({
@@ -64,10 +65,19 @@ export default async function BlueprintDetailPage({
       </Breadcrumb>
 
       <div className="space-y-2">
-        <span className="inline-block text-xs font-semibold uppercase tracking-wide text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-          {blueprint.category}
-        </span>
-        <h1 className="text-3xl font-bold text-gray-900">{blueprint.name}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-2">
+            <span className="inline-block text-xs font-semibold uppercase tracking-wide text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+              {blueprint.category}
+            </span>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {blueprint.name}
+            </h1>
+          </div>
+          <Suspense fallback={null}>
+            <AdminBlueprintSection blueprint={blueprint} />
+          </Suspense>
+        </div>
       </div>
 
       <div>

@@ -1,9 +1,16 @@
 "use server";
 
-import { addBlueprintToUser, removeBlueprintFromUser } from "@/lib/crafting";
+import {
+  addBlueprintToUser,
+  removeBlueprintFromUser,
+  deleteBlueprint,
+  updateBlueprint,
+} from "@/lib/crafting";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { requireAdmin } from "@/lib/permissions";
 
 export async function addBlueprintAction(blueprintId: string, slug: string) {
   const session = await auth.api.getSession({
@@ -25,4 +32,30 @@ export async function removeBlueprintAction(blueprintId: string, slug: string) {
   }
   await removeBlueprintFromUser(session.user.id!, blueprintId);
   revalidatePath(`/crafting/blueprints/${slug}`);
+}
+
+export async function deleteBlueprintAction(blueprintId: string) {
+  await requireAdmin();
+  await deleteBlueprint(blueprintId);
+  revalidatePath("/crafting/blueprints");
+  redirect("/crafting/blueprints");
+}
+
+export async function updateBlueprintAction(
+  blueprintId: string,
+  oldSlug: string,
+  data: {
+    name: string;
+    description: string;
+    category: string;
+    subcategory?: string;
+    slug: string;
+  },
+) {
+  await requireAdmin();
+  await updateBlueprint(blueprintId, data);
+  revalidatePath(`/crafting/blueprints/${oldSlug}`);
+  revalidatePath(`/crafting/blueprints/${data.slug}`);
+  revalidatePath("/crafting/blueprints");
+  redirect(`/crafting/blueprints/${data.slug}`);
 }

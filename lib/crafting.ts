@@ -161,6 +161,29 @@ export async function removeBlueprintFromUser(
   await collection.deleteOne({ userId, blueprintId });
 }
 
+export async function deleteBlueprint(blueprintId: string): Promise<void> {
+  await db.db().collection("user-blueprints").deleteMany({ blueprintId });
+  await db
+    .db()
+    .collection<Blueprint>("blueprints")
+    .deleteOne({ _id: new ObjectId(blueprintId) } as never);
+}
+
+export async function updateBlueprint(
+  blueprintId: string,
+  data: Partial<
+    Pick<
+      Blueprint,
+      "name" | "description" | "category" | "subcategory" | "slug"
+    >
+  >,
+): Promise<void> {
+  await db
+    .db()
+    .collection<Blueprint>("blueprints")
+    .updateOne({ _id: new ObjectId(blueprintId) } as never, { $set: data });
+}
+
 export type BlueprintOrgMember = {
   userId: string;
   name: string;
