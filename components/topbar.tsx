@@ -9,7 +9,6 @@ import {
 } from "@headlessui/react";
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { auth, signIn, signOut } from "@/auth";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
@@ -20,6 +19,9 @@ import {
   TopBarNavMenuItem,
 } from "@/components/topbar-components";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { Button } from "@/components/ui/button";
 
 const navigation = [
   { name: "dashboard", href: "/", current: true },
@@ -37,14 +39,16 @@ const userNavigation = [
     action: async () => {
       "use server";
 
-      await signOut();
+      await auth.api.signOut();
     },
   },
 ];
 
 export default async function Topbar() {
   const t = await getTranslations("TopBar");
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   const user = session?.user
     ? await db
@@ -164,14 +168,9 @@ export default async function Topbar() {
             </div>
           ) : (
             <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center">
-              <form
-                action={async () => {
-                  "use server";
-                  await signIn();
-                }}
-              >
-                <button
-                  type="submit"
+              <Button asChild>
+                <Link
+                  href="/login"
                   className="relative flex-shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
                 >
                   <span className="absolute -inset-1.5" />
@@ -180,8 +179,8 @@ export default async function Topbar() {
                     aria-hidden="true"
                     className="h-6 w-6"
                   />
-                </button>
-              </form>
+                </Link>
+              </Button>
             </div>
           )}
         </div>
@@ -265,20 +264,15 @@ export default async function Topbar() {
               </div>
             </>
           ) : (
-            <form
-              action={async () => {
-                "use server";
-                await signIn();
-              }}
-              className="mt-3 space-y-1 px-2"
-            >
-              <button
+            <div className="mt-3 space-y-1 px-2">
+              <Button
                 type="submit"
                 className="w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
+                asChild
               >
-                {t("nav.signIn")}
-              </button>
-            </form>
+                <Link href={"/login"}>{t("nav.signIn")}</Link>
+              </Button>
+            </div>
           )}
         </div>
       </DisclosurePanel>

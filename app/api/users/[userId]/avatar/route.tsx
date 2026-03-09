@@ -1,8 +1,9 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function POST(
   request: Request,
@@ -15,7 +16,9 @@ export async function POST(
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        const session = await auth();
+        const session = await auth.api.getSession({
+          headers: await headers(),
+        });
 
         const userId = (await params).userId;
 

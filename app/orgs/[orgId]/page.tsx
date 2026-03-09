@@ -1,6 +1,5 @@
 import db from "@/lib/db";
 import { Organization } from "@/app/orgs/page";
-import { auth } from "@/auth";
 import { ObjectId } from "bson";
 import Image from "next/image";
 import { handleRemoveMember } from "@/app/orgs/actions";
@@ -16,6 +15,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { EditIcon } from "lucide-react";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function OrganizationPage({
   params,
@@ -25,7 +26,9 @@ export default async function OrganizationPage({
   const t = await getTranslations("Organizations");
 
   const { orgId } = await params;
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   const organizations = await db
     .db()

@@ -1,10 +1,11 @@
-import { auth } from "@/auth";
 import db from "@/lib/db";
 import Link from "next/link";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import { ObjectId } from "bson";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export type Organization = {
   _id: string;
@@ -19,7 +20,9 @@ export type Organization = {
 export default async function OrganizationsPage() {
   const t = await getTranslations("Organizations");
 
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   const organizations = await db
     .db()

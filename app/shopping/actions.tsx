@@ -1,6 +1,5 @@
 "use server";
 
-import { auth } from "@/auth";
 import db from "@/lib/db";
 import { randomUUID } from "node:crypto";
 import { put } from "@vercel/blob";
@@ -9,6 +8,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ObjectId } from "bson";
 import { isUserSellerOfShop, ShopItemDbModel } from "@/lib/shop-items";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 const ajv = new Ajv({ coerceTypes: true });
 const validateShopItem = ajv.compile({
@@ -24,7 +25,9 @@ const validateShopItem = ajv.compile({
 });
 
 export async function addArticleToShop(formData: FormData) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session || !session.user) {
     throw new Error("User not authenticated");
@@ -92,7 +95,9 @@ export async function incrementShopItemStock(
   itemId: string,
   stockModification: number,
 ) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session || !session.user) {
     throw new Error("User not authenticated");

@@ -1,17 +1,20 @@
 "use server";
 
-import { auth } from "@/auth";
 import { getFaction } from "@/lib/reputations";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function setPlayerReputation(
   factionName: string,
   careerName: string,
   levelName: string,
 ) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session || !session.user) {
     throw new Error("User not authenticated");
@@ -56,7 +59,9 @@ export async function setPlayerReputationStandingAction(
   factionName: string,
   standing: string,
 ) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session || !session.user) {
     throw new Error("User not authenticated");

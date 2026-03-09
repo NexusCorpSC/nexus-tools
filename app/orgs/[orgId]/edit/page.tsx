@@ -7,7 +7,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import db from "@/lib/db";
 import { Organization } from "@/app/orgs/page";
 import { ObjectId } from "bson";
@@ -17,6 +16,8 @@ import { updateOrgProfileAction } from "@/app/orgs/[orgId]/edit/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function EditOrgPage({
   params,
@@ -26,7 +27,9 @@ export default async function EditOrgPage({
   const t = await getTranslations("Organizations");
 
   const { orgId } = await params;
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   const organizations = await db
     .db()

@@ -1,4 +1,3 @@
-import { auth, signIn } from "@/auth";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { User } from "@/app/(auth)/profile/page";
@@ -14,14 +13,19 @@ import { PhotoIcon } from "@heroicons/react/24/solid";
 import { addArticleToShop } from "@/app/shopping/actions";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export default async function SellPage() {
   const t = await getTranslations("ShoppingNewItem");
 
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session || !session.user) {
-    return signIn(undefined, { redirectTo: "/shopping/sell" });
+    redirect(`/login?callbackUrl=${encodeURIComponent("/shopping/sell")}`);
   }
 
   const user = await db
@@ -30,7 +34,7 @@ export default async function SellPage() {
     .findOne({ _id: new ObjectId(session.user.id) });
 
   if (!user) {
-    return signIn(undefined, { redirectTo: "/shopping/sell" });
+    redirect(`/login?callbackUrl=${encodeURIComponent("/shopping/sell")}`);
   }
 
   const selectedShop = await db

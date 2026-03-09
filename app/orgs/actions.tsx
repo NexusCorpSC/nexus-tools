@@ -4,10 +4,13 @@ import db from "@/lib/db";
 import { Organization } from "@/app/orgs/page";
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "bson";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function handleRemoveMember(formData: FormData) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   const orgId = formData.get("orgId") as string;
   const memberId = formData.get("memberId") as string;

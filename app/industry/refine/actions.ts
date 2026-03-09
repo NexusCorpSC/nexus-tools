@@ -1,12 +1,13 @@
 "use server";
 
-import { auth } from "@/auth";
 import db from "@/lib/db";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { DbRefiningJob, RefiningJob } from "@/lib/refining-jobs";
 import Ajv from "ajv";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 const ajv = new Ajv({ coerceTypes: true });
 
@@ -24,7 +25,9 @@ const validateRefiningJob = ajv.compile({
 
 // Create a new refining job
 export async function addRefiningJob(formData: FormData) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   if (!session || !session.user) {
     throw new Error("User not authenticated");
   }
@@ -60,7 +63,9 @@ export async function addRefiningJob(formData: FormData) {
 
 // Update an existing refining job
 export async function updateRefiningJob(formData: FormData) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   if (!session || !session.user) {
     throw new Error("User not authenticated");
   }
@@ -71,12 +76,12 @@ export async function updateRefiningJob(formData: FormData) {
   }
 
   const updateData: Partial<RefiningJob> = {};
-  
+
   const content = formData.get("content");
   if (content) {
     updateData.content = content as string;
   }
-  
+
   const durationStr = formData.get("duration");
   if (durationStr) {
     const duration = parseInt(durationStr as string);
@@ -95,7 +100,7 @@ export async function updateRefiningJob(formData: FormData) {
     .collection("refiningJobs")
     .updateOne(
       { id: jobId, userId: new ObjectId(session.user.id) },
-      { $set: updateData }
+      { $set: updateData },
     );
 
   if (result.matchedCount === 0) {
@@ -108,7 +113,9 @@ export async function updateRefiningJob(formData: FormData) {
 
 // Delete a refining job
 export async function deleteRefiningJob(jobId: string) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   if (!session || !session.user) {
     throw new Error("User not authenticated");
   }

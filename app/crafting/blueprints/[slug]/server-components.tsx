@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { isUserOwningBlueprint } from "@/lib/crafting";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -14,6 +13,8 @@ import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
 import { BlueprintOrgOwnersClient } from "./components";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function BlueprintOwnershipCard({
   blueprint,
@@ -21,7 +22,9 @@ export async function BlueprintOwnershipCard({
   blueprint: Blueprint;
 }) {
   const t = await getTranslations("Crafting.Blueprints");
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session?.user) {
     return (
@@ -93,7 +96,9 @@ export async function BlueprintOrgOwnersSection({
   blueprint: Blueprint;
 }) {
   const t = await getTranslations("Crafting.Blueprints");
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session?.user) {
     return (

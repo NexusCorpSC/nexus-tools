@@ -1,13 +1,16 @@
-import { auth } from "@/auth";
 import { isUserSellerOfShop, ShopItem } from "@/lib/shop-items";
 import { ObjectId } from "bson";
 import { StockModificationForm } from "@/app/shopping/i/[itemId]/components";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function StockModificationSection({ item }: { item: ShopItem }) {
   const t = await getTranslations("ShopItemManagement");
 
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session?.user) {
     return <></>;

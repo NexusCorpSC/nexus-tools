@@ -1,10 +1,11 @@
 "use server";
 
-import { auth } from "@/auth";
 import db from "@/lib/db";
 import { Organization } from "@/app/orgs/page";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function updateOrgProfileAction(formData: FormData) {
   const orgId = formData.get("orgId") as string;
@@ -13,7 +14,9 @@ export async function updateOrgProfileAction(formData: FormData) {
   const description = formData.get("description") as string;
   const avatar = formData.get("avatar") as File;
 
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   const organization = await db
     .db()

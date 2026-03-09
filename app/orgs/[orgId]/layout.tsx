@@ -1,7 +1,8 @@
-import { auth } from "@/auth";
 import db from "@/lib/db";
 import { Organization } from "@/app/orgs/page";
 import { ObjectId } from "bson";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function OrgLayout({
   params,
@@ -11,7 +12,9 @@ export default async function OrgLayout({
   children: React.ReactNode;
 }) {
   const { orgId } = await params;
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   const organizations = await db
     .db()

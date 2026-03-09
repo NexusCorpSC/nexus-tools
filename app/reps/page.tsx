@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import { getFactions, getPlayerReputations } from "@/lib/reputations";
 import { FactionsList } from "@/app/reps/components/factions-list";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function ReputationPage() {
   const t = await getTranslations("Reputations");
 
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session?.user?.id) {
     return (

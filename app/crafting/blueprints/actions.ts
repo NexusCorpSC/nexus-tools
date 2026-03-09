@@ -1,11 +1,14 @@
 "use server";
 
-import { auth } from "@/auth";
 import { addBlueprintToUser, removeBlueprintFromUser } from "@/lib/crafting";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function addBlueprintAction(blueprintId: string, slug: string) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   if (!session?.user) {
     throw new Error("Not authenticated");
   }
@@ -14,7 +17,9 @@ export async function addBlueprintAction(blueprintId: string, slug: string) {
 }
 
 export async function removeBlueprintAction(blueprintId: string, slug: string) {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   if (!session?.user) {
     throw new Error("Not authenticated");
   }

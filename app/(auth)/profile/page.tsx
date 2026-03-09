@@ -1,4 +1,3 @@
-import { signOut, auth } from "@/auth";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import db from "@/lib/db";
@@ -7,6 +6,8 @@ import { Organization } from "@/app/orgs/page";
 import Image from "next/image";
 import { AvatarUpdateComponent } from "@/app/(auth)/profile/components";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export type User = {
   _id: ObjectId;
@@ -18,7 +19,9 @@ export type User = {
 
 export default async function ProfilePage() {
   const t = await getTranslations("Profile");
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   if (!session) {
     return <>Not authenticated.</>;
@@ -134,7 +137,7 @@ export default async function ProfilePage() {
         action={async () => {
           "use server";
 
-          await signOut({ redirectTo: "/" });
+          await auth.api.signOut();
         }}
       >
         <button className="bg-primary text-primary-foreground py-2 px-4 rounded hover:bg-primary/90">
