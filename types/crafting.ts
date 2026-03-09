@@ -7,6 +7,7 @@ export type Blueprint = {
   slug: string;
   description: string;
   category: string;
+  subcategory?: string;
 };
 
 export type UserBlueprint = {

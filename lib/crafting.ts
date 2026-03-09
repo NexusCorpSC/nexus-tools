@@ -11,7 +11,14 @@ export async function searchBlueprints(query: string): Promise<Blueprint[]> {
     .limit(10)
     .toArray();
 
-  return results;
+  return results.map((bp) => ({
+    id: bp._id.toString(),
+    name: bp.name,
+    slug: bp.slug,
+    description: bp.description,
+    category: bp.category,
+    subcategory: bp.subcategory,
+  }));
 }
 
 export async function getBlueprintById(id: string): Promise<Blueprint | null> {
@@ -25,7 +32,16 @@ export async function getBlueprintBySlug(
 ): Promise<Blueprint | null> {
   const collection = db.db().collection<Blueprint>("blueprints");
   const blueprint = await collection.findOne({ slug });
-  return blueprint;
+  return blueprint
+    ? {
+        id: blueprint._id.toString(),
+        name: blueprint.name,
+        slug: blueprint.slug,
+        description: blueprint.description,
+        category: blueprint.category,
+        subcategory: blueprint.subcategory,
+      }
+    : null;
 }
 
 export async function getUserBlueprints(
@@ -52,6 +68,7 @@ export async function getUserBlueprints(
           name: "$blueprint.name",
           description: "$blueprint.description",
           category: "$blueprint.category",
+          subcategory: "$blueprint.subcategory",
           slug: "$blueprint.slug",
           addedAt: 1,
         },
