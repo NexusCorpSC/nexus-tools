@@ -206,7 +206,7 @@ export async function updateBlueprint(
   data: Partial<
     Pick<
       Blueprint,
-      "name" | "description" | "category" | "subcategory" | "slug"
+      "name" | "description" | "category" | "subcategory" | "slug" | "imageUrl"
     >
   >,
 ): Promise<void> {

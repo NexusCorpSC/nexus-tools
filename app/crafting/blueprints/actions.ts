@@ -51,6 +51,7 @@ export async function updateBlueprintAction(
     category: string;
     subcategory?: string;
     slug: string;
+    imageUrl?: string;
   },
 ) {
   await requireAdmin();

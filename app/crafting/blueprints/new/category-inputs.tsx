@@ -83,13 +83,17 @@ function AutocompleteInput({
 export function CategoryInputs({
   tCategory,
   tSubcategory,
+  initialCategory = "",
+  initialSubcategory = "",
 }: {
   tCategory: string;
   tSubcategory: string;
+  initialCategory?: string;
+  initialSubcategory?: string;
 }) {
   const [data, setData] = useState<CategoryData[]>([]);
-  const [category, setCategory] = useState("");
-  const [subcategory, setSubcategory] = useState("");
+  const [category, setCategory] = useState(initialCategory);
+  const [subcategory, setSubcategory] = useState(initialSubcategory);
 
   useEffect(() => {
     fetch("/api/blueprints/categories")

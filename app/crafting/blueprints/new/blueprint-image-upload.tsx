@@ -5,8 +5,14 @@ import { upload } from "@vercel/blob/client";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import Image from "next/image";
 
-export function BlueprintImageUpload({ slug }: { slug: string }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+export function BlueprintImageUpload({
+  slug,
+  initialUrl,
+}: {
+  slug: string;
+  initialUrl?: string;
+}) {
+  const [imageUrl, setImageUrl] = useState<string | null>(initialUrl ?? null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
