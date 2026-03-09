@@ -216,6 +216,28 @@ export async function updateBlueprint(
     .updateOne({ _id: new ObjectId(blueprintId) } as never, { $set: data });
 }
 
+export async function getBlueprintCategories(): Promise<
+  { category: string; subcategories: string[] }[]
+> {
+  const collection = db.db().collection<Blueprint>("blueprints");
+  const results = await collection
+    .aggregate<{ _id: string; subcategories: string[] }>([
+      {
+        $group: {
+          _id: "$category",
+          subcategories: { $addToSet: "$subcategory" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ])
+    .toArray();
+
+  return results.map((r) => ({
+    category: r._id,
+    subcategories: r.subcategories.filter((s): s is string => !!s).sort(),
+  }));
+}
+
 export async function createBlueprint(
   data: Pick<Blueprint, "name" | "description" | "category" | "slug"> & {
     subcategory?: string;

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { createBlueprintAction } from "@/app/crafting/blueprints/actions";
 import { BlueprintNameInput } from "./blueprint-name-input";
+import { CategoryInputs } from "./category-inputs";
 
 export default async function NewBlueprintPage() {
   await requirePermission("blueprints:edit");
@@ -80,15 +81,10 @@ export default async function NewBlueprintPage() {
           <Textarea id="description" name="description" rows={4} required />
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="category">{tAdmin("fieldCategory")}</Label>
-          <Input id="category" name="category" required />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="subcategory">{tAdmin("fieldSubcategory")}</Label>
-          <Input id="subcategory" name="subcategory" />
-        </div>
+        <CategoryInputs
+          tCategory={tAdmin("fieldCategory")}
+          tSubcategory={tAdmin("fieldSubcategory")}
+        />
 
         <div className="space-y-1.5">
           <Label htmlFor="slug">{tAdmin("fieldSlug")}</Label>
