@@ -4,6 +4,7 @@ export type Blueprint = {
    */
   id: string;
   name: string;
+  slug: string;
   description: string;
   category: string;
 };

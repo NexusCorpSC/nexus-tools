@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,9 +7,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { BlueprintSearch } from "./components";
 
-export default function Page() {
-  const t = useTranslations("Crafting");
+export default async function Page() {
+  const t = await getTranslations("Crafting");
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
@@ -31,6 +32,8 @@ export default function Page() {
 
       <h1 className="text-2xl font-bold mb-4">{t("Blueprints.title")}</h1>
       <p className="text-gray-600">{t("Blueprints.header")}</p>
+
+      <BlueprintSearch />
     </div>
   );
 }

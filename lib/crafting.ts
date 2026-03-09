@@ -20,6 +20,14 @@ export async function getBlueprintById(id: string): Promise<Blueprint | null> {
   return blueprint;
 }
 
+export async function getBlueprintBySlug(
+  slug: string,
+): Promise<Blueprint | null> {
+  const collection = db.db().collection<Blueprint>("blueprints");
+  const blueprint = await collection.findOne({ slug });
+  return blueprint;
+}
+
 export async function getUserBlueprints(
   userId: string,
 ): Promise<(Blueprint & { addedAt: string })[]> {
@@ -44,6 +52,7 @@ export async function getUserBlueprints(
           name: "$blueprint.name",
           description: "$blueprint.description",
           category: "$blueprint.category",
+          slug: "$blueprint.slug",
           addedAt: 1,
         },
       },

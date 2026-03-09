@@ -60,7 +60,13 @@
     "backButton": "Back to the main page",
     "Blueprints": {
       "title": "Blueprints",
-      "header": "Manage your blueprints and share them with your organization members."
+      "header": "Manage your blueprints and share them with your organization members.",
+      "searchPlaceholder": "Search for a blueprint...",
+      "searchLoading": "Loading...",
+      "searchNoResults": "No blueprints found.",
+      "description": "Description",
+      "notFound": "Blueprint not found",
+      "backToBlueprints": "Back to blueprints"
     },
     "Inventory": {
       "title": "Inventory",

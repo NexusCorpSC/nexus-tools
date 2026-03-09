@@ -64,7 +64,13 @@
     },
     "Blueprints": {
       "title": "Plans",
-      "header": "Gérez vos plans d'artisanat, associez-les à des recettes et partagez-les avec votre organisation pour faciliter la collaboration entre artisans et acheteurs."
+      "header": "Gérez vos plans d'artisanat, associez-les à des recettes et partagez-les avec votre organisation pour faciliter la collaboration entre artisans et acheteurs.",
+      "searchPlaceholder": "Rechercher un plan...",
+      "searchLoading": "Chargement...",
+      "searchNoResults": "Aucun plan trouvé.",
+      "description": "Description",
+      "notFound": "Plan introuvable",
+      "backToBlueprints": "Retour aux plans"
     }
   },
   "Shopping": {
