@@ -15,7 +15,7 @@ import { Organization } from "@/app/orgs/page";
 import { AdminBlueprintMenu, BlueprintOrgOwnersClient } from "./components";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { isAdmin } from "@/lib/permissions";
+import { hasPermission, isAdmin } from "@/lib/permissions";
 
 export async function BlueprintOwnershipCard({
   blueprint,
@@ -148,8 +148,8 @@ export async function AdminBlueprintSection({
 }: {
   blueprint: Blueprint;
 }) {
-  const adminUser = await isAdmin();
-  if (!adminUser) return null;
+  const canEdit = await hasPermission("blueprints:edit");
+  if (!canEdit) return null;
 
   const t = await getTranslations("Crafting.Blueprints.Admin");
 

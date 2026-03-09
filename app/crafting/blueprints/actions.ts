@@ -5,6 +5,7 @@ import {
   removeBlueprintFromUser,
   deleteBlueprint,
   updateBlueprint,
+  createBlueprint,
 } from "@/lib/crafting";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -58,4 +59,17 @@ export async function updateBlueprintAction(
   revalidatePath(`/crafting/blueprints/${data.slug}`);
   revalidatePath("/crafting/blueprints");
   redirect(`/crafting/blueprints/${data.slug}`);
+}
+
+export async function createBlueprintAction(data: {
+  name: string;
+  description: string;
+  category: string;
+  subcategory?: string;
+  slug: string;
+}) {
+  await requireAdmin();
+  const slug = await createBlueprint(data);
+  revalidatePath("/crafting/blueprints");
+  redirect(`/crafting/blueprints/${slug}`);
 }

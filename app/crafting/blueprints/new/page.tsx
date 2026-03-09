@@ -1,6 +1,9 @@
-import { getBlueprintBySlug } from "@/lib/crafting";
 import { getTranslations } from "next-intl/server";
-import { requireAdmin, requirePermission } from "@/lib/permissions";
+import {
+  hasPermission,
+  requireAdmin,
+  requirePermission,
+} from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import {
   Breadcrumb,
@@ -15,24 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { updateBlueprintAction } from "@/app/crafting/blueprints/actions";
+import { createBlueprintAction } from "@/app/crafting/blueprints/actions";
 
-export default async function EditBlueprintPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function NewBlueprintPage() {
   await requirePermission("blueprints:edit");
 
-  const t = await getTranslations("Crafting.Blueprints");
+  const t = await getTranslations("Crafting");
   const tAdmin = await getTranslations("Crafting.Blueprints.Admin");
-  const { slug } = await params;
-
-  const blueprint = await getBlueprintBySlug(slug);
-
-  if (!blueprint) {
-    redirect("/crafting/blueprints");
-  }
 
   return (
     <div className="m-2 p-6 max-w-2xl mx-auto bg-white rounded-xl shadow-md space-y-6">
@@ -48,24 +40,18 @@ export default async function EditBlueprintPage({
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink href="/crafting/blueprints">
-              {t("title")}
+              {t("Blueprints.title")}
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={`/crafting/blueprints/${blueprint.slug}`}>
-              {blueprint.name}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{tAdmin("editPageTitle")}</BreadcrumbPage>
+            <BreadcrumbPage>{tAdmin("newPageTitle")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <h1 className="text-2xl font-bold text-gray-900">
-        {tAdmin("editPageTitle")}
+        {tAdmin("newPageTitle")}
       </h1>
 
       <form
@@ -76,64 +62,47 @@ export default async function EditBlueprintPage({
           const category = formData.get("category") as string;
           const subcategory =
             (formData.get("subcategory") as string) || undefined;
-          const newSlug = formData.get("slug") as string;
+          const slug = formData.get("slug") as string;
 
-          await updateBlueprintAction(blueprint.id, blueprint.slug, {
+          await createBlueprintAction({
             name,
             description,
             category,
             subcategory,
-            slug: newSlug,
+            slug,
           });
         }}
         className="space-y-5"
       >
         <div className="space-y-1.5">
           <Label htmlFor="name">{tAdmin("fieldName")}</Label>
-          <Input id="name" name="name" defaultValue={blueprint.name} required />
+          <Input id="name" name="name" required />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="description">{tAdmin("fieldDescription")}</Label>
-          <Textarea
-            id="description"
-            name="description"
-            defaultValue={blueprint.description}
-            rows={4}
-            required
-          />
+          <Textarea id="description" name="description" rows={4} required />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="category">{tAdmin("fieldCategory")}</Label>
-          <Input
-            id="category"
-            name="category"
-            defaultValue={blueprint.category}
-            required
-          />
+          <Input id="category" name="category" required />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="subcategory">{tAdmin("fieldSubcategory")}</Label>
-          <Input
-            id="subcategory"
-            name="subcategory"
-            defaultValue={blueprint.subcategory ?? ""}
-          />
+          <Input id="subcategory" name="subcategory" />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="slug">{tAdmin("fieldSlug")}</Label>
-          <Input id="slug" name="slug" defaultValue={blueprint.slug} required />
+          <Input id="slug" name="slug" required />
         </div>
 
         <div className="flex items-center gap-3 pt-2">
-          <Button type="submit">{tAdmin("editSave")}</Button>
+          <Button type="submit">{tAdmin("newCreate")}</Button>
           <Button asChild variant="outline">
-            <Link href={`/crafting/blueprints/${blueprint.slug}`}>
-              {tAdmin("editCancel")}
-            </Link>
+            <Link href="/crafting/blueprints">{tAdmin("editCancel")}</Link>
           </Button>
         </div>
       </form>

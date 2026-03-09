@@ -89,13 +89,16 @@
         "deleteConfirmCancel": "Cancel",
         "deleteConfirmConfirm": "Delete",
         "editPageTitle": "Edit blueprint",
+        "newPageTitle": "New blueprint",
+        "newBlueprintButton": "New blueprint",
         "fieldName": "Name",
         "fieldDescription": "Description",
         "fieldCategory": "Category",
         "fieldSubcategory": "Subcategory (optional)",
         "fieldSlug": "Slug",
         "editSave": "Save changes",
-        "editCancel": "Cancel"
+        "editCancel": "Cancel",
+        "newCreate": "Create blueprint"
       }
     },
     "Inventory": {

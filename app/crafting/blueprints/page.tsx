@@ -7,10 +7,15 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { PlusIcon } from "@heroicons/react/24/outline";
+import { hasPermission, isAdmin } from "@/lib/permissions";
 import { BlueprintSearch } from "./components";
 
 export default async function Page() {
   const t = await getTranslations("Crafting");
+  const canOperateBlueprints = await hasPermission("blueprints:edit");
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
@@ -30,8 +35,20 @@ export default async function Page() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <h1 className="text-2xl font-bold mb-4">{t("Blueprints.title")}</h1>
-      <p className="text-gray-600">{t("Blueprints.header")}</p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">{t("Blueprints.title")}</h1>
+          <p className="text-gray-600">{t("Blueprints.header")}</p>
+        </div>
+        {canOperateBlueprints && (
+          <Button asChild size="sm">
+            <Link href="/crafting/blueprints/new">
+              <PlusIcon className="size-4 mr-1.5" />
+              {t("Blueprints.Admin.newBlueprintButton")}
+            </Link>
+          </Button>
+        )}
+      </div>
 
       <BlueprintSearch />
     </div>

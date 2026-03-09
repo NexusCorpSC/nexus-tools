@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { emailOTP } from "better-auth/plugins";
+import { emailOTP, admin } from "better-auth/plugins";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 
 import { Resend } from "resend";
@@ -12,6 +12,7 @@ export const auth = betterAuth({
     usePlural: true,
   }),
   plugins: [
+    admin(),
     emailOTP({
       async sendVerificationOTP({ email, otp }) {
         if (process.env.RESEND_API_KEY === "CONSOLE") {

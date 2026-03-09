@@ -93,13 +93,16 @@
         "deleteConfirmCancel": "Annuler",
         "deleteConfirmConfirm": "Supprimer",
         "editPageTitle": "Modifier le plan",
+        "newPageTitle": "Nouveau plan",
+        "newBlueprintButton": "Nouveau plan",
         "fieldName": "Nom",
         "fieldDescription": "Description",
         "fieldCategory": "Catégorie",
         "fieldSubcategory": "Sous-catégorie (optionnel)",
         "fieldSlug": "Slug",
         "editSave": "Enregistrer les modifications",
-        "editCancel": "Annuler"
+        "editCancel": "Annuler",
+        "newCreate": "Créer le plan"
       }
     }
   },

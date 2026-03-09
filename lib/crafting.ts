@@ -184,6 +184,20 @@ export async function updateBlueprint(
     .updateOne({ _id: new ObjectId(blueprintId) } as never, { $set: data });
 }
 
+export async function createBlueprint(
+  data: Pick<Blueprint, "name" | "description" | "category" | "slug"> & {
+    subcategory?: string;
+  },
+): Promise<string> {
+  const { nanoid } = await import("nanoid");
+  const id = nanoid();
+  await db
+    .db()
+    .collection("blueprints")
+    .insertOne({ ...data, id });
+  return data.slug;
+}
+
 export type BlueprintOrgMember = {
   userId: string;
   name: string;
