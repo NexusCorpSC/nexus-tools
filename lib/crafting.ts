@@ -4,23 +4,74 @@ import { Blueprint, UserBlueprint } from "@/types/crafting";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
 
-export async function searchBlueprints(query: string): Promise<Blueprint[]> {
+export async function searchBlueprints(
+  query: string,
+  { userId }: { userId?: string },
+): Promise<(Blueprint & { owned?: boolean })[]> {
   const collection = db.db().collection<Blueprint>("blueprints");
-  const results = await collection
-    .find({
-      name: { $regex: query, $options: "i" },
-    })
-    .limit(10)
-    .toArray();
 
-  return results.map((bp) => ({
-    id: bp._id.toString(),
-    name: bp.name,
-    slug: bp.slug,
-    description: bp.description,
-    category: bp.category,
-    subcategory: bp.subcategory,
-  }));
+  if (userId) {
+    const results = await collection
+      .aggregate([
+        {
+          $match: {
+            name: { $regex: query, $options: "i" },
+          },
+        },
+        {
+          $lookup: {
+            from: "user-blueprints",
+            let: { blueprintId: { $toString: "$_id" } },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$blueprintId", "$$blueprintId"] },
+                      { $eq: ["$userId", userId] },
+                    ],
+                  },
+                },
+              },
+            ],
+            as: "ownership",
+          },
+        },
+        {
+          $addFields: {
+            owned: { $gt: [{ $size: "$ownership" }, 0] },
+          },
+        },
+      ])
+      .limit(10)
+      .toArray();
+
+    return results.map((bp) => ({
+      id: bp._id.toString(),
+      name: bp.name,
+      slug: bp.slug,
+      description: bp.description,
+      category: bp.category,
+      subcategory: bp.subcategory,
+      owned: bp.owned,
+    }));
+  } else {
+    const results = await collection
+      .find({
+        name: { $regex: query, $options: "i" },
+      })
+      .limit(10)
+      .toArray();
+
+    return results.map((bp) => ({
+      id: bp._id.toString(),
+      name: bp.name,
+      slug: bp.slug,
+      description: bp.description,
+      category: bp.category,
+      subcategory: bp.subcategory,
+    }));
+  }
 }
 
 export async function getBlueprintById(id: string): Promise<Blueprint | null> {

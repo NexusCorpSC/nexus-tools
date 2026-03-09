@@ -8,6 +8,7 @@ export type Blueprint = {
   description: string;
   category: string;
   subcategory?: string;
+  owned?: boolean;
 };
 
 export type UserBlueprint = {

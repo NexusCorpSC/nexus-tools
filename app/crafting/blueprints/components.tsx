@@ -87,6 +87,11 @@ export function BlueprintSearch() {
                   {blueprint.name}
                 </p>
                 <p className="text-xs text-gray-500">{blueprint.category}</p>
+                {blueprint.owned && (
+                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                    {t("owned")}
+                  </span>
+                )}
               </li>
             ))}
         </ul>

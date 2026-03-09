@@ -78,7 +78,8 @@
       "orgOwnersSelectPlaceholder": "Select an organization...",
       "orgOwnersEmpty": "No member of this organization owns this blueprint.",
       "orgOwnersLoading": "Loading members...",
-      "orgOwnersNoOrgs": "You are not a member of any organization."
+      "orgOwnersNoOrgs": "You are not a member of any organization.",
+      "owned": "Owned"
     },
     "Inventory": {
       "title": "Inventory",

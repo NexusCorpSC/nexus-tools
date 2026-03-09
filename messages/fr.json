@@ -82,7 +82,8 @@
       "orgOwnersSelectPlaceholder": "Sélectionner une organisation...",
       "orgOwnersEmpty": "Aucun membre de cette organisation ne possède ce plan.",
       "orgOwnersLoading": "Chargement des membres...",
-      "orgOwnersNoOrgs": "Vous n'êtes membre d'aucune organisation."
+      "orgOwnersNoOrgs": "Vous n'êtes membre d'aucune organisation.",
+      "owned": "Possédé"
     }
   },
   "Shopping": {
