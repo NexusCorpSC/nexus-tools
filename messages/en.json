@@ -57,7 +57,15 @@
   "Crafting": {
     "title": "Crafting",
     "wip": "We are working on creating this page, and we are waiting for new information on crafting in the Verse to complete this feature.",
-    "backButton": "Back to the main page"
+    "backButton": "Back to the main page",
+    "Blueprints": {
+      "title": "Blueprints",
+      "header": "Manage your blueprints and share them with your organization members."
+    },
+    "Inventory": {
+      "title": "Inventory",
+      "header": "Keep your inventory of materials and items up to date to facilitate the management of your crafting recipes."
+    }
   },
   "Shopping": {
     "title": "Marketplace",
