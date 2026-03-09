@@ -6,9 +6,39 @@ import { Organization } from "@/app/orgs/page";
 
 export async function searchBlueprints(
   query: string,
-  { userId }: { userId?: string },
+  { userId, fuzzy }: { userId?: string; fuzzy?: boolean } = {},
 ): Promise<(Blueprint & { owned?: boolean })[]> {
   const collection = db.db().collection<Blueprint>("blueprints");
+
+  if (fuzzy) {
+    const results = await collection
+      .aggregate([
+        {
+          $search: {
+            index: "default",
+            text: {
+              query,
+              path: "name",
+              fuzzy: {
+                maxEdits: 2,
+                prefixLength: 3,
+              },
+            },
+          },
+        },
+      ])
+      .limit(3)
+      .toArray();
+
+    return results.map((bp) => ({
+      id: bp._id.toString(),
+      name: bp.name,
+      slug: bp.slug,
+      description: bp.description,
+      category: bp.category,
+      subcategory: bp.subcategory,
+    }));
+  }
 
   if (userId) {
     const results = await collection

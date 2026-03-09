@@ -1,10 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import {
-  hasPermission,
-  requireAdmin,
-  requirePermission,
-} from "@/lib/permissions";
-import { redirect } from "next/navigation";
+import { requirePermission } from "@/lib/permissions";
 import {
   Breadcrumb,
   BreadcrumbItem,
