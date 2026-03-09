@@ -96,6 +96,7 @@
         "fieldCategory": "Category",
         "fieldSubcategory": "Subcategory (optional)",
         "fieldSlug": "Slug",
+        "fieldImage": "Image (optional)",
         "editSave": "Save changes",
         "editCancel": "Cancel",
         "newCreate": "Create blueprint"

@@ -100,6 +100,7 @@
         "fieldCategory": "Catégorie",
         "fieldSubcategory": "Sous-catégorie (optionnel)",
         "fieldSlug": "Slug",
+        "fieldImage": "Image (optionnel)",
         "editSave": "Enregistrer les modifications",
         "editCancel": "Annuler",
         "newCreate": "Créer le plan"

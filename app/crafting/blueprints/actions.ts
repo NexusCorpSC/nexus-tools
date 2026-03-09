@@ -67,6 +67,7 @@ export async function createBlueprintAction(data: {
   category: string;
   subcategory?: string;
   slug: string;
+  imageUrl?: string;
 }) {
   await requireAdmin();
   const slug = await createBlueprint(data);

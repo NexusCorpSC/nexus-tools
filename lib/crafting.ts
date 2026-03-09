@@ -241,6 +241,7 @@ export async function getBlueprintCategories(): Promise<
 export async function createBlueprint(
   data: Pick<Blueprint, "name" | "description" | "category" | "slug"> & {
     subcategory?: string;
+    imageUrl?: string;
   },
 ): Promise<string> {
   const { nanoid } = await import("nanoid");
