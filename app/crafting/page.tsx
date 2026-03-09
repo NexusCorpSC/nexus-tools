@@ -11,9 +11,19 @@ export default function CraftingPage() {
 
       <p>{t("wip")}</p>
 
-      <Button asChild>
-        <Link href="/">{t("backButton")}</Link>
-      </Button>
+      <div className="flex flex-row gap-2">
+        <Button asChild>
+          <Link href="/crafting/blueprints">Blueprints</Link>
+        </Button>
+
+        <Button asChild>
+          <Link href="/crafting/inventory">Mon inventaire</Link>
+        </Button>
+
+        <Button asChild>
+          <Link href="/">{t("backButton")}</Link>
+        </Button>
+      </div>
     </div>
   );
 }
