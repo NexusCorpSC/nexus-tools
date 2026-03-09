@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Suspense } from "react";
+import { BlueprintOwnershipCard } from "./server-components";
 
 export default async function BlueprintDetailPage({
   params,
@@ -71,6 +73,14 @@ export default async function BlueprintDetailPage({
         </h2>
         <p className="text-gray-700 leading-relaxed">{blueprint.description}</p>
       </div>
+
+      <Suspense
+        fallback={
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 animate-pulse h-16" />
+        }
+      >
+        <BlueprintOwnershipCard blueprint={blueprint} />
+      </Suspense>
 
       <Button asChild variant="outline">
         <Link href="/crafting/blueprints">

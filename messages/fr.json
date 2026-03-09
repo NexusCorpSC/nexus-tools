@@ -70,7 +70,13 @@
       "searchNoResults": "Aucun plan trouvé.",
       "description": "Description",
       "notFound": "Plan introuvable",
-      "backToBlueprints": "Retour aux plans"
+      "backToBlueprints": "Retour aux plans",
+      "ownershipLoginPrompt": "Connectez-vous pour gérer vos plans et les associer à votre compte.",
+      "ownershipLoginButton": "Se connecter",
+      "ownershipOwned": "Vous possédez ce plan.",
+      "ownershipNotOwned": "Vous ne possédez pas encore ce plan.",
+      "ownershipAdd": "Ajouter à mes plans",
+      "ownershipRemove": "Retirer de mes plans"
     }
   },
   "Shopping": {

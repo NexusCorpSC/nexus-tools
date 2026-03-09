@@ -79,6 +79,15 @@ export async function getUserBlueprints(
   return userBlueprints;
 }
 
+export async function isUserOwningBlueprint(
+  userId: string,
+  blueprintId: string,
+): Promise<boolean> {
+  const collection = db.db().collection<UserBlueprint>("user-blueprints");
+  const entry = await collection.findOne({ userId, blueprintId });
+  return entry !== null;
+}
+
 export async function addBlueprintToUser(
   userId: string,
   blueprintId: string,
