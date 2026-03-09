@@ -1,6 +1,8 @@
 import "server-only";
 import db from "./db";
 import { Blueprint, UserBlueprint } from "@/types/crafting";
+import { ObjectId } from "bson";
+import { Organization } from "@/app/orgs/page";
 
 export async function searchBlueprints(query: string): Promise<Blueprint[]> {
   const collection = db.db().collection<Blueprint>("blueprints");
@@ -108,28 +110,56 @@ export async function removeBlueprintFromUser(
   await collection.deleteOne({ userId, blueprintId });
 }
 
+export type BlueprintOrgMember = {
+  userId: string;
+  name: string;
+  avatar: string;
+};
+
 export async function getUsersWithBlueprintInOrganization(
   organizationId: string,
   blueprintId: string,
-): Promise<string[]> {
-  const collection = db.db().collection<UserBlueprint>("user-blueprints");
+): Promise<BlueprintOrgMember[]> {
+  // Retrieve member userIds from the organization
+  const orgsCollection = db.db().collection<Organization>("organizations");
+  const org = await orgsCollection.findOne<{
+    members: { userId: ObjectId }[];
+  }>({ _id: organizationId }, { projection: { members: 1 } });
 
-  const users = await collection
-    .aggregate<{ userId: string }>([
-      { $match: { blueprintId } },
+  if (!org) return [];
+
+  const memberUserIds = org.members.map((m: { userId: ObjectId }) =>
+    m.userId.toString(),
+  );
+
+  // Among those members, find who owns the blueprint
+  const ubCollection = db.db().collection<UserBlueprint>("user-blueprints");
+  const owners = await ubCollection
+    .aggregate<BlueprintOrgMember>([
+      { $match: { blueprintId, userId: { $in: memberUserIds } } },
+      {
+        $addFields: { userObjectId: { $toObjectId: "$userId" } },
+      },
       {
         $lookup: {
           from: "users",
-          localField: "userId",
-          foreignField: "id",
+          localField: "userObjectId",
+          foreignField: "_id",
           as: "user",
+          pipeline: [{ $project: { name: 1, avatar: 1 } }],
         },
       },
       { $unwind: "$user" },
-      { $match: { "user.organizationId": organizationId } },
-      { $project: { _id: 0, userId: 1 } },
+      {
+        $project: {
+          _id: 0,
+          userId: 1,
+          name: "$user.name",
+          avatar: "$user.avatar",
+        },
+      },
     ])
     .toArray();
 
-  return users.map((u) => u.userId);
+  return owners;
 }

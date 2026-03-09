@@ -11,7 +11,10 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Suspense } from "react";
-import { BlueprintOwnershipCard } from "./server-components";
+import {
+  BlueprintOwnershipCard,
+  BlueprintOrgOwnersSection,
+} from "./server-components";
 
 export default async function BlueprintDetailPage({
   params,
@@ -80,6 +83,14 @@ export default async function BlueprintDetailPage({
         }
       >
         <BlueprintOwnershipCard blueprint={blueprint} />
+      </Suspense>
+
+      <Suspense
+        fallback={
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 animate-pulse h-16" />
+        }
+      >
+        <BlueprintOrgOwnersSection blueprint={blueprint} />
       </Suspense>
 
       <Button asChild variant="outline">

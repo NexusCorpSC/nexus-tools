@@ -72,7 +72,13 @@
       "ownershipOwned": "You own this blueprint.",
       "ownershipNotOwned": "You don't own this blueprint yet.",
       "ownershipAdd": "Add to my blueprints",
-      "ownershipRemove": "Remove from my blueprints"
+      "ownershipRemove": "Remove from my blueprints",
+      "orgOwnersTitle": "Who owns this blueprint in my organization?",
+      "orgOwnersLoginPrompt": "Sign in to see organization members who own this blueprint.",
+      "orgOwnersSelectPlaceholder": "Select an organization...",
+      "orgOwnersEmpty": "No member of this organization owns this blueprint.",
+      "orgOwnersLoading": "Loading members...",
+      "orgOwnersNoOrgs": "You are not a member of any organization."
     },
     "Inventory": {
       "title": "Inventory",

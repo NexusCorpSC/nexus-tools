@@ -10,6 +10,10 @@ import {
 } from "@/app/crafting/blueprints/actions";
 import { BookmarkIcon, BookmarkSlashIcon } from "@heroicons/react/24/outline";
 import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
+import db from "@/lib/db";
+import { ObjectId } from "bson";
+import { Organization } from "@/app/orgs/page";
+import { BlueprintOrgOwnersClient } from "./components";
 
 export async function BlueprintOwnershipCard({
   blueprint,
@@ -80,5 +84,55 @@ export async function BlueprintOwnershipCard({
         </Button>
       </form>
     </div>
+  );
+}
+
+export async function BlueprintOrgOwnersSection({
+  blueprint,
+}: {
+  blueprint: Blueprint;
+}) {
+  const t = await getTranslations("Crafting.Blueprints");
+  const session = await auth();
+
+  if (!session?.user) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-gray-700">
+          {t("orgOwnersTitle")}
+        </h2>
+        <p className="text-sm text-gray-500">{t("orgOwnersLoginPrompt")}</p>
+        <Button asChild size="sm" className="self-start">
+          <Link href="/login">{t("ownershipLoginButton")}</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const userOrgs = await db
+    .db()
+    .collection<Organization>("organizations")
+    .find(
+      { "members.userId": new ObjectId(session.user.id) },
+      { projection: { _id: 1, name: 1 } },
+    )
+    .limit(20)
+    .toArray();
+
+  const orgs = userOrgs.map((o) => ({
+    id: o._id.toString(),
+    name: o.name,
+  }));
+
+  return (
+    <BlueprintOrgOwnersClient
+      blueprintId={blueprint.id}
+      organizations={orgs}
+      sectionTitle={t("orgOwnersTitle")}
+      selectPlaceholder={t("orgOwnersSelectPlaceholder")}
+      emptyLabel={t("orgOwnersEmpty")}
+      loadingLabel={t("orgOwnersLoading")}
+      noOrgsLabel={t("orgOwnersNoOrgs")}
+    />
   );
 }

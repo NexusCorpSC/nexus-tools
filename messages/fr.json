@@ -76,7 +76,13 @@
       "ownershipOwned": "Vous possédez ce plan.",
       "ownershipNotOwned": "Vous ne possédez pas encore ce plan.",
       "ownershipAdd": "Ajouter à mes plans",
-      "ownershipRemove": "Retirer de mes plans"
+      "ownershipRemove": "Retirer de mes plans",
+      "orgOwnersTitle": "Qui possède ce plan dans mon organisation ?",
+      "orgOwnersLoginPrompt": "Connectez-vous pour voir les membres de votre organisation qui possèdent ce plan.",
+      "orgOwnersSelectPlaceholder": "Sélectionner une organisation...",
+      "orgOwnersEmpty": "Aucun membre de cette organisation ne possède ce plan.",
+      "orgOwnersLoading": "Chargement des membres...",
+      "orgOwnersNoOrgs": "Vous n'êtes membre d'aucune organisation."
     }
   },
   "Shopping": {
