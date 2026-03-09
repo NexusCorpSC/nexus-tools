@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useTranslations } from "next-intl";
 import { Blueprint } from "@/types/crafting";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import Image from "next/image";
 
 export function BlueprintSearch() {
   const t = useTranslations("Crafting.Blueprints");
@@ -81,17 +82,36 @@ export function BlueprintSearch() {
               <li
                 key={blueprint.id}
                 onMouseDown={() => handleSelect(blueprint)}
-                className="px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
               >
-                <p className="text-sm font-medium text-gray-900">
-                  {blueprint.name}
-                </p>
-                <p className="text-xs text-gray-500">{blueprint.category}</p>
-                {blueprint.owned && (
-                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                    {t("owned")}
-                  </span>
-                )}
+                <div className="shrink-0 w-10 h-10 rounded-md overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+                  {blueprint.imageUrl ? (
+                    <Image
+                      src={blueprint.imageUrl}
+                      alt={blueprint.name}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-gray-300 text-lg font-bold select-none">
+                      {blueprint.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {blueprint.name}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {blueprint.category}
+                  </p>
+                  {blueprint.owned && (
+                    <span className="inline-block mt-0.5 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                      {t("owned")}
+                    </span>
+                  )}
+                </div>
               </li>
             ))}
         </ul>

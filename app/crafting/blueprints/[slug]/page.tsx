@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Suspense } from "react";
+import Image from "next/image";
 import {
   BlueprintOwnershipCard,
   BlueprintOrgOwnersSection,
@@ -79,6 +80,19 @@ export default async function BlueprintDetailPage({
           </Suspense>
         </div>
       </div>
+
+      {blueprint.imageUrl && (
+        <div className="relative w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+          <Image
+            src={blueprint.imageUrl}
+            alt={blueprint.name}
+            width={896}
+            height={400}
+            className="w-full object-cover max-h-80"
+            priority
+          />
+        </div>
+      )}
 
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">

@@ -39,6 +39,7 @@ export async function searchBlueprints(
       description: bp.description,
       category: bp.category,
       subcategory: bp.subcategory,
+      imageUrl: bp.imageUrl,
     }));
   }
 
@@ -86,6 +87,7 @@ export async function searchBlueprints(
       category: bp.category,
       subcategory: bp.subcategory,
       owned: bp.owned,
+      imageUrl: bp.imageUrl,
     }));
   } else {
     const results = await collection
@@ -102,6 +104,7 @@ export async function searchBlueprints(
       description: bp.description,
       category: bp.category,
       subcategory: bp.subcategory,
+      imageUrl: bp.imageUrl,
     }));
   }
 }
@@ -125,6 +128,7 @@ export async function getBlueprintBySlug(
         description: blueprint.description,
         category: blueprint.category,
         subcategory: blueprint.subcategory,
+        imageUrl: blueprint.imageUrl,
       }
     : null;
 }
@@ -155,6 +159,7 @@ export async function getUserBlueprints(
           category: "$blueprint.category",
           subcategory: "$blueprint.subcategory",
           slug: "$blueprint.slug",
+          imageUrl: "$blueprint.imageUrl",
           addedAt: 1,
         },
       },
