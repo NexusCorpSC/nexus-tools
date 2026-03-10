@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryInputs } from "@/app/crafting/blueprints/new/category-inputs";
 import { BlueprintImageUpload } from "@/app/crafting/blueprints/new/blueprint-image-upload";
+import { AdvancedBlueprintInputs } from "@/app/crafting/blueprints/new/advanced-blueprint-inputs";
 import { updateBlueprintAction } from "@/app/crafting/blueprints/actions";
 import { Blueprint } from "@/types/crafting";
 import Link from "next/link";
@@ -30,6 +31,17 @@ export function EditBlueprintForm({
           (formData.get("subcategory") as string) || undefined;
         const newSlug = formData.get("slug") as string;
         const imageUrl = (formData.get("imageUrl") as string) || undefined;
+        const tier = Number(formData.get("tier") ?? 0);
+        const craftingTimeRaw = formData.get("craftingTime") as string;
+        const craftingTime = craftingTimeRaw
+          ? Number(craftingTimeRaw)
+          : undefined;
+        const statisticsRaw = formData.get("statistics") as string;
+        const statistics = statisticsRaw
+          ? JSON.parse(statisticsRaw)
+          : undefined;
+        const recipeRaw = formData.get("recipe") as string;
+        const recipe = recipeRaw ? JSON.parse(recipeRaw) : undefined;
 
         await updateBlueprintAction(blueprint.id, blueprint.slug, {
           name,
@@ -38,6 +50,10 @@ export function EditBlueprintForm({
           subcategory,
           slug: newSlug,
           imageUrl,
+          tier,
+          craftingTime,
+          statistics,
+          recipe,
         });
       }}
       className="space-y-5"
@@ -81,6 +97,14 @@ export function EditBlueprintForm({
         <Label>{tAdmin.fieldImage}</Label>
         <BlueprintImageUpload slug={slug} initialUrl={blueprint.imageUrl} />
       </div>
+
+      <AdvancedBlueprintInputs
+        tLabels={tAdmin}
+        initialTier={blueprint.tier}
+        initialCraftingTime={blueprint.craftingTime}
+        initialStatistics={blueprint.statistics}
+        initialRecipe={blueprint.recipe}
+      />
 
       <div className="flex items-center gap-3 pt-2">
         <Button type="submit">{tAdmin.editSave}</Button>

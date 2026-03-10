@@ -52,6 +52,12 @@ export async function updateBlueprintAction(
     subcategory?: string;
     slug: string;
     imageUrl?: string;
+    tier?: number;
+    craftingTime?: number;
+    statistics?: {
+      [statName: string]: { value: string | number; unit?: string };
+    };
+    recipe?: { [componentName: string]: { quantity: number; unit?: string } }[];
   },
 ) {
   await requireAdmin();
@@ -69,6 +75,12 @@ export async function createBlueprintAction(data: {
   subcategory?: string;
   slug: string;
   imageUrl?: string;
+  tier?: number;
+  craftingTime?: number;
+  statistics?: {
+    [statName: string]: { value: string | number; unit?: string };
+  };
+  recipe?: { [componentName: string]: { quantity: number; unit?: string } }[];
 }) {
   await requireAdmin();
   const slug = await createBlueprint(data);

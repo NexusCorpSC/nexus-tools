@@ -1,4 +1,5 @@
 import { getBlueprintBySlug } from "@/lib/crafting";
+import { formatCraftingTime } from "@/lib/crafting-time";
 import { getTranslations } from "next-intl/server";
 import {
   Breadcrumb,
@@ -100,6 +101,87 @@ export default async function BlueprintDetailPage({
         </h2>
         <p className="text-gray-700 leading-relaxed">{blueprint.description}</p>
       </div>
+
+      {/* Tier & Crafting time */}
+      <div className="flex flex-wrap gap-6">
+        {blueprint.tier !== undefined && (
+          <div>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              {t("Blueprints.tier")}
+            </span>
+            <p className="mt-0.5 text-gray-800 font-medium">{blueprint.tier}</p>
+          </div>
+        )}
+        {blueprint.craftingTime !== undefined && (
+          <div>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              {t("Blueprints.craftingTime")}
+            </span>
+            <p className="mt-0.5 text-gray-800 font-medium">
+              {formatCraftingTime(blueprint.craftingTime)}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Statistics */}
+      {blueprint.statistics && Object.keys(blueprint.statistics).length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            {t("Blueprints.statistics")}
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {Object.entries(blueprint.statistics).map(([name, stat]) => (
+              <div
+                key={name}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+              >
+                <p className="text-xs text-gray-500">{name}</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {stat.value}
+                  {stat.unit ? ` ${stat.unit}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recipe */}
+      {blueprint.recipe && blueprint.recipe.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            {t("Blueprints.recipe")}
+          </h2>
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {t("Blueprints.recipeComponent")}
+                  </th>
+                  <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {t("Blueprints.recipeQuantity")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {blueprint.recipe.map((step, i) =>
+                  Object.entries(step).map(([name, v]) => (
+                    <tr key={`${i}-${name}`}>
+                      <td className="px-4 py-2 text-gray-800">{name}</td>
+                      <td className="px-4 py-2 text-right text-gray-700">
+                        {v.quantity}
+                        {v.unit ? ` ${v.unit}` : ""}
+                      </td>
+                    </tr>
+                  )),
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <Suspense
         fallback={
