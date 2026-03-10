@@ -30,7 +30,7 @@ export default async function Verify({
                 id="email"
                 name="email"
                 defaultValue={email}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 required
               />
             </div>
@@ -40,7 +40,7 @@ export default async function Verify({
               id="email"
               name="email"
               defaultValue={email}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
             />
           )}
@@ -49,7 +49,7 @@ export default async function Verify({
             id="callbackUrl"
             name="callbackUrl"
             defaultValue={callbackUrl}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             required
           />
           <div>
@@ -64,7 +64,7 @@ export default async function Verify({
               id="token"
               name="token"
               defaultValue={token}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
               pattern="\d{6}"
               maxLength={6}
@@ -72,7 +72,7 @@ export default async function Verify({
           </div>
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-primary text-primary-foreground font-semibold rounded-md shadow hover:bg-primary/90 focus:outline-none focus:ring-2"
+            className="w-full py-2 px-4 bg-primary text-primary-foreground font-semibold rounded-md shadow-sm hover:bg-primary/90 focus:outline-hidden focus:ring-2"
           >
             Valider
           </button>

@@ -124,7 +124,7 @@ export function FactionsList({
                           value={standing}
                           aria-label={standing}
                           className={cn(
-                            "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
+                            "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-xs focus:outline-hidden data-focus:border-emerald-600 data-focus:ring-2 data-focus:ring-emerald-600",
                             standing == selectedFaction.defaultStanding &&
                               "border-indigo-600",
                           )}
@@ -135,9 +135,9 @@ export function FactionsList({
                                 className={cn(
                                   "block text-sm font-medium text-gray-900",
                                   standing === "Hostile" &&
-                                    "group-data-[checked]:text-red-600",
+                                    "group-data-checked:text-red-600",
                                   standing === "Ally" &&
-                                    "group-data-[checked]:text-emerald-600",
+                                    "group-data-checked:text-emerald-600",
                                 )}
                               >
                                 {standing}
@@ -155,11 +155,11 @@ export function FactionsList({
                           <span
                             aria-hidden="true"
                             className={cn(
-                              "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
+                              "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-focus:border ",
                               standing === "Hostile" &&
-                                "group-data-[checked]:border-red-600",
+                                "group-data-checked:border-red-600",
                               standing === "Ally" &&
-                                "group-data-[checked]:border-emerald-600",
+                                "group-data-checked:border-emerald-600",
                             )}
                           />
                         </Radio>
@@ -193,7 +193,7 @@ export function FactionsList({
                             value={level.name}
                             aria-label={level.name}
                             className={cn(
-                              "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
+                              "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-xs focus:outline-hidden data-focus:border-emerald-600 data-focus:ring-2 data-focus:ring-emerald-600",
                               level.isDefault && "border-indigo-600",
                             )}
                           >
@@ -203,8 +203,8 @@ export function FactionsList({
                                   className={cn(
                                     "block text-sm font-medium text-gray-900",
                                     level.level === -1
-                                      ? "group-data-[checked]:text-red-600"
-                                      : "group-data-[checked]:text-emerald-600",
+                                      ? "group-data-checked:text-red-600"
+                                      : "group-data-checked:text-emerald-600",
                                   )}
                                 >
                                   {level.name}
@@ -223,10 +223,10 @@ export function FactionsList({
                             <span
                               aria-hidden="true"
                               className={cn(
-                                "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
+                                "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-focus:border ",
                                 level.level === -1
-                                  ? "group-data-[checked]:border-red-600"
-                                  : "group-data-[checked]:border-emerald-600",
+                                  ? "group-data-checked:border-red-600"
+                                  : "group-data-checked:border-emerald-600",
                               )}
                             />
                           </Radio>
@@ -268,7 +268,7 @@ export function FactionsList({
                               value={standing}
                               aria-label={standing}
                               className={cn(
-                                "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
+                                "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-xs focus:outline-hidden data-focus:border-emerald-600 data-focus:ring-2 data-focus:ring-emerald-600",
                                 standing == faction.defaultStanding &&
                                   "border-indigo-600",
                               )}
@@ -279,9 +279,9 @@ export function FactionsList({
                                     className={cn(
                                       "block text-sm font-medium text-gray-900",
                                       standing === "Hostile" &&
-                                        "group-data-[checked]:text-red-600",
+                                        "group-data-checked:text-red-600",
                                       standing === "Ally" &&
-                                        "group-data-[checked]:text-emerald-600",
+                                        "group-data-checked:text-emerald-600",
                                     )}
                                   >
                                     {standing}
@@ -299,11 +299,11 @@ export function FactionsList({
                               <span
                                 aria-hidden="true"
                                 className={cn(
-                                  "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
+                                  "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-focus:border ",
                                   standing === "Hostile" &&
-                                    "group-data-[checked]:border-red-600",
+                                    "group-data-checked:border-red-600",
                                   standing === "Ally" &&
-                                    "group-data-[checked]:border-emerald-600",
+                                    "group-data-checked:border-emerald-600",
                                 )}
                               />
                             </Radio>
@@ -338,7 +338,7 @@ export function FactionsList({
                                   value={level.name}
                                   aria-label={level.name}
                                   className={cn(
-                                    "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none data-[focus]:border-emerald-600 data-[focus]:ring-2 data-[focus]:ring-emerald-600",
+                                    "group relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-xs focus:outline-hidden data-focus:border-emerald-600 data-focus:ring-2 data-focus:ring-emerald-600",
                                     level.isDefault && "border-indigo-600",
                                   )}
                                 >
@@ -348,8 +348,8 @@ export function FactionsList({
                                         className={cn(
                                           "block text-sm font-medium text-gray-900",
                                           level.level === -1
-                                            ? "group-data-[checked]:text-red-600"
-                                            : "group-data-[checked]:text-emerald-600",
+                                            ? "group-data-checked:text-red-600"
+                                            : "group-data-checked:text-emerald-600",
                                         )}
                                       >
                                         {level.name}
@@ -368,10 +368,10 @@ export function FactionsList({
                                   <span
                                     aria-hidden="true"
                                     className={cn(
-                                      "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-[focus]:border ",
+                                      "pointer-events-none absolute -inset-px rounded-lg border-2 border-transparent group-data-focus:border ",
                                       level.level === -1
-                                        ? "group-data-[checked]:border-red-600"
-                                        : "group-data-[checked]:border-emerald-600",
+                                        ? "group-data-checked:border-red-600"
+                                        : "group-data-checked:border-emerald-600",
                                     )}
                                   />
                                 </Radio>

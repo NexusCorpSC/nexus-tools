@@ -100,7 +100,7 @@ export function BlueprintOrgOwnersClient({
           <select
             value={selectedOrgId}
             onChange={(e) => handleOrgChange(e.target.value)}
-            className="w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
           >
             {organizations.map((org) => (
               <option key={org.id} value={org.id}>

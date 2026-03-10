@@ -20,7 +20,7 @@ export function StockModificationForm({ itemId }: { itemId: string }) {
         setStockModification(0);
       }}
     >
-      <span className="isolate inline-flex rounded-md shadow-sm">
+      <span className="isolate inline-flex rounded-md shadow-xs">
         <button
           type="button"
           className="relative inline-flex items-center rounded-l-md bg-white px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
@@ -49,7 +49,7 @@ export function StockModificationForm({ itemId }: { itemId: string }) {
         </button>
         <button
           type="submit"
-          className="ml-4 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          className="ml-4 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
         >
           {stockModification < 0 ? t("removeFromStock") : t("addToStock")}
         </button>

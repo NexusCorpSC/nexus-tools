@@ -59,7 +59,7 @@ export default async function OrganizationsPage() {
 
           <Link
             href={"/orgs/new"}
-            className="uppercase block rounded-lg bg-primary bg-gradient-to-r from-orange-800 hover:from-orange-600 to-blue-800 hover:to-blue-600 p-8 m-4 text-secondary font-bold"
+            className="uppercase block rounded-lg bg-primary bg-linear-to-r from-orange-800 hover:from-orange-600 to-blue-800 hover:to-blue-600 p-8 m-4 text-secondary font-bold"
           >
             {t("ctaNewOrg")}
           </Link>
@@ -69,7 +69,7 @@ export default async function OrganizationsPage() {
               <Link
                 href={`/orgs/${org._id}`}
                 key={index}
-                className="bg-gradient-to-r from-blue-500 hover:from-blue-400 to-purple-500 hover:to-purple-400 text-white rounded-lg shadow-lg flex flex-row justify-between"
+                className="bg-linear-to-r from-blue-500 hover:from-blue-400 to-purple-500 hover:to-purple-400 text-white rounded-lg shadow-lg flex flex-row justify-between"
               >
                 <div className="flex justify-between">
                   <Image
@@ -98,7 +98,7 @@ export default async function OrganizationsPage() {
           <Link
             href={`/orgs/${org._id}`}
             key={index}
-            className="bg-gradient-to-r from-blue-500 hover:from-blue-400 to-purple-500 hover:to-purple-400 text-white rounded-lg shadow-lg flex flex-row justify-between"
+            className="bg-linear-to-r from-blue-500 hover:from-blue-400 to-purple-500 hover:to-purple-400 text-white rounded-lg shadow-lg flex flex-row justify-between"
           >
             <div className="flex justify-between">
               <Image

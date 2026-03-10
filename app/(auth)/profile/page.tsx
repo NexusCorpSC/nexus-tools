@@ -112,7 +112,7 @@ export default async function ProfilePage() {
             <Link
               href={`/orgs/${org._id}`}
               key={index}
-              className="bg-gradient-to-r from-blue-500 hover:from-blue-400 to-purple-500 hover:to-purple-400 text-white rounded-lg shadow-lg flex flex-row justify-between"
+              className="bg-linear-to-r from-blue-500 hover:from-blue-400 to-purple-500 hover:to-purple-400 text-white rounded-lg shadow-lg flex flex-row justify-between"
             >
               <div className="flex justify-between">
                 <Image

@@ -121,7 +121,7 @@ export default function NewJobForm() {
           name="location"
           required
           placeholder="e.g., ARC-L1, New Babbage"
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500"
         />
       </div>
       
@@ -135,7 +135,7 @@ export default function NewJobForm() {
           required
           placeholder="What materials are being refined?"
           rows={3}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500"
         />
       </div>
       
@@ -153,7 +153,7 @@ export default function NewJobForm() {
           placeholder="e.g., 120 (minutes) or 2h (2 hours) or 1d12h30m (1 day, 12 hours, 30 minutes)"
           className={`mt-1 block w-full px-3 py-2 border ${
             durationError ? "border-red-500" : "border-gray-300"
-          } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+          } rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500`}
         />
         {durationError && (
           <p className="mt-1 text-sm text-red-600">{durationError}</p>

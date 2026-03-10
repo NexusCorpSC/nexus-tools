@@ -156,7 +156,7 @@ export default function JobsList({ jobs }: JobsListProps) {
                         name="content"
                         defaultValue={job.content}
                         rows={3}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-primary focus:border-primary"
                       />
                     </div>
                     
@@ -170,7 +170,7 @@ export default function JobsList({ jobs }: JobsListProps) {
                         name="duration"
                         min="1"
                         defaultValue={job.duration}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-primary focus:border-primary"
                       />
                     </div>
                     

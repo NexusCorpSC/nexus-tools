@@ -63,7 +63,7 @@ export function BlueprintImageUpload({
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute top-1.5 right-1.5 rounded-full bg-white/80 p-1 shadow hover:bg-white transition-colors"
+            className="absolute top-1.5 right-1.5 rounded-full bg-white/80 p-1 shadow-sm hover:bg-white transition-colors"
             aria-label="Remove image"
           >
             <X className="h-4 w-4 text-gray-600" />

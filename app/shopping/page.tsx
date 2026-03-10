@@ -14,7 +14,7 @@ export default async function ShoppingPage() {
 
       <Link
         href="/shopping/sell"
-        className="uppercase block rounded-lg bg-primary bg-gradient-to-r from-orange-800 hover:from-orange-600 to-blue-800 hover:to-blue-600 p-8 m-4 text-secondary font-bold"
+        className="uppercase block rounded-lg bg-primary bg-linear-to-r from-orange-800 hover:from-orange-600 to-blue-800 hover:to-blue-600 p-8 m-4 text-secondary font-bold"
       >
         {t("ctaSellButton")}
       </Link>
@@ -52,7 +52,7 @@ export default async function ShoppingPage() {
                 <div className="absolute inset-x-0 top-0 flex h-72 items-end justify-end overflow-hidden rounded-lg p-4">
                   <div
                     aria-hidden="true"
-                    className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black opacity-50"
+                    className="absolute inset-x-0 bottom-0 h-36 bg-linear-to-t from-black opacity-50"
                   />
                   <p className="relative text-lg font-semibold text-white">
                     {item.price} aUEC
