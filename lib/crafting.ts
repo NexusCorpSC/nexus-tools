@@ -238,6 +238,65 @@ export async function updateBlueprint(
     .updateOne({ _id: new ObjectId(blueprintId) } as never, { $set: data });
 }
 
+export async function getBlueprintStatNames(query: string): Promise<string[]> {
+  const collection = db.db().collection<Blueprint>("blueprints");
+  const results = await collection
+    .aggregate<{ names: string[] }>([
+      { $match: { statistics: { $exists: true, $ne: null } } },
+      {
+        $project: {
+          names: { $objectToArray: "$statistics" },
+        },
+      },
+      { $unwind: "$names" },
+      {
+        $group: {
+          _id: "$names.k",
+        },
+      },
+      {
+        $match: {
+          _id: { $regex: query, $options: "i" },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $limit: 20 },
+    ])
+    .toArray();
+  return results.map((r) => (r as unknown as { _id: string })._id);
+}
+
+export async function getBlueprintComponentNames(
+  query: string,
+): Promise<string[]> {
+  const collection = db.db().collection<Blueprint>("blueprints");
+  const results = await collection
+    .aggregate<{ _id: string }>([
+      { $match: { recipe: { $exists: true, $ne: null } } },
+      { $unwind: "$recipe" },
+      {
+        $project: {
+          components: { $objectToArray: "$recipe" },
+        },
+      },
+      { $unwind: "$components" },
+      {
+        $group: {
+          _id: "$components.k",
+        },
+      },
+      {
+        $match: {
+          _id: { $regex: query, $options: "i" },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $limit: 20 },
+    ])
+    .toArray();
+  return results.map((r) => r._id);
+}
+
 export async function getBlueprintCategories(): Promise<
   { category: string; subcategories: string[] }[]
 > {

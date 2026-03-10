@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,98 @@ import {
 } from "@/components/ui/select";
 import { BlueprintStatistics, BlueprintRecipeStep } from "@/types/crafting";
 import { parseCraftingTime, formatCraftingTime } from "@/lib/crafting-time";
+
+/* ─────────────────────────────────────────
+   Generic autocomplete input
+   Fetches suggestions from an API endpoint
+───────────────────────────────────────── */
+function AutocompleteInput({
+  value,
+  onChange,
+  placeholder,
+  apiPath,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  /** e.g. "/api/blueprints/stat-names" */
+  apiPath: string;
+  className?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchSuggestions = useCallback(
+    (q: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const res = await fetch(`${apiPath}?query=${encodeURIComponent(q)}`);
+          const data: string[] = await res.json();
+          setSuggestions(data);
+        } catch {
+          setSuggestions([]);
+        }
+      }, 200);
+    },
+    [apiPath],
+  );
+
+  useEffect(() => {
+    // Close dropdown on outside click
+    function onClickOutside(e: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const showList = open && suggestions.length > 0;
+
+  return (
+    <div ref={containerRef} className={`relative ${className ?? ""}`}>
+      <Input
+        value={value}
+        placeholder={placeholder}
+        autoComplete="off"
+        onChange={(e) => {
+          onChange(e.target.value);
+          fetchSuggestions(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => {
+          fetchSuggestions(value);
+          setOpen(true);
+        }}
+      />
+      {showList && (
+        <ul className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto divide-y divide-gray-100">
+          {suggestions.map((s) => (
+            <li
+              key={s}
+              className="px-3 py-2 text-sm text-gray-800 cursor-pointer hover:bg-gray-50"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(s);
+                setOpen(false);
+              }}
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 /* ─────────────────────────────────────────
    Statistics editor
@@ -72,10 +164,11 @@ function StatisticsEditor({
       />
       {rows.map((row, i) => (
         <div key={i} className="flex gap-2 items-center">
-          <Input
-            placeholder={tLabels.statName}
+          <AutocompleteInput
             value={row.name}
-            onChange={(e) => update(i, "name", e.target.value)}
+            onChange={(v) => update(i, "name", v)}
+            placeholder={tLabels.statName}
+            apiPath="/api/blueprints/stat-names"
             className="flex-1"
           />
           <Input
@@ -165,10 +258,11 @@ function RecipeEditor({
       <input type="hidden" name="recipe" value={JSON.stringify(serialized)} />
       {rows.map((row, i) => (
         <div key={i} className="flex gap-2 items-center">
-          <Input
-            placeholder={tLabels.componentName}
+          <AutocompleteInput
             value={row.component}
-            onChange={(e) => update(i, "component", e.target.value)}
+            onChange={(v) => update(i, "component", v)}
+            placeholder={tLabels.componentName}
+            apiPath="/api/blueprints/component-names"
             className="flex-1"
           />
           <Input
