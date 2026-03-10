@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty,
+} from "@/components/ui/combobox";
 import { BlueprintStatistics, BlueprintRecipeStep } from "@/types/crafting";
 import { parseCraftingTime, formatCraftingTime } from "@/lib/crafting-time";
 
 /* ─────────────────────────────────────────
    Generic autocomplete input
    Fetches suggestions from an API endpoint
+   using the Combobox shadcn component
 ───────────────────────────────────────── */
 function AutocompleteInput({
   value,
@@ -34,75 +43,60 @@ function AutocompleteInput({
   className?: string;
 }) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [inputValue, setInputValue] = useState(value);
+
+  // Keep local input in sync when parent value changes
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
 
   const fetchSuggestions = useCallback(
-    (q: string) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(async () => {
-        try {
-          const res = await fetch(`${apiPath}?query=${encodeURIComponent(q)}`);
-          const data: string[] = await res.json();
-          setSuggestions(data);
-        } catch {
-          setSuggestions([]);
-        }
-      }, 200);
+    async (q: string) => {
+      try {
+        const res = await fetch(`${apiPath}?query=${encodeURIComponent(q)}`);
+        const data: string[] = await res.json();
+        setSuggestions(data);
+      } catch {
+        setSuggestions([]);
+      }
     },
     [apiPath],
   );
 
-  useEffect(() => {
-    // Close dropdown on outside click
-    function onClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
-
-  const showList = open && suggestions.length > 0;
-
   return (
-    <div ref={containerRef} className={`relative ${className ?? ""}`}>
-      <Input
+    <div className={className}>
+      <Combobox
         value={value}
-        placeholder={placeholder}
-        autoComplete="off"
-        onChange={(e) => {
-          onChange(e.target.value);
-          fetchSuggestions(e.target.value);
-          setOpen(true);
+        onValueChange={(val) => {
+          const v = val ?? "";
+          onChange(v);
+          setInputValue(v);
         }}
-        onFocus={() => {
-          fetchSuggestions(value);
-          setOpen(true);
-        }}
-      />
-      {showList && (
-        <ul className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto divide-y divide-gray-100">
-          {suggestions.map((s) => (
-            <li
-              key={s}
-              className="px-3 py-2 text-sm text-gray-800 cursor-pointer hover:bg-gray-50"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                onChange(s);
-                setOpen(false);
-              }}
-            >
-              {s}
-            </li>
-          ))}
-        </ul>
-      )}
+      >
+        <ComboboxInput
+          placeholder={placeholder}
+          autoComplete="off"
+          showTrigger={false}
+          value={inputValue}
+          onChange={(e) => {
+            const v = e.target.value;
+            setInputValue(v);
+            onChange(v);
+            fetchSuggestions(v);
+          }}
+          onFocus={() => fetchSuggestions(inputValue)}
+        />
+        <ComboboxContent>
+          <ComboboxList>
+            <ComboboxEmpty />
+            {suggestions.map((s) => (
+              <ComboboxItem key={s} value={s}>
+                {s}
+              </ComboboxItem>
+            ))}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
     </div>
   );
 }
