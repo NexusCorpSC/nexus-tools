@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty,
+} from "@/components/ui/combobox";
 
 type CategoryData = { category: string; subcategories: string[] };
 
@@ -23,60 +30,51 @@ function AutocompleteInput({
   value: string;
   onChange: (val: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [inputValue, setInputValue] = useState(value);
+
+  // Keep local input in sync when parent value changes
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
 
   const filtered = suggestions.filter((s) =>
-    s.toLowerCase().includes(value.toLowerCase()),
+    s.toLowerCase().includes(inputValue.toLowerCase()),
   );
-  const showList = open && filtered.length > 0 && value.length > 0;
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
 
   return (
-    <div ref={containerRef} className="relative">
-      <Input
+    <Combobox
+      value={value}
+      onValueChange={(val) => {
+        const v = val ?? "";
+        onChange(v);
+        setInputValue(v);
+      }}
+    >
+      <ComboboxInput
         id={id}
         name={name}
         required={required}
         placeholder={placeholder}
-        value={value}
         autoComplete="off"
+        showTrigger={false}
+        value={inputValue}
         onChange={(e) => {
-          onChange(e.target.value);
-          setOpen(true);
+          const v = e.target.value;
+          setInputValue(v);
+          onChange(v);
         }}
-        onFocus={() => setOpen(true)}
       />
-      {showList && (
-        <ul className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto divide-y divide-gray-100">
+      <ComboboxContent>
+        <ComboboxList>
+          <ComboboxEmpty />
           {filtered.map((s) => (
-            <li
-              key={s}
-              className="px-3 py-2 text-sm text-gray-800 cursor-pointer hover:bg-gray-50"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                onChange(s);
-                setOpen(false);
-              }}
-            >
+            <ComboboxItem key={s} value={s}>
               {s}
-            </li>
+            </ComboboxItem>
           ))}
-        </ul>
-      )}
-    </div>
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 }
 
