@@ -38,6 +38,21 @@ export default async function EditBlueprintPage({
     fieldImage: tAdmin("fieldImage"),
     editSave: tAdmin("editSave"),
     editCancel: tAdmin("editCancel"),
+    fieldTier: tAdmin("fieldTier"),
+    fieldCraftingTime: tAdmin("fieldCraftingTime"),
+    seconds: tAdmin("seconds"),
+    fieldStatistics: tAdmin("fieldStatistics"),
+    fieldStatisticsHint: tAdmin("fieldStatisticsHint"),
+    statName: tAdmin("statName"),
+    statValue: tAdmin("statValue"),
+    statUnit: tAdmin("statUnit"),
+    addStat: tAdmin("addStat"),
+    fieldRecipe: tAdmin("fieldRecipe"),
+    fieldRecipeHint: tAdmin("fieldRecipeHint"),
+    componentName: tAdmin("componentName"),
+    componentQuantity: tAdmin("componentQuantity"),
+    componentUnit: tAdmin("componentUnit"),
+    addComponent: tAdmin("addComponent"),
   };
 
   return (

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BlueprintNameInput } from "./blueprint-name-input";
 import { CategoryInputs } from "./category-inputs";
 import { BlueprintImageUpload } from "./blueprint-image-upload";
+import { AdvancedBlueprintInputs } from "./advanced-blueprint-inputs";
 import { createBlueprintAction } from "@/app/crafting/blueprints/actions";
 import Link from "next/link";
 
@@ -28,6 +29,17 @@ export function NewBlueprintForm({
           (formData.get("subcategory") as string) || undefined;
         const slug = formData.get("slug") as string;
         const imageUrl = (formData.get("imageUrl") as string) || undefined;
+        const tier = Number(formData.get("tier") ?? 0);
+        const craftingTimeRaw = formData.get("craftingTime") as string;
+        const craftingTime = craftingTimeRaw
+          ? Number(craftingTimeRaw)
+          : undefined;
+        const statisticsRaw = formData.get("statistics") as string;
+        const statistics = statisticsRaw
+          ? JSON.parse(statisticsRaw)
+          : undefined;
+        const recipeRaw = formData.get("recipe") as string;
+        const recipe = recipeRaw ? JSON.parse(recipeRaw) : undefined;
 
         await createBlueprintAction({
           name,
@@ -36,6 +48,10 @@ export function NewBlueprintForm({
           subcategory,
           slug,
           imageUrl,
+          tier,
+          craftingTime,
+          statistics,
+          recipe,
         });
       }}
       className="space-y-5"
@@ -71,6 +87,8 @@ export function NewBlueprintForm({
         <Label>{tAdmin.fieldImage}</Label>
         <BlueprintImageUpload slug={slug} />
       </div>
+
+      <AdvancedBlueprintInputs tLabels={tAdmin} />
 
       <div className="flex items-center gap-3 pt-2">
         <Button type="submit">{tAdmin.newCreate}</Button>

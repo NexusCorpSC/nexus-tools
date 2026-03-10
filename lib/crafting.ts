@@ -129,6 +129,10 @@ export async function getBlueprintBySlug(
         category: blueprint.category,
         subcategory: blueprint.subcategory,
         imageUrl: blueprint.imageUrl,
+        tier: blueprint.tier ?? 0,
+        craftingTime: blueprint.craftingTime,
+        statistics: blueprint.statistics,
+        recipe: blueprint.recipe,
       }
     : null;
 }
@@ -160,6 +164,10 @@ export async function getUserBlueprints(
           subcategory: "$blueprint.subcategory",
           slug: "$blueprint.slug",
           imageUrl: "$blueprint.imageUrl",
+          tier: "$blueprint.tier",
+          craftingTime: "$blueprint.craftingTime",
+          statistics: "$blueprint.statistics",
+          recipe: "$blueprint.recipe",
           addedAt: 1,
         },
       },
@@ -211,7 +219,16 @@ export async function updateBlueprint(
   data: Partial<
     Pick<
       Blueprint,
-      "name" | "description" | "category" | "subcategory" | "slug" | "imageUrl"
+      | "name"
+      | "description"
+      | "category"
+      | "subcategory"
+      | "slug"
+      | "imageUrl"
+      | "tier"
+      | "craftingTime"
+      | "statistics"
+      | "recipe"
     >
   >,
 ): Promise<void> {
@@ -247,6 +264,10 @@ export async function createBlueprint(
   data: Pick<Blueprint, "name" | "description" | "category" | "slug"> & {
     subcategory?: string;
     imageUrl?: string;
+    tier?: number;
+    craftingTime?: number;
+    statistics?: Blueprint["statistics"];
+    recipe?: Blueprint["recipe"];
   },
 ): Promise<string> {
   const { nanoid } = await import("nanoid");
@@ -254,7 +275,7 @@ export async function createBlueprint(
   await db
     .db()
     .collection("blueprints")
-    .insertOne({ ...data, id });
+    .insertOne({ ...data, id, tier: data.tier ?? 0 });
   return data.slug;
 }
 
