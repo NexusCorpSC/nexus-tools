@@ -10,15 +10,20 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlusIcon } from "@heroicons/react/24/outline";
-import { hasPermission, isAdmin } from "@/lib/permissions";
-import { BlueprintSearch } from "./components";
+import { hasPermission } from "@/lib/permissions";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { BlueprintGrid } from "./components";
 
 export default async function Page() {
   const t = await getTranslations("Crafting");
   const canOperateBlueprints = await hasPermission("blueprints:edit");
 
+  const session = await auth.api.getSession({ headers: await headers() });
+  const isLoggedIn = !!session?.user;
+
   return (
-    <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+    <div className="m-2 p-6 max-w-7xl mx-auto bg-white rounded-xl shadow-md space-y-4">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -50,7 +55,7 @@ export default async function Page() {
         )}
       </div>
 
-      <BlueprintSearch />
+      <BlueprintGrid isLoggedIn={isLoggedIn} />
     </div>
   );
 }

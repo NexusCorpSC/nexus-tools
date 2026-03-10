@@ -1,7 +1,7 @@
 import "server-only";
 import db from "./db";
 import { Blueprint, UserBlueprint } from "@/types/crafting";
-import { ObjectId } from "bson";
+import { ObjectId, Document } from "bson";
 import { Organization } from "@/app/orgs/page";
 
 export async function searchBlueprints(
@@ -105,6 +105,124 @@ export async function searchBlueprints(
       category: bp.category,
       subcategory: bp.subcategory,
       imageUrl: bp.imageUrl,
+    }));
+  }
+}
+
+export async function filterBlueprints(
+  options: {
+    query?: string;
+    category?: string;
+    subcategory?: string;
+    /** undefined = tous, true = possédés seulement, false = non-possédés seulement */
+    owned?: boolean;
+    /** Noms de composants que la recette doit contenir (tous) */
+    materials?: string[];
+    userId?: string;
+    limit?: number;
+  } = {},
+): Promise<(Blueprint & { owned?: boolean })[]> {
+  const {
+    query,
+    category,
+    subcategory,
+    owned,
+    materials,
+    userId,
+    limit = 200,
+  } = options;
+
+  const collection = db.db().collection<Blueprint>("blueprints");
+
+  const matchConditions: Record<string, unknown>[] = [];
+
+  if (query?.trim()) {
+    matchConditions.push({ name: { $regex: query.trim(), $options: "i" } });
+  }
+  if (category) {
+    matchConditions.push({ category });
+  }
+  if (subcategory) {
+    matchConditions.push({ subcategory });
+  }
+  if (materials && materials.length > 0) {
+    for (const material of materials) {
+      matchConditions.push({
+        recipe: { $elemMatch: { [material]: { $exists: true } } },
+      });
+    }
+  }
+
+  const matchStage =
+    matchConditions.length > 0 ? { $and: matchConditions } : {};
+
+    if (userId) {
+    const pipeline: Document[] = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "user-blueprints",
+          let: { blueprintId: { $toString: "$_id" } },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$blueprintId", "$$blueprintId"] },
+                    { $eq: ["$userId", userId] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "ownership",
+        },
+      },
+      {
+        $addFields: {
+          owned: { $gt: [{ $size: "$ownership" }, 0] },
+        },
+      },
+    ];
+
+    if (owned === true) {
+      pipeline.push({ $match: { owned: true } });
+    } else if (owned === false) {
+      pipeline.push({ $match: { owned: false } });
+    }
+
+    pipeline.push({ $sort: { name: 1 } });
+    pipeline.push({ $limit: limit });
+
+    const results = await collection.aggregate(pipeline).toArray();
+
+    return results.map((bp) => ({
+      id: bp._id.toString(),
+      name: bp.name,
+      slug: bp.slug,
+      description: bp.description,
+      category: bp.category,
+      subcategory: bp.subcategory,
+      owned: (bp as unknown as { owned: boolean }).owned,
+      imageUrl: bp.imageUrl,
+      tier: bp.tier,
+    }));
+  } else {
+    const results = await collection
+      .find(matchStage as Parameters<typeof collection.find>[0])
+      .sort({ name: 1 })
+      .limit(limit)
+      .toArray();
+
+    return results.map((bp) => ({
+      id: bp._id.toString(),
+      name: bp.name,
+      slug: bp.slug,
+      description: bp.description,
+      category: bp.category,
+      subcategory: bp.subcategory,
+      imageUrl: bp.imageUrl,
+      tier: bp.tier,
     }));
   }
 }
