@@ -248,7 +248,7 @@ function RecipeEditor({
     .filter((r) => r.component)
     .map((r) => ({
       [r.component]: {
-        quantity: Number(r.quantity) || 0,
+        quantity: parseFloat(r.quantity) || 0,
         ...(r.unit && r.unit !== RECIPE_UNIT_NONE ? { unit: r.unit } : {}),
       },
     }));
@@ -268,6 +268,7 @@ function RecipeEditor({
           <Input
             type="number"
             min={0}
+            step="any"
             placeholder={tLabels.componentQuantity}
             value={row.quantity}
             onChange={(e) => update(i, "quantity", e.target.value)}
