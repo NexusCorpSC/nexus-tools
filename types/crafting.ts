@@ -3,7 +3,11 @@ export type BlueprintStatistics = {
 };
 
 export type BlueprintRecipeStep = {
-  [componentName: string]: { quantity: number; unit?: string };
+  [componentName: string]: {
+    quantity: number;
+    unit?: string;
+    minQuality?: number;
+  };
 };
 
 export type Blueprint = {

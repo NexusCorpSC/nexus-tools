@@ -208,7 +208,12 @@ function StatisticsEditor({
 const RECIPE_UNIT_NONE = "__none__";
 const RECIPE_UNITS = ["SCU", "Pièce(s)"] as const;
 
-type RecipeRow = { component: string; quantity: string; unit: string };
+type RecipeRow = {
+  component: string;
+  quantity: string;
+  unit: string;
+  minQuality: string;
+};
 
 function RecipeEditor({
   tLabels,
@@ -224,6 +229,7 @@ function RecipeEditor({
         component,
         quantity: String(v.quantity),
         unit: v.unit ?? "SCU",
+        minQuality: v.minQuality !== undefined ? String(v.minQuality) : "",
       })),
     );
   };
@@ -231,7 +237,10 @@ function RecipeEditor({
   const [rows, setRows] = useState<RecipeRow[]>(toRows(initial));
 
   function add() {
-    setRows((r) => [...r, { component: "", quantity: "", unit: "SCU" }]);
+    setRows((r) => [
+      ...r,
+      { component: "", quantity: "", unit: "SCU", minQuality: "" },
+    ]);
   }
 
   function remove(i: number) {
@@ -250,6 +259,9 @@ function RecipeEditor({
       [r.component]: {
         quantity: parseFloat(r.quantity) || 0,
         ...(r.unit && r.unit !== RECIPE_UNIT_NONE ? { unit: r.unit } : {}),
+        ...(r.minQuality !== ""
+          ? { minQuality: parseInt(r.minQuality, 10) || 0 }
+          : {}),
       },
     }));
 
@@ -294,6 +306,16 @@ function RecipeEditor({
               </SelectItem>
             </SelectContent>
           </Select>
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            placeholder={tLabels.componentMinQualityPlaceholder ?? "500"}
+            value={row.minQuality}
+            onChange={(e) => update(i, "minQuality", e.target.value)}
+            className="w-24"
+            title={tLabels.componentMinQuality}
+          />
           <button
             type="button"
             onClick={() => remove(i)}

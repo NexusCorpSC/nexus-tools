@@ -43,6 +43,8 @@ export default async function NewBlueprintPage() {
     componentQuantity: tAdmin("componentQuantity"),
     componentUnit: tAdmin("componentUnit"),
     componentUnitNone: tAdmin("componentUnitNone"),
+    componentMinQuality: tAdmin("componentMinQuality"),
+    componentMinQualityPlaceholder: tAdmin("componentMinQualityPlaceholder"),
     addComponent: tAdmin("addComponent"),
   };
 

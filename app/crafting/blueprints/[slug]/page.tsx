@@ -163,6 +163,9 @@ export default async function BlueprintDetailPage({
                   <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     {t("Blueprints.recipeQuantity")}
                   </th>
+                  <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {t("Blueprints.recipeMinQuality")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -173,6 +176,9 @@ export default async function BlueprintDetailPage({
                       <td className="px-4 py-2 text-right text-gray-700">
                         {v.quantity}
                         {v.unit ? ` ${v.unit}` : ""}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-700">
+                        {v.minQuality !== undefined ? v.minQuality : "—"}
                       </td>
                     </tr>
                   )),
