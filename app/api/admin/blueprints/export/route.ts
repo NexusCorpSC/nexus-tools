@@ -2,13 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/permissions";
 import db from "@/lib/db";
 import { Blueprint } from "@/types/crafting";
-
-function escapeCSV(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
+import { stringify } from "csv-stringify/sync";
 
 type BlueprintDoc = Blueprint & { _id: unknown };
 
@@ -51,74 +45,44 @@ export async function GET() {
   }
   const statNames = Array.from(statNameSet).sort();
 
-  // Build CSV headers
-  const headers: string[] = [
-    "ID",
-    "Nom",
-    "Slug",
-    "Catégorie",
-    "Sous-catégorie",
-    "Tier",
-    "Temps de fabrication (s)",
-    "Description",
-    "Obtention",
-  ];
-
-  for (let i = 1; i <= maxComponents; i++) {
-    headers.push(`Composant ${i}`);
-    headers.push(`Quantité ${i}`);
-    headers.push(`Unité ${i}`);
-  }
-
-  for (const statName of statNames) {
-    headers.push(`Stat - ${statName}`);
-  }
-
-  // Build CSV rows
-  const rows = blueprints.map((bp) => {
+  // Build records as objects so csv-stringify can use key names as headers
+  const records = blueprints.map((bp) => {
     const components = getAllComponents(bp);
-    const row: string[] = [
-      bp.id ?? String(bp._id ?? ""),
-      bp.name ?? "",
-      bp.slug ?? "",
-      bp.category ?? "",
-      bp.subcategory ?? "",
-      bp.tier != null ? String(bp.tier) : "",
-      bp.craftingTime != null ? String(bp.craftingTime) : "",
-      bp.description ?? "",
-      bp.obtention ?? "",
-    ];
+    const record: Record<string, string | number> = {
+      ID: bp.id ?? String(bp._id ?? ""),
+      Nom: bp.name ?? "",
+      Slug: bp.slug ?? "",
+      Catégorie: bp.category ?? "",
+      "Sous-catégorie": bp.subcategory ?? "",
+      Tier: bp.tier ?? "",
+      "Temps de fabrication (s)": bp.craftingTime ?? "",
+      Description: bp.description ?? "",
+      Obtention: bp.obtention ?? "",
+    };
 
     for (let i = 0; i < maxComponents; i++) {
       const comp = components[i];
-      row.push(comp ? comp.name : "");
-      row.push(comp ? String(comp.quantity) : "");
-      row.push(comp ? (comp.unit ?? "") : "");
+      record[`Composant ${i + 1}`] = comp ? comp.name : "";
+      record[`Quantité ${i + 1}`] = comp ? comp.quantity : "";
+      record[`Unité ${i + 1}`] = comp ? (comp.unit ?? "") : "";
     }
 
     for (const statName of statNames) {
       const stat = bp.statistics?.[statName];
-      if (stat != null) {
-        const val =
-          stat.unit != null
+      record[`Stat - ${statName}`] =
+        stat != null
+          ? stat.unit != null
             ? `${stat.value} ${stat.unit}`
-            : String(stat.value);
-        row.push(val);
-      } else {
-        row.push("");
-      }
+            : String(stat.value)
+          : "";
     }
 
-    return row;
+    return record;
   });
-
-  const csvLines = [headers, ...rows]
-    .map((row) => row.map(escapeCSV).join(","))
-    .join("\n");
 
   // Add UTF-8 BOM so Excel opens accented characters correctly
   const bom = "\uFEFF";
-  const csvContent = bom + csvLines;
+  const csvContent = bom + stringify(records, { header: true });
 
   return new NextResponse(csvContent, {
     status: 200,
