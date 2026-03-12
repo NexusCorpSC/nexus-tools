@@ -1,3 +1,6 @@
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
 export default function AdminPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -7,6 +10,12 @@ export default function AdminPage() {
           Utilisez le menu pour naviguer entre les différentes sections de
           l&apos;administration.
         </p>
+
+        <Button asChild>
+          <Link href="/admin/blueprints" className="w-full">
+            Gérer les Blueprints
+          </Link>
+        </Button>
       </div>
     </div>
   );
