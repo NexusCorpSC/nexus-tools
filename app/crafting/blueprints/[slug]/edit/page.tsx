@@ -32,6 +32,7 @@ export default async function EditBlueprintPage({
   const tAdminMap = {
     fieldName: tAdmin("fieldName"),
     fieldDescription: tAdmin("fieldDescription"),
+    fieldObtention: tAdmin("fieldObtention"),
     fieldCategory: tAdmin("fieldCategory"),
     fieldSubcategory: tAdmin("fieldSubcategory"),
     fieldSlug: tAdmin("fieldSlug"),
