@@ -40,6 +40,7 @@ export function NewBlueprintForm({
           : undefined;
         const recipeRaw = formData.get("recipe") as string;
         const recipe = recipeRaw ? JSON.parse(recipeRaw) : undefined;
+        const obtention = (formData.get("obtention") as string) || undefined;
 
         await createBlueprintAction({
           name,
@@ -52,6 +53,7 @@ export function NewBlueprintForm({
           craftingTime,
           statistics,
           recipe,
+          obtention,
         });
       }}
       className="space-y-5"
@@ -64,6 +66,11 @@ export function NewBlueprintForm({
       <div className="space-y-1.5">
         <Label htmlFor="description">{tAdmin.fieldDescription}</Label>
         <Textarea id="description" name="description" rows={4} required />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="obtention">{tAdmin.fieldObtention}</Label>
+        <Textarea id="obtention" name="obtention" rows={3} />
       </div>
 
       <CategoryInputs

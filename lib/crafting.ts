@@ -251,6 +251,7 @@ export async function getBlueprintBySlug(
         craftingTime: blueprint.craftingTime,
         statistics: blueprint.statistics,
         recipe: blueprint.recipe,
+        obtention: blueprint.obtention,
       }
     : null;
 }
@@ -347,6 +348,7 @@ export async function updateBlueprint(
       | "craftingTime"
       | "statistics"
       | "recipe"
+      | "obtention"
     >
   >,
 ): Promise<void> {

@@ -58,6 +58,7 @@ export async function updateBlueprintAction(
       [statName: string]: { value: string | number; unit?: string };
     };
     recipe?: { [componentName: string]: { quantity: number; unit?: string } }[];
+    obtention?: string;
   },
 ) {
   await requireAdmin();
@@ -81,6 +82,7 @@ export async function createBlueprintAction(data: {
     [statName: string]: { value: string | number; unit?: string };
   };
   recipe?: { [componentName: string]: { quantity: number; unit?: string } }[];
+  obtention?: string;
 }) {
   await requireAdmin();
   const slug = await createBlueprint(data);

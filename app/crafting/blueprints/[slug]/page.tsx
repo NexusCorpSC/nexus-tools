@@ -102,6 +102,15 @@ export default async function BlueprintDetailPage({
         <p className="text-gray-700 leading-relaxed">{blueprint.description}</p>
       </div>
 
+      {blueprint.obtention && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            {t("Blueprints.obtention")}
+          </h2>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-line">{blueprint.obtention}</p>
+        </div>
+      )}
+
       {/* Tier & Crafting time */}
       <div className="flex flex-wrap gap-6">
         {blueprint.tier !== undefined && (

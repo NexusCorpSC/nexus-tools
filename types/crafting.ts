@@ -30,6 +30,8 @@ export type Blueprint = {
   statistics?: BlueprintStatistics;
   /** Recette de fabrication */
   recipe?: BlueprintRecipeStep[];
+  /** Où obtenir ce blueprint */
+  obtention?: string;
 };
 
 export type UserBlueprint = {

@@ -42,6 +42,7 @@ export function EditBlueprintForm({
           : undefined;
         const recipeRaw = formData.get("recipe") as string;
         const recipe = recipeRaw ? JSON.parse(recipeRaw) : undefined;
+        const obtention = (formData.get("obtention") as string) || undefined;
 
         await updateBlueprintAction(blueprint.id, blueprint.slug, {
           name,
@@ -54,6 +55,7 @@ export function EditBlueprintForm({
           craftingTime,
           statistics,
           recipe,
+          obtention,
         });
       }}
       className="space-y-5"
@@ -71,6 +73,16 @@ export function EditBlueprintForm({
           defaultValue={blueprint.description}
           rows={4}
           required
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="obtention">{tAdmin.fieldObtention}</Label>
+        <Textarea
+          id="obtention"
+          name="obtention"
+          defaultValue={blueprint.obtention}
+          rows={3}
         />
       </div>
 
