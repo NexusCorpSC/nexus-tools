@@ -16,6 +16,7 @@ import { BlueprintOrgMember } from "@/lib/crafting";
 import {
   deleteBlueprintAction,
   findInventoryForRecipe,
+  craftFromInventory,
   type InventoryComponentMatch,
   type QualityMode,
 } from "@/app/crafting/blueprints/actions";
@@ -251,6 +252,37 @@ export function AdminBlueprintMenu({
   );
 }
 
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function selectedTotalForComponent(
+  match: InventoryComponentMatch,
+  checkedIds: string[],
+): number {
+  return match.items
+    .filter((i) => checkedIds.includes(i.id))
+    .reduce((s, i) => s + i.quantity, 0);
+}
+
+function buildCraftPayload(
+  matches: InventoryComponentMatch[],
+  selection: Record<string, string[]>,
+): { itemId: string; quantity: number }[] {
+  const payload: { itemId: string; quantity: number }[] = [];
+  for (const match of matches) {
+    const ids = selection[match.componentName] ?? [];
+    let remaining = match.requiredQuantity;
+    for (const id of ids) {
+      if (remaining <= 0) break;
+      const item = match.items.find((i) => i.id === id);
+      if (!item) continue;
+      const take = Math.min(item.quantity, remaining);
+      payload.push({ itemId: id, quantity: take });
+      remaining -= take;
+    }
+  }
+  return payload;
+}
+
 // ─── CraftFromInventoryClient ─────────────────────────────────────────────────
 
 export function CraftFromInventoryClient({
@@ -262,21 +294,23 @@ export function CraftFromInventoryClient({
   const [open, setOpen] = useState(false);
   const [qualityType, setQualityType] = useState<"max" | "min" | "gte">("max");
   const [qualityValue, setQualityValue] = useState<string>("0");
-  const [matches, setMatches] = useState<InventoryComponentMatch[] | null>(
-    null,
-  );
+  const [matches, setMatches] = useState<InventoryComponentMatch[] | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isCrafting, startCraftTransition] = useTransition();
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [craftResult, setCraftResult] = useState<{ ok: boolean; error?: string } | null>(null);
+  // selection: componentName → ordered array of checked itemIds
+  const [selection, setSelection] = useState<Record<string, string[]>>({});
 
   const performSearch = useCallback(
     (type: "max" | "min" | "gte", value: number) => {
-      const mode: QualityMode =
-        type === "gte" ? { type: "gte", value } : { type };
+      const mode: QualityMode = type === "gte" ? { type: "gte", value } : { type };
       startTransition(async () => {
         const res = await findInventoryForRecipe(recipe, mode);
         if (res.ok && res.matches) {
           setMatches(res.matches);
           setSearchError(null);
+          setCraftResult(null);
         } else {
           setSearchError(res.error ?? "Error");
         }
@@ -285,7 +319,17 @@ export function CraftFromInventoryClient({
     [recipe],
   );
 
-  // Auto-search when section opens or when quality type changes
+  // Auto-initialize selection when matches change (all items checked by default)
+  useEffect(() => {
+    if (!matches) return;
+    const init: Record<string, string[]> = {};
+    for (const match of matches) {
+      init[match.componentName] = match.items.map((i) => i.id);
+    }
+    setSelection(init);
+  }, [matches]);
+
+  // Auto-search when section opens or quality type changes
   useEffect(() => {
     if (!open) return;
     if (qualityType !== "gte") {
@@ -307,12 +351,40 @@ export function CraftFromInventoryClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qualityValue]);
 
+  const toggleItem = (componentName: string, itemId: string) => {
+    setSelection((prev) => {
+      const current = prev[componentName] ?? [];
+      const next = current.includes(itemId)
+        ? current.filter((id) => id !== itemId)
+        : [...current, itemId];
+      return { ...prev, [componentName]: next };
+    });
+  };
+
+  const canCraft =
+    matches !== null &&
+    matches.length > 0 &&
+    matches.every((match) => {
+      const selTotal = selectedTotalForComponent(match, selection[match.componentName] ?? []);
+      return selTotal >= match.requiredQuantity;
+    });
+
+  const handleCraft = () => {
+    if (!matches) return;
+    const payload = buildCraftPayload(matches, selection);
+    startCraftTransition(async () => {
+      const res = await craftFromInventory(payload);
+      setCraftResult(res);
+      if (res.ok) {
+        // Re-fetch to reflect updated stock
+        performSearch(qualityType, parseInt(qualityValue) || 0);
+      }
+    });
+  };
+
   if (!open) {
     return (
-      <Button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2"
-      >
+      <Button onClick={() => setOpen(true)} className="flex items-center gap-2">
         <WrenchScrewdriverIcon className="size-4" />
         {t("craftTitle")}
       </Button>
@@ -374,12 +446,10 @@ export function CraftFromInventoryClient({
 
       {/* Loading */}
       {isPending && (
-        <p className="text-sm text-gray-500 animate-pulse">
-          {t("craftSearching")}
-        </p>
+        <p className="text-sm text-gray-500 animate-pulse">{t("craftSearching")}</p>
       )}
 
-      {/* Error */}
+      {/* Search error */}
       {!isPending && searchError && (
         <p className="text-sm text-red-600">{searchError}</p>
       )}
@@ -388,9 +458,11 @@ export function CraftFromInventoryClient({
       {!isPending && matches && (
         <div className="space-y-3">
           {matches.map((match) => {
-            const isSufficient =
-              match.totalAvailable >= match.requiredQuantity;
+            const checkedIds = selection[match.componentName] ?? [];
+            const selTotal = selectedTotalForComponent(match, checkedIds);
+            const isSufficient = selTotal >= match.requiredQuantity;
             const displayUnit = match.requiredUnit ?? "";
+
             return (
               <div
                 key={match.componentName}
@@ -399,12 +471,15 @@ export function CraftFromInventoryClient({
                 {/* Component header */}
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800">
-                      {match.componentName}
-                    </span>
+                    <span className="font-medium text-gray-800">{match.componentName}</span>
                     {match.recipeMinQuality !== undefined && (
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                         {t("craftMinQuality")}: {match.recipeMinQuality}
+                      </span>
+                    )}
+                    {match.selectedQuality !== undefined && (
+                      <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">
+                        {t("craftQualityLabel")}: {match.selectedQuality}
                       </span>
                     )}
                   </div>
@@ -428,51 +503,84 @@ export function CraftFromInventoryClient({
                       ) : (
                         <XCircleIcon className="size-3.5" />
                       )}
-                      {t("craftFound")}:{" "}
-                      {match.totalAvailable}
+                      {t("craftSelected")}: {selTotal}
                       {displayUnit ? ` ${displayUnit}` : ""}
                     </span>
                   </div>
                 </div>
 
-                {/* Items list */}
+                {/* Items list with checkboxes */}
                 {match.items.length === 0 ? (
-                  <p className="px-4 py-3 text-sm text-gray-500">
-                    {t("craftNoItems")}
-                  </p>
+                  <p className="px-4 py-3 text-sm text-gray-500">{t("craftNoItems")}</p>
                 ) : (
                   <div className="divide-y divide-gray-50">
-                    {match.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="px-4 py-2.5 flex items-center justify-between text-sm gap-2"
-                      >
-                        <div className="flex items-center gap-2 text-gray-600 min-w-0">
-                          <MapPinIcon className="size-4 shrink-0 text-gray-400" />
-                          <span className="truncate">
-                            {item.locationName ?? t("craftUnknownLocation")}
-                          </span>
-                          {match.selectedQuality !== undefined && (
-                            <span className="shrink-0 text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">
-                              {t("craftQualityLabel")}: {match.selectedQuality}
+                    {match.items.map((item) => {
+                      const checked = checkedIds.includes(item.id);
+                      return (
+                        <label
+                          key={item.id}
+                          className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                            checked ? "bg-white" : "bg-gray-50/50"
+                          } hover:bg-indigo-50/30`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleItem(match.componentName, item.id)}
+                            className="size-4 rounded accent-indigo-600 cursor-pointer shrink-0"
+                          />
+                          <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0 flex-1">
+                            <MapPinIcon className="size-4 shrink-0 text-gray-400" />
+                            <span className="truncate">
+                              {item.locationName ?? t("craftUnknownLocation")}
                             </span>
-                          )}
-                        </div>
-                        <span className="font-medium text-gray-800 shrink-0">
-                          {item.quantity}
-                          {item.unit
-                            ? ` ${item.unit}`
-                            : displayUnit
-                              ? ` ${displayUnit}`
-                              : ""}
-                        </span>
-                      </div>
-                    ))}
+                          </div>
+                          <span className="text-sm font-medium text-gray-800 shrink-0">
+                            {item.quantity}
+                            {item.unit
+                              ? ` ${item.unit}`
+                              : displayUnit
+                                ? ` ${displayUnit}`
+                                : ""}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             );
           })}
+
+          {/* Craft result feedback */}
+          {craftResult && (
+            <div
+              className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${
+                craftResult.ok
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}
+            >
+              {craftResult.ok ? (
+                <CheckCircleIcon className="size-4 shrink-0" />
+              ) : (
+                <XCircleIcon className="size-4 shrink-0" />
+              )}
+              {craftResult.ok ? t("craftSuccess") : (craftResult.error ?? t("craftError"))}
+            </div>
+          )}
+
+          {/* Craft button */}
+          <div className="flex justify-end pt-1">
+            <Button
+              onClick={handleCraft}
+              disabled={!canCraft || isCrafting}
+              className="flex items-center gap-2"
+            >
+              <WrenchScrewdriverIcon className="size-4" />
+              {isCrafting ? t("craftCrafting") : t("craftConfirm")}
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/permissions";
 import db from "@/lib/db";
+import { ObjectId } from "bson";
 import { BlueprintRecipeStep } from "@/types/crafting";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -235,4 +236,41 @@ export async function findInventoryForRecipe(
   }
 
   return { ok: true, matches };
+}
+
+export async function craftFromInventory(
+  entries: { itemId: string; quantity: number }[],
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) return { ok: false, error: "Unauthorized" };
+
+  const userId = session.user.id;
+  const collection = db.db().collection("inventoryItems");
+  const now = new Date().toISOString();
+
+  for (const { itemId, quantity } of entries) {
+    if (!quantity || quantity <= 0) continue;
+
+    let oid: ObjectId;
+    try {
+      oid = new ObjectId(itemId);
+    } catch {
+      continue;
+    }
+
+    const item = await collection.findOne({ _id: oid, userId });
+    if (!item) continue;
+
+    const remaining = (item.quantity as number) - quantity;
+    if (remaining <= 0) {
+      await collection.deleteOne({ _id: oid });
+    } else {
+      await collection.updateOne(
+        { _id: oid },
+        { $set: { quantity: remaining, updatedAt: now } },
+      );
+    }
+  }
+
+  return { ok: true };
 }
