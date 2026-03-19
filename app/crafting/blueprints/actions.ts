@@ -240,6 +240,7 @@ export async function findInventoryForRecipe(
 
 export async function craftFromInventory(
   entries: { itemId: string; quantity: number }[],
+  output?: { locationId: string; name: string; quantity?: number },
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return { ok: false, error: "Unauthorized" };
@@ -270,6 +271,17 @@ export async function craftFromInventory(
         { $set: { quantity: remaining, updatedAt: now } },
       );
     }
+  }
+
+  // Si un lieu de stockage est précisé, ajouter l'objet fabriqué à l'inventaire
+  if (output?.locationId && output?.name) {
+    await collection.insertOne({
+      name: output.name,
+      quantity: output.quantity ?? 1,
+      locationId: output.locationId,
+      userId,
+      updatedAt: now,
+    });
   }
 
   return { ok: true };

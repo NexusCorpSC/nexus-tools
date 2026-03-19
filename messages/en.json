@@ -117,6 +117,8 @@
       "craftConfirm": "Craft",
       "craftCrafting": "Crafting...",
       "craftSuccess": "Resources removed from inventory!",
+      "craftSuccessStored": "Resources consumed and {name} added to {location}!",
+      "craftStorageLocationPlaceholder": "Storage location (optional)",
       "craftError": "An error occurred during crafting.",
       "Admin": {
         "menuLabel": "Admin actions",

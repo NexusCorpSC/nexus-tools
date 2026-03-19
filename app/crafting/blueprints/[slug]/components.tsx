@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition } from "react";
+import { useState, useEffect, useCallback, useTransition, useRef } from "react";
 import Image from "next/image";
 import {
   UserGroupIcon,
@@ -252,6 +252,93 @@ export function AdminBlueprintMenu({
   );
 }
 
+// ─── LocationCombobox ─────────────────────────────────────────────────────────
+
+type LocationOption = { id: string; name: string };
+
+function LocationCombobox({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: LocationOption | null;
+  onChange: (loc: LocationOption | null) => void;
+  placeholder: string;
+}) {
+  const [inputValue, setInputValue] = useState(value?.name ?? "");
+  const [suggestions, setSuggestions] = useState<LocationOption[]>([]);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const fetchSuggestions = useCallback(async (query: string) => {
+    try {
+      const res = await fetch(
+        `/api/inventory/locations?query=${encodeURIComponent(query)}`,
+      );
+      if (!res.ok) return;
+      const data: LocationOption[] = await res.json();
+      setSuggestions(data);
+    } catch {
+      setSuggestions([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSuggestions(inputValue);
+  }, [inputValue, fetchSuggestions]);
+
+  useEffect(() => {
+    setInputValue(value?.name ?? "");
+  }, [value]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Input
+        value={inputValue}
+        placeholder={placeholder}
+        autoComplete="off"
+        className="h-9 text-sm bg-white"
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          if (!e.target.value) onChange(null);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+      />
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full min-w-52 bg-white border border-gray-200 rounded-md shadow-lg max-h-52 overflow-auto">
+          {suggestions.map((loc) => (
+            <button
+              key={loc.id}
+              type="button"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onChange(loc);
+                setInputValue(loc.name);
+                setOpen(false);
+              }}
+            >
+              <MapPinIcon className="size-4 text-gray-400 shrink-0" />
+              <span>{loc.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function selectedTotalForComponent(
@@ -287,8 +374,10 @@ function buildCraftPayload(
 
 export function CraftFromInventoryClient({
   recipe,
+  blueprintName,
 }: {
   recipe: BlueprintRecipeStep[];
+  blueprintName: string;
 }) {
   const t = useTranslations("Crafting.Blueprints");
   const [open, setOpen] = useState(false);
@@ -298,7 +387,8 @@ export function CraftFromInventoryClient({
   const [isPending, startTransition] = useTransition();
   const [isCrafting, startCraftTransition] = useTransition();
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [craftResult, setCraftResult] = useState<{ ok: boolean; error?: string } | null>(null);
+  const [craftResult, setCraftResult] = useState<{ ok: boolean; error?: string; storedAt?: string } | null>(null);
+  const [storageLocation, setStorageLocation] = useState<{ id: string; name: string } | null>(null);
   // selection: componentName → ordered array of checked itemIds
   const [selection, setSelection] = useState<Record<string, string[]>>({});
 
@@ -372,9 +462,12 @@ export function CraftFromInventoryClient({
   const handleCraft = () => {
     if (!matches) return;
     const payload = buildCraftPayload(matches, selection);
+    const output = storageLocation
+      ? { locationId: storageLocation.id, name: blueprintName }
+      : undefined;
     startCraftTransition(async () => {
-      const res = await craftFromInventory(payload);
-      setCraftResult(res);
+      const res = await craftFromInventory(payload, output);
+      setCraftResult({ ...res, storedAt: storageLocation?.name });
       if (res.ok) {
         // Re-fetch to reflect updated stock
         performSearch(qualityType, parseInt(qualityValue) || 0);
@@ -566,12 +659,21 @@ export function CraftFromInventoryClient({
               ) : (
                 <XCircleIcon className="size-4 shrink-0" />
               )}
-              {craftResult.ok ? t("craftSuccess") : (craftResult.error ?? t("craftError"))}
+              {craftResult.ok
+                ? craftResult.storedAt
+                  ? t("craftSuccessStored", { name: blueprintName, location: craftResult.storedAt })
+                  : t("craftSuccess")
+                : (craftResult.error ?? t("craftError"))}
             </div>
           )}
 
           {/* Craft button */}
-          <div className="flex justify-end pt-1">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
+            <LocationCombobox
+              value={storageLocation}
+              onChange={setStorageLocation}
+              placeholder={t("craftStorageLocationPlaceholder")}
+            />
             <Button
               onClick={handleCraft}
               disabled={!canCraft || isCrafting}

@@ -121,6 +121,8 @@
       "craftConfirm": "Fabriquer",
       "craftCrafting": "Fabrication...",
       "craftSuccess": "Ressources retirées de l'inventaire !",
+      "craftSuccessStored": "Ressources consommées et {name} ajouté à {location} !",
+      "craftStorageLocationPlaceholder": "Lieu de stockage (optionnel)",
       "craftError": "Erreur lors de la fabrication.",
       "Admin": {
         "menuLabel": "Actions administrateur",

@@ -179,5 +179,5 @@ export async function BlueprintCraftSection({
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return null;
 
-  return <CraftFromInventoryClient recipe={blueprint.recipe} />;
+  return <CraftFromInventoryClient recipe={blueprint.recipe} blueprintName={blueprint.name} />;
 }
