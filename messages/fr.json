@@ -255,7 +255,7 @@
     "header": "Gérez vos objets à travers différents lieux de stockage.",
     "searchPlaceholder": "Rechercher par nom...",
     "filterAllLocations": "Tous les lieux",
-    "filterQualityPlaceholder": "Qualité...",
+    "filterQualityPlaceholder": "Qualité min....",
     "addItemButton": "Ajouter un objet",
     "addItemTitle": "Ajouter un objet",
     "fieldName": "Nom",

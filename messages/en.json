@@ -255,7 +255,7 @@
     "header": "Manage your items across different storage locations.",
     "searchPlaceholder": "Search by name...",
     "filterAllLocations": "All locations",
-    "filterQualityPlaceholder": "Quality...",
+    "filterQualityPlaceholder": "Min. quality...",
     "addItemButton": "Add item",
     "addItemTitle": "Add an item",
     "fieldName": "Name",

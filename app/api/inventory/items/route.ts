@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     matchStage.locationId = locationId;
   }
   if (quality !== null && quality !== undefined && quality !== "") {
-    matchStage.quality = parseInt(quality, 10);
+    matchStage.quality = { $gte: parseInt(quality, 10) };
   }
 
   const items = await db
