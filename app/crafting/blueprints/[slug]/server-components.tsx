@@ -12,7 +12,7 @@ import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
-import { AdminBlueprintMenu, BlueprintOrgOwnersClient } from "./components";
+import { AdminBlueprintMenu, BlueprintOrgOwnersClient, CraftFromInventoryClient } from "./components";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission, isAdmin } from "@/lib/permissions";
@@ -150,7 +150,6 @@ export async function AdminBlueprintSection({
 }) {
   const canEdit = await hasPermission("blueprints:edit");
   if (!canEdit) return null;
-
   const t = await getTranslations("Crafting.Blueprints.Admin");
 
   return (
@@ -168,4 +167,17 @@ export async function AdminBlueprintSection({
       }}
     />
   );
+}
+
+export async function BlueprintCraftSection({
+  blueprint,
+}: {
+  blueprint: Blueprint;
+}) {
+  if (!blueprint.recipe || blueprint.recipe.length === 0) return null;
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) return null;
+
+  return <CraftFromInventoryClient recipe={blueprint.recipe} blueprintName={blueprint.name} />;
 }
