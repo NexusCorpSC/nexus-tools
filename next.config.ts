@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "3mb",
+      allowedOrigins: process.env.NODE_ENV === "development" ? ["localhost:3000", process.env.DEV_URL ?? "localhost:3000"] : undefined,
     },
   },
 };
