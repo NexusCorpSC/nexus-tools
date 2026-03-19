@@ -19,7 +19,9 @@ import {
   PencilIcon,
   MinusIcon,
   ArrowsRightLeftIcon,
+  ArchiveBoxIcon,
 } from "@heroicons/react/24/outline";
+import { packageOperate } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +45,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type PackageItem = {
+  item: InventoryItemWithLocation;
+  quantity: number;
+};
 
 // ─── LocationCombobox ────────────────────────────────────────────────────────
 
@@ -653,14 +662,299 @@ function DeleteConfirmPopover({
   );
 }
 
+// ─── AddToPackagePopover ─────────────────────────────────────────────────────
+
+function AddToPackagePopover({
+  item,
+  onAdd,
+}: {
+  item: InventoryItemWithLocation;
+  onAdd: (quantity: number) => void;
+}) {
+  const t = useTranslations("Inventory");
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const parsed = parseFloat(value);
+    if (isNaN(parsed) || parsed <= 0) {
+      setError(t("errorQuantityInvalid"));
+      return;
+    }
+    if (parsed > item.quantity) {
+      setError(t("errorQuantityExceedsStock"));
+      return;
+    }
+    onAdd(parsed);
+    setOpen(false);
+    setValue("");
+    setError(null);
+  };
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) { setValue(""); setError(null); }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-7"
+          title={t("packageAdd")}
+        >
+          <ArchiveBoxIcon className="size-3.5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-3" align="end">
+        <p className="text-sm font-medium mb-2">{t("packageAdd")}</p>
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <Input
+            type="number"
+            min={0.001}
+            max={item.quantity}
+            step="any"
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={t("quantityDeltaPlaceholder")}
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <Button type="submit" size="sm" className="w-full">
+            {t("confirm")}
+          </Button>
+        </form>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ─── PackageSidebar ───────────────────────────────────────────────────────────
+
+function PackageSidebar({
+  items,
+  onUpdate,
+  onRefresh,
+}: {
+  items: PackageItem[];
+  onUpdate: (items: PackageItem[]) => void;
+  onRefresh: () => void;
+}) {
+  const t = useTranslations("Inventory");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveLocation, setMoveLocation] = useState<Location | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleRemoveItem = (itemId: string) =>
+    onUpdate(items.filter((pi) => pi.item.id !== itemId));
+
+  const handleUpdateQty = (itemId: string, qty: number) =>
+    onUpdate(
+      items.map((pi) =>
+        pi.item.id === itemId ? { ...pi, quantity: qty } : pi
+      )
+    );
+
+  const handleDelete = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await packageOperate(
+        items.map((pi) => ({ itemId: pi.item.id, quantity: pi.quantity })),
+        { type: "delete" }
+      );
+      if (!result.ok) { setError(result.error || t("errorGeneric")); return; }
+      onUpdate([]);
+      onRefresh();
+      setDeleteOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleMove = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!moveLocation) { setError(t("errorLocationRequired")); return; }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await packageOperate(
+        items.map((pi) => ({ itemId: pi.item.id, quantity: pi.quantity })),
+        { type: "move", locationId: moveLocation.id }
+      );
+      if (!result.ok) { setError(result.error || t("errorGeneric")); return; }
+      onUpdate([]);
+      onRefresh();
+      setMoveOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="w-72 shrink-0 sticky top-4 bg-white border border-gray-200 rounded-xl shadow-sm p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ArchiveBoxIcon className="size-5 text-gray-500" />
+          <h2 className="font-semibold text-gray-900">{t("packageTitle")}</h2>
+          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
+            {items.length}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onUpdate([])}
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          {t("packageClear")}
+        </button>
+      </div>
+
+      {/* Items */}
+      <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+        {items.map((pi) => (
+          <div
+            key={pi.item.id}
+            className="flex items-center gap-2 text-sm py-1.5 border-b border-gray-50 last:border-0"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="truncate font-medium text-gray-800 text-xs">{pi.item.name}</p>
+              {pi.item.location && (
+                <p className="text-xs text-gray-400 truncate">{pi.item.location.name}</p>
+              )}
+            </div>
+            <Input
+              type="number"
+              min={0.001}
+              max={pi.item.quantity}
+              step="any"
+              value={pi.quantity}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (!isNaN(v) && v > 0) handleUpdateQty(pi.item.id, v);
+              }}
+              className="w-16 h-7 text-xs px-2"
+            />
+            {pi.item.unit && (
+              <span className="text-xs text-gray-400 shrink-0">{pi.item.unit}</span>
+            )}
+            <button
+              type="button"
+              onClick={() => handleRemoveItem(pi.item.id)}
+              className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+            >
+              <XMarkIcon className="size-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {error && <p className="text-xs text-red-500">{error}</p>}
+
+      {/* Actions */}
+      <div className="space-y-2 pt-2 border-t border-gray-100">
+        {/* Delete */}
+        <Popover
+          open={deleteOpen}
+          onOpenChange={(v) => { setDeleteOpen(v); if (!v) setError(null); }}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-red-500 hover:text-red-600 hover:border-red-300"
+            >
+              <TrashIcon className="size-4 mr-1.5" />
+              {t("packageDelete")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-3" align="center">
+            <p className="text-sm font-medium mb-1">{t("packageDeleteConfirmTitle")}</p>
+            <p className="text-xs text-gray-500 mb-3">
+              {t("packageDeleteConfirmDescription")}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => setDeleteOpen(false)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="flex-1"
+                disabled={submitting}
+                onClick={handleDelete}
+              >
+                {submitting ? t("saving") : t("confirm")}
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Move */}
+        <Popover
+          open={moveOpen}
+          onOpenChange={(v) => {
+            setMoveOpen(v);
+            if (!v) { setMoveLocation(null); setError(null); }
+          }}
+        >
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full">
+              <ArrowsRightLeftIcon className="size-4 mr-1.5" />
+              {t("packageMove")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-3" align="center">
+            <p className="text-sm font-medium mb-2">{t("packageMoveTitle")}</p>
+            <form onSubmit={handleMove} className="space-y-2">
+              <LocationCombobox
+                value={moveLocation}
+                onChange={setMoveLocation}
+                placeholder={t("fieldLocationPlaceholder")}
+              />
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <Button
+                type="submit"
+                size="sm"
+                className="w-full"
+                disabled={submitting}
+              >
+                {submitting ? t("saving") : t("confirm")}
+              </Button>
+            </form>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  );
+}
+
 // ─── InventoryItemCard ────────────────────────────────────────────────────────
 
 function InventoryItemCard({
   item,
   onRefresh,
+  onAddToPackage,
 }: {
   item: InventoryItemWithLocation;
   onRefresh: () => void;
+  onAddToPackage: (item: InventoryItemWithLocation, quantity: number) => void;
 }) {
   const t = useTranslations("Inventory");
   const [editOpen, setEditOpen] = useState(false);
@@ -702,6 +996,7 @@ function InventoryItemCard({
 
       {/* Action buttons */}
       <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-100">
+        <AddToPackagePopover item={item} onAdd={(qty) => onAddToPackage(item, qty)} />
         <AdjustQuantityPopover item={item} mode="add" onUpdated={onRefresh} />
         <AdjustQuantityPopover item={item} mode="remove" onUpdated={onRefresh} />
         <MoveItemPopover item={item} onUpdated={onRefresh} />
@@ -741,6 +1036,24 @@ export function InventoryGrid() {
   const [qualityFilter, setQualityFilter] = useState("");
   const [locations, setLocations] = useState<Location[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
+
+  const handleAddToPackage = useCallback(
+    (item: InventoryItemWithLocation, quantity: number) => {
+      setPackageItems((prev) => {
+        const existing = prev.find((pi) => pi.item.id === item.id);
+        if (existing) {
+          // Accumulate, capped to available stock
+          const newQty = Math.min(existing.quantity + quantity, item.quantity);
+          return prev.map((pi) =>
+            pi.item.id === item.id ? { ...pi, quantity: newQty } : pi
+          );
+        }
+        return [...prev, { item, quantity }];
+      });
+    },
+    []
+  );
 
   const debouncedQuery = useDebounce(searchQuery, 300);
 
@@ -786,7 +1099,8 @@ export function InventoryGrid() {
   }, [fetchItems, fetchLocations]);
 
   return (
-    <div className="space-y-4">
+    <div className="flex gap-6 items-start">
+      <div className="flex-1 min-w-0 space-y-4">
       {/* Toolbar */}
       <div className="flex flex-wrap gap-3 items-center">
         {/* Search */}
@@ -869,7 +1183,12 @@ export function InventoryGrid() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item) => (
-            <InventoryItemCard key={item.id} item={item} onRefresh={handleRefresh} />
+            <InventoryItemCard
+              key={item.id}
+              item={item}
+              onRefresh={handleRefresh}
+              onAddToPackage={handleAddToPackage}
+            />
           ))}
         </div>
       )}
@@ -879,6 +1198,15 @@ export function InventoryGrid() {
         onClose={() => setShowAddDialog(false)}
         onCreated={handleRefresh}
       />
+      </div>{/* end main column */}
+
+      {packageItems.length > 0 && (
+        <PackageSidebar
+          items={packageItems}
+          onUpdate={setPackageItems}
+          onRefresh={handleRefresh}
+        />
+      )}
     </div>
   );
 }

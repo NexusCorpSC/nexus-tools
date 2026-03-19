@@ -295,6 +295,15 @@
     "confirm": "Confirm",
     "deleteConfirmTitle": "Delete this item?",
     "deleteConfirmDescription": "This action is irreversible.",
-    "deleteConfirmConfirm": "Delete"
+    "deleteConfirmConfirm": "Delete",
+    "packageAdd": "Add to package",
+    "packageTitle": "Package",
+    "packageClear": "Clear",
+    "packageDelete": "Delete from inventory",
+    "packageDeleteConfirmTitle": "Delete these quantities?",
+    "packageDeleteConfirmDescription": "The selected quantities will be permanently removed from your inventory.",
+    "packageMove": "Move package",
+    "packageMoveTitle": "Move to location",
+    "errorQuantityExceedsStock": "Quantity exceeds available stock."
   }
 }

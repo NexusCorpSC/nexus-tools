@@ -295,6 +295,15 @@
     "confirm": "Confirmer",
     "deleteConfirmTitle": "Supprimer cet objet ?",
     "deleteConfirmDescription": "Cette action est irréversible.",
-    "deleteConfirmConfirm": "Supprimer"
+    "deleteConfirmConfirm": "Supprimer",
+    "packageAdd": "Ajouter au colis",
+    "packageTitle": "Colis",
+    "packageClear": "Vider",
+    "packageDelete": "Supprimer de l'inventaire",
+    "packageDeleteConfirmTitle": "Supprimer ces quantités ?",
+    "packageDeleteConfirmDescription": "Les quantités sélectionnées seront définitivement retirées de votre inventaire.",
+    "packageMove": "Déplacer le colis",
+    "packageMoveTitle": "Déplacer vers un lieu",
+    "errorQuantityExceedsStock": "La quantité dépasse le stock disponible."
   }
 }
