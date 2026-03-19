@@ -1,15 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import Image from "next/image";
 import {
   UserGroupIcon,
   EllipsisVerticalIcon,
   PencilIcon,
   TrashIcon,
+  WrenchScrewdriverIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { BlueprintOrgMember } from "@/lib/crafting";
-import { deleteBlueprintAction } from "@/app/crafting/blueprints/actions";
+import {
+  deleteBlueprintAction,
+  findInventoryForRecipe,
+  type InventoryComponentMatch,
+  type QualityMode,
+} from "@/app/crafting/blueprints/actions";
+import { BlueprintRecipeStep } from "@/types/crafting";
+import { Input } from "@/components/ui/input";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -235,6 +247,234 @@ export function AdminBlueprintMenu({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── CraftFromInventoryClient ─────────────────────────────────────────────────
+
+export function CraftFromInventoryClient({
+  recipe,
+}: {
+  recipe: BlueprintRecipeStep[];
+}) {
+  const t = useTranslations("Crafting.Blueprints");
+  const [open, setOpen] = useState(false);
+  const [qualityType, setQualityType] = useState<"max" | "min" | "gte">("max");
+  const [qualityValue, setQualityValue] = useState<string>("0");
+  const [matches, setMatches] = useState<InventoryComponentMatch[] | null>(
+    null,
+  );
+  const [isPending, startTransition] = useTransition();
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const performSearch = useCallback(
+    (type: "max" | "min" | "gte", value: number) => {
+      const mode: QualityMode =
+        type === "gte" ? { type: "gte", value } : { type };
+      startTransition(async () => {
+        const res = await findInventoryForRecipe(recipe, mode);
+        if (res.ok && res.matches) {
+          setMatches(res.matches);
+          setSearchError(null);
+        } else {
+          setSearchError(res.error ?? "Error");
+        }
+      });
+    },
+    [recipe],
+  );
+
+  // Auto-search when section opens or when quality type changes
+  useEffect(() => {
+    if (!open) return;
+    if (qualityType !== "gte") {
+      performSearch(qualityType, 0);
+    } else {
+      performSearch("gte", parseInt(qualityValue) || 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, qualityType]);
+
+  // Debounced re-search when the gte value changes
+  useEffect(() => {
+    if (!open || qualityType !== "gte") return;
+    const timer = setTimeout(
+      () => performSearch("gte", parseInt(qualityValue) || 0),
+      400,
+    );
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qualityValue]);
+
+  if (!open) {
+    return (
+      <Button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2"
+      >
+        <WrenchScrewdriverIcon className="size-4" />
+        {t("craftTitle")}
+      </Button>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-5 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <WrenchScrewdriverIcon className="size-5 text-indigo-600" />
+          <h3 className="font-semibold text-gray-900">{t("craftTitle")}</h3>
+        </div>
+        <button
+          onClick={() => setOpen(false)}
+          className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Quality mode selector */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          {t("craftQualityTitle")}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {(["max", "min", "gte"] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => setQualityType(type)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                qualityType === type
+                  ? "bg-indigo-600 text-white"
+                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              {type === "max"
+                ? t("craftQualityMax")
+                : type === "min"
+                  ? t("craftQualityMin")
+                  : t("craftQualityGte")}
+            </button>
+          ))}
+          {qualityType === "gte" && (
+            <Input
+              type="number"
+              min={0}
+              value={qualityValue}
+              onChange={(e) => setQualityValue(e.target.value)}
+              className="w-28 h-8 text-sm bg-white"
+              placeholder="0"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Loading */}
+      {isPending && (
+        <p className="text-sm text-gray-500 animate-pulse">
+          {t("craftSearching")}
+        </p>
+      )}
+
+      {/* Error */}
+      {!isPending && searchError && (
+        <p className="text-sm text-red-600">{searchError}</p>
+      )}
+
+      {/* Results */}
+      {!isPending && matches && (
+        <div className="space-y-3">
+          {matches.map((match) => {
+            const isSufficient =
+              match.totalAvailable >= match.requiredQuantity;
+            const displayUnit = match.requiredUnit ?? "";
+            return (
+              <div
+                key={match.componentName}
+                className="rounded-lg border border-gray-200 bg-white overflow-hidden"
+              >
+                {/* Component header */}
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-800">
+                      {match.componentName}
+                    </span>
+                    {match.recipeMinQuality !== undefined && (
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                        {t("craftMinQuality")}: {match.recipeMinQuality}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">
+                      {t("craftReq")}:{" "}
+                      <span className="font-medium">
+                        {match.requiredQuantity}
+                        {displayUnit ? ` ${displayUnit}` : ""}
+                      </span>
+                    </span>
+                    <span
+                      className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                        isSufficient
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {isSufficient ? (
+                        <CheckCircleIcon className="size-3.5" />
+                      ) : (
+                        <XCircleIcon className="size-3.5" />
+                      )}
+                      {t("craftFound")}:{" "}
+                      {match.totalAvailable}
+                      {displayUnit ? ` ${displayUnit}` : ""}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Items list */}
+                {match.items.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-gray-500">
+                    {t("craftNoItems")}
+                  </p>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {match.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="px-4 py-2.5 flex items-center justify-between text-sm gap-2"
+                      >
+                        <div className="flex items-center gap-2 text-gray-600 min-w-0">
+                          <MapPinIcon className="size-4 shrink-0 text-gray-400" />
+                          <span className="truncate">
+                            {item.locationName ?? t("craftUnknownLocation")}
+                          </span>
+                          {match.selectedQuality !== undefined && (
+                            <span className="shrink-0 text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">
+                              {t("craftQualityLabel")}: {match.selectedQuality}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-medium text-gray-800 shrink-0">
+                          {item.quantity}
+                          {item.unit
+                            ? ` ${item.unit}`
+                            : displayUnit
+                              ? ` ${displayUnit}`
+                              : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

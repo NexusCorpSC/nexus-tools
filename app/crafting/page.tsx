@@ -17,7 +17,7 @@ export default function CraftingPage() {
         </Button>
 
         <Button asChild>
-          <Link href="/crafting/inventory">Mon inventaire</Link>
+          <Link href="/inventory">Mon inventaire</Link>
         </Button>
 
         <Button asChild>
