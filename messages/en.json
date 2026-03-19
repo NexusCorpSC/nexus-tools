@@ -283,6 +283,18 @@
     "errorLocationRequired": "A storage location is required.",
     "errorQuantityInvalid": "Quantity must be a valid number.",
     "errorQualityInvalid": "Quality must be a non-negative integer.",
-    "errorGeneric": "An error occurred. Please try again."
+    "errorGeneric": "An error occurred. Please try again.",
+    "editItemTitle": "Edit item",
+    "editItemConfirm": "Save changes",
+    "actionAdd": "Add quantity",
+    "actionRemove": "Remove quantity",
+    "actionMove": "Move to another location",
+    "actionEdit": "Edit item",
+    "actionDelete": "Delete item",
+    "quantityDeltaPlaceholder": "Quantity...",
+    "confirm": "Confirm",
+    "deleteConfirmTitle": "Delete this item?",
+    "deleteConfirmDescription": "This action is irreversible.",
+    "deleteConfirmConfirm": "Delete"
   }
 }

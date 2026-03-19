@@ -283,6 +283,18 @@
     "errorLocationRequired": "Un lieu de stockage est requis.",
     "errorQuantityInvalid": "La quantité doit être un nombre valide.",
     "errorQualityInvalid": "La qualité doit être un entier positif ou nul.",
-    "errorGeneric": "Une erreur est survenue. Veuillez réessayer."
+    "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
+    "editItemTitle": "Modifier l'objet",
+    "editItemConfirm": "Enregistrer",
+    "actionAdd": "Ajouter une quantité",
+    "actionRemove": "Retirer une quantité",
+    "actionMove": "Déplacer vers un autre lieu",
+    "actionEdit": "Modifier l'objet",
+    "actionDelete": "Supprimer l'objet",
+    "quantityDeltaPlaceholder": "Quantité...",
+    "confirm": "Confirmer",
+    "deleteConfirmTitle": "Supprimer cet objet ?",
+    "deleteConfirmDescription": "Cette action est irréversible.",
+    "deleteConfirmConfirm": "Supprimer"
   }
 }
