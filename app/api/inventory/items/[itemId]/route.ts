@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import { roundQty } from "@/lib/utils";
 
 type Params = { params: Promise<{ itemId: string }> };
 
@@ -59,7 +60,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         { status: 400 }
       );
     }
-    const newQty = (item.quantity as number) + delta;
+    const newQty = roundQty((item.quantity as number) + delta);
     if (newQty < 0) {
       return NextResponse.json(
         { error: "quantity cannot be negative" },

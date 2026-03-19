@@ -8,6 +8,7 @@ import {
   createBlueprint,
 } from "@/lib/crafting";
 import { revalidatePath } from "next/cache";
+import { roundQty } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -262,7 +263,7 @@ export async function craftFromInventory(
     const item = await collection.findOne({ _id: oid, userId });
     if (!item) continue;
 
-    const remaining = (item.quantity as number) - quantity;
+    const remaining = roundQty((item.quantity as number) - quantity);
     if (remaining <= 0) {
       await collection.deleteOne({ _id: oid });
     } else {

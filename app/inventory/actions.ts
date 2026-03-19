@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import { roundQty } from "@/lib/utils";
 
 export type PackageEntry = { itemId: string; quantity: number };
 export type PackageOp =
@@ -35,7 +36,7 @@ export async function packageOperate(
     if (!item) continue;
 
     if (op.type === "delete") {
-      const remaining = (item.quantity as number) - quantity;
+      const remaining = roundQty((item.quantity as number) - quantity);
       if (remaining <= 0) {
         await collection.deleteOne({ _id: oid });
       } else {
@@ -49,7 +50,7 @@ export async function packageOperate(
       if (item.locationId === op.locationId) continue;
 
       // Subtract from source
-      const remaining = (item.quantity as number) - quantity;
+      const remaining = roundQty((item.quantity as number) - quantity);
       if (remaining <= 0) {
         await collection.deleteOne({ _id: oid });
       } else {
