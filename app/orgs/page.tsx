@@ -15,6 +15,15 @@ export type Organization = {
   image: string;
   members: { userId: ObjectId; rank: string; editor: boolean }[];
   public: boolean;
+  joinCode?: string;
+};
+
+export type JoinRequest = {
+  _id: ObjectId;
+  orgId: string;
+  userId: string;
+  status: "PENDING" | "BLOCKED";
+  createdAt: Date;
 };
 
 export default async function OrganizationsPage() {

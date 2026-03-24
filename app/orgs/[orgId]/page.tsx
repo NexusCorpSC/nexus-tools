@@ -1,5 +1,5 @@
 import db from "@/lib/db";
-import { Organization } from "@/app/orgs/page";
+import { JoinRequest, Organization } from "@/app/orgs/page";
 import { ObjectId } from "bson";
 import Image from "next/image";
 import { handleRemoveMember } from "@/app/orgs/actions";
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { EditIcon } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { JoinLinkSection, JoinRequestsSection } from "@/app/orgs/[orgId]/components";
 
 export default async function OrganizationPage({
   params,
@@ -79,6 +80,39 @@ export default async function OrganizationPage({
     .toArray();
   const organization = organizations[0];
 
+  const userIsEditor =
+    session?.user &&
+    organization?.members.some(
+      (member) => member.userId.equals(session.user?.id) && member.editor,
+    );
+
+  type RequestWithUser = JoinRequest & { name: string; avatar?: string };
+  const joinRequests: RequestWithUser[] = userIsEditor
+    ? await db
+        .db()
+        .collection("joinRequests")
+        .aggregate<RequestWithUser>([
+          { $match: { orgId } },
+          {
+            $lookup: {
+              from: "users",
+              localField: "userId",
+              foreignField: "_id",
+              as: "userInfo",
+              pipeline: [{ $project: { name: 1, avatar: 1 } }],
+            },
+          },
+          {
+            $addFields: {
+              name: { $arrayElemAt: ["$userInfo.name", 0] },
+              avatar: { $arrayElemAt: ["$userInfo.avatar", 0] },
+              userInfo: "$$REMOVE",
+            },
+          },
+        ])
+        .toArray()
+    : [];
+
   if (!organization) {
     return (
       <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
@@ -102,12 +136,6 @@ export default async function OrganizationPage({
       </div>
     );
   }
-
-  const userIsEditor =
-    session?.user &&
-    organization.members.some(
-      (member) => member.userId.equals(session.user?.id) && member.editor,
-    );
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
@@ -139,15 +167,25 @@ export default async function OrganizationPage({
         <h1 className="text-2xl font-bold mb-4">
           {organization.name} [{organization.tag}]
         </h1>
-        {userIsEditor && (
-          <Button variant="outline" asChild>
-            <Link href={`/orgs/${organization._id}/edit`}>
-              <EditIcon className="size-5" />
-              Editer
-            </Link>
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {userIsEditor && (
+            <Button variant="outline" asChild>
+              <Link href={`/orgs/${organization._id}/edit`}>
+                <EditIcon className="size-5" />
+                Editer
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
+
+      {userIsEditor && (
+        <>
+          <JoinLinkSection orgId={orgId} />
+          <hr />
+          <JoinRequestsSection orgId={orgId} requests={joinRequests} />
+        </>
+      )}
 
       <div>
         <h2 className="text-xl font-semibold mb-2">{t("description")}</h2>
