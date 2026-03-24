@@ -40,7 +40,9 @@ const userNavigation = [
     action: async () => {
       "use server";
 
-      await auth.api.signOut();
+      await auth.api.signOut({
+        headers: await headers(),
+      });
     },
   },
 ];

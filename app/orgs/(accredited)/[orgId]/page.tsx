@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { EditIcon } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { JoinLinkSection, JoinRequestsSection } from "@/app/orgs/[orgId]/components";
+import { JoinLinkSection, JoinRequestsSection } from "@/app/orgs/(accredited)/[orgId]/components";
 
 export default async function OrganizationPage({
   params,

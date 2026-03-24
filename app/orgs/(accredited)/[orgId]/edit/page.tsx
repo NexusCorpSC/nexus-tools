@@ -12,7 +12,7 @@ import { Organization } from "@/app/orgs/page";
 import { ObjectId } from "bson";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { updateOrgProfileAction } from "@/app/orgs/[orgId]/edit/actions";
+import { updateOrgProfileAction } from "@/app/orgs/(accredited)/[orgId]/edit/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
