@@ -51,7 +51,7 @@ export async function handleRemoveMember(formData: FormData) {
     .db()
     .collection<Organization>("organizations")
     .updateOne(
-      { id: orgId },
+      { _id: orgId },
       { $pull: { members: { userId: new ObjectId(memberId) } } },
     );
 
@@ -91,7 +91,10 @@ export async function generateJoinCode(orgId: string): Promise<string> {
   return code;
 }
 
-export async function requestToJoin(orgId: string, code: string): Promise<void> {
+export async function requestToJoin(
+  orgId: string,
+  code: string,
+): Promise<void> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -106,7 +109,9 @@ export async function requestToJoin(orgId: string, code: string): Promise<void> 
   if (!org || org.joinCode !== code) throw new Error("Invalid join link");
 
   if (
-    org.members.some((member) => member.userId.equals(new ObjectId(session.user!.id)))
+    org.members.some((member) =>
+      member.userId.equals(new ObjectId(session.user!.id)),
+    )
   ) {
     throw new Error("Already a member");
   }
@@ -118,16 +123,13 @@ export async function requestToJoin(orgId: string, code: string): Promise<void> 
 
   if (existing) return;
 
-  await db
-    .db()
-    .collection<JoinRequest>("joinRequests")
-    .insertOne({
-      _id: new ObjectId(),
-      orgId,
-      userId: session.user.id,
-      status: "PENDING",
-      createdAt: new Date(),
-    });
+  await db.db().collection<JoinRequest>("joinRequests").insertOne({
+    _id: new ObjectId(),
+    orgId,
+    userId: session.user.id,
+    status: "PENDING",
+    createdAt: new Date(),
+  });
 
   revalidatePath(`/orgs/${orgId}/join/${code}`);
 }
