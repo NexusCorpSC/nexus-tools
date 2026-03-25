@@ -129,7 +129,7 @@ export async function filterBlueprints(
     owned,
     materials,
     userId,
-    limit = 200,
+    limit = 64,
   } = options;
 
   const collection = db.db().collection<Blueprint>("blueprints");
@@ -148,7 +148,7 @@ export async function filterBlueprints(
   if (materials && materials.length > 0) {
     for (const material of materials) {
       matchConditions.push({
-        recipe: { $elemMatch: { [material]: { $exists: true } } },
+        "recipe.components": { $elemMatch: { name: material } },
       });
     }
   }
@@ -156,7 +156,7 @@ export async function filterBlueprints(
   const matchStage =
     matchConditions.length > 0 ? { $and: matchConditions } : {};
 
-    if (userId) {
+  if (userId) {
     const pipeline: Document[] = [
       { $match: matchStage },
       {
@@ -392,17 +392,12 @@ export async function getBlueprintComponentNames(
   const collection = db.db().collection<Blueprint>("blueprints");
   const results = await collection
     .aggregate<{ _id: string }>([
-      { $match: { recipe: { $exists: true, $ne: null } } },
-      { $unwind: "$recipe" },
-      {
-        $project: {
-          components: { $objectToArray: "$recipe" },
-        },
-      },
-      { $unwind: "$components" },
+      { $match: { "recipe.components": { $exists: true, $ne: null } } },
+      { $unwind: "$recipe.components" },
+      { $unwind: "$recipe.components.options" },
       {
         $group: {
-          _id: "$components.k",
+          _id: "$recipe.components.options.name",
         },
       },
       {

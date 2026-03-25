@@ -174,7 +174,7 @@ export async function BlueprintCraftSection({
 }: {
   blueprint: Blueprint;
 }) {
-  if (!blueprint.recipe || blueprint.recipe.length === 0) return null;
+  if (!blueprint.recipe || blueprint.recipe.components.length === 0) return null;
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return null;

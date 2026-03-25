@@ -9,7 +9,7 @@ import { CategoryInputs } from "@/app/crafting/blueprints/new/category-inputs";
 import { BlueprintImageUpload } from "@/app/crafting/blueprints/new/blueprint-image-upload";
 import { AdvancedBlueprintInputs } from "@/app/crafting/blueprints/new/advanced-blueprint-inputs";
 import { updateBlueprintAction } from "@/app/crafting/blueprints/actions";
-import { Blueprint } from "@/types/crafting";
+import type { Blueprint, BlueprintRecipe } from "@/types/crafting";
 import Link from "next/link";
 
 export function EditBlueprintForm({
@@ -41,7 +41,9 @@ export function EditBlueprintForm({
           ? JSON.parse(statisticsRaw)
           : undefined;
         const recipeRaw = formData.get("recipe") as string;
-        const recipe = recipeRaw ? JSON.parse(recipeRaw) : undefined;
+        const recipe = recipeRaw
+          ? { ...JSON.parse(recipeRaw), craftingTime: craftingTime ?? 0 }
+          : undefined;
         const obtention = (formData.get("obtention") as string) || undefined;
 
         await updateBlueprintAction(blueprint.id, blueprint.slug, {
@@ -115,7 +117,7 @@ export function EditBlueprintForm({
         initialTier={blueprint.tier}
         initialCraftingTime={blueprint.craftingTime}
         initialStatistics={blueprint.statistics}
-        initialRecipe={blueprint.recipe}
+        initialRecipe={blueprint.recipe as BlueprintRecipe | undefined}
       />
 
       <div className="flex items-center gap-3 pt-2">

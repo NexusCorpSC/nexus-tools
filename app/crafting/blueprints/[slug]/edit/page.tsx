@@ -55,8 +55,6 @@ export default async function EditBlueprintPage({
     fieldRecipeHint: tAdmin("fieldRecipeHint"),
     componentName: tAdmin("componentName"),
     componentQuantity: tAdmin("componentQuantity"),
-    componentUnit: tAdmin("componentUnit"),
-    componentUnitNone: tAdmin("componentUnitNone"),
     componentMinQuality: tAdmin("componentMinQuality"),
     componentMinQualityPlaceholder: tAdmin("componentMinQualityPlaceholder"),
     addComponent: tAdmin("addComponent"),

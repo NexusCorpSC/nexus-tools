@@ -18,14 +18,6 @@ export type BlueprintRecipe = {
   components: BlueprintRecipeComponent[];
 };
 
-export type BlueprintRecipeStep = {
-  [componentName: string]: {
-    quantity: number;
-    unit?: string;
-    minQuality?: number;
-  };
-};
-
 export type Blueprint = {
   /**
    * nanoid

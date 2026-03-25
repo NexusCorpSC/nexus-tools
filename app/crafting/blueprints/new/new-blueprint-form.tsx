@@ -39,7 +39,9 @@ export function NewBlueprintForm({
           ? JSON.parse(statisticsRaw)
           : undefined;
         const recipeRaw = formData.get("recipe") as string;
-        const recipe = recipeRaw ? JSON.parse(recipeRaw) : undefined;
+        const recipe = recipeRaw
+          ? { ...JSON.parse(recipeRaw), craftingTime: craftingTime ?? 0 }
+          : undefined;
         const obtention = (formData.get("obtention") as string) || undefined;
 
         await createBlueprintAction({
