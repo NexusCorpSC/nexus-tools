@@ -231,7 +231,14 @@
     "edit": "Edit",
     "email": "Email",
     "organizations": "Organizations",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "nameUpdateTitle": "Update Username",
+    "nameUpdateLabel": "New username",
+    "nameUpdatePlaceholder": "Enter your new username",
+    "nameUpdateSave": "Save",
+    "nameUpdateCancel": "Cancel",
+    "nameUpdateSuccess": "Username updated successfully!",
+    "nameUpdateError": "An error occurred while updating your username."
   },
   "Organizations": {
     "title": "Organizations",

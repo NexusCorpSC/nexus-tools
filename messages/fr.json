@@ -231,7 +231,14 @@
     "edit": "Modifier",
     "email": "Courriel",
     "organizations": "Organisations",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "nameUpdateTitle": "Modifier le pseudo",
+    "nameUpdateLabel": "Nouveau pseudo",
+    "nameUpdatePlaceholder": "Saisissez votre nouveau pseudo",
+    "nameUpdateSave": "Enregistrer",
+    "nameUpdateCancel": "Annuler",
+    "nameUpdateSuccess": "Pseudo mis à jour avec succès !",
+    "nameUpdateError": "Une erreur est survenue lors de la mise à jour de votre pseudo."
   },
   "Organizations": {
     "title": "Organisations",

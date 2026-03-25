@@ -4,7 +4,7 @@ import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
 import Image from "next/image";
-import { AvatarUpdateComponent } from "@/app/(auth)/profile/components";
+import { AvatarUpdateComponent, NameUpdateComponent } from "@/app/(auth)/profile/components";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -85,12 +85,7 @@ export default async function ProfilePage() {
             <dd className="mt-1 flex text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
               <span className="grow">{user.name ?? "-"}</span>
               <span className="ml-4 shrink-0">
-                <button
-                  type="button"
-                  className="rounded-md bg-white font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  {t("edit")}
-                </button>
+                <NameUpdateComponent currentName={user.name ?? ""} />
               </span>
             </dd>
           </div>
