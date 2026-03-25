@@ -72,7 +72,18 @@ export async function searchBlueprints(
         },
         {
           $addFields: {
-            owned: { $gt: [{ $size: "$ownership" }, 0] },
+            owned: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$isDefault", true] },
+                    { $gt: [{ $size: "$ownership" }, 0] },
+                  ],
+                },
+                true,
+                false,
+              ],
+            },
           },
         },
       ])
@@ -180,7 +191,18 @@ export async function filterBlueprints(
       },
       {
         $addFields: {
-          owned: { $gt: [{ $size: "$ownership" }, 0] },
+          owned: {
+            $cond: [
+              {
+                $or: [
+                  { $eq: ["$isDefault", true] },
+                  { $gt: [{ $size: "$ownership" }, 0] },
+                ],
+              },
+              true,
+              false,
+            ],
+          },
         },
       },
     ];
@@ -252,6 +274,7 @@ export async function getBlueprintBySlug(
         statistics: blueprint.statistics,
         recipe: blueprint.recipe,
         obtention: blueprint.obtention,
+        isDefault: blueprint.isDefault,
       }
     : null;
 }
