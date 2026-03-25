@@ -735,7 +735,7 @@ export function BlueprintImageCover({
           alt={name}
           width={896}
           height={400}
-          className={cn(hidden && "hidden", "w-full object-cover max-h-80")}
+          className={cn(hidden && "hidden", "w-full object-contain max-h-80")}
           priority
           onError={() => {
             setHidden(true);
