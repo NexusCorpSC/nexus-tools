@@ -17,6 +17,7 @@ import {
   BlueprintOwnershipCard,
   BlueprintOrgOwnersSection,
   AdminBlueprintSection,
+  BlueprintCraftSection,
 } from "./server-components";
 
 export default async function BlueprintDetailPage({
@@ -197,6 +198,14 @@ export default async function BlueprintDetailPage({
           </div>
         </div>
       )}
+
+      <Suspense
+        fallback={
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 animate-pulse h-16" />
+        }
+      >
+        <BlueprintCraftSection blueprint={blueprint} />
+      </Suspense>
 
       <Suspense
         fallback={
