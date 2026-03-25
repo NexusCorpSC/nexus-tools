@@ -17,7 +17,10 @@ import { Button } from "@/components/ui/button";
 import { EditIcon } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { JoinLinkSection, JoinRequestsSection } from "@/app/orgs/(accredited)/[orgId]/components";
+import {
+  JoinLinkSection,
+  JoinRequestsSection,
+} from "@/app/orgs/(accredited)/[orgId]/components";
 
 export default async function OrganizationPage({
   params,
@@ -96,10 +99,16 @@ export default async function OrganizationPage({
           {
             $lookup: {
               from: "users",
-              localField: "userId",
-              foreignField: "_id",
+              let: { userId: { $toObjectId: "$userId" } },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$_id", "$$userId"] },
+                  },
+                },
+                { $project: { name: 1, avatar: 1 } },
+              ],
               as: "userInfo",
-              pipeline: [{ $project: { name: 1, avatar: 1 } }],
             },
           },
           {
@@ -112,6 +121,8 @@ export default async function OrganizationPage({
         ])
         .toArray()
     : [];
+
+  console.log(joinRequests);
 
   if (!organization) {
     return (
