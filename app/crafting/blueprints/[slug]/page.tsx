@@ -108,7 +108,9 @@ export default async function BlueprintDetailPage({
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
             {t("Blueprints.obtention")}
           </h2>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-line">{blueprint.obtention}</p>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+            {blueprint.obtention}
+          </p>
         </div>
       )}
 
@@ -158,7 +160,7 @@ export default async function BlueprintDetailPage({
       )}
 
       {/* Recipe */}
-      {blueprint.recipe && blueprint.recipe.length > 0 && (
+      {blueprint.recipe && blueprint.recipe.components.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
             {t("Blueprints.recipe")}
@@ -170,6 +172,9 @@ export default async function BlueprintDetailPage({
                   <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     {t("Blueprints.recipeComponent")}
                   </th>
+                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {t("Blueprints.recipeOption")}
+                  </th>
                   <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     {t("Blueprints.recipeQuantity")}
                   </th>
@@ -179,16 +184,25 @@ export default async function BlueprintDetailPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {blueprint.recipe.map((step, i) =>
-                  Object.entries(step).map(([name, v]) => (
-                    <tr key={`${i}-${name}`}>
-                      <td className="px-4 py-2 text-gray-800">{name}</td>
+                {blueprint.recipe.components.map((component) =>
+                  component.options.map((option, oi) => (
+                    <tr key={`${component.name}-${oi}`}>
+                      {oi === 0 && (
+                        <td
+                          className="px-4 py-2 text-gray-800 font-medium"
+                          rowSpan={component.options.length}
+                        >
+                          {component.name}
+                        </td>
+                      )}
+                      <td className="px-4 py-2 text-gray-700">{option.name}</td>
                       <td className="px-4 py-2 text-right text-gray-700">
-                        {v.quantity}
-                        {v.unit ? ` ${v.unit}` : ""}
+                        {option.quantity}
                       </td>
                       <td className="px-4 py-2 text-right text-gray-700">
-                        {v.minQuality !== undefined ? v.minQuality : "—"}
+                        {option.minQuality !== undefined
+                          ? option.minQuality
+                          : "—"}
                       </td>
                     </tr>
                   )),
@@ -215,13 +229,15 @@ export default async function BlueprintDetailPage({
         <BlueprintOwnershipCard blueprint={blueprint} />
       </Suspense>
 
-      <Suspense
-        fallback={
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 animate-pulse h-16" />
-        }
-      >
-        <BlueprintOrgOwnersSection blueprint={blueprint} />
-      </Suspense>
+      {!blueprint.isDefault && (
+        <Suspense
+          fallback={
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 animate-pulse h-16" />
+          }
+        >
+          <BlueprintOrgOwnersSection blueprint={blueprint} />
+        </Suspense>
+      )}
 
       <Button asChild variant="outline">
         <Link href="/crafting/blueprints">

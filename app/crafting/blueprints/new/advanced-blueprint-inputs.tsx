@@ -6,13 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Combobox,
   ComboboxInput,
   ComboboxContent,
@@ -20,7 +13,7 @@ import {
   ComboboxItem,
   ComboboxEmpty,
 } from "@/components/ui/combobox";
-import { BlueprintStatistics, BlueprintRecipeStep } from "@/types/crafting";
+import type { BlueprintStatistics, BlueprintRecipe } from "@/types/crafting";
 import { parseCraftingTime, formatCraftingTime } from "@/lib/crafting-time";
 
 /* ─────────────────────────────────────────
@@ -196,16 +189,13 @@ function StatisticsEditor({
 
 /* ─────────────────────────────────────────
    Recipe editor
-   Unit = dropdown: "SCU" | "Pièce(s)" | "" (none)
-   Default unit: "SCU"
+   One row = one option for one component slot.
+   Multiple rows with the same componentName → multiple options for that slot.
 ───────────────────────────────────────── */
-const RECIPE_UNIT_NONE = "__none__";
-const RECIPE_UNITS = ["SCU", "Pièce(s)"] as const;
-
 type RecipeRow = {
-  component: string;
+  componentName: string;
+  optionName: string;
   quantity: string;
-  unit: string;
   minQuality: string;
 };
 
@@ -214,16 +204,16 @@ function RecipeEditor({
   initial,
 }: {
   tLabels: Record<string, string>;
-  initial?: BlueprintRecipeStep[];
+  initial?: BlueprintRecipe;
 }) {
-  const toRows = (steps?: BlueprintRecipeStep[]): RecipeRow[] => {
-    if (!steps) return [];
-    return steps.flatMap((step) =>
-      Object.entries(step).map(([component, v]) => ({
-        component,
-        quantity: String(v.quantity),
-        unit: v.unit ?? "SCU",
-        minQuality: v.minQuality !== undefined ? String(v.minQuality) : "",
+  const toRows = (recipe?: BlueprintRecipe): RecipeRow[] => {
+    if (!recipe) return [];
+    return recipe.components.flatMap((component) =>
+      component.options.map((option) => ({
+        componentName: component.name,
+        optionName: option.name,
+        quantity: String(option.quantity),
+        minQuality: option.minQuality !== undefined ? String(option.minQuality) : "",
       })),
     );
   };
@@ -233,7 +223,7 @@ function RecipeEditor({
   function add() {
     setRows((r) => [
       ...r,
-      { component: "", quantity: "", unit: "SCU", minQuality: "" },
+      { componentName: "", optionName: "", quantity: "", minQuality: "" },
     ]);
   }
 
@@ -247,17 +237,26 @@ function RecipeEditor({
     );
   }
 
-  const serialized: BlueprintRecipeStep[] = rows
-    .filter((r) => r.component)
-    .map((r) => ({
-      [r.component]: {
-        quantity: parseFloat(r.quantity) || 0,
-        ...(r.unit && r.unit !== RECIPE_UNIT_NONE ? { unit: r.unit } : {}),
-        ...(r.minQuality !== ""
-          ? { minQuality: parseInt(r.minQuality, 10) || 0 }
-          : {}),
-      },
-    }));
+  // Group rows by componentName to produce BlueprintRecipeComponent[]
+  const components = Object.entries(
+    rows
+      .filter((r) => r.componentName && r.optionName)
+      .reduce<Record<string, RecipeRow[]>>((acc, row) => {
+        if (!acc[row.componentName]) acc[row.componentName] = [];
+        acc[row.componentName].push(row);
+        return acc;
+      }, {}),
+  ).map(([componentName, opts]) => ({
+    name: componentName,
+    options: opts.map((r) => ({
+      name: r.optionName,
+      quantity: parseFloat(r.quantity) || 0,
+      ...(r.minQuality !== "" ? { minQuality: parseInt(r.minQuality, 10) || 0 } : {}),
+    })),
+  }));
+
+  // craftingTime is kept at 0 here; the form action merges it from the separate field
+  const serialized: BlueprintRecipe = { craftingTime: 0, components };
 
   return (
     <div className="space-y-2">
@@ -265,9 +264,16 @@ function RecipeEditor({
       {rows.map((row, i) => (
         <div key={i} className="flex gap-2 items-center">
           <AutocompleteInput
-            value={row.component}
-            onChange={(v) => update(i, "component", v)}
-            placeholder={tLabels.componentName}
+            value={row.componentName}
+            onChange={(v) => update(i, "componentName", v)}
+            placeholder={tLabels.componentSlotName ?? tLabels.componentName}
+            apiPath="/api/blueprints/component-names"
+            className="flex-1"
+          />
+          <AutocompleteInput
+            value={row.optionName}
+            onChange={(v) => update(i, "optionName", v)}
+            placeholder={tLabels.componentOptionName ?? tLabels.componentName}
             apiPath="/api/blueprints/component-names"
             className="flex-1"
           />
@@ -280,26 +286,6 @@ function RecipeEditor({
             onChange={(e) => update(i, "quantity", e.target.value)}
             className="w-28"
           />
-          <Select
-            value={row.unit || RECIPE_UNIT_NONE}
-            onValueChange={(v) =>
-              update(i, "unit", v === RECIPE_UNIT_NONE ? "" : v)
-            }
-          >
-            <SelectTrigger className="w-28">
-              <SelectValue placeholder={tLabels.componentUnitNone} />
-            </SelectTrigger>
-            <SelectContent>
-              {RECIPE_UNITS.map((u) => (
-                <SelectItem key={u} value={u}>
-                  {u}
-                </SelectItem>
-              ))}
-              <SelectItem value={RECIPE_UNIT_NONE}>
-                {tLabels.componentUnitNone}
-              </SelectItem>
-            </SelectContent>
-          </Select>
           <Input
             type="number"
             min={0}
@@ -381,6 +367,7 @@ function CraftingTimeInput({
 }
 
 /* ─────────────────────────────────────────
+/* ─────────────────────────────────────────
    Main export
 ───────────────────────────────────────── */
 export function AdvancedBlueprintInputs({
@@ -394,7 +381,7 @@ export function AdvancedBlueprintInputs({
   initialTier?: number;
   initialCraftingTime?: number;
   initialStatistics?: BlueprintStatistics;
-  initialRecipe?: BlueprintRecipeStep[];
+  initialRecipe?: BlueprintRecipe;
 }) {
   return (
     <>

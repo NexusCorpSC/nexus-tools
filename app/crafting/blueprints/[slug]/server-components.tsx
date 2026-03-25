@@ -12,7 +12,11 @@ import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
-import { AdminBlueprintMenu, BlueprintOrgOwnersClient, CraftFromInventoryClient } from "./components";
+import {
+  AdminBlueprintMenu,
+  BlueprintOrgOwnersClient,
+  CraftFromInventoryClient,
+} from "./components";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission, isAdmin } from "@/lib/permissions";
@@ -41,7 +45,9 @@ export async function BlueprintOwnershipCard({
     );
   }
 
-  const owns = await isUserOwningBlueprint(session.user.id!, blueprint.id);
+  const owns =
+    blueprint.isDefault ||
+    (await isUserOwningBlueprint(session.user.id!, blueprint.id));
 
   if (owns) {
     return (
@@ -174,10 +180,16 @@ export async function BlueprintCraftSection({
 }: {
   blueprint: Blueprint;
 }) {
-  if (!blueprint.recipe || blueprint.recipe.length === 0) return null;
+  if (!blueprint.recipe || blueprint.recipe.components.length === 0)
+    return null;
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return null;
 
-  return <CraftFromInventoryClient recipe={blueprint.recipe} blueprintName={blueprint.name} />;
+  return (
+    <CraftFromInventoryClient
+      recipe={blueprint.recipe}
+      blueprintName={blueprint.name}
+    />
+  );
 }

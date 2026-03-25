@@ -44,7 +44,10 @@ function MaterialTagInput({
 
   const fetchSuggestions = useCallback(
     async (query: string) => {
-      if (!query.trim()) { setSuggestions([]); return; }
+      if (!query.trim()) {
+        setSuggestions([]);
+        return;
+      }
       try {
         const res = await fetch(
           `/api/blueprints/component-names?query=${encodeURIComponent(query)}`,
@@ -99,11 +102,17 @@ function MaterialTagInput({
             if (e.key === "Enter" && inputValue.trim()) {
               e.preventDefault();
               addTag(inputValue.trim());
-            } else if (e.key === "Backspace" && !inputValue && value.length > 0) {
+            } else if (
+              e.key === "Backspace" &&
+              !inputValue &&
+              value.length > 0
+            ) {
               removeTag(value[value.length - 1]);
             }
           }}
-          onFocus={() => { if (inputValue.trim()) setShowSuggestions(true); }}
+          onFocus={() => {
+            if (inputValue.trim()) setShowSuggestions(true);
+          }}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           placeholder={value.length === 0 ? placeholder : ""}
           className="flex-1 min-w-28 outline-none bg-transparent text-sm placeholder:text-muted-foreground"
@@ -130,7 +139,11 @@ function MaterialTagInput({
 
 // ─── BlueprintCard ────────────────────────────────────────────────────────────
 
-function BlueprintCard({ blueprint }: { blueprint: Blueprint & { owned?: boolean } }) {
+function BlueprintCard({
+  blueprint,
+}: {
+  blueprint: Blueprint & { owned?: boolean };
+}) {
   const t = useTranslations("Crafting.Blueprints");
   return (
     <Link
@@ -162,7 +175,9 @@ function BlueprintCard({ blueprint }: { blueprint: Blueprint & { owned?: boolean
         )}
       </div>
       <div className="p-3 flex flex-col gap-0.5 flex-1">
-        <p className="font-semibold text-sm leading-snug line-clamp-2">{blueprint.name}</p>
+        <p className="font-semibold text-sm leading-snug line-clamp-2">
+          {blueprint.name}
+        </p>
         <p className="text-xs text-muted-foreground truncate">
           {blueprint.category}
           {blueprint.subcategory ? ` › ${blueprint.subcategory}` : ""}
@@ -193,9 +208,13 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [category, setCategory] = useState<string>("");
   const [subcategory, setSubcategory] = useState<string>("");
-  const [ownedFilter, setOwnedFilter] = useState<"all" | "owned" | "not-owned">("all");
+  const [ownedFilter, setOwnedFilter] = useState<"all" | "owned" | "not-owned">(
+    "all",
+  );
   const [materials, setMaterials] = useState<string[]>([]);
-  const [results, setResults] = useState<(Blueprint & { owned?: boolean })[]>([]);
+  const [results, setResults] = useState<(Blueprint & { owned?: boolean })[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -206,7 +225,8 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
       .catch(() => {});
   }, []);
 
-  const subcategories = categories.find((c) => c.category === category)?.subcategories ?? [];
+  const subcategories =
+    categories.find((c) => c.category === category)?.subcategories ?? [];
 
   const fetchResults = useCallback(
     async (opts: {
@@ -224,7 +244,8 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
         if (opts.subcategory) params.set("subcategory", opts.subcategory);
         if (opts.ownedFilter === "owned") params.set("owned", "true");
         if (opts.ownedFilter === "not-owned") params.set("owned", "false");
-        if (opts.materials.length > 0) params.set("materials", opts.materials.join(","));
+        if (opts.materials.length > 0)
+          params.set("materials", opts.materials.join(","));
         const res = await fetch(`/api/blueprints?${params.toString()}`);
         const data: (Blueprint & { owned?: boolean })[] = await res.json();
         setResults(data);
@@ -244,7 +265,9 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
     debounceRef.current = setTimeout(() => {
       fetchResults({ query, category, subcategory, ownedFilter, materials });
     }, 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, category, subcategory, ownedFilter, materials, fetchResults]);
 
@@ -257,7 +280,11 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   };
 
   const hasActiveFilters =
-    !!query || !!category || !!subcategory || ownedFilter !== "all" || materials.length > 0;
+    !!query ||
+    !!category ||
+    !!subcategory ||
+    ownedFilter !== "all" ||
+    materials.length > 0;
 
   return (
     <div className="space-y-5">
@@ -293,7 +320,10 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
         <div className="min-w-44">
           <Select
             value={category || "_all"}
-            onValueChange={(v) => { setCategory(v === "_all" ? "" : v); setSubcategory(""); }}
+            onValueChange={(v) => {
+              setCategory(v === "_all" ? "" : v);
+              setSubcategory("");
+            }}
           >
             <SelectTrigger className="h-9 text-sm">
               <SelectValue placeholder={t("filterAllCategories")} />
@@ -301,7 +331,9 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
             <SelectContent>
               <SelectItem value="_all">{t("filterAllCategories")}</SelectItem>
               {categories.map((c) => (
-                <SelectItem key={c.category} value={c.category}>{c.category}</SelectItem>
+                <SelectItem key={c.category} value={c.category}>
+                  {c.category}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -318,9 +350,13 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
                 <SelectValue placeholder={t("filterAllSubcategories")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="_all">{t("filterAllSubcategories")}</SelectItem>
+                <SelectItem value="_all">
+                  {t("filterAllSubcategories")}
+                </SelectItem>
                 {subcategories.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -353,7 +389,12 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
 
         {/* Reset */}
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9 text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetFilters}
+            className="h-9 text-muted-foreground"
+          >
             <XMarkIcon className="size-4" />
             {t("filterReset")}
           </Button>
@@ -385,7 +426,9 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
       {/* Grid */}
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 10 }).map((_, i) => <BlueprintCardSkeleton key={i} />)}
+          {Array.from({ length: 10 }).map((_, i) => (
+            <BlueprintCardSkeleton key={i} />
+          ))}
         </div>
       ) : results.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

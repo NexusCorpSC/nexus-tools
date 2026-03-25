@@ -42,3 +42,6 @@ next-env.d.ts
 # IDE
 .idea/
 .vscode/
+
+# Assets
+assets/blueprints.json

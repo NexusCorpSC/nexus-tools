@@ -8,12 +8,12 @@ type BlueprintDoc = Blueprint & { _id: unknown };
 
 function getAllComponents(
   bp: BlueprintDoc,
-): { name: string; quantity: number; unit?: string }[] {
-  if (!bp.recipe) return [];
-  const components: { name: string; quantity: number; unit?: string }[] = [];
-  for (const step of bp.recipe) {
-    for (const [name, details] of Object.entries(step)) {
-      components.push({ name, quantity: details.quantity, unit: details.unit });
+): { name: string; quantity: number }[] {
+  if (!bp.recipe?.components) return [];
+  const components: { name: string; quantity: number }[] = [];
+  for (const component of bp.recipe.components) {
+    for (const option of component.options) {
+      components.push({ name: option.name, quantity: option.quantity });
     }
   }
   return components;
@@ -64,7 +64,6 @@ export async function GET() {
       const comp = components[i];
       record[`Composant ${i + 1}`] = comp ? comp.name : "";
       record[`Quantité ${i + 1}`] = comp ? comp.quantity : "";
-      record[`Unité ${i + 1}`] = comp ? (comp.unit ?? "") : "";
     }
 
     for (const statName of statNames) {

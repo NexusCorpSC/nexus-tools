@@ -15,7 +15,7 @@ import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/permissions";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
-import { BlueprintRecipeStep } from "@/types/crafting";
+import { BlueprintRecipe } from "@/types/crafting";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,7 +27,6 @@ export type QualityMode =
 export type InventoryComponentMatch = {
   componentName: string;
   requiredQuantity: number;
-  requiredUnit?: string;
   recipeMinQuality?: number;
   selectedQuality?: number;
   items: Array<{
@@ -85,7 +84,7 @@ export async function updateBlueprintAction(
     statistics?: {
       [statName: string]: { value: string | number; unit?: string };
     };
-    recipe?: { [componentName: string]: { quantity: number; unit?: string } }[];
+    recipe?: BlueprintRecipe;
     obtention?: string;
   },
 ) {
@@ -109,7 +108,7 @@ export async function createBlueprintAction(data: {
   statistics?: {
     [statName: string]: { value: string | number; unit?: string };
   };
-  recipe?: { [componentName: string]: { quantity: number; unit?: string } }[];
+  recipe?: BlueprintRecipe;
   obtention?: string;
 }) {
   await requireAdmin();
@@ -119,7 +118,7 @@ export async function createBlueprintAction(data: {
 }
 
 export async function findInventoryForRecipe(
-  recipe: BlueprintRecipeStep[],
+  recipe: BlueprintRecipe,
   qualityMode: QualityMode,
 ): Promise<{ ok: boolean; matches?: InventoryComponentMatch[]; error?: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -129,20 +128,18 @@ export async function findInventoryForRecipe(
   const itemsCol = db.db().collection("inventoryItems");
   const locsCol = db.db().collection("locations");
 
-  // Flatten recipe steps into a list of components
+  // Flatten recipe components/options into a list of items to search
   const components: {
     name: string;
     quantity: number;
-    unit?: string;
     minQuality?: number;
   }[] = [];
-  for (const step of recipe) {
-    for (const [name, v] of Object.entries(step)) {
+  for (const component of recipe.components) {
+    for (const option of component.options) {
       components.push({
-        name,
-        quantity: v.quantity,
-        unit: v.unit,
-        minQuality: v.minQuality,
+        name: option.name,
+        quantity: option.quantity,
+        minQuality: option.minQuality,
       });
     }
   }
@@ -161,7 +158,6 @@ export async function findInventoryForRecipe(
       matches.push({
         componentName: component.name,
         requiredQuantity: component.quantity,
-        requiredUnit: component.unit,
         recipeMinQuality: component.minQuality,
         selectedQuality: undefined,
         items: [],
@@ -228,7 +224,6 @@ export async function findInventoryForRecipe(
     matches.push({
       componentName: component.name,
       requiredQuantity: component.quantity,
-      requiredUnit: component.unit,
       recipeMinQuality: component.minQuality,
       selectedQuality: targetQuality,
       items,

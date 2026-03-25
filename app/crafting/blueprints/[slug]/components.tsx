@@ -20,7 +20,7 @@ import {
   type InventoryComponentMatch,
   type QualityMode,
 } from "@/app/crafting/blueprints/actions";
-import { BlueprintRecipeStep } from "@/types/crafting";
+import { BlueprintRecipe } from "@/types/crafting";
 import { Input } from "@/components/ui/input";
 import { useTranslations } from "next-intl";
 import {
@@ -376,7 +376,7 @@ export function CraftFromInventoryClient({
   recipe,
   blueprintName,
 }: {
-  recipe: BlueprintRecipeStep[];
+  recipe: BlueprintRecipe;
   blueprintName: string;
 }) {
   const t = useTranslations("Crafting.Blueprints");
@@ -551,10 +551,9 @@ export function CraftFromInventoryClient({
       {!isPending && matches && (
         <div className="space-y-3">
           {matches.map((match) => {
-            const checkedIds = selection[match.componentName] ?? [];
-            const selTotal = selectedTotalForComponent(match, checkedIds);
-            const isSufficient = selTotal >= match.requiredQuantity;
-            const displayUnit = match.requiredUnit ?? "";
+                const checkedIds = selection[match.componentName] ?? [];
+                const selTotal = selectedTotalForComponent(match, checkedIds);
+                const isSufficient = selTotal >= match.requiredQuantity;
 
             return (
               <div
@@ -581,7 +580,6 @@ export function CraftFromInventoryClient({
                       {t("craftReq")}:{" "}
                       <span className="font-medium">
                         {match.requiredQuantity}
-                        {displayUnit ? ` ${displayUnit}` : ""}
                       </span>
                     </span>
                     <span
@@ -597,7 +595,6 @@ export function CraftFromInventoryClient({
                         <XCircleIcon className="size-3.5" />
                       )}
                       {t("craftSelected")}: {selTotal}
-                      {displayUnit ? ` ${displayUnit}` : ""}
                     </span>
                   </div>
                 </div>
@@ -630,11 +627,7 @@ export function CraftFromInventoryClient({
                           </div>
                           <span className="text-sm font-medium text-gray-800 shrink-0">
                             {item.quantity}
-                            {item.unit
-                              ? ` ${item.unit}`
-                              : displayUnit
-                                ? ` ${displayUnit}`
-                                : ""}
+                            {item.unit ? ` ${item.unit}` : ""}
                           </span>
                         </label>
                       );
