@@ -66,6 +66,7 @@ async function importBluePrints() {
                     return {
                       quantity: option.quantity,
                       minQuality: option.minQuality,
+                      unit: option.type === "resource" ? "SCU" : "unit",
                       name: option.resourceName ?? option.itemName ?? "Unknown",
                     };
                   }),
