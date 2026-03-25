@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 type Org = { id: string; name: string };
 
@@ -293,7 +294,10 @@ function LocationCombobox({
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -383,18 +387,28 @@ export function CraftFromInventoryClient({
   const [open, setOpen] = useState(false);
   const [qualityType, setQualityType] = useState<"max" | "min" | "gte">("max");
   const [qualityValue, setQualityValue] = useState<string>("0");
-  const [matches, setMatches] = useState<InventoryComponentMatch[] | null>(null);
+  const [matches, setMatches] = useState<InventoryComponentMatch[] | null>(
+    null,
+  );
   const [isPending, startTransition] = useTransition();
   const [isCrafting, startCraftTransition] = useTransition();
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [craftResult, setCraftResult] = useState<{ ok: boolean; error?: string; storedAt?: string } | null>(null);
-  const [storageLocation, setStorageLocation] = useState<{ id: string; name: string } | null>(null);
+  const [craftResult, setCraftResult] = useState<{
+    ok: boolean;
+    error?: string;
+    storedAt?: string;
+  } | null>(null);
+  const [storageLocation, setStorageLocation] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   // selection: componentName → ordered array of checked itemIds
   const [selection, setSelection] = useState<Record<string, string[]>>({});
 
   const performSearch = useCallback(
     (type: "max" | "min" | "gte", value: number) => {
-      const mode: QualityMode = type === "gte" ? { type: "gte", value } : { type };
+      const mode: QualityMode =
+        type === "gte" ? { type: "gte", value } : { type };
       startTransition(async () => {
         const res = await findInventoryForRecipe(recipe, mode);
         if (res.ok && res.matches) {
@@ -455,7 +469,10 @@ export function CraftFromInventoryClient({
     matches !== null &&
     matches.length > 0 &&
     matches.every((match) => {
-      const selTotal = selectedTotalForComponent(match, selection[match.componentName] ?? []);
+      const selTotal = selectedTotalForComponent(
+        match,
+        selection[match.componentName] ?? [],
+      );
       return selTotal >= match.requiredQuantity;
     });
 
@@ -539,7 +556,9 @@ export function CraftFromInventoryClient({
 
       {/* Loading */}
       {isPending && (
-        <p className="text-sm text-gray-500 animate-pulse">{t("craftSearching")}</p>
+        <p className="text-sm text-gray-500 animate-pulse">
+          {t("craftSearching")}
+        </p>
       )}
 
       {/* Search error */}
@@ -551,9 +570,9 @@ export function CraftFromInventoryClient({
       {!isPending && matches && (
         <div className="space-y-3">
           {matches.map((match) => {
-                const checkedIds = selection[match.componentName] ?? [];
-                const selTotal = selectedTotalForComponent(match, checkedIds);
-                const isSufficient = selTotal >= match.requiredQuantity;
+            const checkedIds = selection[match.componentName] ?? [];
+            const selTotal = selectedTotalForComponent(match, checkedIds);
+            const isSufficient = selTotal >= match.requiredQuantity;
 
             return (
               <div
@@ -563,7 +582,9 @@ export function CraftFromInventoryClient({
                 {/* Component header */}
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800">{match.componentName}</span>
+                    <span className="font-medium text-gray-800">
+                      {match.componentName}
+                    </span>
                     {match.recipeMinQuality !== undefined && (
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                         {t("craftMinQuality")}: {match.recipeMinQuality}
@@ -601,7 +622,9 @@ export function CraftFromInventoryClient({
 
                 {/* Items list with checkboxes */}
                 {match.items.length === 0 ? (
-                  <p className="px-4 py-3 text-sm text-gray-500">{t("craftNoItems")}</p>
+                  <p className="px-4 py-3 text-sm text-gray-500">
+                    {t("craftNoItems")}
+                  </p>
                 ) : (
                   <div className="divide-y divide-gray-50">
                     {match.items.map((item) => {
@@ -616,7 +639,9 @@ export function CraftFromInventoryClient({
                           <input
                             type="checkbox"
                             checked={checked}
-                            onChange={() => toggleItem(match.componentName, item.id)}
+                            onChange={() =>
+                              toggleItem(match.componentName, item.id)
+                            }
                             className="size-4 rounded accent-indigo-600 cursor-pointer shrink-0"
                           />
                           <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0 flex-1">
@@ -654,7 +679,10 @@ export function CraftFromInventoryClient({
               )}
               {craftResult.ok
                 ? craftResult.storedAt
-                  ? t("craftSuccessStored", { name: blueprintName, location: craftResult.storedAt })
+                  ? t("craftSuccessStored", {
+                      name: blueprintName,
+                      location: craftResult.storedAt,
+                    })
                   : t("craftSuccess")
                 : (craftResult.error ?? t("craftError"))}
             </div>
@@ -679,5 +707,41 @@ export function CraftFromInventoryClient({
         </div>
       )}
     </div>
+  );
+}
+
+export function BlueprintImageCover({
+  imageUrl,
+  name,
+  fallback,
+}: {
+  imageUrl: string;
+  name: string;
+  fallback?: boolean;
+}) {
+  const [hidden, setHidden] = useState(false);
+
+  return (
+    <>
+      {hidden ? (
+        fallback && (
+          <span className="text-muted-foreground/40 text-5xl font-bold select-none">
+            {name.charAt(0).toUpperCase()}
+          </span>
+        )
+      ) : (
+        <Image
+          src={imageUrl}
+          alt={name}
+          width={896}
+          height={400}
+          className={cn(hidden && "hidden", "w-full object-cover max-h-80")}
+          priority
+          onError={() => {
+            setHidden(true);
+          }}
+        />
+      )}
+    </>
   );
 }

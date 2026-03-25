@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { BlueprintImageCover } from "@/app/crafting/blueprints/[slug]/components";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -151,18 +152,14 @@ function BlueprintCard({
       className="group flex flex-col rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all overflow-hidden"
     >
       <div className="relative w-full aspect-square bg-muted flex items-center justify-center overflow-hidden">
-        {blueprint.imageUrl ? (
-          <Image
-            src={blueprint.imageUrl}
-            alt={blueprint.name}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <span className="text-muted-foreground/40 text-5xl font-bold select-none">
-            {blueprint.name.charAt(0).toUpperCase()}
-          </span>
-        )}
+        <BlueprintImageCover
+          imageUrl={
+            blueprint.imageUrl ??
+            `https://gwgsmex5adyadzri.public.blob.vercel-storage.com/blueprints/images/${blueprint.slug}.jpg`
+          }
+          name={blueprint.name}
+          fallback
+        />
         {blueprint.tier !== undefined && blueprint.tier > 0 && (
           <span className="absolute top-2 left-2 px-2 py-0.5 text-xs font-bold bg-black/60 text-white rounded-full backdrop-blur-sm">
             T{blueprint.tier}
