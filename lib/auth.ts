@@ -7,6 +7,48 @@ import db from "@/lib/db";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+export function generateUserNamme() {
+  const adjectives = [
+    "Sombre",
+    "Lumineux",
+    "Rapide",
+    "Furtif",
+    "Puissant",
+    "Mystérieux",
+    "Élégant",
+    "Féroce",
+    "Agile",
+    "Sage",
+  ];
+  const nouns = [
+    "Dragon",
+    "Phénix",
+    "Loup",
+    "Tigre",
+    "Serpent",
+    "Griffon",
+    "Licorne",
+    "Chimère",
+    "Hydre",
+    "Sphinx",
+  ];
+
+  const randomAdjective =
+    adjectives[Math.floor(Math.random() * adjectives.length)];
+  const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+
+  return `${randomAdjective}${randomNoun}`;
+}
+
+/**
+ * Génère un discriminateur aléatoire à 4 chiffres (0000-9999)
+ * @returns Un string de 4 chiffres
+ */
+export function generateDiscriminator(): string {
+  const randomNumber = Math.floor(Math.random() * 10000);
+  return randomNumber.toString().padStart(4, "0");
+}
+
 export const auth = betterAuth({
   database: mongodbAdapter(db.db(), {
     usePlural: true,
@@ -40,6 +82,28 @@ export const auth = betterAuth({
       },
     }),
   ],
-  trustedOrigins: process.env.NEXT_PUBLIC_BASE_URL ? [process.env.NEXT_PUBLIC_BASE_URL] : ["http://localhost:3000", "https://localhost:3000"],
-  baseURL: process.env.NEXT_PUBLIC_BASE_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, ctx) => {
+          return {
+            data: {
+              // Enforce user name to be defined, use random if needed
+              ...user,
+              name:
+                user.name ||
+                `${generateUserNamme()}#${generateDiscriminator()}`,
+            },
+          };
+        },
+      },
+    },
+  },
+  trustedOrigins: process.env.NEXT_PUBLIC_BASE_URL
+    ? [process.env.NEXT_PUBLIC_BASE_URL]
+    : ["http://localhost:3000", "https://localhost:3000"],
+  baseURL:
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.BETTER_AUTH_URL ||
+    "http://localhost:3000",
 });
