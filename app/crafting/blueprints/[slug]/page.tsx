@@ -237,6 +237,14 @@ export default async function BlueprintDetailPage({
         </Suspense>
       )}
 
+      <p className="text-xs text-gray-600">
+        Images retrieved from various incredible tools such as{" "}
+        <Link href="https://starcitizen.tools/" target="_blank">
+          Star Citizen Tools
+        </Link>
+        .
+      </p>
+
       <Button asChild variant="outline">
         <Link href="/crafting/blueprints">
           {t("Blueprints.backToBlueprints")}

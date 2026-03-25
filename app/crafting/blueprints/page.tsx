@@ -56,6 +56,14 @@ export default async function Page() {
       </div>
 
       <BlueprintGrid isLoggedIn={isLoggedIn} />
+
+      <p className="text-xs text-gray-600">
+        Images retrieved from various incredible tools such as{" "}
+        <Link href="https://starcitizen.tools/" target="_blank">
+          Star Citizen Tools
+        </Link>
+        .
+      </p>
     </div>
   );
 }
