@@ -2,6 +2,22 @@ export type BlueprintStatistics = {
   [statName: string]: { value: string | number; unit?: string };
 };
 
+export type BlueprintRecipeComponentOption = {
+  quantity: number;
+  minQuality?: number;
+  name: string;
+};
+
+export type BlueprintRecipeComponent = {
+  name: string;
+  options: BlueprintRecipeComponentOption[];
+};
+
+export type BlueprintRecipe = {
+  craftingTime: number;
+  components: BlueprintRecipeComponent[];
+};
+
 export type BlueprintRecipeStep = {
   [componentName: string]: {
     quantity: number;
@@ -29,9 +45,10 @@ export type Blueprint = {
   /** Statistiques de l'objet fabriqué */
   statistics?: BlueprintStatistics;
   /** Recette de fabrication */
-  recipe?: BlueprintRecipeStep[];
+  recipe?: BlueprintRecipe;
   /** Où obtenir ce blueprint */
   obtention?: string;
+  isDefault?: boolean;
 };
 
 export type UserBlueprint = {
