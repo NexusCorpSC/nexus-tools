@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { name, description, quality, quantity, unit, locationId } =
+  const { name, description, quality, quantity, unit, locationId, orgVisible } =
     body as Record<string, unknown>;
 
   if (typeof name !== "string" || !name.trim()) {
@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
     unit: typeof unit === "string" ? unit.trim() || undefined : undefined,
     locationId: (locationId as string).trim(),
     userId: session.user.id,
+    orgVisible: orgVisible === true,
     updatedAt: now,
   };
 

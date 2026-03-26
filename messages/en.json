@@ -332,6 +332,7 @@
     "packageMove": "Move package",
     "packageMoveTitle": "Move to location",
     "errorQuantityExceedsStock": "Quantity exceeds available stock.",
+    "fieldOrgVisible": "Share with organization",
     "orgVisibleEnable": "Share with organization",
     "orgVisibleDisable": "Stop sharing with organization",
     "orgInventoryTitle": "Organization Inventory",

@@ -332,6 +332,7 @@
     "packageMove": "Déplacer le colis",
     "packageMoveTitle": "Déplacer vers un lieu",
     "errorQuantityExceedsStock": "La quantité dépasse le stock disponible.",
+    "fieldOrgVisible": "Partager avec l'organisation",
     "orgVisibleEnable": "Partager avec l'organisation",
     "orgVisibleDisable": "Arrêter de partager avec l'organisation",
     "orgInventoryTitle": "Inventaire de l'organisation",
