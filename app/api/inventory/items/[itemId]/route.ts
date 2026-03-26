@@ -52,6 +52,24 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const now = new Date().toISOString();
 
+  if (op === "setOrgVisible") {
+    const { orgVisible } = body as Record<string, unknown>;
+    if (typeof orgVisible !== "boolean") {
+      return NextResponse.json(
+        { error: "orgVisible must be a boolean" },
+        { status: 400 }
+      );
+    }
+    await db
+      .db()
+      .collection("inventoryItems")
+      .updateOne(
+        { _id: item._id },
+        { $set: { orgVisible, updatedAt: now } }
+      );
+    return NextResponse.json({ ok: true });
+  }
+
   if (op === "adjust") {
     const { delta } = body as Record<string, unknown>;
     if (typeof delta !== "number" || isNaN(delta)) {

@@ -20,6 +20,7 @@ import {
   MinusIcon,
   ArrowsRightLeftIcon,
   ArchiveBoxIcon,
+  BuildingOffice2Icon,
 } from "@heroicons/react/24/outline";
 import { packageOperate } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -265,6 +266,7 @@ function AddItemDialog({
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
   const [location, setLocation] = useState<Location | null>(null);
+  const [orgVisible, setOrgVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -275,6 +277,7 @@ function AddItemDialog({
     setQuantity("");
     setUnit("");
     setLocation(null);
+    setOrgVisible(false);
     setError(null);
   };
 
@@ -317,6 +320,7 @@ function AddItemDialog({
           quantity: parsedQuantity,
           unit: unit.trim() || undefined,
           locationId: location.id,
+          orgVisible,
         }),
       });
 
@@ -350,6 +354,32 @@ function AddItemDialog({
             unit={unit} setUnit={setUnit}
             location={location} setLocation={setLocation}
           />
+
+          <button
+            type="button"
+            onClick={() => setOrgVisible((v) => !v)}
+            className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+              orgVisible
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <BuildingOffice2Icon className="size-4 shrink-0" />
+              <span className="font-medium">{t("fieldOrgVisible")}</span>
+            </div>
+            <span
+              className={`inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors ${
+                orgVisible ? "bg-blue-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                  orgVisible ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
+            </span>
+          </button>
 
           {error && (
             <p className="text-sm text-red-500">{error}</p>
@@ -958,6 +988,25 @@ function InventoryItemCard({
 }) {
   const t = useTranslations("Inventory");
   const [editOpen, setEditOpen] = useState(false);
+  const [orgVisible, setOrgVisible] = useState(item.orgVisible);
+  const [orgVisiblePending, setOrgVisiblePending] = useState(false);
+
+  const handleToggleOrgVisible = async () => {
+    const next = !orgVisible;
+    setOrgVisible(next);
+    setOrgVisiblePending(true);
+    try {
+      await fetch(`/api/inventory/items/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "setOrgVisible", orgVisible: next }),
+      });
+    } catch {
+      setOrgVisible(!next);
+    } finally {
+      setOrgVisiblePending(false);
+    }
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2 hover:shadow-sm transition-shadow">
@@ -996,6 +1045,21 @@ function InventoryItemCard({
 
       {/* Action buttons */}
       <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-100">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className={`size-7 transition-colors ${
+            orgVisible
+              ? "text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100"
+              : "text-gray-400 hover:text-blue-500"
+          }`}
+          title={orgVisible ? t("orgVisibleDisable") : t("orgVisibleEnable")}
+          onClick={handleToggleOrgVisible}
+          disabled={orgVisiblePending}
+        >
+          <BuildingOffice2Icon className="size-3.5" />
+        </Button>
         <AddToPackagePopover item={item} onAdd={(qty) => onAddToPackage(item, qty)} />
         <AdjustQuantityPopover item={item} mode="add" onUpdated={onRefresh} />
         <AdjustQuantityPopover item={item} mode="remove" onUpdated={onRefresh} />

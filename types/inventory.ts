@@ -18,6 +18,8 @@ export type InventoryItem = {
     locationId: Location['id'];
     userId: string;
 
+    orgVisible: boolean;
+
     updatedAt: string;
 };
 
