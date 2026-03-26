@@ -137,6 +137,20 @@ export default function Login() {
             >
               Envoyer le code de connexion
             </button>
+
+            <Button onClick={async () => {
+              await authClient.signIn.passkey({
+                autoFill: true,
+              });
+
+              if (callbackUrl) {
+                router.push(callbackUrl);
+              } else {
+                router.push("/");
+              }
+            }}>
+              Utiliser WebAuthN/PassKey
+            </Button>
           </form>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { emailOTP, admin } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 
 import { Resend } from "resend";
@@ -80,6 +81,10 @@ export const auth = betterAuth({
           });
         }
       },
+    }),
+    passkey({
+      rpID: 'services.nexus',
+      rpName: 'Nexus Services',
     }),
   ],
   databaseHooks: {
