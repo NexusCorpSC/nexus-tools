@@ -331,6 +331,15 @@
     "packageDeleteConfirmDescription": "Les quantités sélectionnées seront définitivement retirées de votre inventaire.",
     "packageMove": "Déplacer le colis",
     "packageMoveTitle": "Déplacer vers un lieu",
-    "errorQuantityExceedsStock": "La quantité dépasse le stock disponible."
+    "errorQuantityExceedsStock": "La quantité dépasse le stock disponible.",
+    "orgVisibleEnable": "Partager avec l'organisation",
+    "orgVisibleDisable": "Arrêter de partager avec l'organisation",
+    "orgInventoryTitle": "Inventaire de l'organisation",
+    "orgInventoryHeader": "Objets partagés par les membres de l'organisation.",
+    "orgInventoryOwner": "Propriétaire",
+    "orgInventoryEmpty": "Aucun objet partagé pour l'instant.",
+    "orgInventoryEmptySubtitle": "Les membres peuvent partager des objets depuis leur inventaire personnel.",
+    "orgInventoryFilterAllMembers": "Tous les membres",
+    "orgInventoryLoadMore": "Charger plus"
   }
 }

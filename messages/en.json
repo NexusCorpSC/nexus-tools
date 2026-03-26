@@ -331,6 +331,15 @@
     "packageDeleteConfirmDescription": "The selected quantities will be permanently removed from your inventory.",
     "packageMove": "Move package",
     "packageMoveTitle": "Move to location",
-    "errorQuantityExceedsStock": "Quantity exceeds available stock."
+    "errorQuantityExceedsStock": "Quantity exceeds available stock.",
+    "orgVisibleEnable": "Share with organization",
+    "orgVisibleDisable": "Stop sharing with organization",
+    "orgInventoryTitle": "Organization Inventory",
+    "orgInventoryHeader": "Items shared by organization members.",
+    "orgInventoryOwner": "Owner",
+    "orgInventoryEmpty": "No items shared yet.",
+    "orgInventoryEmptySubtitle": "Members can share items from their personal inventory.",
+    "orgInventoryFilterAllMembers": "All members",
+    "orgInventoryLoadMore": "Load more"
   }
 }

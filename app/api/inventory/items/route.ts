@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
     locationId: item.locationId,
     userId: item.userId,
     updatedAt: item.updatedAt,
+    orgVisible: item.orgVisible === true,
     location: item.location
       ? {
           id: item.location._id.toString(),

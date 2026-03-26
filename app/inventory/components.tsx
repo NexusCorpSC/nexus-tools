@@ -20,6 +20,7 @@ import {
   MinusIcon,
   ArrowsRightLeftIcon,
   ArchiveBoxIcon,
+  BuildingOffice2Icon,
 } from "@heroicons/react/24/outline";
 import { packageOperate } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -958,6 +959,25 @@ function InventoryItemCard({
 }) {
   const t = useTranslations("Inventory");
   const [editOpen, setEditOpen] = useState(false);
+  const [orgVisible, setOrgVisible] = useState(item.orgVisible);
+  const [orgVisiblePending, setOrgVisiblePending] = useState(false);
+
+  const handleToggleOrgVisible = async () => {
+    const next = !orgVisible;
+    setOrgVisible(next);
+    setOrgVisiblePending(true);
+    try {
+      await fetch(`/api/inventory/items/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "setOrgVisible", orgVisible: next }),
+      });
+    } catch {
+      setOrgVisible(!next);
+    } finally {
+      setOrgVisiblePending(false);
+    }
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2 hover:shadow-sm transition-shadow">
@@ -996,6 +1016,21 @@ function InventoryItemCard({
 
       {/* Action buttons */}
       <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-100">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className={`size-7 transition-colors ${
+            orgVisible
+              ? "text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100"
+              : "text-gray-400 hover:text-blue-500"
+          }`}
+          title={orgVisible ? t("orgVisibleDisable") : t("orgVisibleEnable")}
+          onClick={handleToggleOrgVisible}
+          disabled={orgVisiblePending}
+        >
+          <BuildingOffice2Icon className="size-3.5" />
+        </Button>
         <AddToPackagePopover item={item} onAdd={(qty) => onAddToPackage(item, qty)} />
         <AdjustQuantityPopover item={item} mode="add" onUpdated={onRefresh} />
         <AdjustQuantityPopover item={item} mode="remove" onUpdated={onRefresh} />
