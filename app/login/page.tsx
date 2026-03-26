@@ -131,14 +131,14 @@ export default function Login() {
               </p>
             </div>
 
-            <button
+            <Button
               type="submit"
-              className="w-full py-2 px-4 bg-primary text-primary-foreground font-semibold rounded-md shadow-sm hover:bg-primary/90 focus:outline-hidden focus:ring-2"
+              className="w-full"
             >
               Envoyer le code de connexion
-            </button>
+            </Button>
 
-            <Button onClick={async () => {
+            <Button className="w-full" type="button" onClick={async () => {
               await authClient.signIn.passkey({
                 autoFill: true,
               });
