@@ -50,58 +50,106 @@ export async function GET(request: NextRequest, { params }: Params) {
   // Member userIds
   const memberUserIds = org.members.map((m) => m.userId.toString());
 
-  // Build match stage
-  const matchStage: Record<string, unknown> = {
+  // Base match: all org-visible items, with optional name/quality filters
+  const baseMatch: Record<string, unknown> = {
     userId: { $in: memberUserIds },
     orgVisible: true,
   };
   if (query.trim()) {
-    matchStage.name = { $regex: query.trim(), $options: "i" };
+    baseMatch.name = { $regex: query.trim(), $options: "i" };
   }
   if (quality.trim()) {
     const minQuality = parseInt(quality, 10);
     if (!isNaN(minQuality)) {
-      matchStage.quality = { $gte: minQuality };
+      baseMatch.quality = { $gte: minQuality };
     }
   }
-  if (userId.trim() && memberUserIds.includes(userId.trim())) {
-    matchStage.userId = userId.trim();
-  }
 
-  // Count + paginated items in a single aggregate using $facet
+  // Optional per-member filter applied inside each facet branch
+  const userIdFilter =
+    userId.trim() && memberUserIds.includes(userId.trim())
+      ? [{ $match: { userId: userId.trim() } }]
+      : [];
+
+  const userLookup = [
+    {
+      $lookup: {
+        from: "users",
+        let: { uid: "$userId" },
+        pipeline: [
+          { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$uid"] } } },
+          { $project: { name: 1 } },
+          { $limit: 1 },
+        ],
+        as: "userData",
+      },
+    },
+    {
+      $addFields: {
+        ownerName: { $ifNull: [{ $arrayElemAt: ["$userData.name", 0] }, "$userId"] },
+      },
+    },
+    { $unset: "userData" },
+  ];
+
+  const locationLookup = [
+    {
+      $lookup: {
+        from: "locations",
+        let: { locationId: "$locationId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: [{ $toString: "$_id" }, "$$locationId"] },
+            },
+          },
+          { $limit: 1 },
+        ],
+        as: "locationData",
+      },
+    },
+    { $addFields: { location: { $arrayElemAt: ["$locationData", 0] } } },
+    { $unset: "locationData" },
+  ];
+
+  // Single aggregate: total + paginated items (with lookups) + members list
   const [result] = await db
     .db()
     .collection("inventoryItems")
     .aggregate([
-      { $match: matchStage },
+      { $match: baseMatch },
       {
         $facet: {
-          total: [{ $count: "count" }],
+          total: [...userIdFilter, { $count: "count" }],
           items: [
+            ...userIdFilter,
             { $sort: { updatedAt: -1 } },
             { $skip: skip },
             { $limit: limit },
+            ...locationLookup,
+            ...userLookup,
+          ],
+          members: [
+            { $group: { _id: "$userId" } },
             {
               $lookup: {
-                from: "locations",
-                let: { locationId: "$locationId" },
+                from: "users",
+                let: { uid: "$_id" },
                 pipeline: [
-                  {
-                    $match: {
-                      $expr: { $eq: [{ $toString: "$_id" }, "$$locationId"] },
-                    },
-                  },
+                  { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$uid"] } } },
+                  { $project: { name: 1 } },
                   { $limit: 1 },
                 ],
-                as: "locationData",
+                as: "userData",
               },
             },
             {
               $addFields: {
-                location: { $arrayElemAt: ["$locationData", 0] },
+                name: { $ifNull: [{ $arrayElemAt: ["$userData.name", 0] }, "$_id"] },
               },
             },
-            { $unset: "locationData" },
+            { $project: { _id: 1, name: 1 } },
+            { $sort: { name: 1 } },
           ],
         },
       },
@@ -110,18 +158,11 @@ export async function GET(request: NextRequest, { params }: Params) {
 
   const total: number = result?.total?.[0]?.count ?? 0;
   const rawItems = result?.items ?? [];
-
-  // Fetch member names
-  const memberObjectIds = org.members.map((m) => new ObjectId(m.userId));
-  const users = await db
-    .db()
-    .collection("users")
-    .find({ _id: { $in: memberObjectIds } })
-    .project({ _id: 1, name: 1 })
-    .toArray();
-
-  const userNameMap = new Map<string, string>(
-    users.map((u) => [u._id.toString(), u.name as string])
+  const members: { id: string; name: string }[] = (result?.members ?? []).map(
+    (m: Record<string, unknown>) => ({
+      id: m._id as string,
+      name: m.name as string,
+    })
   );
 
   const items = rawItems.map((item: Record<string, unknown>) => ({
@@ -135,7 +176,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     userId: item.userId,
     orgVisible: true,
     updatedAt: item.updatedAt,
-    ownerName: userNameMap.get(item.userId as string) ?? (item.userId as string),
+    ownerName: item.ownerName,
     location: item.location
       ? {
           id: ((item.location as Record<string, unknown>)._id as ObjectId).toString(),
@@ -145,12 +186,6 @@ export async function GET(request: NextRequest, { params }: Params) {
           userId: (item.location as Record<string, unknown>).userId,
         }
       : null,
-  }));
-
-  // Members list for the owner filter dropdown
-  const members = users.map((u) => ({
-    id: u._id.toString(),
-    name: u.name as string,
   }));
 
   return NextResponse.json({
