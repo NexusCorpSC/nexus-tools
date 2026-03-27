@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Blueprint } from "@/types/crafting";
 import {
@@ -203,6 +204,8 @@ function BlueprintCardSkeleton() {
 
 export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   const t = useTranslations("Crafting.Blueprints");
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const LIMIT = 24;
 
@@ -219,9 +222,29 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const p = parseInt(searchParams.get("page") ?? "1", 10);
+    return isNaN(p) || p < 1 ? 1 : p;
+  });
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+
+  /** Sync the ?page= query param in the URL without a full navigation. */
+  const updatePageInUrl = useCallback(
+    (newPage: number) => {
+      const params = new URLSearchParams(window.location.search);
+      if (newPage <= 1) {
+        params.delete("page");
+      } else {
+        params.set("page", String(newPage));
+      }
+      const search = params.toString();
+      router.replace(search ? `?${search}` : window.location.pathname, {
+        scroll: false,
+      });
+    },
+    [router],
+  );
 
   useEffect(() => {
     fetch("/api/blueprints/categories")
@@ -275,13 +298,22 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
+  const initialPage = useRef(page); // page value read from URL on mount
 
-  // Re-fetch (with debounce) when filters change → always reset to page 1
+  // Re-fetch (with debounce) when filters change → reset to page 1, except on first mount
   useEffect(() => {
-    setPage(1);
+    const effectivePage = isFirstRender.current ? initialPage.current : 1;
+
+    if (!isFirstRender.current) {
+      setPage(1);
+      updatePageInUrl(1);
+    }
+    isFirstRender.current = false;
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchResults({ query, category, subcategory, ownedFilter, materials, page: 1 });
+      fetchResults({ query, category, subcategory, ownedFilter, materials, page: effectivePage });
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -292,9 +324,10 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   const goToPage = useCallback(
     (newPage: number) => {
       setPage(newPage);
+      updatePageInUrl(newPage);
       fetchResults({ query, category, subcategory, ownedFilter, materials, page: newPage });
     },
-    [query, category, subcategory, ownedFilter, materials, fetchResults],
+    [query, category, subcategory, ownedFilter, materials, fetchResults, updatePageInUrl],
   );
 
   const resetFilters = () => {

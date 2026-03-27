@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -55,7 +56,9 @@ export default async function Page() {
         )}
       </div>
 
-      <BlueprintGrid isLoggedIn={isLoggedIn} />
+      <Suspense>
+        <BlueprintGrid isLoggedIn={isLoggedIn} />
+      </Suspense>
 
       <p className="text-xs text-gray-600">
         Images retrieved from various incredible tools such as{" "}
