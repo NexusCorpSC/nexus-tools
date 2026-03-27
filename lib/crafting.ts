@@ -131,8 +131,9 @@ export async function filterBlueprints(
     materials?: string[];
     userId?: string;
     limit?: number;
+    page?: number;
   } = {},
-): Promise<(Blueprint & { owned?: boolean })[]> {
+): Promise<{ blueprints: (Blueprint & { owned?: boolean })[]; total: number }> {
   const {
     query,
     category,
@@ -140,8 +141,11 @@ export async function filterBlueprints(
     owned,
     materials,
     userId,
-    limit = 64,
+    limit = 24,
+    page = 1,
   } = options;
+
+  const skip = (page - 1) * limit;
 
   const collection = db.db().collection<Blueprint>("blueprints");
 
@@ -214,38 +218,55 @@ export async function filterBlueprints(
     }
 
     pipeline.push({ $sort: { name: 1 } });
+
+    // Count total before pagination
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await collection.aggregate(countPipeline).toArray();
+    const total = countResult[0]?.total ?? 0;
+
+    pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
     const results = await collection.aggregate(pipeline).toArray();
 
-    return results.map((bp) => ({
-      id: bp._id.toString(),
-      name: bp.name,
-      slug: bp.slug,
-      description: bp.description,
-      category: bp.category,
-      subcategory: bp.subcategory,
-      owned: (bp as unknown as { owned: boolean }).owned,
-      imageUrl: bp.imageUrl,
-      tier: bp.tier,
-    }));
+    return {
+      total,
+      blueprints: results.map((bp) => ({
+        id: bp._id.toString(),
+        name: bp.name,
+        slug: bp.slug,
+        description: bp.description,
+        category: bp.category,
+        subcategory: bp.subcategory,
+        owned: (bp as unknown as { owned: boolean }).owned,
+        imageUrl: bp.imageUrl,
+        tier: bp.tier,
+      })),
+    };
   } else {
+    const query$ = matchStage as Parameters<typeof collection.find>[0];
+    const total = await collection.countDocuments(query$);
+
     const results = await collection
-      .find(matchStage as Parameters<typeof collection.find>[0])
+      .find(query$)
       .sort({ name: 1 })
+      .skip(skip)
       .limit(limit)
       .toArray();
 
-    return results.map((bp) => ({
-      id: bp._id.toString(),
-      name: bp.name,
-      slug: bp.slug,
-      description: bp.description,
-      category: bp.category,
-      subcategory: bp.subcategory,
-      imageUrl: bp.imageUrl,
-      tier: bp.tier,
-    }));
+    return {
+      total,
+      blueprints: results.map((bp) => ({
+        id: bp._id.toString(),
+        name: bp.name,
+        slug: bp.slug,
+        description: bp.description,
+        category: bp.category,
+        subcategory: bp.subcategory,
+        imageUrl: bp.imageUrl,
+        tier: bp.tier,
+      })),
+    };
   }
 }
 

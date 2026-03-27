@@ -7,6 +7,10 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   FunnelIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import {
@@ -200,6 +204,8 @@ function BlueprintCardSkeleton() {
 export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   const t = useTranslations("Crafting.Blueprints");
 
+  const LIMIT = 24;
+
   const [query, setQuery] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [category, setCategory] = useState<string>("");
@@ -213,6 +219,9 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     fetch("/api/blueprints/categories")
@@ -231,6 +240,7 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
       subcategory: string;
       ownedFilter: "all" | "owned" | "not-owned";
       materials: string[];
+      page: number;
     }) => {
       setIsLoading(true);
       try {
@@ -242,9 +252,18 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
         if (opts.ownedFilter === "not-owned") params.set("owned", "false");
         if (opts.materials.length > 0)
           params.set("materials", opts.materials.join(","));
+        params.set("limit", String(LIMIT));
+        params.set("page", String(opts.page));
         const res = await fetch(`/api/blueprints?${params.toString()}`);
-        const data: (Blueprint & { owned?: boolean })[] = await res.json();
-        setResults(data);
+        const data: {
+          blueprints: (Blueprint & { owned?: boolean })[];
+          total: number;
+          page: number;
+          totalPages: number;
+        } = await res.json();
+        setResults(data.blueprints);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
         setHasLoaded(true);
       } catch {
         setResults([]);
@@ -256,16 +275,27 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-fetch (with debounce) when filters change → always reset to page 1
   useEffect(() => {
+    setPage(1);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchResults({ query, category, subcategory, ownedFilter, materials });
+      fetchResults({ query, category, subcategory, ownedFilter, materials, page: 1 });
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, category, subcategory, ownedFilter, materials, fetchResults]);
+
+  const goToPage = useCallback(
+    (newPage: number) => {
+      setPage(newPage);
+      fetchResults({ query, category, subcategory, ownedFilter, materials, page: newPage });
+    },
+    [query, category, subcategory, ownedFilter, materials, fetchResults],
+  );
 
   const resetFilters = () => {
     setQuery("");
@@ -415,14 +445,14 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
       {/* Result count */}
       {hasLoaded && !isLoading && (
         <p className="text-sm text-muted-foreground">
-          {t("filterResultsCount", { count: results.length })}
+          {t("filterResultsCount", { count: total })}
         </p>
       )}
 
       {/* Grid */}
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 10 }).map((_, i) => (
+          {Array.from({ length: LIMIT }).map((_, i) => (
             <BlueprintCardSkeleton key={i} />
           ))}
         </div>
@@ -438,6 +468,51 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
           <p className="text-muted-foreground">{t("searchNoResults")}</p>
         </div>
       ) : null}
+
+      {/* Pagination */}
+      {hasLoaded && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(1)}
+            disabled={page <= 1 || isLoading}
+            title={t("paginationFirst")}
+          >
+            <ChevronDoubleLeftIcon className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(Math.max(1, page - 1))}
+            disabled={page <= 1 || isLoading}
+          >
+            <ChevronLeftIcon className="size-4" />
+            {t("paginationPrev")}
+          </Button>
+          <span className="text-sm text-muted-foreground px-2">
+            {t("paginationPage", { page, totalPages })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(Math.min(totalPages, page + 1))}
+            disabled={page >= totalPages || isLoading}
+          >
+            {t("paginationNext")}
+            <ChevronRightIcon className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(totalPages)}
+            disabled={page >= totalPages || isLoading}
+            title={t("paginationLast")}
+          >
+            <ChevronDoubleRightIcon className="size-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
