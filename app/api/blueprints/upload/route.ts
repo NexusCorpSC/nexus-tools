@@ -23,6 +23,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
           maximumSizeInBytes: 8_000_000,
           addRandomSuffix: false,
+          allowOverwrite: true,
         };
       },
       onUploadCompleted: async () => {
