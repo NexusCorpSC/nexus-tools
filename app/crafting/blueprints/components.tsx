@@ -37,10 +37,12 @@ function MaterialTagInput({
   value,
   onChange,
   placeholder,
+  compact = false,
 }: {
   value: string[];
   onChange: (tags: string[]) => void;
   placeholder: string;
+  compact?: boolean;
 }) {
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -79,7 +81,7 @@ function MaterialTagInput({
 
   return (
     <div className="relative">
-      <div className="flex flex-wrap gap-1.5 items-center min-h-9 px-3 py-1.5 rounded-md border border-input bg-background text-sm shadow-xs focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-[color,box-shadow]">
+      <div className={`flex flex-wrap gap-1.5 items-center min-h-9 ${compact ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm"} rounded-md border border-input bg-background shadow-xs focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-[color,box-shadow]`}>
         {value.map((tag) => (
           <span
             key={tag}
@@ -446,6 +448,21 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
           </div>
         )}
 
+        {/* Materials */}
+        <div className="flex items-center gap-2 flex-1 min-w-52">
+          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap shrink-0">
+            {t("filterMaterials")}
+          </span>
+          <div className="flex-1">
+            <MaterialTagInput
+              value={materials}
+              onChange={setMaterials}
+              placeholder={t("filterMaterialsPlaceholder")}
+              compact
+            />
+          </div>
+        </div>
+
         {/* Reset */}
         {hasActiveFilters && (
           <Button
@@ -458,21 +475,6 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
             {t("filterReset")}
           </Button>
         )}
-      </div>
-
-      {/* Materials */}
-      <div>
-        <p className="text-sm font-medium mb-1.5">
-          {t("filterMaterials")}
-          <span className="ml-1.5 text-xs text-muted-foreground font-normal">
-            {t("filterMaterialsHint")}
-          </span>
-        </p>
-        <MaterialTagInput
-          value={materials}
-          onChange={setMaterials}
-          placeholder={t("filterMaterialsPlaceholder")}
-        />
       </div>
 
       {/* Result count */}

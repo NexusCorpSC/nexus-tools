@@ -44,4 +44,5 @@ next-env.d.ts
 .vscode/
 
 # Assets
+assets/blueprints-full.json
 assets/blueprints.json
