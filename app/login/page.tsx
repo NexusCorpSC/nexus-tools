@@ -15,7 +15,7 @@ export default function Login() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-sm">
+      <div className="bg-white p-8 rounded shadow-md w-full max-w-sm flex flex-col space-y-4">
         <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
         {emailSent ? (
           <form
@@ -131,28 +131,48 @@ export default function Login() {
               </p>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-            >
+            <Button type="submit" className="w-full">
               Envoyer le code de connexion
             </Button>
           </form>
         )}
 
-        <Button className="w-full" onClick={async () => {
-          await authClient.signIn.passkey({
-            fetchOptions: {
-              onSuccess() {
-                if (callbackUrl) {
-                  router.push(callbackUrl);
-                } else {
-                  router.push("/");
-                }
-              }
-            }
-          });
-        }}>
+        <Button
+          className="w-full"
+          onClick={async () => {
+            await authClient.signIn.social({
+              provider: "discord",
+              fetchOptions: {
+                onSuccess() {
+                  if (callbackUrl) {
+                    router.push(callbackUrl);
+                  } else {
+                    router.push("/");
+                  }
+                },
+              },
+            });
+          }}
+        >
+          Login with Discord
+        </Button>
+
+        <Button
+          className="w-full"
+          onClick={async () => {
+            await authClient.signIn.passkey({
+              fetchOptions: {
+                onSuccess() {
+                  if (callbackUrl) {
+                    router.push(callbackUrl);
+                  } else {
+                    router.push("/");
+                  }
+                },
+              },
+            });
+          }}
+        >
           Utiliser WebAuthN/PassKey
         </Button>
       </div>

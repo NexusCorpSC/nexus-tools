@@ -54,6 +54,12 @@ export const auth = betterAuth({
   database: mongodbAdapter(db.db(), {
     usePlural: true,
   }),
+  socialProviders: {
+    discord: {
+      clientId: process.env.DISCORD_CLIENT_ID as string,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+    },
+  },
   plugins: [
     admin(),
     emailOTP({
@@ -83,8 +89,8 @@ export const auth = betterAuth({
       },
     }),
     passkey({
-      rpID: 'services.nexus',
-      rpName: 'Nexus Services',
+      rpID: "services.nexus",
+      rpName: "Nexus Services",
     }),
   ],
   databaseHooks: {
