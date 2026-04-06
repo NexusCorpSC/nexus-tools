@@ -1,0 +1,123 @@
+{
+  "blueprints": [
+    {
+      "guid": "30e48bec-41ec-4322-92b5-da628e85830c",
+      "tag": "BP_CRAFT_behr_rifle_ballistic_01",
+      "productEntityClass": "02d4cd2e-fa98-4086-aee1-6b2dfce8ea27",
+      "type": "weapons",
+      "subtype": "rifle",
+      "tiers": [
+        {
+          "craftTimeSeconds": 150,
+          "slots": [
+            {
+              "name": "Frame",
+              "options": [
+                {
+                  "type": "resource",
+                  "quantity": 0.04,
+                  "minQuality": 0,
+                  "resourceName": "Aluminum"
+                }
+              ],
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 1.2,
+                  "modifierAtEnd": 0.8,
+                  "propertyName": "Recoil Smoothness",
+                  "propertyKey": "weapon_recoil_smoothness"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 1.2,
+                  "modifierAtEnd": 0.8,
+                  "propertyName": "Recoil Handling",
+                  "propertyKey": "weapon_recoil_handling"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 1.2,
+                  "modifierAtEnd": 0.8,
+                  "propertyName": "Recoil Kick",
+                  "propertyKey": "weapon_recoil_kick"
+                }
+              ]
+            },
+            {
+              "name": "Stock",
+              "options": [
+                {
+                  "type": "resource",
+                  "quantity": 0.02,
+                  "minQuality": 0,
+                  "resourceName": "Hephaestanite"
+                }
+              ],
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 1.2,
+                  "modifierAtEnd": 0.8,
+                  "propertyName": "Recoil Smoothness",
+                  "propertyKey": "weapon_recoil_smoothness"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 1.2,
+                  "modifierAtEnd": 0.8,
+                  "propertyName": "Recoil Handling",
+                  "propertyKey": "weapon_recoil_handling"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 1.2,
+                  "modifierAtEnd": 0.8,
+                  "propertyName": "Recoil Kick",
+                  "propertyKey": "weapon_recoil_kick"
+                }
+              ]
+            },
+            {
+              "name": "Barrel",
+              "options": [
+                {
+                  "type": "resource",
+                  "quantity": 0.02,
+                  "minQuality": 0,
+                  "resourceName": "Iron"
+                }
+              ],
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Impact Force",
+                  "propertyKey": "weapon_damage"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.88,
+                  "modifierAtEnd": 1.12,
+                  "propertyName": "Fire Rate",
+                  "propertyKey": "weapon_firerate"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "productName": "P4-AR Rifle",
+      "isDefault": true
+    }
+  ]
+}
