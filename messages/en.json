@@ -23,6 +23,11 @@
     "readNotifications": "Read notifications",
     "search": "Search"
   },
+  "Industry": {
+    "home": "Home",
+    "industry": "Industry",
+    "refine": "Refining"
+  },
   "HomePage": {
     "title": "Welcome!",
     "intro1": "Nexus Tools is a set of tools at your disposal to organize your activity in the Verse.",
@@ -56,9 +61,12 @@
     }
   },
   "Crafting": {
+    "home": "Home",
     "title": "Crafting",
     "wip": "We are working on creating this page, and we are waiting for new information on crafting in the Verse to complete this feature.",
     "backButton": "Back to the main page",
+    "blueprints": "Blueprints",
+    "inventory": "Inventory",
     "Blueprints": {
       "title": "Blueprints",
       "header": "Manage your blueprints and share them with your organization members.",
@@ -176,6 +184,7 @@
     }
   },
   "Shopping": {
+    "home": "Home",
     "title": "Marketplace",
     "ctaSellButton": "Sell an item or service",
     "featuredItemsTitle": "Featured Items",
@@ -224,7 +233,9 @@
     "itemImageDrop": "or drag and drop",
     "itemImageFormats": "PNG or JPG, max 2MB",
     "cancel": "Cancel",
-    "addArticle": "Add the item to the shop"
+    "addArticle": "Add the item to the shop",
+    "noFeaturedItems": "No featured items at the moment.",
+    "noShops": "No shops available at the moment."
   },
   "ShopDetails": {
     "notFound": "Shop not found"
@@ -246,9 +257,11 @@
     "nameUpdateError": "An error occurred while updating your username."
   },
   "Organizations": {
+    "home": "Home",
     "title": "Organizations",
     "myOrgs": "My Orgs",
     "ctaNewOrg": "Add a new organization",
+    "noPublicOrgs": "No public organizations available at the moment.",
     "publicOrgs": "Public organizations",
     "description": "Description",
     "members": "Members",
@@ -269,11 +282,13 @@
     "backToOrgs": "Back to organizations"
   },
   "Reputations": {
+    "home": "Home",
     "title": "Reputations",
     "connectToUse": "Sign in to your account to note and keep track of your reputations. Share them with your guildmates!",
     "backToHome": "Back to home page.",
     "noFactions": "Factions are not configured by administrator.",
-    "selectCurrentLevelInstructions": "Select your current level (completed) for each faction."
+    "selectCurrentLevelInstructions": "Select your current level (completed) for each faction.",
+    "clearSelection": "Clear"
   },
   "OrganizationReputations": {
     "title": "Members reputations",

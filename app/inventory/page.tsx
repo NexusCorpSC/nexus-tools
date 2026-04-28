@@ -18,14 +18,14 @@ export default async function InventoryPage() {
     redirect("/login");
   }
 
-  const t = await getTranslations("Inventory");
+  const t = await getTranslations("Crafting.Inventory");
 
   return (
     <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{t("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -36,7 +36,7 @@ export default async function InventoryPage() {
 
       <div>
         <h1 className="text-2xl font-bold mb-1">{t("title")}</h1>
-        <p className="text-gray-600">{t("header")}</p>
+        <p>{t("header")}</p>
       </div>
 
       <InventoryGrid />

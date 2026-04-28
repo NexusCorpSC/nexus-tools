@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addRefiningJob } from "../actions";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 // Parse duration string in format like "1d12h30m15s" to total minutes
 function parseDuration(durationStr: string): number | null {
@@ -51,6 +52,7 @@ export default function NewJobForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [durationInput, setDurationInput] = useState("");
   const [durationError, setDurationError] = useState<string | null>(null);
+  const t = useTranslations("Refining");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -112,8 +114,8 @@ export default function NewJobForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-          Location
+        <label htmlFor="location" className="block text-sm font-medium">
+          {t("location")}
         </label>
         <input
           type="text"
@@ -126,22 +128,22 @@ export default function NewJobForm() {
       </div>
       
       <div>
-        <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-          Job Content
+        <label htmlFor="content" className="block text-sm font-medium">
+          {t("materials")}
         </label>
         <textarea
           id="content"
           name="content"
           required
-          placeholder="What materials are being refined?"
+          placeholder="Quels matériaux raffinez-vous ?"
           rows={3}
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500"
         />
       </div>
       
       <div>
-        <label htmlFor="duration" className="block text-sm font-medium text-gray-700">
-          Duration
+        <label htmlFor="duration" className="block text-sm font-medium">
+          {t("duration")}
         </label>
         <input
           type="text"
@@ -150,7 +152,7 @@ export default function NewJobForm() {
           value={durationInput}
           onChange={handleDurationChange}
           required
-          placeholder="e.g., 120 (minutes) or 2h (2 hours) or 1d12h30m (1 day, 12 hours, 30 minutes)"
+          placeholder={t("durationPlaceholder")}
           className={`mt-1 block w-full px-3 py-2 border ${
             durationError ? "border-red-500" : "border-gray-300"
           } rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500`}
@@ -160,14 +162,14 @@ export default function NewJobForm() {
         )}
         {durationInput && !durationError && parseDuration(durationInput) && (
           <p className="mt-1 text-sm text-green-600">
-            Equivalent to {parseDuration(durationInput)} minutes
+            {t("durationEquivalent", { minutes: parseDuration(durationInput) })}
           </p>
         )}
       </div>
       
       <div className="flex justify-end">
         <Button type="submit" disabled={isSubmitting || !!durationError}>
-          {isSubmitting ? "Adding..." : "Add Refining Job"}
+          {isSubmitting ? t("adding") : t("addRefiningJob")}
         </Button>
       </div>
     </form>

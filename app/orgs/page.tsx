@@ -6,6 +6,7 @@ import { ObjectId } from "bson";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 export type Organization = {
   _id: string;
@@ -59,7 +60,18 @@ export default async function OrganizationsPage() {
     : [];
 
   return (
-    <div className="m-2 mx-auto max-w-4xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
+    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">{t("home")}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{t("title")}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
       {session?.user && (
@@ -68,7 +80,7 @@ export default async function OrganizationsPage() {
 
           <Link
             href={"/orgs/new"}
-            className="uppercase block rounded-lg bg-primary bg-linear-to-r from-orange-800 hover:from-orange-600 to-blue-800 hover:to-blue-600 p-8 m-4 text-secondary font-bold"
+            className="block rounded-lg bg-primary bg-linear-to-r p-4 m-4 text-secondary font-bold"
           >
             {t("ctaNewOrg")}
           </Link>
@@ -102,7 +114,7 @@ export default async function OrganizationsPage() {
 
       <div>
         <h2 className="text-xl">{t("publicOrgs")}</h2>
-
+        {organizations.length === 0 ? <p>{t("noPublicOrgs")}</p> : null}
         {organizations.map((org, index) => (
           <Link
             href={`/orgs/${org._id}`}

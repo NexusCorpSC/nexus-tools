@@ -16,7 +16,7 @@ export default async function ProfilePage() {
   });
 
   return (
-    <div className="m-2 mx-auto max-w-4xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
+    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
       <h1 className="text-2xl font-bold mb-4">Paramètres</h1>
 
       <h2 className="text-xl font-semibold">Passkeys/WebAuthN</h2>

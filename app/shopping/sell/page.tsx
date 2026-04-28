@@ -50,7 +50,7 @@ export default async function SellPage() {
 
   if (userShops.length === 0) {
     return (
-      <div className="m-2 mx-auto max-w-4xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm h-dvh">
+      <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm h-dvh">
         <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
         <p>{t("noShop.error")}</p>
@@ -63,7 +63,7 @@ export default async function SellPage() {
   }
 
   return (
-    <div className="m-2 mx-auto max-w-4xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm h-dvh">
+    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm h-dvh">
       <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
       <form action={addArticleToShop}>
