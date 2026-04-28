@@ -66,8 +66,8 @@ export default async function Topbar() {
     : null;
 
   return (
-    <Disclosure as="header" className="bg-gray-800">
-      <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:divide-y lg:divide-gray-700 lg:px-8">
+    <Disclosure as="header" className="border-b border-[#9ED0FF]/15 bg-gray-800 backdrop-blur-md">
+      <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:divide-y lg:divide-[#9ED0FF]/10 lg:px-8">
         <div className="relative flex h-16 justify-between">
           <div className="relative z-10 flex px-2 lg:px-0">
             <Link href="/" className="flex shrink-0 items-center">
@@ -89,7 +89,7 @@ export default async function Topbar() {
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                   <MagnifyingGlassIcon
                     aria-hidden="true"
-                    className="h-5 w-5 text-gray-400"
+                    className="h-5 w-5 text-[#9ED0FF]/55"
                   />
                 </div>
                 <input
@@ -97,14 +97,14 @@ export default async function Topbar() {
                   name="search"
                   type="search"
                   placeholder={t("search")}
-                  className="block w-full rounded-md border-0 bg-gray-700 py-1.5 pl-10 pr-3 text-gray-300 placeholder:text-gray-400 focus:bg-white focus:text-gray-900 focus:ring-0 focus:placeholder:text-gray-500 sm:text-sm/6"
+                  className="block w-full rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 py-1.5 pl-10 pr-3 text-[#CCE7FF] placeholder:text-[#9ED0FF]/45 focus:border-[#9ED0FF]/50 focus:bg-[#0B3A5A]/80 focus:ring-0 focus:placeholder:text-[#9ED0FF]/60 sm:text-sm/6"
                 />
               </div>
             </div>
           </div>
           <div className="relative z-10 flex items-center lg:hidden">
             {/* Mobile menu button */}
-            <DisclosureButton className="group relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-white">
+            <DisclosureButton className="group relative inline-flex items-center justify-center rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-2 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:bg-[#0B3A5A]/80 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-[#9ED0FF]/60">
               <span className="absolute -inset-0.5" />
               <span className="sr-only">{t("openMenu")}</span>
               <Bars3Icon
@@ -121,7 +121,7 @@ export default async function Topbar() {
             <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center">
               <button
                 type="button"
-                className="relative shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-hidden focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+                className="relative shrink-0 rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-1 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-[#9ED0FF]/60 focus:ring-offset-2 focus:ring-offset-[#06243A]"
               >
                 <span className="absolute -inset-1.5" />
                 <span className="sr-only">{t("readNotifications")}</span>
@@ -131,7 +131,7 @@ export default async function Topbar() {
               {/* Profile dropdown */}
               <Menu as="div" className="relative ml-4 shrink-0">
                 <div>
-                  <MenuButton className="relative flex rounded-full bg-gray-800 text-sm text-white focus:outline-hidden focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
+                  <MenuButton className="relative flex rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 text-sm text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-[#9ED0FF]/60 focus:ring-offset-2 focus:ring-offset-[#06243A]">
                     <span className="absolute -inset-1.5" />
                     <span className="sr-only">{t("openUserMenu")}</span>
                     <Image
@@ -145,21 +145,21 @@ export default async function Topbar() {
                 </div>
                 <MenuItems
                   transition
-                  className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-leave:duration-75 data-enter:ease-out data-leave:ease-in"
+                  className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/95 py-1 shadow-xl shadow-black/20 ring-1 ring-[#9ED0FF]/10 transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-leave:duration-75 data-enter:ease-out data-leave:ease-in"
                 >
                   {userNavigation.map((item) => (
                     <MenuItem key={item.name}>
                       {item.href ? (
                         <a
                           href={item.href}
-                          className="block px-4 py-2 text-sm text-gray-700 data-focus:bg-gray-100"
+                          className="block px-4 py-2 text-sm text-[#9ED0FF]/80 data-focus:bg-[#9ED0FF]/15 data-focus:text-[#CCE7FF]"
                         >
                           {t(`nav.${item.name}`)}
                         </a>
                       ) : (
                         <form
                           action={item.action}
-                          className="block px-4 py-2 text-sm text-gray-700 data-focus:bg-gray-100"
+                          className="block px-4 py-2 text-sm text-[#9ED0FF]/80 data-focus:bg-[#9ED0FF]/15 data-focus:text-[#CCE7FF]"
                         >
                           <button>{t(`nav.${item.name}`)}</button>
                         </form>
@@ -174,7 +174,7 @@ export default async function Topbar() {
               <Button asChild>
                 <Link
                   href="/login"
-                  className="relative shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-hidden focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+                  className="relative shrink-0 rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-1 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-[#9ED0FF]/60 focus:ring-offset-2 focus:ring-offset-[#06243A]"
                 >
                   <span className="absolute -inset-1.5" />
                   <span className="sr-only">{t("nav.signIn")}</span>
@@ -189,7 +189,7 @@ export default async function Topbar() {
         </div>
         <nav
           aria-label="Global"
-          className="hidden lg:flex lg:space-x-8 lg:py-2"
+          className="hidden lg:flex lg:space-x-8 lg:py-2 lg:justify-center"
         >
           {navigation.map((item) => (
             <TopBarNavItem
@@ -201,7 +201,7 @@ export default async function Topbar() {
         </nav>
       </div>
 
-      <DisclosurePanel as="nav" aria-label="Global" className="lg:hidden">
+      <DisclosurePanel as="nav" aria-label="Global" className="border-t border-[#9ED0FF]/10 lg:hidden">
         <div className="space-y-1 px-2 pb-3 pt-2">
           {navigation.map((item) => (
             <TopBarNavMenuItem
@@ -211,7 +211,7 @@ export default async function Topbar() {
             />
           ))}
         </div>
-        <div className="border-t border-gray-700 pb-3 pt-4">
+        <div className="border-t border-[#9ED0FF]/10 pb-3 pt-4">
           {user ? (
             <>
               <div className="flex items-center px-4">
@@ -225,16 +225,16 @@ export default async function Topbar() {
                   />
                 </div>
                 <div className="ml-3">
-                  <div className="text-base font-medium text-white">
+                  <div className="text-base font-medium text-[#CCE7FF]">
                     {user.name}
                   </div>
-                  <div className="text-sm font-medium text-gray-400">
+                  <div className="text-sm font-medium text-[#9ED0FF]/60">
                     {user.email}
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="relative ml-auto shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-hidden focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+                  className="relative ml-auto shrink-0 rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-1 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-[#9ED0FF]/60 focus:ring-offset-2 focus:ring-offset-[#06243A]"
                 >
                   <span className="absolute -inset-1.5" />
                   <span className="sr-only">Voir les notifications</span>
@@ -248,7 +248,7 @@ export default async function Topbar() {
                       key={item.name}
                       as="a"
                       href={item.href}
-                      className="block rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
+                      className="block rounded-lg border border-transparent px-3 py-2 text-base font-medium text-[#9ED0FF]/75 transition-all duration-200 hover:border-[#9ED0FF]/25 hover:bg-[#9ED0FF]/10 hover:text-[#CCE7FF]"
                     >
                       {t(`nav.${item.name}`)}
                     </DisclosureButton>
@@ -256,7 +256,7 @@ export default async function Topbar() {
                     <form
                       key={item.name}
                       action={item.action}
-                      className="rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
+                      className="rounded-lg border border-transparent px-3 py-2 text-base font-medium text-[#9ED0FF]/75 transition-all duration-200 hover:border-[#9ED0FF]/25 hover:bg-[#9ED0FF]/10 hover:text-[#CCE7FF]"
                     >
                       <button type="submit" className="w-full text-left">
                         {t(`nav.${item.name}`)}
@@ -270,7 +270,7 @@ export default async function Topbar() {
             <div className="mt-3 space-y-1 px-2">
               <Button
                 type="submit"
-                className="w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-gray-700 hover:text-white"
+                className="w-full rounded-lg border border-[#9ED0FF]/25 bg-[#9ED0FF]/10 px-3 py-2 text-left text-base font-medium text-[#CCE7FF] hover:bg-[#9ED0FF]/20"
                 asChild
               >
                 <Link href={"/login"}>{t("nav.signIn")}</Link>

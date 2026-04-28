@@ -14,9 +14,9 @@ export default function Login() {
   const router = useRouter();
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-sm flex flex-col space-y-4">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="flex w-full max-w-sm flex-col space-y-4 rounded-2xl border border-[#9ED0FF]/20 bg-[#0B3A5A]/70 p-8 shadow-xl shadow-black/20 backdrop-blur-sm">
+        <h1 className="mb-6 text-center text-2xl font-bold text-[#CCE7FF]">Login</h1>
         {emailSent ? (
           <form
             className="space-y-4"
@@ -36,7 +36,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[#9ED0FF]/80"
               >
                 Email :
               </label>
@@ -44,7 +44,7 @@ export default function Login() {
                 type="email"
                 id="email"
                 name="email"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border border-[#9ED0FF]/25 bg-[#06243A]/70 px-3 py-2 text-[#CCE7FF] shadow-xs placeholder:text-[#9ED0FF]/45 focus:border-[#9ED0FF]/45 focus:outline-hidden focus:ring-[#9ED0FF]/50 sm:text-sm"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -54,7 +54,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="otp"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[#9ED0FF]/80"
               >
                 Code :
               </label>
@@ -62,14 +62,14 @@ export default function Login() {
                 type="text"
                 id="otp"
                 name="otp"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border border-[#9ED0FF]/25 bg-[#06243A]/70 px-3 py-2 text-[#CCE7FF] shadow-xs placeholder:text-[#9ED0FF]/45 focus:border-[#9ED0FF]/45 focus:outline-hidden focus:ring-[#9ED0FF]/50 sm:text-sm"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 required
               />
             </div>
 
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs text-[#9ED0FF]/60">
               <p>
                 Note: Votre adresse email ne sera utilisée que pour
                 l&apos;authentification sur ce site et ne sera pas partagée avec
@@ -107,7 +107,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[#9ED0FF]/80"
               >
                 Email :
               </label>
@@ -115,14 +115,14 @@ export default function Login() {
                 type="email"
                 id="email"
                 name="email"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border border-[#9ED0FF]/25 bg-[#06243A]/70 px-3 py-2 text-[#CCE7FF] shadow-xs placeholder:text-[#9ED0FF]/45 focus:border-[#9ED0FF]/45 focus:outline-hidden focus:ring-[#9ED0FF]/50 sm:text-sm"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
 
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs text-[#9ED0FF]/60">
               <p>
                 Note: Votre adresse email ne sera utilisée que pour
                 l&apos;authentification sur ce site et ne sera pas partagée avec

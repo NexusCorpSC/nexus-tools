@@ -18,7 +18,7 @@ export default async function ShopItemDetailsPage({
 
   if (!item) {
     return (
-      <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+      <div className="m-2 mx-auto max-w-4xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
         <h1 className="text-2xl font-bold mb-4">{t("notFound")}</h1>
 
         <Link href="/shopping">{t("backToShopping")}</Link>
@@ -27,7 +27,7 @@ export default async function ShopItemDetailsPage({
   }
 
   return (
-    <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+    <div className="m-2 mx-auto max-w-4xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:grid lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8">
         <div className="lg:max-w-lg lg:self-end">
           <nav aria-label="Breadcrumb">

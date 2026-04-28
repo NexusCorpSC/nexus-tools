@@ -24,7 +24,7 @@ export default async function Page() {
   const isLoggedIn = !!session?.user;
 
   return (
-    <div className="m-2 p-6 max-w-7xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -44,7 +44,7 @@ export default async function Page() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold mb-1">{t("Blueprints.title")}</h1>
-          <p className="text-gray-600">{t("Blueprints.header")}</p>
+          <p className="text-nexus">{t("Blueprints.header")}</p>
         </div>
         {canOperateBlueprints && (
           <Button asChild size="sm">
@@ -60,7 +60,7 @@ export default async function Page() {
         <BlueprintGrid isLoggedIn={isLoggedIn} />
       </Suspense>
 
-      <p className="text-xs text-gray-600">
+      <p className="text-xs text-nexus">
         Images retrieved from various incredible tools such as{" "}
         <Link href="https://starcitizen.tools/" target="_blank">
           Star Citizen Tools
