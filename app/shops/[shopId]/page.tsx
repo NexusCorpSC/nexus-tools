@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { ManageShopButton } from "@/app/shops/[shopId]/components";
+import { MarkdownContent } from "@/components/markdown-content";
 
 export default async function ShopPage({
   params,
@@ -32,7 +33,7 @@ export default async function ShopPage({
         </Suspense>
       </div>
 
-      <p>{shop.description}</p>
+      <MarkdownContent content={shop.description} />
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
         {shopItems.map((item) => (
