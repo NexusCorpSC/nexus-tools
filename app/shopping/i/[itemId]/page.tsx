@@ -36,7 +36,7 @@ export default async function ShopItemDetailsPage({
           </nav>
 
           <div className="mt-4">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight text-nexus-primary sm:text-4xl">
               {item.name}
             </h1>
           </div>
@@ -47,17 +47,17 @@ export default async function ShopItemDetailsPage({
             </h2>
 
             <div className="flex items-center">
-              <p className="text-lg text-gray-900 sm:text-xl">
+              <p className="text-lg text-nexus-primary sm:text-xl">
                 {item.price} aUEC
               </p>
             </div>
 
             <div className="flex items-center">
-              <p className="text-md text-gray-600 sm:text-lg">
+              <p className="text-md text-nexus-primary sm:text-lg">
                 {t("soldBy")}{" "}
                 <Link
                   href={`/shops/${item.shop.id}`}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-nexus-primary hover:text-nexus-primary/70"
                 >
                   {item.shop.name}
                 </Link>
@@ -65,7 +65,7 @@ export default async function ShopItemDetailsPage({
             </div>
 
             <div className="mt-4 space-y-6">
-              <p className="text-base text-gray-500">{item.description}</p>
+              <p className="text-base prose prose-invert">{item.description}</p>
             </div>
 
             {item.stock <= 0 && (
@@ -74,7 +74,9 @@ export default async function ShopItemDetailsPage({
                   aria-hidden="true"
                   className="size-5 shrink-0 text-red-500"
                 />
-                <p className="ml-2 text-sm text-gray-500">{t("soldOut")}</p>
+                <p className="ml-2 text-sm text-nexus-primary">
+                  {t("soldOut")}
+                </p>
               </div>
             )}
             {item.stock > 0 && item.stock <= 5 && (
@@ -83,7 +85,9 @@ export default async function ShopItemDetailsPage({
                   aria-hidden="true"
                   className="size-5 shrink-0 text-orange-500"
                 />
-                <p className="ml-2 text-sm text-gray-500">{t("lowStock")}</p>
+                <p className="ml-2 text-sm text-nexus-primary">
+                  {t("lowStock")}
+                </p>
               </div>
             )}
             {item.stock > 5 && (
@@ -92,7 +96,9 @@ export default async function ShopItemDetailsPage({
                   aria-hidden="true"
                   className="size-5 shrink-0 text-green-500"
                 />
-                <p className="ml-2 text-sm text-gray-500">{t("inStock")}</p>
+                <p className="ml-2 text-sm text-nexus-primary">
+                  {t("inStock")}
+                </p>
               </div>
             )}
             <div className="pt-4">

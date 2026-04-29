@@ -23,7 +23,7 @@ export function StockModificationForm({ itemId }: { itemId: string }) {
       <span className="isolate inline-flex rounded-md shadow-xs">
         <button
           type="button"
-          className="relative inline-flex items-center rounded-l-md bg-white px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
+          className="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset   focus:z-10"
           onClick={() => setStockModification(stockModification - 1)}
         >
           <span className="sr-only">{t("removeOne")}</span>
@@ -33,7 +33,7 @@ export function StockModificationForm({ itemId }: { itemId: string }) {
           type="number"
           name="stockModification"
           id="stockModification"
-          className="w-20 ring-1 ring-inset ring-gray-300 px-2 py-2 text-center text-gray-400"
+          className="w-20 ring-1 ring-inset  px-2 py-2 text-center "
           value={stockModification}
           onChange={(event) =>
             setStockModification(parseInt(event.target.value))
@@ -41,7 +41,7 @@ export function StockModificationForm({ itemId }: { itemId: string }) {
         />
         <button
           type="button"
-          className="relative -ml-px inline-flex items-center rounded-r-md bg-white px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-10"
+          className="relative -ml-px inline-flex items-center rounded-r-md  px-2 py-2  ring-1 ring-inset  focus:z-10"
           onClick={() => setStockModification(stockModification + 1)}
         >
           <span className="sr-only">{t("addOne")}</span>
