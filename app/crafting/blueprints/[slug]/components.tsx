@@ -101,20 +101,20 @@ export function BlueprintOrgOwnersClient({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-4">
+    <div className="rounded-xl border border-gray-200 p-5 space-y-4">
       <div className="flex items-center gap-2">
-        <UserGroupIcon className="size-5 text-gray-500 shrink-0" />
-        <h2 className="text-sm font-semibold text-gray-700">{sectionTitle}</h2>
+        <UserGroupIcon className="size-5  shrink-0" />
+        <h2 className="text-sm font-semibold ">{sectionTitle}</h2>
       </div>
 
       {organizations.length === 0 ? (
-        <p className="text-sm text-gray-500">{noOrgsLabel}</p>
+        <p className="text-sm ">{noOrgsLabel}</p>
       ) : (
         <>
           <select
             value={selectedOrgId}
             onChange={(e) => handleOrgChange(e.target.value)}
-            className="w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+            className="w-full max-w-xs rounded-md border border-gray-300  px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
           >
             {organizations.map((org) => (
               <option key={org.id} value={org.id}>
@@ -124,13 +124,11 @@ export function BlueprintOrgOwnersClient({
           </select>
 
           {isLoading && (
-            <p className="text-sm text-gray-400 animate-pulse">
-              {loadingLabel}
-            </p>
+            <p className="text-sm  animate-pulse">{loadingLabel}</p>
           )}
 
           {!isLoading && hasFetched && members.length === 0 && (
-            <p className="text-sm text-gray-500">{emptyLabel}</p>
+            <p className="text-sm ">{emptyLabel}</p>
           )}
 
           {!isLoading && members.length > 0 && (
@@ -147,9 +145,7 @@ export function BlueprintOrgOwnersClient({
                     height={32}
                     className="rounded-full size-8 object-cover"
                   />
-                  <span className="text-sm font-medium text-gray-800">
-                    {member.name}
-                  </span>
+                  <span className="text-sm font-medium ">{member.name}</span>
                 </li>
               ))}
             </ul>
@@ -195,20 +191,20 @@ export function AdminBlueprintMenu({
         onClick={() => setOpen((v) => !v)}
         className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
       >
-        <EllipsisVerticalIcon className="size-5 text-gray-500" />
+        <EllipsisVerticalIcon className="size-5 " />
       </button>
 
       {open && (
         <>
           {/* Overlay to close on outside click */}
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-gray-200 bg-white shadow-md py-1">
+          <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-gray-200  shadow-md py-1">
             <Link
               href={`/crafting/blueprints/${blueprintSlug}/edit`}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm  hover:bg-gray-50 transition-colors"
               onClick={() => setOpen(false)}
             >
-              <PencilIcon className="size-4 text-gray-500" />
+              <PencilIcon className="size-4 " />
               {labels.edit}
             </Link>
             <button
@@ -311,7 +307,7 @@ function LocationCombobox({
         value={inputValue}
         placeholder={placeholder}
         autoComplete="off"
-        className="h-9 text-sm bg-white"
+        className="h-9 text-sm "
         onChange={(e) => {
           setInputValue(e.target.value);
           if (!e.target.value) onChange(null);
@@ -320,7 +316,7 @@ function LocationCombobox({
         onFocus={() => setOpen(true)}
       />
       {open && suggestions.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full min-w-52 bg-white border border-gray-200 rounded-md shadow-lg max-h-52 overflow-auto">
+        <div className="absolute z-50 mt-1 w-full min-w-52  border border-gray-200 rounded-md shadow-lg max-h-52 overflow-auto">
           {suggestions.map((loc) => (
             <button
               key={loc.id}
@@ -333,7 +329,7 @@ function LocationCombobox({
                 setOpen(false);
               }}
             >
-              <MapPinIcon className="size-4 text-gray-400 shrink-0" />
+              <MapPinIcon className="size-4  shrink-0" />
               <span>{loc.name}</span>
             </button>
           ))}
@@ -507,11 +503,11 @@ export function CraftFromInventoryClient({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <WrenchScrewdriverIcon className="size-5 text-indigo-600" />
-          <h3 className="font-semibold text-gray-900">{t("craftTitle")}</h3>
+          <h3 className="font-semibold ">{t("craftTitle")}</h3>
         </div>
         <button
           onClick={() => setOpen(false)}
-          className="text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
+          className=" hover:text-gray-600 transition-colors text-lg leading-none"
           aria-label="Close"
         >
           ✕
@@ -520,7 +516,7 @@ export function CraftFromInventoryClient({
 
       {/* Quality mode selector */}
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <p className="text-xs font-semibold  uppercase tracking-wide">
           {t("craftQualityTitle")}
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -531,7 +527,7 @@ export function CraftFromInventoryClient({
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 qualityType === type
                   ? "bg-indigo-600 text-white"
-                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                  : "  border border-gray-200 hover:bg-gray-50"
               }`}
             >
               {type === "max"
@@ -547,7 +543,7 @@ export function CraftFromInventoryClient({
               min={0}
               value={qualityValue}
               onChange={(e) => setQualityValue(e.target.value)}
-              className="w-28 h-8 text-sm bg-white"
+              className="w-28 h-8 text-sm "
               placeholder="0"
             />
           )}
@@ -556,9 +552,7 @@ export function CraftFromInventoryClient({
 
       {/* Loading */}
       {isPending && (
-        <p className="text-sm text-gray-500 animate-pulse">
-          {t("craftSearching")}
-        </p>
+        <p className="text-sm  animate-pulse">{t("craftSearching")}</p>
       )}
 
       {/* Search error */}
@@ -577,16 +571,14 @@ export function CraftFromInventoryClient({
             return (
               <div
                 key={match.componentName}
-                className="rounded-lg border border-gray-200 bg-white overflow-hidden"
+                className="rounded-lg border border-gray-200  overflow-hidden"
               >
                 {/* Component header */}
-                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-nexus-bg border-b border-gray-200">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800">
-                      {match.componentName}
-                    </span>
+                    <span className="font-medium ">{match.componentName}</span>
                     {match.recipeMinQuality !== undefined && (
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                      <span className="text-xs  bg-nexus-fg text-nexus-bg px-2 py-0.5 rounded">
                         {t("craftMinQuality")}: {match.recipeMinQuality}
                       </span>
                     )}
@@ -597,7 +589,7 @@ export function CraftFromInventoryClient({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm ">
                       {t("craftReq")}:{" "}
                       <span className="font-medium">
                         {match.requiredQuantity}
@@ -622,9 +614,7 @@ export function CraftFromInventoryClient({
 
                 {/* Items list with checkboxes */}
                 {match.items.length === 0 ? (
-                  <p className="px-4 py-3 text-sm text-gray-500">
-                    {t("craftNoItems")}
-                  </p>
+                  <p className="px-4 py-3 text-sm ">{t("craftNoItems")}</p>
                 ) : (
                   <div className="divide-y divide-gray-50">
                     {match.items.map((item) => {
@@ -633,7 +623,7 @@ export function CraftFromInventoryClient({
                         <label
                           key={item.id}
                           className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
-                            checked ? "bg-white" : "bg-gray-50/50"
+                            checked ? "" : "bg-gray-50/50"
                           } hover:bg-indigo-50/30`}
                         >
                           <input
@@ -644,13 +634,13 @@ export function CraftFromInventoryClient({
                             }
                             className="size-4 rounded accent-indigo-600 cursor-pointer shrink-0"
                           />
-                          <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0 flex-1">
-                            <MapPinIcon className="size-4 shrink-0 text-gray-400" />
+                          <div className="flex items-center gap-2 text-sm  min-w-0 flex-1">
+                            <MapPinIcon className="size-4 shrink-0 " />
                             <span className="truncate">
                               {item.locationName ?? t("craftUnknownLocation")}
                             </span>
                           </div>
-                          <span className="text-sm font-medium text-gray-800 shrink-0">
+                          <span className="text-sm font-medium  shrink-0">
                             {item.quantity}
                             {item.unit ? ` ${item.unit}` : ""}
                           </span>

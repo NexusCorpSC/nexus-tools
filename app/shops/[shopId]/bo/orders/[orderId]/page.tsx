@@ -65,11 +65,15 @@ export default async function BoOrderDetailPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={`/shops/${shopId}`}>{shop.name}</BreadcrumbLink>
+            <BreadcrumbLink href={`/shops/${shopId}`}>
+              {shop.name}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={`/shops/${shopId}/bo`}>Back-office</BreadcrumbLink>
+            <BreadcrumbLink href={`/shops/${shopId}/bo`}>
+              Back-office
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -93,11 +97,13 @@ export default async function BoOrderDetailPage({
         </span>
       </div>
 
-      <div className="space-y-1 text-sm text-gray-500">
+      <div className="space-y-1 text-sm ">
         <p>
-          {t("from")} : <span className="font-medium text-gray-800">{order.userName}</span>
+          {t("from")} : <span className="font-medium ">{order.userName}</span>
         </p>
-        <p>{t("date")} : {new Date(order.createdAt).toLocaleString()}</p>
+        <p>
+          {t("date")} : {new Date(order.createdAt).toLocaleString()}
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -124,7 +130,7 @@ export default async function BoOrderDetailPage({
       {order.userComment && (
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">{t("userComment")}</h2>
-          <div className="rounded-lg bg-gray-50 border p-4 text-sm whitespace-pre-wrap italic text-gray-700">
+          <div className="rounded-lg bg-gray-50 border p-4 text-sm whitespace-pre-wrap italic ">
             {order.userComment}
           </div>
         </div>
@@ -144,4 +150,3 @@ export default async function BoOrderDetailPage({
     </div>
   );
 }
-

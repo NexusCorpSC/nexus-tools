@@ -12,7 +12,6 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Suspense } from "react";
-import Image from "next/image";
 import {
   BlueprintOwnershipCard,
   BlueprintOrgOwnersSection,
@@ -74,9 +73,7 @@ export default async function BlueprintDetailPage({
             <span className="inline-block text-xs font-semibold uppercase tracking-wide text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
               {blueprint.category}
             </span>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {blueprint.name}
-            </h1>
+            <h1 className="text-3xl font-bold">{blueprint.name}</h1>
           </div>
           <Suspense fallback={null}>
             <AdminBlueprintSection blueprint={blueprint} />
@@ -84,7 +81,7 @@ export default async function BlueprintDetailPage({
         </div>
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+      <div className="relative w-full overflow-hidden rounded-xl border border-gray-200">
         <BlueprintImageCover
           imageUrl={
             blueprint.imageUrl ??
@@ -95,18 +92,20 @@ export default async function BlueprintDetailPage({
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+        <h2 className="text-sm font-semibold  uppercase tracking-wide mb-1">
           {t("Blueprints.description")}
         </h2>
-        <p className="text-gray-700 leading-relaxed">{blueprint.description}</p>
+        <p className="leading-relaxed  prose prose-invert">
+          {blueprint.description}
+        </p>
       </div>
 
       {blueprint.obtention && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+          <h2 className="text-sm font-semibold uppercase tracking-wide mb-1">
             {t("Blueprints.obtention")}
           </h2>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+          <p className="prose prose-invert leading-relaxed whitespace-pre-line">
             {blueprint.obtention}
           </p>
         </div>
@@ -116,18 +115,18 @@ export default async function BlueprintDetailPage({
       <div className="flex flex-wrap gap-6">
         {blueprint.tier !== undefined && (
           <div>
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <span className="text-xs font-semibold  uppercase tracking-wide">
               {t("Blueprints.tier")}
             </span>
-            <p className="mt-0.5 text-gray-800 font-medium">{blueprint.tier}</p>
+            <p className="mt-0.5 font-medium">{blueprint.tier}</p>
           </div>
         )}
         {blueprint.craftingTime !== undefined && (
           <div>
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <span className="text-xs font-semibold  uppercase tracking-wide">
               {t("Blueprints.craftingTime")}
             </span>
-            <p className="mt-0.5 text-gray-800 font-medium">
+            <p className="mt-0.5 font-medium">
               {formatCraftingTime(blueprint.craftingTime)}
             </p>
           </div>
@@ -137,7 +136,7 @@ export default async function BlueprintDetailPage({
       {/* Statistics */}
       {blueprint.statistics && Object.keys(blueprint.statistics).length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          <h2 className="text-sm font-semibold  uppercase tracking-wide mb-2">
             {t("Blueprints.statistics")}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -165,39 +164,39 @@ export default async function BlueprintDetailPage({
           </h2>
           <div className="rounded-lg border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-nexus-bg text-nexus-primary border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-2 text-xs font-semibold  uppercase tracking-wide">
                     {t("Blueprints.recipeComponent")}
                   </th>
-                  <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-2 text-xs font-semibold  uppercase tracking-wide">
                     {t("Blueprints.recipeOption")}
                   </th>
-                  <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="text-right px-4 py-2 text-xs font-semibold  uppercase tracking-wide">
                     {t("Blueprints.recipeQuantity")}
                   </th>
-                  <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="text-right px-4 py-2 text-xs font-semibold  uppercase tracking-wide">
                     {t("Blueprints.recipeMinQuality")}
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-nexus-bg">
                 {blueprint.recipe.components.map((component) =>
                   component.options.map((option, oi) => (
                     <tr key={`${component.name}-${oi}`}>
                       {oi === 0 && (
                         <td
-                          className="px-4 py-2 text-gray-800 font-medium"
+                          className="px-4 py-2  font-medium"
                           rowSpan={component.options.length}
                         >
                           {component.name}
                         </td>
                       )}
-                      <td className="px-4 py-2 text-gray-700">{option.name}</td>
-                      <td className="px-4 py-2 text-right text-gray-700">
+                      <td className="px-4 py-2 ">{option.name}</td>
+                      <td className="px-4 py-2 text-right ">
                         {option.quantity}
                       </td>
-                      <td className="px-4 py-2 text-right text-gray-700">
+                      <td className="px-4 py-2 text-right ">
                         {option.minQuality !== undefined
                           ? option.minQuality
                           : "—"}
@@ -213,7 +212,7 @@ export default async function BlueprintDetailPage({
 
       <Suspense
         fallback={
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 animate-pulse h-16" />
+          <div className="rounded-xl border border-gray-200 p-5 animate-pulse h-16" />
         }
       >
         <BlueprintCraftSection blueprint={blueprint} />
@@ -221,7 +220,7 @@ export default async function BlueprintDetailPage({
 
       <Suspense
         fallback={
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 animate-pulse h-16" />
+          <div className="rounded-xl border border-gray-200 p-5 animate-pulse h-16" />
         }
       >
         <BlueprintOwnershipCard blueprint={blueprint} />
@@ -230,7 +229,7 @@ export default async function BlueprintDetailPage({
       {!blueprint.isDefault && (
         <Suspense
           fallback={
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 animate-pulse h-16" />
+            <div className="rounded-xl border border-gray-200  p-5 animate-pulse h-16" />
           }
         >
           <BlueprintOrgOwnersSection blueprint={blueprint} />

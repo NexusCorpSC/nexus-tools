@@ -19,7 +19,7 @@ import {
 } from "./components";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission, isAdmin } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
 
 export async function BlueprintOwnershipCard({
   blueprint,
@@ -33,8 +33,8 @@ export async function BlueprintOwnershipCard({
 
   if (!session?.user) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-gray-500">
+      <div className="rounded-xl border border-gray-200 p-5 flex flex-col gap-3">
+        <div className="flex items-center gap-2 ">
           <BookmarkIcon className="size-5 shrink-0" />
           <p className="text-sm">{t("ownershipLoginPrompt")}</p>
         </div>
@@ -77,8 +77,8 @@ export async function BlueprintOwnershipCard({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-2 text-gray-500">
+    <div className="rounded-xl border border-gray-200  p-5 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2 ">
         <BookmarkIcon className="size-5 shrink-0" />
         <p className="text-sm">{t("ownershipNotOwned")}</p>
       </div>
@@ -109,11 +109,9 @@ export async function BlueprintOrgOwnersSection({
 
   if (!session?.user) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-gray-700">
-          {t("orgOwnersTitle")}
-        </h2>
-        <p className="text-sm text-gray-500">{t("orgOwnersLoginPrompt")}</p>
+      <div className="rounded-xl border border-gray-200 p-5 flex flex-col gap-3">
+        <h2 className="text-sm font-semibold ">{t("orgOwnersTitle")}</h2>
+        <p className="text-sm ">{t("orgOwnersLoginPrompt")}</p>
         <Button asChild size="sm" className="self-start">
           <Link href="/login">{t("ownershipLoginButton")}</Link>
         </Button>
