@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import path from "node:path";
 import db from "@/lib/db";
-import { ObjectId } from "bson";
+import { Blueprint } from "@/types/crafting";
 
 async function addBlueprintsObtention() {
   const raw: {
@@ -15,11 +15,17 @@ async function addBlueprintsObtention() {
         }[];
       };
     };
+    factions: {
+      [factionId: string]: {
+        name: string;
+      };
+    };
     contracts: {
       id: string;
       missionType: string;
       title: string;
-      blueprintRewards: {
+      factionGuid: string;
+      blueprintRewards?: {
         blueprintPool: string;
         chance: number;
         poolName: string;
@@ -29,28 +35,55 @@ async function addBlueprintsObtention() {
     await readFileSync(path.join(__dirname, "missions.json"), "utf8"),
   );
 
-  const blueprintsCursor = db
-    .db()
-    .collection<{
-      name: string;
-      _id: ObjectId;
-    }>("blueprints")
-    .find();
+  const blueprintsCursor = db.db().collection<Blueprint>("blueprints").find();
 
   while (await blueprintsCursor.hasNext()) {
     const blueprint = await blueprintsCursor.next();
-
-    console.log(blueprint);
+    if (!blueprint) {
+      continue;
+    }
 
     // Compute list of ID of blueprintPools where the blueprint is found in.
-    const poolsWithItem: string[] = [];
+    const poolsWithItem: string[] = Object.entries(raw.blueprintPools)
+      .filter(([, pool]) =>
+        pool.blueprints.some((b) => b.name === blueprint!.name),
+      )
+      .map(([poolId]) => poolId);
 
     // Compute list of contracts that have one of the pools as rewards
-    const missions: { name: string; type: string }[] = [];
+    const missions: { name: string; type: string; factionName?: string }[] =
+      raw.contracts
+        .filter((contract) =>
+          contract.blueprintRewards?.some((reward) =>
+            poolsWithItem.includes(reward.blueprintPool),
+          ),
+        )
+        .map((contract) => ({
+          name: contract.title,
+          type: contract.missionType,
+          factionName: raw.factions[contract.factionGuid]?.name,
+        }));
 
-    console.log(missions);
+    if (missions.length > 0) {
+      const missionNames = missions.map(
+        (m) => `- (${m.factionName}) ${m.name} (${m.type})`,
+      );
+      const uniqueMissionsNames = missionNames.filter(
+        (name, index) => missionNames.indexOf(name) === index,
+      );
 
-    break;
+      await db
+        .db()
+        .collection<Blueprint>("blueprints")
+        .updateOne(
+          { _id: blueprint._id },
+          {
+            $set: {
+              obtention: uniqueMissionsNames.join("\n"),
+            },
+          },
+        );
+    }
   }
 
   console.log("DONE");
