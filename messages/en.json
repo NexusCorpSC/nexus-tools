@@ -232,9 +232,27 @@
   },
   "ShopManagement": {
     "addSeller": "Authorize a seller",
+    "addSellerTitle": "Add a seller",
+    "addSellerUserIdLabel": "User identifier",
+    "addSellerUserIdPlaceholder": "Enter user ID...",
+    "addSellerConfirm": "Add",
+    "removeSeller": "Remove",
+    "cancel": "Cancel",
+    "adding": "Adding...",
+    "removing": "Removing...",
     "title": "Management",
     "sellers": "Sellers",
-    "shops": "Shops"
+    "shops": "Shops",
+    "notFound": "Shop not found",
+    "errors": {
+      "invalidUserId": "The user identifier is invalid.",
+      "userNotFound": "No user found with this identifier.",
+      "alreadySeller": "This user is already a seller in this shop.",
+      "shopNotFound": "Shop not found.",
+      "cannotRemoveSelf": "You cannot remove yourself.",
+      "notAuthenticated": "You must be logged in.",
+      "error": "An error occurred. Please try again."
+    }
   },
   "Profile": {
     "title": "My Profile",

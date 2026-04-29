@@ -232,9 +232,27 @@
   },
   "ShopManagement": {
     "addSeller": "Autoriser un vendeur",
+    "addSellerTitle": "Ajouter un vendeur",
+    "addSellerUserIdLabel": "Identifiant utilisateur",
+    "addSellerUserIdPlaceholder": "Saisir l'ID de l'utilisateur...",
+    "addSellerConfirm": "Ajouter",
+    "removeSeller": "Retirer",
+    "cancel": "Annuler",
+    "adding": "Ajout...",
+    "removing": "Retrait...",
     "title": "Gestion",
     "sellers": "Vendeurs",
-    "shops": "Boutiques"
+    "shops": "Boutiques",
+    "notFound": "Boutique introuvable",
+    "errors": {
+      "invalidUserId": "L'identifiant utilisateur est invalide.",
+      "userNotFound": "Aucun utilisateur trouvé avec cet identifiant.",
+      "alreadySeller": "Cet utilisateur est déjà vendeur dans cette boutique.",
+      "shopNotFound": "Boutique introuvable.",
+      "cannotRemoveSelf": "Vous ne pouvez pas vous retirer vous-même.",
+      "notAuthenticated": "Vous devez être connecté.",
+      "error": "Une erreur est survenue. Veuillez réessayer."
+    }
   },
   "Profile": {
     "title": "Mon Profil",

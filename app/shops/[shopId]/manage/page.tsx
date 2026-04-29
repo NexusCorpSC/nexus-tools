@@ -8,9 +8,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { AddSellerButton, RemoveSellerButton } from "./components";
 
 export default async function ShopManagementPage({
   params,
@@ -63,7 +63,7 @@ export default async function ShopManagementPage({
         <div className="flex flex-row justify-between">
           <h2 className="text-xl font-bold mb-3">{t("sellers")}</h2>
           <div>
-            <Button>{t("addSeller")}</Button>
+            <AddSellerButton shopId={shop.id} />
           </div>
         </div>
 
@@ -76,7 +76,7 @@ export default async function ShopManagementPage({
               <p className="text-lg">{seller.name}</p>
               <div>
                 {seller.id !== session?.user?.id && (
-                  <Button variant="destructive">Retirer</Button>
+                  <RemoveSellerButton shopId={shop.id} sellerId={seller.id} />
                 )}
               </div>
             </div>
