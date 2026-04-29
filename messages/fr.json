@@ -258,6 +258,7 @@
     "title": "Mon Profil",
     "avatar": "Avatar",
     "username": "Pseudo",
+    "userId": "ID Utilisateur",
     "edit": "Modifier",
     "email": "Courriel",
     "organizations": "Organisations",

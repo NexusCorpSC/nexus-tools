@@ -258,6 +258,7 @@
     "title": "My Profile",
     "avatar": "Avatar",
     "username": "Username",
+    "userId": "User ID",
     "edit": "Edit",
     "email": "Email",
     "organizations": "Organizations",
