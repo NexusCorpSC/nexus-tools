@@ -6,6 +6,7 @@ import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import { Suspense } from "react";
 import { StockModificationSection } from "@/app/shopping/i/[itemId]/server-components";
 import { getTranslations } from "next-intl/server";
+import { Button } from "@/components/ui/button";
 
 export default async function ShopItemDetailsPage({
   params,
@@ -113,17 +114,14 @@ export default async function ShopItemDetailsPage({
         </div>
 
         <div className="mt-10 lg:col-start-1 lg:row-start-2 lg:max-w-lg lg:self-start">
-          <section aria-labelledby="options-heading">
-            <form>
-              <div className="mt-10">
-                <button
-                  type="submit"
-                  className="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50"
-                >
-                  {t("buy")}
-                </button>
-              </div>
-            </form>
+          <section
+            aria-labelledby="options-heading"
+            className="flex flex-col gap-2"
+          >
+            <Button className="w-full">{t("buy")}</Button>
+            <Button variant="secondary" className="w-full">
+              Passez commande
+            </Button>
           </section>
         </div>
       </div>

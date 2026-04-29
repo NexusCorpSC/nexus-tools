@@ -228,7 +228,81 @@
   },
   "ShopDetails": {
     "notFound": "Shop not found",
-    "manage": "Manage shop"
+    "manage": "Manage shop",
+    "products": "Products in store",
+    "placeOrderCTA": "Place order",
+    "loginToOrder": "Sign in to place an order with this shop."
+  },
+  "ShopOrders": {
+    "formTitle": "Place a free order",
+    "formDescription": "Describe your needs and the shop will get back to you with a quote.",
+    "messageLabel": "Your request",
+    "messagePlaceholder": "Describe your needs...",
+    "submit": "Send request",
+    "submitting": "Sending...",
+    "errors": {
+      "MESSAGE_REQUIRED": "Please fill in your request."
+    }
+  },
+  "BoOrders": {
+    "title": "Orders",
+    "shopNotFound": "Shop not found.",
+    "empty": "No orders yet.",
+    "orderDetail": "Order detail",
+    "from": "From",
+    "date": "Date",
+    "customerMessage": "Customer message",
+    "currentResponse": "Response sent",
+    "currentQuote": "Current quote",
+    "respondTitle": "Respond to order",
+    "responseLabel": "Your response",
+    "responsePlaceholder": "Reply to the customer...",
+    "quoteLabel": "Quote (aUEC, optional)",
+    "submit": "Send response",
+    "submitting": "Sending...",
+    "prev": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {page} of {totalPages}",
+    "navLink": "View orders (BO)",
+    "status": {
+      "PENDING": "Pending",
+      "QUOTED": "Quote sent",
+      "ACCEPTED": "Accepted",
+      "REFUSED": "Refused",
+      "CANCELLED": "Cancelled"
+    },
+    "errors": {
+      "MESSAGE_REQUIRED": "A response message is required.",
+      "INVALID_QUOTE": "The quote must be a positive number."
+    }
+  },
+  "MyOrders": {
+    "title": "My Orders",
+    "shopping": "Marketplace",
+    "orderDetail": "Order detail",
+    "empty": "You have no orders yet.",
+    "backToShopping": "Back to marketplace",
+    "shop": "Shop",
+    "date": "Date",
+    "updated": "Updated",
+    "yourMessage": "Your request",
+    "shopResponse": "Shop response",
+    "quoteAmount": "Quote",
+    "quote": "Quote",
+    "cancelOrder": "Cancel order",
+    "acceptQuote": "Accept quote",
+    "refuseQuote": "Refuse quote",
+    "processing": "Processing...",
+    "prev": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {page} of {totalPages}",
+    "status": {
+      "PENDING": "Pending",
+      "QUOTED": "Quote received",
+      "ACCEPTED": "Accepted",
+      "REFUSED": "Refused",
+      "CANCELLED": "Cancelled"
+    }
   },
   "ShopManagement": {
     "addSeller": "Authorize a seller",

@@ -228,7 +228,81 @@
   },
   "ShopDetails": {
     "notFound": "Boutique non trouvée",
-    "manage": "Gérer la boutique"
+    "manage": "Gérer la boutique",
+    "products": "Articles en vente",
+    "placeOrderCTA": "Passez commande",
+    "loginToOrder": "Connectez-vous pour passer une commande auprès de cette boutique."
+  },
+  "ShopOrders": {
+    "formTitle": "Passer une commande libre",
+    "formDescription": "Décrivez votre besoin en quelques mots et la boutique vous répondra avec un devis.",
+    "messageLabel": "Votre demande",
+    "messagePlaceholder": "Décrivez votre besoin...",
+    "submit": "Envoyer la demande",
+    "submitting": "Envoi...",
+    "errors": {
+      "MESSAGE_REQUIRED": "Veuillez renseigner votre demande."
+    }
+  },
+  "BoOrders": {
+    "title": "Commandes",
+    "shopNotFound": "Boutique introuvable.",
+    "empty": "Aucune commande pour l'instant.",
+    "orderDetail": "Détail de la commande",
+    "from": "De",
+    "date": "Date",
+    "customerMessage": "Message du client",
+    "currentResponse": "Réponse envoyée",
+    "currentQuote": "Devis actuel",
+    "respondTitle": "Répondre à la commande",
+    "responseLabel": "Votre réponse",
+    "responsePlaceholder": "Répondez au client...",
+    "quoteLabel": "Devis (aUEC, optionnel)",
+    "submit": "Envoyer la réponse",
+    "submitting": "Envoi...",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "pageInfo": "Page {page} sur {totalPages}",
+    "navLink": "Voir les commandes (BO)",
+    "status": {
+      "PENDING": "En attente",
+      "QUOTED": "Devis envoyé",
+      "ACCEPTED": "Acceptée",
+      "REFUSED": "Refusée",
+      "CANCELLED": "Annulée"
+    },
+    "errors": {
+      "MESSAGE_REQUIRED": "La réponse est obligatoire.",
+      "INVALID_QUOTE": "Le devis doit être un nombre positif."
+    }
+  },
+  "MyOrders": {
+    "title": "Mes commandes",
+    "shopping": "Marketplace",
+    "orderDetail": "Détail de la commande",
+    "empty": "Vous n'avez aucune commande pour l'instant.",
+    "backToShopping": "Retour à la marketplace",
+    "shop": "Boutique",
+    "date": "Date",
+    "updated": "Mis à jour",
+    "yourMessage": "Votre demande",
+    "shopResponse": "Réponse de la boutique",
+    "quoteAmount": "Devis",
+    "quote": "Devis",
+    "cancelOrder": "Annuler la commande",
+    "acceptQuote": "Accepter le devis",
+    "refuseQuote": "Refuser le devis",
+    "processing": "Traitement...",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "pageInfo": "Page {page} sur {totalPages}",
+    "status": {
+      "PENDING": "En attente",
+      "QUOTED": "Devis reçu",
+      "ACCEPTED": "Acceptée",
+      "REFUSED": "Refusée",
+      "CANCELLED": "Annulée"
+    }
   },
   "ShopManagement": {
     "addSeller": "Autoriser un vendeur",

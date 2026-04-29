@@ -1,10 +1,21 @@
-import { getShop, getShopItemsOfShop } from "@/lib/shop-items";
+import {
+  getShop,
+  getShopItemsOfShop,
+  isUserSellerOfShop,
+} from "@/lib/shop-items";
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { ManageShopButton } from "@/app/shops/[shopId]/components";
 import { MarkdownContent } from "@/components/markdown-content";
+import {
+  PlaceOrderForm,
+  OrdersNavLink,
+} from "@/app/shops/[shopId]/order-components";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { ObjectId } from "bson";
 
 export default async function ShopPage({
   params,
@@ -12,7 +23,12 @@ export default async function ShopPage({
   params: Promise<{ shopId: string }>;
 }) {
   const t = await getTranslations("ShopDetails");
-  const shop = await getShop((await params).shopId);
+  const shopId = (await params).shopId;
+  const shop = await getShop(shopId);
+  const session = await auth.api.getSession({ headers: await headers() });
+  const isSeller =
+    session?.user?.id &&
+    (await isUserSellerOfShop(shopId, new ObjectId(session.user.id)));
 
   if (!shop) {
     return (
@@ -22,7 +38,7 @@ export default async function ShopPage({
     );
   }
 
-  const shopItems = await getShopItemsOfShop(shop.id, { offset: 0, limit: 10 });
+  const shopItems = await getShopItemsOfShop(shopId, { offset: 0, limit: 10 });
 
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
@@ -34,6 +50,8 @@ export default async function ShopPage({
       </div>
 
       <MarkdownContent content={shop.description} />
+
+      <h2 className="text-xl font-bold mb-4">{t("products")}</h2>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
         {shopItems.map((item) => (
@@ -52,6 +70,22 @@ export default async function ShopPage({
           </Link>
         ))}
       </div>
+
+      <h2 className="text-xl font-bold mb-4">{t("placeOrderCTA")}</h2>
+
+      {session?.user ? (
+        <PlaceOrderForm shopId={shop.id} />
+      ) : (
+        <p className="text-sm text-gray-500">{t("loginToOrder")}</p>
+      )}
+
+      {isSeller && (
+        <div className="pt-2">
+          <Suspense fallback={null}>
+            <OrdersNavLink shopId={shop.id} />
+          </Suspense>
+        </div>
+      )}
     </div>
   );
 }
