@@ -275,6 +275,7 @@
     "next": "Next",
     "pageInfo": "Page {page} of {totalPages}",
     "navLink": "View orders (BO)",
+    "userComment": "Customer comment",
     "status": {
       "PENDING": "Pending",
       "QUOTED": "Quote sent",
@@ -304,6 +305,14 @@
     "acceptQuote": "Accept quote",
     "refuseQuote": "Refuse quote",
     "processing": "Processing...",
+    "commentLabel": "Message (optional)",
+    "commentPlaceholder": "Leave a message to accompany your choice...",
+    "yourComment": "Your comment",
+    "errors": {
+      "CANNOT_CANCEL": "Unable to cancel this order.",
+      "CANNOT_ACCEPT": "Unable to accept this quote.",
+      "CANNOT_REFUSE": "Unable to refuse this quote."
+    },
     "prev": "Previous",
     "next": "Next",
     "pageInfo": "Page {page} of {totalPages}",

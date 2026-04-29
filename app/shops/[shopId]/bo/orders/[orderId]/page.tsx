@@ -121,6 +121,15 @@ export default async function BoOrderDetailPage({
         </div>
       )}
 
+      {order.userComment && (
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">{t("userComment")}</h2>
+          <div className="rounded-lg bg-gray-50 border p-4 text-sm whitespace-pre-wrap italic text-gray-700">
+            {order.userComment}
+          </div>
+        </div>
+      )}
+
       {canRespond && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">{t("respondTitle")}</h2>

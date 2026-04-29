@@ -275,6 +275,7 @@
     "next": "Suivant",
     "pageInfo": "Page {page} sur {totalPages}",
     "navLink": "Voir les commandes (BO)",
+    "userComment": "Commentaire du client",
     "status": {
       "PENDING": "En attente",
       "QUOTED": "Devis envoyé",
@@ -304,6 +305,14 @@
     "acceptQuote": "Accepter le devis",
     "refuseQuote": "Refuser le devis",
     "processing": "Traitement...",
+    "commentLabel": "Message (optionnel)",
+    "commentPlaceholder": "Laissez un message pour accompagner votre choix...",
+    "yourComment": "Votre commentaire",
+    "errors": {
+      "CANNOT_CANCEL": "Impossible d'annuler cette commande.",
+      "CANNOT_ACCEPT": "Impossible d'accepter ce devis.",
+      "CANNOT_REFUSE": "Impossible de refuser ce devis."
+    },
     "prev": "Précédent",
     "next": "Suivant",
     "pageInfo": "Page {page} sur {totalPages}",

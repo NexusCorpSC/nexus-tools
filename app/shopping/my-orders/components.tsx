@@ -21,18 +21,24 @@ export function OrderActions({
 }) {
   const t = useTranslations("MyOrders");
   const router = useRouter();
+  const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const canCancel = status === "PENDING" || status === "QUOTED";
   const canActOnQuote = status === "QUOTED" && hasQuote;
 
+  if (!canCancel && !canActOnQuote) return null;
+
   function handleCancel() {
     setError(null);
     startTransition(async () => {
-      const result = await cancelOrderAction(orderId);
+      const result = await cancelOrderAction(
+        orderId,
+        comment.trim() || undefined,
+      );
       if (result.error) {
-        setError(t("processing"));
+        setError(t("errors.CANNOT_CANCEL"));
       } else {
         router.refresh();
       }
@@ -42,9 +48,12 @@ export function OrderActions({
   function handleAccept() {
     setError(null);
     startTransition(async () => {
-      const result = await acceptQuoteAction(orderId);
+      const result = await acceptQuoteAction(
+        orderId,
+        comment.trim() || undefined,
+      );
       if (result.error) {
-        setError(t("processing"));
+        setError(t("errors.CANNOT_ACCEPT"));
       } else {
         router.refresh();
       }
@@ -54,20 +63,36 @@ export function OrderActions({
   function handleRefuse() {
     setError(null);
     startTransition(async () => {
-      const result = await refuseQuoteAction(orderId);
+      const result = await refuseQuoteAction(
+        orderId,
+        comment.trim() || undefined,
+      );
       if (result.error) {
-        setError(t("processing"));
+        setError(t("errors.CANNOT_REFUSE"));
       } else {
         router.refresh();
       }
     });
   }
 
-  if (!canCancel && !canActOnQuote) return null;
-
   return (
-    <div className="space-y-3 pt-4 border-t">
+    <div className="space-y-4 pt-4 border-t">
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">
+          {t("commentLabel")}
+        </label>
+        <textarea
+          rows={3}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          disabled={isPending}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+          placeholder={t("commentPlaceholder")}
+        />
+      </div>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
+
       <div className="flex flex-wrap gap-3">
         {canActOnQuote && (
           <>

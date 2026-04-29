@@ -45,38 +45,41 @@ export async function placeOrderAction(
 
 export async function cancelOrderAction(
   orderId: string,
+  comment?: string,
 ): Promise<{ error?: string }> {
   const session = await getAuthSession();
-  const success = await cancelOrder(orderId, new ObjectId(session.user.id));
+  const success = await cancelOrder(orderId, new ObjectId(session.user.id), comment);
   if (!success) {
     return { error: "CANNOT_CANCEL" };
   }
-  revalidatePath(`/shopping/my-orders/${orderId}`);
+  revalidatePath(`/shopping/my-order/${orderId}`);
   revalidatePath(`/shopping/my-orders`);
   return {};
 }
 
 export async function acceptQuoteAction(
   orderId: string,
+  comment?: string,
 ): Promise<{ error?: string }> {
   const session = await getAuthSession();
-  const success = await acceptQuote(orderId, new ObjectId(session.user.id));
+  const success = await acceptQuote(orderId, new ObjectId(session.user.id), comment);
   if (!success) {
     return { error: "CANNOT_ACCEPT" };
   }
-  revalidatePath(`/shopping/my-orders/${orderId}`);
+  revalidatePath(`/shopping/my-order/${orderId}`);
   return {};
 }
 
 export async function refuseQuoteAction(
   orderId: string,
+  comment?: string,
 ): Promise<{ error?: string }> {
   const session = await getAuthSession();
-  const success = await refuseQuote(orderId, new ObjectId(session.user.id));
+  const success = await refuseQuote(orderId, new ObjectId(session.user.id), comment);
   if (!success) {
     return { error: "CANNOT_REFUSE" };
   }
-  revalidatePath(`/shopping/my-orders/${orderId}`);
+  revalidatePath(`/shopping/my-order/${orderId}`);
   revalidatePath(`/shopping/my-orders`);
   return {};
 }

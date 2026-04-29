@@ -21,6 +21,7 @@ export type ShopOrderDbModel = {
   status: OrderStatus;
   response?: string;
   quote?: number;
+  userComment?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -34,6 +35,7 @@ export type ShopOrder = {
   status: OrderStatus;
   response?: string;
   quote?: number;
+  userComment?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -48,6 +50,7 @@ function toShopOrder(doc: ShopOrderDbModel): ShopOrder {
     status: doc.status,
     response: doc.response,
     quote: doc.quote,
+    userComment: doc.userComment,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -131,7 +134,14 @@ export async function respondToOrder(
 export async function cancelOrder(
   orderId: string,
   userId: ObjectId,
+  userComment?: string,
 ): Promise<boolean> {
+  const update: Record<string, unknown> = {
+    status: "CANCELLED",
+    updatedAt: new Date().toISOString(),
+  };
+  if (userComment) update.userComment = userComment;
+
   const result = await db
     .db()
     .collection<ShopOrderDbModel>("shopOrders")
@@ -141,12 +151,7 @@ export async function cancelOrder(
         userId,
         status: { $in: ["PENDING", "QUOTED"] },
       },
-      {
-        $set: {
-          status: "CANCELLED",
-          updatedAt: new Date().toISOString(),
-        },
-      },
+      { $set: update },
     );
 
   return result.modifiedCount > 0;
@@ -155,18 +160,20 @@ export async function cancelOrder(
 export async function acceptQuote(
   orderId: string,
   userId: ObjectId,
+  userComment?: string,
 ): Promise<boolean> {
+  const update: Record<string, unknown> = {
+    status: "ACCEPTED",
+    updatedAt: new Date().toISOString(),
+  };
+  if (userComment) update.userComment = userComment;
+
   const result = await db
     .db()
     .collection<ShopOrderDbModel>("shopOrders")
     .updateOne(
       { id: orderId, userId, status: "QUOTED" },
-      {
-        $set: {
-          status: "ACCEPTED",
-          updatedAt: new Date().toISOString(),
-        },
-      },
+      { $set: update },
     );
 
   return result.modifiedCount > 0;
@@ -175,18 +182,20 @@ export async function acceptQuote(
 export async function refuseQuote(
   orderId: string,
   userId: ObjectId,
+  userComment?: string,
 ): Promise<boolean> {
+  const update: Record<string, unknown> = {
+    status: "REFUSED",
+    updatedAt: new Date().toISOString(),
+  };
+  if (userComment) update.userComment = userComment;
+
   const result = await db
     .db()
     .collection<ShopOrderDbModel>("shopOrders")
     .updateOne(
       { id: orderId, userId, status: "QUOTED" },
-      {
-        $set: {
-          status: "REFUSED",
-          updatedAt: new Date().toISOString(),
-        },
-      },
+      { $set: update },
     );
 
   return result.modifiedCount > 0;
