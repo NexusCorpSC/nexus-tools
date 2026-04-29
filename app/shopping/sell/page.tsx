@@ -68,10 +68,7 @@ export default async function SellPage() {
 
       <form action={addArticleToShop}>
         <div>
-          <label
-            htmlFor="shopId"
-            className="block text-sm/6 font-medium text-gray-900"
-          >
+          <label htmlFor="shopId" className="block text-sm/6 font-medium">
             {t("itemShop")}
           </label>
 
@@ -92,10 +89,7 @@ export default async function SellPage() {
         </div>
 
         <div>
-          <label
-            htmlFor="name"
-            className="block text-sm/6 font-medium text-gray-900"
-          >
+          <label htmlFor="name" className="block text-sm/6 font-medium ">
             {t("itemName")}
           </label>
           <div className="mt-2">
@@ -105,17 +99,14 @@ export default async function SellPage() {
               type="text"
               placeholder={t("itemNamePlaceholder")}
               required
-              className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-solid outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-solid focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+              className="block w-full rounded-md  px-3 py-1.5 text-base outline-solid outline-1 -outline-offset-1 focus:outline-solid focus:outline-2 focus:-outline-offset-2 sm:text-sm/6"
               maxLength={500}
             />
           </div>
         </div>
 
         <div>
-          <label
-            htmlFor="type"
-            className="block text-sm/6 font-medium text-gray-900"
-          >
+          <label htmlFor="type" className="block text-sm/6 font-medium">
             {t("itemType")}
           </label>
           <div className="mt-2">
@@ -134,10 +125,7 @@ export default async function SellPage() {
         </div>
 
         <div>
-          <label
-            htmlFor="description"
-            className="block text-sm/6 font-medium text-gray-900"
-          >
+          <label htmlFor="description" className="block text-sm/6 font-medium">
             {t("itemDescription")}
           </label>
           <div className="mt-2">
@@ -145,22 +133,17 @@ export default async function SellPage() {
               id="description"
               name="description"
               rows={3}
-              className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-solid outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-solid focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+              className="block w-full rounded-md px-3 py-1.5 text-base outline-solid outline-1 -outline-offset-1 focus:outline-solid focus:outline-2 focus:-outline-offset-2  sm:text-sm/6"
               defaultValue={""}
               required
               maxLength={5000}
             />
           </div>
-          <p className="mt-3 text-sm/6 text-gray-600">
-            {t("itemDescriptionHelper")}
-          </p>
+          <p className="mt-3 text-sm/6 ">{t("itemDescriptionHelper")}</p>
         </div>
 
         <div>
-          <label
-            htmlFor="price"
-            className="block text-sm/6 font-medium text-gray-900"
-          >
+          <label htmlFor="price" className="block text-sm/6 font-medium ">
             {t("itemPrice")}
           </label>
           <div className="mt-2">
@@ -172,28 +155,22 @@ export default async function SellPage() {
               min={0}
               required
               defaultValue={5000}
-              className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-solid outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-solid focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+              className="block w-full rounded-md  px-3 py-1.5 text-base outline-solid outline-1 -outline-offset-1 focus:outline-solid focus:outline-2 focus:-outline-offset-2 sm:text-sm/6"
             />
           </div>
         </div>
 
         <div>
-          <label
-            htmlFor="image-cover"
-            className="block text-sm/6 font-medium text-gray-900"
-          >
+          <label htmlFor="image-cover" className="block text-sm/6 font-medium ">
             {t("itemImage")}
           </label>
           <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
             <div className="text-center">
-              <PhotoIcon
-                aria-hidden="true"
-                className="mx-auto size-12 text-gray-300"
-              />
-              <div className="mt-4 flex text-sm/6 text-gray-600">
+              <PhotoIcon aria-hidden="true" className="mx-auto size-12" />
+              <div className="mt-4 flex text-sm/6">
                 <label
                   htmlFor="image"
-                  className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-hidden focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
+                  className="relative cursor-pointer rounded-md font-semibold focus-within:outline-hidden focus-within:ring-2 focus-within:ring-offset-2"
                 >
                   <span>{t("itemImageUpload")}</span>
                   <input
@@ -207,16 +184,13 @@ export default async function SellPage() {
                 </label>
                 <p className="pl-1">{t("itemImageDrop")}</p>
               </div>
-              <p className="text-xs/5 text-gray-600">{t("itemImageFormats")}</p>
+              <p className="text-xs/5">{t("itemImageFormats")}</p>
             </div>
           </div>
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-x-6">
-          <Link
-            href="/shopping"
-            className="text-sm/6 font-semibold text-gray-900"
-          >
+          <Link href="/shopping" className="text-sm/6 font-semibold ">
             {t("cancel")}
           </Link>
           <button
