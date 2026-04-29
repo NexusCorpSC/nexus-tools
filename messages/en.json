@@ -231,7 +231,9 @@
     "manage": "Manage shop"
   },
   "ShopManagement": {
+    "addSeller": "Authorize a seller",
     "title": "Management",
+    "sellers": "Sellers",
     "shops": "Shops"
   },
   "Profile": {

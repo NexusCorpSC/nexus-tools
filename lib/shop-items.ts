@@ -189,6 +189,72 @@ export async function getShop(shopId: string): Promise<Shop | null> {
     .next();
 }
 
+export async function getShopSellers(shopId: string): Promise<
+  {
+    id: string;
+    name: string;
+  }[]
+> {
+  const shop = await db
+    .db()
+    .collection("shops")
+    .aggregate<{
+      id: string;
+      sellers: {
+        id: string;
+        name: string;
+      }[];
+    }>([
+      {
+        $match: { id: shopId },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellers",
+          foreignField: "_id",
+          as: "sellers",
+          pipeline: [
+            {
+              $project: {
+                _id: -1,
+                name: -1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          sellers: {
+            $map: {
+              input: "$sellers",
+              as: "seller",
+              in: {
+                id: {
+                  $toString: "$$seller._id",
+                },
+                name: "$$seller.name",
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          "sellers._id": 0,
+        },
+      },
+    ])
+    .next();
+
+  if (!shop) {
+    throw new Error("Shop not found.");
+  }
+
+  return shop.sellers;
+}
+
 export async function isUserSellerOfShop(shopId: string, userId: ObjectId) {
   const shop = await db
     .db()

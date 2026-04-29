@@ -231,7 +231,9 @@
     "manage": "Gérer la boutique"
   },
   "ShopManagement": {
+    "addSeller": "Autoriser un vendeur",
     "title": "Gestion",
+    "sellers": "Vendeurs",
     "shops": "Boutiques"
   },
   "Profile": {
