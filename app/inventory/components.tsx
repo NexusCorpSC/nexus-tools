@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-  FormEvent,
-} from "react";
+import { useState, useCallback, useEffect, useRef, FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { InventoryItemWithLocation, Location } from "@/types/inventory";
 import {
@@ -76,7 +70,7 @@ function LocationCombobox({
   const fetchSuggestions = useCallback(async (query: string) => {
     try {
       const res = await fetch(
-        `/api/inventory/locations?query=${encodeURIComponent(query)}`
+        `/api/inventory/locations?query=${encodeURIComponent(query)}`,
       );
       if (!res.ok) return;
       const data: Location[] = await res.json();
@@ -129,7 +123,7 @@ function LocationCombobox({
   };
 
   const exactMatch = suggestions.some(
-    (s) => s.name.toLowerCase() === inputValue.trim().toLowerCase()
+    (s) => s.name.toLowerCase() === inputValue.trim().toLowerCase(),
   );
 
   return (
@@ -146,7 +140,7 @@ function LocationCombobox({
         onFocus={() => setOpen(true)}
       />
       {open && (inputValue.length > 0 || suggestions.length > 0) && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-52 overflow-auto">
+        <div className="absolute z-50 mt-1 w-full  border border-gray-200 rounded-md shadow-lg max-h-52 overflow-auto">
           {suggestions.map((loc) => (
             <button
               key={loc.id}
@@ -159,10 +153,10 @@ function LocationCombobox({
                 setOpen(false);
               }}
             >
-              <MapPinIcon className="size-4 text-gray-400 shrink-0" />
+              <MapPinIcon className="size-4  shrink-0" />
               <span>{loc.name}</span>
               {loc.userId && (
-                <span className="ml-auto text-xs text-gray-400">
+                <span className="ml-auto text-xs ">
                   {t("locationPersonal")}
                 </span>
               )}
@@ -181,9 +175,7 @@ function LocationCombobox({
             </button>
           )}
           {suggestions.length === 0 && !inputValue.trim() && (
-            <p className="px-3 py-2 text-sm">
-              {t("locationEmpty")}
-            </p>
+            <p className="px-3 py-2 text-sm">{t("locationEmpty")}</p>
           )}
         </div>
       )}
@@ -195,54 +187,107 @@ function LocationCombobox({
 // Shared form body used by AddItemDialog and EditItemDialog
 
 function ItemFormFields({
-  name, setName, description, setDescription,
-  quality, setQuality, quantity, setQuantity,
-  unit, setUnit, location, setLocation,
+  name,
+  setName,
+  description,
+  setDescription,
+  quality,
+  setQuality,
+  quantity,
+  setQuantity,
+  unit,
+  setUnit,
+  location,
+  setLocation,
 }: {
-  name: string; setName: (v: string) => void;
-  description: string; setDescription: (v: string) => void;
-  quality: string; setQuality: (v: string) => void;
-  quantity: string; setQuantity: (v: string) => void;
-  unit: string; setUnit: (v: string) => void;
-  location: Location | null; setLocation: (v: Location) => void;
+  name: string;
+  setName: (v: string) => void;
+  description: string;
+  setDescription: (v: string) => void;
+  quality: string;
+  setQuality: (v: string) => void;
+  quantity: string;
+  setQuantity: (v: string) => void;
+  unit: string;
+  setUnit: (v: string) => void;
+  location: Location | null;
+  setLocation: (v: Location) => void;
 }) {
   const t = useTranslations("Inventory");
   return (
     <>
       <div className="space-y-1.5">
         <Label htmlFor="item-name">{t("fieldName")}</Label>
-        <Input id="item-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder={t("fieldNamePlaceholder")} />
+        <Input
+          id="item-name"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t("fieldNamePlaceholder")}
+        />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="item-description">
           {t("fieldDescription")}{" "}
-          <span className="text-gray-400 font-normal">({t("optional")})</span>
+          <span className=" font-normal">({t("optional")})</span>
         </Label>
-        <Textarea id="item-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={t("fieldDescriptionPlaceholder")} />
+        <Textarea
+          id="item-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          placeholder={t("fieldDescriptionPlaceholder")}
+        />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="item-quality">
             {t("fieldQuality")}{" "}
-            <span className="text-gray-400 font-normal text-xs">({t("optional")})</span>
+            <span className=" font-normal text-xs">({t("optional")})</span>
           </Label>
-          <Input id="item-quality" type="number" min={0} step={1} value={quality} onChange={(e) => setQuality(e.target.value)} placeholder="0" />
+          <Input
+            id="item-quality"
+            type="number"
+            min={0}
+            step={1}
+            value={quality}
+            onChange={(e) => setQuality(e.target.value)}
+            placeholder="0"
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="item-quantity">{t("fieldQuantity")}</Label>
-          <Input id="item-quantity" type="number" min={0} step="any" required value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="1" />
+          <Input
+            id="item-quantity"
+            type="number"
+            min={0}
+            step="any"
+            required
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="1"
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="item-unit">
             {t("fieldUnit")}{" "}
-            <span className="text-gray-400 font-normal text-xs">({t("optional")})</span>
+            <span className=" font-normal text-xs">({t("optional")})</span>
           </Label>
-          <Input id="item-unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder={t("fieldUnitPlaceholder")} />
+          <Input
+            id="item-unit"
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+            placeholder={t("fieldUnitPlaceholder")}
+          />
         </div>
       </div>
       <div className="space-y-1.5">
         <Label>{t("fieldLocation")}</Label>
-        <LocationCombobox value={location} onChange={setLocation} placeholder={t("fieldLocationPlaceholder")} />
+        <LocationCombobox
+          value={location}
+          onChange={setLocation}
+          placeholder={t("fieldLocationPlaceholder")}
+        />
       </div>
     </>
   );
@@ -303,7 +348,10 @@ function AddItemDialog({
 
     const parsedQuality =
       quality.trim() !== "" ? parseInt(quality, 10) : undefined;
-    if (parsedQuality !== undefined && (isNaN(parsedQuality) || parsedQuality < 0)) {
+    if (
+      parsedQuality !== undefined &&
+      (isNaN(parsedQuality) || parsedQuality < 0)
+    ) {
       setError(t("errorQualityInvalid"));
       return;
     }
@@ -347,12 +395,18 @@ function AddItemDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <ItemFormFields
-            name={name} setName={setName}
-            description={description} setDescription={setDescription}
-            quality={quality} setQuality={setQuality}
-            quantity={quantity} setQuantity={setQuantity}
-            unit={unit} setUnit={setUnit}
-            location={location} setLocation={setLocation}
+            name={name}
+            setName={setName}
+            description={description}
+            setDescription={setDescription}
+            quality={quality}
+            setQuality={setQuality}
+            quantity={quantity}
+            setQuantity={setQuantity}
+            unit={unit}
+            setUnit={setUnit}
+            location={location}
+            setLocation={setLocation}
           />
 
           <button
@@ -361,7 +415,7 @@ function AddItemDialog({
             className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
               orgVisible
                 ? "border-blue-300 bg-blue-50 text-blue-700"
-                : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+                : "border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-500"
             }`}
           >
             <div className="flex items-center gap-2">
@@ -374,16 +428,14 @@ function AddItemDialog({
               }`}
             >
               <span
-                className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                className={`pointer-events-none block h-4 w-4 rounded-full  shadow-sm transition-transform ${
                   orgVisible ? "translate-x-4" : "translate-x-0"
                 }`}
               />
             </span>
           </button>
 
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
@@ -414,22 +466,36 @@ function EditItemDialog({
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? "");
   const [quality, setQuality] = useState(
-    item.quality !== undefined && item.quality !== null ? String(item.quality) : ""
+    item.quality !== undefined && item.quality !== null
+      ? String(item.quality)
+      : "",
   );
   const [quantity, setQuantity] = useState(String(item.quantity));
   const [unit, setUnit] = useState(item.unit ?? "");
-  const [location, setLocation] = useState<Location | null>(item.location ?? null);
+  const [location, setLocation] = useState<Location | null>(
+    item.location ?? null,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!location) { setError(t("errorLocationRequired")); return; }
+    if (!location) {
+      setError(t("errorLocationRequired"));
+      return;
+    }
     const parsedQuantity = parseFloat(quantity);
-    if (isNaN(parsedQuantity)) { setError(t("errorQuantityInvalid")); return; }
-    const parsedQuality = quality.trim() !== "" ? parseInt(quality, 10) : undefined;
-    if (parsedQuality !== undefined && (isNaN(parsedQuality) || parsedQuality < 0)) {
+    if (isNaN(parsedQuantity)) {
+      setError(t("errorQuantityInvalid"));
+      return;
+    }
+    const parsedQuality =
+      quality.trim() !== "" ? parseInt(quality, 10) : undefined;
+    if (
+      parsedQuality !== undefined &&
+      (isNaN(parsedQuality) || parsedQuality < 0)
+    ) {
       setError(t("errorQualityInvalid"));
       return;
     }
@@ -470,12 +536,18 @@ function EditItemDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <ItemFormFields
-            name={name} setName={setName}
-            description={description} setDescription={setDescription}
-            quality={quality} setQuality={setQuality}
-            quantity={quantity} setQuantity={setQuantity}
-            unit={unit} setUnit={setUnit}
-            location={location} setLocation={setLocation}
+            name={name}
+            setName={setName}
+            description={description}
+            setDescription={setDescription}
+            quality={quality}
+            setQuality={setQuality}
+            quantity={quantity}
+            setQuantity={setQuantity}
+            unit={unit}
+            setUnit={setUnit}
+            location={location}
+            setLocation={setLocation}
           />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
@@ -544,9 +616,24 @@ function AdjustQuantityPopover({
   const label = mode === "add" ? t("actionAdd") : t("actionRemove");
 
   return (
-    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setValue(""); setError(null); } }}>
+    <Popover
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) {
+          setValue("");
+          setError(null);
+        }
+      }}
+    >
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="icon" className="size-7" title={label}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-7"
+          title={label}
+        >
           <Icon className="size-3.5" />
         </Button>
       </PopoverTrigger>
@@ -563,7 +650,12 @@ function AdjustQuantityPopover({
             placeholder={t("quantityDeltaPlaceholder")}
           />
           {error && <p className="text-xs text-red-500">{error}</p>}
-          <Button type="submit" size="sm" className="w-full" disabled={submitting}>
+          <Button
+            type="submit"
+            size="sm"
+            className="w-full"
+            disabled={submitting}
+          >
             {submitting ? t("saving") : t("confirm")}
           </Button>
         </form>
@@ -583,20 +675,31 @@ function MoveItemPopover({
 }) {
   const t = useTranslations("Inventory");
   const [open, setOpen] = useState(false);
-  const [location, setLocation] = useState<Location | null>(item.location ?? null);
+  const [location, setLocation] = useState<Location | null>(
+    item.location ?? null,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v);
-    if (v) { setLocation(item.location ?? null); setError(null); }
+    if (v) {
+      setLocation(item.location ?? null);
+      setError(null);
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!location) { setError(t("errorLocationRequired")); return; }
-    if (location.id === item.locationId) { setOpen(false); return; }
+    if (!location) {
+      setError(t("errorLocationRequired"));
+      return;
+    }
+    if (location.id === item.locationId) {
+      setOpen(false);
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(`/api/inventory/items/${item.id}`, {
@@ -621,16 +724,31 @@ function MoveItemPopover({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="icon" className="size-7" title={t("actionMove")}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-7"
+          title={t("actionMove")}
+        >
           <ArrowsRightLeftIcon className="size-3.5" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-3" align="end">
         <p className="text-sm font-medium mb-2">{t("actionMove")}</p>
         <form onSubmit={handleSubmit} className="space-y-2">
-          <LocationCombobox value={location} onChange={setLocation} placeholder={t("fieldLocationPlaceholder")} />
+          <LocationCombobox
+            value={location}
+            onChange={setLocation}
+            placeholder={t("fieldLocationPlaceholder")}
+          />
           {error && <p className="text-xs text-red-500">{error}</p>}
-          <Button type="submit" size="sm" className="w-full" disabled={submitting}>
+          <Button
+            type="submit"
+            size="sm"
+            className="w-full"
+            disabled={submitting}
+          >
             {submitting ? t("saving") : t("confirm")}
           </Button>
         </form>
@@ -680,10 +798,23 @@ function DeleteConfirmPopover({
         <p className="text-sm font-medium mb-1">{t("deleteConfirmTitle")}</p>
         <p className="text-xs mb-3">{t("deleteConfirmDescription")}</p>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setOpen(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => setOpen(false)}
+          >
             {t("cancel")}
           </Button>
-          <Button type="button" variant="destructive" size="sm" className="flex-1" disabled={submitting} onClick={handleDelete}>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="flex-1"
+            disabled={submitting}
+            onClick={handleDelete}
+          >
             {submitting ? t("saving") : t("deleteConfirmConfirm")}
           </Button>
         </div>
@@ -728,7 +859,10 @@ function AddToPackagePopover({
       open={open}
       onOpenChange={(v) => {
         setOpen(v);
-        if (!v) { setValue(""); setError(null); }
+        if (!v) {
+          setValue("");
+          setError(null);
+        }
       }}
     >
       <PopoverTrigger asChild>
@@ -789,8 +923,8 @@ function PackageSidebar({
   const handleUpdateQty = (itemId: string, qty: number) =>
     onUpdate(
       items.map((pi) =>
-        pi.item.id === itemId ? { ...pi, quantity: qty } : pi
-      )
+        pi.item.id === itemId ? { ...pi, quantity: qty } : pi,
+      ),
     );
 
   const handleDelete = async () => {
@@ -799,9 +933,12 @@ function PackageSidebar({
     try {
       const result = await packageOperate(
         items.map((pi) => ({ itemId: pi.item.id, quantity: pi.quantity })),
-        { type: "delete" }
+        { type: "delete" },
       );
-      if (!result.ok) { setError(result.error || t("errorGeneric")); return; }
+      if (!result.ok) {
+        setError(result.error || t("errorGeneric"));
+        return;
+      }
       onUpdate([]);
       onRefresh();
       setDeleteOpen(false);
@@ -812,15 +949,21 @@ function PackageSidebar({
 
   const handleMove = async (e: FormEvent) => {
     e.preventDefault();
-    if (!moveLocation) { setError(t("errorLocationRequired")); return; }
+    if (!moveLocation) {
+      setError(t("errorLocationRequired"));
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       const result = await packageOperate(
         items.map((pi) => ({ itemId: pi.item.id, quantity: pi.quantity })),
-        { type: "move", locationId: moveLocation.id }
+        { type: "move", locationId: moveLocation.id },
       );
-      if (!result.ok) { setError(result.error || t("errorGeneric")); return; }
+      if (!result.ok) {
+        setError(result.error || t("errorGeneric"));
+        return;
+      }
       onUpdate([]);
       onRefresh();
       setMoveOpen(false);
@@ -830,20 +973,20 @@ function PackageSidebar({
   };
 
   return (
-    <div className="w-72 shrink-0 sticky top-4 bg-white border border-gray-200 rounded-xl shadow-sm p-4 space-y-3">
+    <div className="w-72 shrink-0 sticky top-4  border border-gray-200 rounded-xl shadow-sm p-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ArchiveBoxIcon className="size-5" />
-          <h2 className="font-semibold text-gray-900">{t("packageTitle")}</h2>
-          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
+          <h2 className="font-semibold ">{t("packageTitle")}</h2>
+          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100 ">
             {items.length}
           </span>
         </div>
         <button
           type="button"
           onClick={() => onUpdate([])}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-xs  transition-colors"
         >
           {t("packageClear")}
         </button>
@@ -857,9 +1000,9 @@ function PackageSidebar({
             className="flex items-center gap-2 text-sm py-1.5 border-b border-gray-50 last:border-0"
           >
             <div className="flex-1 min-w-0">
-              <p className="truncate font-medium text-gray-800 text-xs">{pi.item.name}</p>
+              <p className="truncate font-medium  text-xs">{pi.item.name}</p>
               {pi.item.location && (
-                <p className="text-xs text-gray-400 truncate">{pi.item.location.name}</p>
+                <p className="text-xs  truncate">{pi.item.location.name}</p>
               )}
             </div>
             <Input
@@ -875,12 +1018,12 @@ function PackageSidebar({
               className="w-16 h-7 text-xs px-2"
             />
             {pi.item.unit && (
-              <span className="text-xs text-gray-400 shrink-0">{pi.item.unit}</span>
+              <span className="text-xs  shrink-0">{pi.item.unit}</span>
             )}
             <button
               type="button"
               onClick={() => handleRemoveItem(pi.item.id)}
-              className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+              className=" hover:text-red-500 transition-colors shrink-0"
             >
               <XMarkIcon className="size-4" />
             </button>
@@ -895,7 +1038,10 @@ function PackageSidebar({
         {/* Delete */}
         <Popover
           open={deleteOpen}
-          onOpenChange={(v) => { setDeleteOpen(v); if (!v) setError(null); }}
+          onOpenChange={(v) => {
+            setDeleteOpen(v);
+            if (!v) setError(null);
+          }}
         >
           <PopoverTrigger asChild>
             <Button
@@ -908,7 +1054,9 @@ function PackageSidebar({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64 p-3" align="center">
-            <p className="text-sm font-medium mb-1">{t("packageDeleteConfirmTitle")}</p>
+            <p className="text-sm font-medium mb-1">
+              {t("packageDeleteConfirmTitle")}
+            </p>
             <p className="text-xs mb-3">
               {t("packageDeleteConfirmDescription")}
             </p>
@@ -941,7 +1089,10 @@ function PackageSidebar({
           open={moveOpen}
           onOpenChange={(v) => {
             setMoveOpen(v);
-            if (!v) { setMoveLocation(null); setError(null); }
+            if (!v) {
+              setMoveLocation(null);
+              setError(null);
+            }
           }}
         >
           <PopoverTrigger asChild>
@@ -1009,11 +1160,11 @@ function InventoryItemCard({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2 hover:shadow-sm transition-shadow">
+    <div className=" border border-gray-200 rounded-lg p-4 space-y-2 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <CubeIcon className="size-5 text-gray-400 shrink-0" />
-          <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
+          <CubeIcon className="size-5  shrink-0" />
+          <h3 className="font-semibold  truncate">{item.name}</h3>
         </div>
         {item.quality !== undefined && item.quality !== null && (
           <span className="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
@@ -1027,7 +1178,7 @@ function InventoryItemCard({
       )}
 
       <div className="flex items-center justify-between text-sm pt-1">
-        <span className="font-medium text-gray-800">
+        <span className="font-medium ">
           {item.quantity}
           {item.unit ? ` ${item.unit}` : ""}
         </span>
@@ -1037,9 +1188,7 @@ function InventoryItemCard({
             {item.location.name}
           </span>
         ) : (
-          <span className="text-gray-400 italic text-xs">
-            {t("locationUnknown")}
-          </span>
+          <span className=" italic text-xs">{t("locationUnknown")}</span>
         )}
       </div>
 
@@ -1052,7 +1201,7 @@ function InventoryItemCard({
           className={`size-7 transition-colors ${
             orgVisible
               ? "text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100"
-              : "text-gray-400 hover:text-blue-500"
+              : " hover:text-blue-500"
           }`}
           title={orgVisible ? t("orgVisibleDisable") : t("orgVisibleEnable")}
           onClick={handleToggleOrgVisible}
@@ -1060,9 +1209,16 @@ function InventoryItemCard({
         >
           <BuildingOffice2Icon className="size-3.5" />
         </Button>
-        <AddToPackagePopover item={item} onAdd={(qty) => onAddToPackage(item, qty)} />
+        <AddToPackagePopover
+          item={item}
+          onAdd={(qty) => onAddToPackage(item, qty)}
+        />
         <AdjustQuantityPopover item={item} mode="add" onUpdated={onRefresh} />
-        <AdjustQuantityPopover item={item} mode="remove" onUpdated={onRefresh} />
+        <AdjustQuantityPopover
+          item={item}
+          mode="remove"
+          onUpdated={onRefresh}
+        />
         <MoveItemPopover item={item} onUpdated={onRefresh} />
         <Button
           type="button"
@@ -1081,7 +1237,10 @@ function InventoryItemCard({
         <EditItemDialog
           item={item}
           onClose={() => setEditOpen(false)}
-          onUpdated={() => { onRefresh(); setEditOpen(false); }}
+          onUpdated={() => {
+            onRefresh();
+            setEditOpen(false);
+          }}
         />
       )}
     </div>
@@ -1110,13 +1269,13 @@ export function InventoryGrid() {
           // Accumulate, capped to available stock
           const newQty = Math.min(existing.quantity + quantity, item.quantity);
           return prev.map((pi) =>
-            pi.item.id === item.id ? { ...pi, quantity: newQty } : pi
+            pi.item.id === item.id ? { ...pi, quantity: newQty } : pi,
           );
         }
         return [...prev, { item, quantity }];
       });
     },
-    []
+    [],
   );
 
   const debouncedQuery = useDebounce(searchQuery, 300);
@@ -1165,104 +1324,105 @@ export function InventoryGrid() {
   return (
     <div className="flex gap-6 items-start">
       <div className="flex-1 min-w-0 space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap gap-3 items-center">
-        {/* Search */}
-        <div className="relative flex-1 min-w-48">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none" />
-          <Input
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("searchPlaceholder")}
-          />
+        {/* Toolbar */}
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Search */}
+          <div className="relative flex-1 min-w-48">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4  pointer-events-none" />
+            <Input
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+            />
+          </div>
+
+          {/* Location filter */}
+          <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder={t("filterAllLocations")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("filterAllLocations")}</SelectItem>
+              {locations.map((loc) => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  {loc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Quality filter */}
+          <div className="relative w-36">
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              value={qualityFilter}
+              onChange={(e) => setQualityFilter(e.target.value)}
+              placeholder={t("filterQualityPlaceholder")}
+            />
+            {qualityFilter && (
+              <button
+                type="button"
+                onClick={() => setQualityFilter("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+              >
+                <XMarkIcon className="size-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Add button */}
+          <Button onClick={() => setShowAddDialog(true)} size="sm">
+            <PlusIcon className="size-4 mr-1.5" />
+            {t("addItemButton")}
+          </Button>
         </div>
 
-        {/* Location filter */}
-        <Select value={locationFilter} onValueChange={setLocationFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t("filterAllLocations")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("filterAllLocations")}</SelectItem>
-            {locations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
-                {loc.name}
-              </SelectItem>
+        {/* Results count */}
+        {!loading && (
+          <p className="text-sm">
+            {t("resultsCount", { count: items.length })}
+          </p>
+        )}
+
+        {/* Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-28  rounded-lg animate-pulse bg-nexus-bg/80"
+              />
             ))}
-          </SelectContent>
-        </Select>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-16">
+            <CubeIcon className="size-10 mx-auto mb-3" />
+            <p className="font-medium">{t("emptyTitle")}</p>
+            <p className="text-sm mt-1">{t("emptySubtitle")}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.map((item) => (
+              <InventoryItemCard
+                key={item.id}
+                item={item}
+                onRefresh={handleRefresh}
+                onAddToPackage={handleAddToPackage}
+              />
+            ))}
+          </div>
+        )}
 
-        {/* Quality filter */}
-        <div className="relative w-36">
-          <Input
-            type="number"
-            min={0}
-            step={1}
-            value={qualityFilter}
-            onChange={(e) => setQualityFilter(e.target.value)}
-            placeholder={t("filterQualityPlaceholder")}
-          />
-          {qualityFilter && (
-            <button
-              type="button"
-              onClick={() => setQualityFilter("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2"
-            >
-              <XMarkIcon className="size-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Add button */}
-        <Button onClick={() => setShowAddDialog(true)} size="sm">
-          <PlusIcon className="size-4 mr-1.5" />
-          {t("addItemButton")}
-        </Button>
+        <AddItemDialog
+          open={showAddDialog}
+          onClose={() => setShowAddDialog(false)}
+          onCreated={handleRefresh}
+        />
       </div>
-
-      {/* Results count */}
-      {!loading && (
-        <p className="text-sm">
-          {t("resultsCount", { count: items.length })}
-        </p>
-      )}
-
-      {/* Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-28 bg-gray-100 rounded-lg animate-pulse"
-            />
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="text-center py-16">
-          <CubeIcon className="size-10 mx-auto mb-3" />
-          <p className="font-medium">{t("emptyTitle")}</p>
-          <p className="text-sm mt-1">{t("emptySubtitle")}</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item) => (
-            <InventoryItemCard
-              key={item.id}
-              item={item}
-              onRefresh={handleRefresh}
-              onAddToPackage={handleAddToPackage}
-            />
-          ))}
-        </div>
-      )}
-
-      <AddItemDialog
-        open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
-        onCreated={handleRefresh}
-      />
-      </div>{/* end main column */}
+      {/* end main column */}
 
       {packageItems.length > 0 && (
         <PackageSidebar
