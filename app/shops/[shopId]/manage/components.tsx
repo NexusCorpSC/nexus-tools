@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { addSeller, removeSeller } from "./actions";
+import { addSeller, removeSeller, updateShopInfo } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,80 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+
+// ─── ShopInfoEditor ──────────────────────────────────────────────────────────
+
+export function ShopInfoEditor({
+  shopId,
+  initialName,
+  initialDescription,
+}: {
+  shopId: string;
+  initialName: string;
+  initialDescription: string;
+}) {
+  const t = useTranslations("ShopManagement");
+  const [name, setName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const isDirty =
+    name.trim() !== initialName || description.trim() !== initialDescription;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    startTransition(async () => {
+      const result = await updateShopInfo(shopId, name, description);
+      if (result.success) {
+        setSuccess(true);
+      } else {
+        setError(
+          result.message
+            ? t(`errors.${result.message}` as Parameters<typeof t>[0])
+            : t("errors.error"),
+        );
+      }
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="shopName">{t("shopName")}</Label>
+        <Input
+          id="shopName"
+          value={name}
+          onChange={(e) => { setName(e.target.value); setSuccess(false); }}
+          required
+          disabled={isPending}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="shopDescription">{t("shopDescription")}</Label>
+        <Textarea
+          id="shopDescription"
+          value={description}
+          onChange={(e) => { setDescription(e.target.value); setSuccess(false); }}
+          rows={4}
+          disabled={isPending}
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {success && <p className="text-sm text-green-600">{t("saveSuccess")}</p>}
+
+      <Button type="submit" disabled={isPending || !isDirty || !name.trim()}>
+        {isPending ? t("saving") : t("save")}
+      </Button>
+    </form>
+  );
+}
 
 // ─── AddSellerModal ─────────────────────────────────────────────────────────
 

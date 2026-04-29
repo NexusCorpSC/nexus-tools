@@ -240,6 +240,12 @@
     "cancel": "Annuler",
     "adding": "Ajout...",
     "removing": "Retrait...",
+    "saving": "Enregistrement...",
+    "save": "Enregistrer",
+    "saveSuccess": "Modifications enregistrées !",
+    "shopInfo": "Informations de la boutique",
+    "shopName": "Nom",
+    "shopDescription": "Description",
     "title": "Gestion",
     "sellers": "Vendeurs",
     "shops": "Boutiques",
@@ -251,6 +257,7 @@
       "shopNotFound": "Boutique introuvable.",
       "cannotRemoveSelf": "Vous ne pouvez pas vous retirer vous-même.",
       "notAuthenticated": "Vous devez être connecté.",
+      "nameRequired": "Le nom de la boutique est obligatoire.",
       "error": "Une erreur est survenue. Veuillez réessayer."
     }
   },

@@ -240,6 +240,12 @@
     "cancel": "Cancel",
     "adding": "Adding...",
     "removing": "Removing...",
+    "saving": "Saving...",
+    "save": "Save",
+    "saveSuccess": "Changes saved!",
+    "shopInfo": "Shop information",
+    "shopName": "Name",
+    "shopDescription": "Description",
     "title": "Management",
     "sellers": "Sellers",
     "shops": "Shops",
@@ -251,6 +257,7 @@
       "shopNotFound": "Shop not found.",
       "cannotRemoveSelf": "You cannot remove yourself.",
       "notAuthenticated": "You must be logged in.",
+      "nameRequired": "The shop name is required.",
       "error": "An error occurred. Please try again."
     }
   },

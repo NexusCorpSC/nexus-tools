@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { AddSellerButton, RemoveSellerButton } from "./components";
+import { AddSellerButton, RemoveSellerButton, ShopInfoEditor } from "./components";
 
 export default async function ShopManagementPage({
   params,
@@ -58,6 +58,15 @@ export default async function ShopManagementPage({
       </Breadcrumb>
 
       <h1 className="text-2xl font-bold mb-4">{shop.name}</h1>
+
+      <div>
+        <h2 className="text-xl font-bold mb-3">{t("shopInfo")}</h2>
+        <ShopInfoEditor
+          shopId={shop.id}
+          initialName={shop.name}
+          initialDescription={shop.description}
+        />
+      </div>
 
       <div>
         <div className="flex flex-row justify-between">

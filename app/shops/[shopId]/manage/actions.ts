@@ -67,6 +67,38 @@ export async function addSeller(
   }
 }
 
+export async function updateShopInfo(
+  shopId: string,
+  name: string,
+  description: string,
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    await assertIsSeller(shopId);
+
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+
+    if (!trimmedName) {
+      return { success: false, message: "nameRequired" };
+    }
+
+    await db
+      .db()
+      .collection<ShopDbModel>("shops")
+      .updateOne(
+        { id: shopId },
+        { $set: { name: trimmedName, description: trimmedDescription } },
+      );
+
+    revalidatePath(`/shops/${shopId}/manage`);
+    revalidatePath(`/shops/${shopId}`);
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { success: false, message: "error" };
+  }
+}
+
 export async function removeSeller(
   shopId: string,
   sellerId: string,
