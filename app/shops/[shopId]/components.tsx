@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
-export async function ManageShopButton({ shopId }: { shopId: string }) {
+export async function ShopButtons({ shopId }: { shopId: string }) {
   const t = await getTranslations("ShopDetails");
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -21,8 +21,13 @@ export async function ManageShopButton({ shopId }: { shopId: string }) {
   }
 
   return (
-    <Button asChild>
-      <Link href={`/shops/${shopId}/manage`}>{t("manage")}</Link>
-    </Button>
+    <div className="flex gap-2">
+      <Button asChild>
+        <Link href={`/shops/${shopId}/bo`}>{t("backOffice")}</Link>
+      </Button>
+      <Button asChild>
+        <Link href={`/shops/${shopId}/manage`}>{t("manage")}</Link>
+      </Button>
+    </div>
   );
 }

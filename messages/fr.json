@@ -227,6 +227,7 @@
     "addArticle": "Ajouter l'article au magasin"
   },
   "ShopDetails": {
+    "backOffice": "Back-Office",
     "notFound": "Boutique non trouvée",
     "manage": "Gérer la boutique",
     "products": "Articles en vente",
@@ -242,6 +243,16 @@
     "submitting": "Envoi...",
     "errors": {
       "MESSAGE_REQUIRED": "Veuillez renseigner votre demande."
+    }
+  },
+  "BoDashboard": {
+    "title": "Back-office",
+    "shopNotFound": "Boutique introuvable.",
+    "tools": {
+      "orders": {
+        "label": "Commandes",
+        "description": "Consultez et gérez les demandes de vos clients."
+      }
     }
   },
   "BoOrders": {

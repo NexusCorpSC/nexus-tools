@@ -69,6 +69,10 @@ export default async function BoOrderDetailPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
+            <BreadcrumbLink href={`/shops/${shopId}/bo`}>Back-office</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
             <BreadcrumbLink href={`/shops/${shopId}/bo/orders`}>
               {t("title")}
             </BreadcrumbLink>

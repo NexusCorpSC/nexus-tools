@@ -57,13 +57,13 @@ export function PlaceOrderForm({ shopId }: { shopId: string }) {
 }
 
 export function OrdersNavLink({ shopId }: { shopId: string }) {
-  const t = useTranslations("BoOrders");
+  const t = useTranslations("BoDashboard");
   return (
     <a
-      href={`/shops/${shopId}/bo/orders`}
+      href={`/shops/${shopId}/bo`}
       className="text-sm text-blue-600 hover:underline"
     >
-      {t("navLink")}
+      {t("title")}
     </a>
   );
 }

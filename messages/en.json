@@ -227,6 +227,7 @@
     "addArticle": "Add the item to the shop"
   },
   "ShopDetails": {
+    "backOffice": "Back-Office",
     "notFound": "Shop not found",
     "manage": "Manage shop",
     "products": "Products in store",
@@ -242,6 +243,16 @@
     "submitting": "Sending...",
     "errors": {
       "MESSAGE_REQUIRED": "Please fill in your request."
+    }
+  },
+  "BoDashboard": {
+    "title": "Back-office",
+    "shopNotFound": "Shop not found.",
+    "tools": {
+      "orders": {
+        "label": "Orders",
+        "description": "View and manage your customers' requests."
+      }
     }
   },
   "BoOrders": {

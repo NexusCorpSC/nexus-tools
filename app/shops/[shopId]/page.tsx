@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import { ManageShopButton } from "@/app/shops/[shopId]/components";
+import { ShopButtons } from "@/app/shops/[shopId]/components";
 import { MarkdownContent } from "@/components/markdown-content";
 import {
   PlaceOrderForm,
@@ -45,7 +45,7 @@ export default async function ShopPage({
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold mb-4">{shop.name}</h1>
         <Suspense fallback={null}>
-          <ManageShopButton shopId={shop.id} />
+          <ShopButtons shopId={shop.id} />
         </Suspense>
       </div>
 
@@ -77,14 +77,6 @@ export default async function ShopPage({
         <PlaceOrderForm shopId={shop.id} />
       ) : (
         <p className="text-sm text-gray-500">{t("loginToOrder")}</p>
-      )}
-
-      {isSeller && (
-        <div className="pt-2">
-          <Suspense fallback={null}>
-            <OrdersNavLink shopId={shop.id} />
-          </Suspense>
-        </div>
       )}
     </div>
   );
