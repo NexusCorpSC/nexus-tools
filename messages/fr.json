@@ -227,7 +227,12 @@
     "addArticle": "Ajouter l'article au magasin"
   },
   "ShopDetails": {
-    "notFound": "Boutique non trouvée"
+    "notFound": "Boutique non trouvée",
+    "manage": "Gérer la boutique"
+  },
+  "ShopManagement": {
+    "title": "Gestion",
+    "shops": "Boutiques"
   },
   "Profile": {
     "title": "Mon Profil",

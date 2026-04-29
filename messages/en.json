@@ -227,7 +227,12 @@
     "addArticle": "Add the item to the shop"
   },
   "ShopDetails": {
-    "notFound": "Shop not found"
+    "notFound": "Shop not found",
+    "manage": "Manage shop"
+  },
+  "ShopManagement": {
+    "title": "Management",
+    "shops": "Shops"
   },
   "Profile": {
     "title": "My Profile",

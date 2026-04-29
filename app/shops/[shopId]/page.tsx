@@ -2,6 +2,8 @@ import { getShop, getShopItemsOfShop } from "@/lib/shop-items";
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { Suspense } from "react";
+import { ManageShopButton } from "@/app/shops/[shopId]/components";
 
 export default async function ShopPage({
   params,
@@ -24,6 +26,9 @@ export default async function ShopPage({
   return (
     <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
       <h1 className="text-2xl font-bold mb-4">{shop.name}</h1>
+      <Suspense fallback={null}>
+        <ManageShopButton shopId={shop.id} />
+      </Suspense>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
         {shopItems.map((item) => (
