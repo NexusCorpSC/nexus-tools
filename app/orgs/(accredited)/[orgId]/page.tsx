@@ -207,9 +207,7 @@ export default async function OrganizationPage({
 
       <div className="flex gap-2">
         <Button asChild>
-          <Link href={`/orgs/${orgId}/inventory`}>
-            Inventaire
-          </Link>
+          <Link href={`/orgs/${orgId}/inventory`}>Inventaire</Link>
         </Button>
         <Link
           href={`/orgs/${orgId}/reps`}
@@ -242,12 +240,8 @@ export default async function OrganizationPage({
                       width={50}
                     />
                     <div className="min-w-0 flex-auto">
-                      <p className="text-sm/6 font-semibold text-gray-900">
-                        {member.name}
-                      </p>
-                      <p className="mt-1 truncate text-xs/5 text-gray-500">
-                        {member.rank}
-                      </p>
+                      <p className="text-sm/6 font-semibold ">{member.name}</p>
+                      <p className="mt-1 truncate text-xs/5 ">{member.rank}</p>
                     </div>
                   </div>
                   <div className="hidden shrink-0 sm:flex sm:flex-col sm:items-end">
