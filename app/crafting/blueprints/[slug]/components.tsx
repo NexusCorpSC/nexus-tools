@@ -198,7 +198,7 @@ export function AdminBlueprintMenu({
         <>
           {/* Overlay to close on outside click */}
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-gray-200  shadow-md py-1">
+          <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-gray-200  shadow-md py-1 bg-nexus-bg">
             <Link
               href={`/crafting/blueprints/${blueprintSlug}/edit`}
               className="flex items-center gap-2 px-4 py-2 text-sm  hover:bg-gray-50 transition-colors"
