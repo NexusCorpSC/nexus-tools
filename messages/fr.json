@@ -6,7 +6,7 @@
   },
   "TopBar": {
     "nav": {
-      "dashboard": "Dashboard",
+      "dashboard": "Tableau de bord",
       "shopping": "Marketplace",
       "crafting": "Artisanat",
       "inventory": "Inventaire",
@@ -56,10 +56,14 @@
     }
   },
   "Crafting": {
+    "home": "Accueil",
     "title": "Artisanat",
+    "blueprints": "Plans",
+    "inventory": "Inventaire",
     "wip": "Nous travaillons à créer cette page, et nous attendons d'avoir de nouvelles informations sur l'artisanat dans le Verse pour compléter cette fonctionnalité.",
     "backButton": "Retour à la page principale",
     "Inventory": {
+      "home": "Accueil",
       "title": "Inventaire",
       "header": "Maintenez à jour votre inventaire de matériaux et d'objets pour faciliter la gestion de vos recettes d'artisanat."
     },
@@ -175,13 +179,21 @@
       }
     }
   },
+  "Industry": {
+    "home": "Accueil",
+    "industry": "Industrie",
+    "refine": "Raffinage"
+  },
   "Shopping": {
+    "home": "Accueil",
     "title": "Marketplace",
     "ctaSellButton": "Vendre un bien ou un service",
     "featuredItemsTitle": "Articles mis en avant",
     "shop": "Magasin",
     "shops": "Magasins",
-    "buy": "Acheter"
+    "buy": "Acheter",
+    "noFeaturedItems": "Aucun article mis en avant pour le moment.",
+    "noShops": "Aucun magasin disponible pour le moment."
   },
   "ShoppingItem": {
     "notFound": "Objet non trouvé",
@@ -373,9 +385,11 @@
     "nameUpdateError": "Une erreur est survenue lors de la mise à jour de votre pseudo."
   },
   "Organizations": {
+    "home": "Accueil",
     "title": "Organisations",
     "myOrgs": "Mes organisations",
     "ctaNewOrg": "Ajouter une nouvelle organisation",
+    "noPublicOrgs": "Aucune organisation publique disponible pour le moment.",
     "publicOrgs": "Organisations publiques",
     "description": "Description",
     "members": "Membres",
@@ -396,18 +410,53 @@
     "backToOrgs": "Retour aux organisations"
   },
   "Reputations": {
+    "home": "Accueil",
     "title": "Réputations",
     "connectToUse": "Connectez-vous pour garder note de vos réputation et partagez-les avec votre organisation.",
     "backToHome": "Retour à l'accueil",
     "noFactions": "Les factions ne sont pas configurées par l'administrateur.",
-    "selectCurrentLevelInstructions": "Sélectionnez le niveau actuellement atteint (complété) pour chaque faction."
+    "selectCurrentLevelInstructions": "Sélectionnez le niveau actuellement atteint (complété) pour chaque faction.",
+    "clearSelection": "Effacer"
   },
   "OrganizationReputations": {
     "title": "Réputation des membres",
     "description": "Listez les réputations des membres de votre organisation pour faciliter les sorties et les partages de missions."
   },
   "Refining": {
-    "title": "Travaux de raffinage"
+    "home": "Accueil",
+    "industry": "Industrie",
+    "title": "Travaux de raffinage",
+    "description": "Gérez vos travaux de raffinage en cours, suivez leur progression et planifiez vos prochaines sessions de raffinage pour optimiser votre production.",
+    "addNewJob": "Ajouter un nouveau travail de raffinage",
+    "yourRefiningJobs": "Vos travaux de raffinage",
+    "pleaseLogIn": "Veuillez vous connecter pour gérer vos travaux de raffinage.",
+    "logIn": "Se connecter",
+    "adding": "Ajout en cours...",
+    "addRefiningJob": "Ajouter un travail de raffinage",
+    "duration": "Durée",
+    "materials": "Matériaux",
+    "location": "Lieu",
+    "noRefiningJobs": "Aucun travail de raffinage en cours.",
+    "jobContent": "Contenu du travail",
+    "timeRemaining": "Temps restant",
+    "readyForCollection": "Prêt à être collecté !",
+    "started": "Démarré le",
+    "inProgress": "En cours",
+    "completed": "Terminé",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "deleteConfirmTitle": "Travailler de raffinage supprimé",
+    "deleteConfirmDescription": "Le travail de raffinage a été supprimé avec succès.",
+    "editRefiningJobSuccessTitle": "Travail de raffinage mis à jour",
+    "editRefiningJobSuccessDescription": "Votre travail de raffinage a été mis à jour avec succès.",
+    "editRefiningJobErrorTitle": "Erreur de mise à jour",
+    "editRefiningJobErrorDescription": "Une erreur est survenue lors de la mise à jour de votre travail de raffinage. Veuillez réessayer.",
+    "editRefiningJob": "Modifier le travail de raffinage",
+    "updateRefiningJobDetails": "Mettre à jour les détails du travail de raffinage",
+    "cancel": "Annuler",
+    "saveChanges": "Enregistrer les modifications",
+    "durationPlaceholder": "ex. 120 (minutes) ou 2h (2 heures) ou 1d12h30m (1 jour, 12 heures, 30 minutes)",
+    "durationEquivalent": "Équivalent à {minutes} minutes"
   },
   "Inventory": {
     "title": "Inventaire",

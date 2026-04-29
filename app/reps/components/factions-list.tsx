@@ -3,7 +3,7 @@
 import { Radio, RadioGroup } from "@headlessui/react";
 import { cn } from "@/lib/utils";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
-import { useState } from "react";
+import { use, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ import {
 } from "@/app/reps/actions";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Faction, PlayerReputations } from "@/types/reputations";
+import { useTranslations } from "next-intl";
 
 export function FactionsList({
   factions,
@@ -34,6 +35,7 @@ export function FactionsList({
   factions: Faction[];
   playerReputation: PlayerReputations;
 }) {
+  const t = useTranslations("Reputations");
   const [openQuery, setOpenQuery] = useState(false);
   const [selectedFactionName, setSelectedFactionName] = useState("");
 
@@ -41,14 +43,14 @@ export function FactionsList({
 
   return (
     <div>
-      <div className="flex flex-row space-x-4 py-4">
+      <div className="flex flex-row space-x-4 py-4 w-full justify-between">
         <Popover open={openQuery} onOpenChange={setOpenQuery}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={openQuery}
-              className="w-full justify-between"
+              className="flex-1 justify-between"
             >
               {selectedFactionName
                 ? factions.find(
@@ -62,7 +64,7 @@ export function FactionsList({
             <Command>
               <CommandInput placeholder="Chercher une faction..." />
               <CommandList>
-                <CommandEmpty>No faction found.</CommandEmpty>
+                <CommandEmpty>{t("noFactions")}</CommandEmpty>
                 <CommandGroup>
                   {factions.map((faction) => (
                     <CommandItem
@@ -93,7 +95,7 @@ export function FactionsList({
             </Command>
           </PopoverContent>
         </Popover>
-        <Button onClick={() => setSelectedFactionName("")}>Clear</Button>
+        <Button onClick={() => setSelectedFactionName("")}>{t("clearSelection")}</Button>
       </div>
 
       {selectedFaction ? (

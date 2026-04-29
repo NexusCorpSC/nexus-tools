@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatTimeRemaining } from "../utils";
 import { DateTime } from "luxon";
+import { useTranslations } from "next-intl";
 
 
 interface JobsListProps {
@@ -34,16 +35,17 @@ interface JobsListProps {
 export default function JobsList({ jobs }: JobsListProps) {
   const [editingJob, setEditingJob] = useState<RefiningJobWithTimeRemaining | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const t = useTranslations("Refining");
 
   async function handleDelete(jobId: string) {
     try {
       await deleteRefiningJob(jobId);
-      toast.success("Job removed", {
-        description: "The refining job has been removed successfully.",
+      toast.success(t("deleteConfirmTitle"), {
+        description: t("deleteConfirmDescription"),
       });
     } catch (error) {
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Failed to delete job",
+      toast.error(t("deleteConfirmTitle"), {
+        description: error instanceof Error ? error.message : t("deleteConfirmDescription"),
       });
     }
   }
@@ -59,14 +61,14 @@ export default function JobsList({ jobs }: JobsListProps) {
       
       await updateRefiningJob(formData);
       
-      toast.success("Job updated", {
-        description: "Your refining job has been updated successfully.",
+      toast.success(t("editRefiningJobSuccessTitle"), {
+        description: t("editRefiningJobSuccessDescription"),
       });
       
       setEditingJob(null);
     } catch (error) {
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Failed to update job",
+      toast.error(t("editRefiningJobErrorTitle"), {
+        description: error instanceof Error ? error.message : t("editRefiningJobErrorDescription"),
       });
     } finally {
       setIsSubmitting(false);
@@ -75,8 +77,8 @@ export default function JobsList({ jobs }: JobsListProps) {
 
   if (jobs.length === 0) {
     return (
-      <div className="text-center py-8 bg-gray-50 rounded-lg">
-        <p className="text-gray-500">No refining jobs yet. Add your first job above.</p>
+      <div className="text-center py-8 bg-nexus rounded-lg">
+        <p className="">{t("noRefiningJobs")}</p>
       </div>
     );
   }
@@ -93,24 +95,24 @@ export default function JobsList({ jobs }: JobsListProps) {
                   ? "bg-green-100 text-green-800" 
                   : "bg-blue-100 text-blue-800"
               }`}>
-                {job.isFinished ? "Completed" : "In Progress"}
+                {job.isFinished ? t("readyForCollection") : t("inProgress")}
               </span>
             </CardTitle>
             <CardDescription>
-              Started: {DateTime.fromISO(job.startTime).toFormat('dd/MM/yyyy HH:mm')}
+              {t("started")}: {DateTime.fromISO(job.startTime).toFormat('dd/MM/yyyy HH:mm')}
             </CardDescription> 
           </CardHeader>
           
           <CardContent>
             <div className="space-y-2">
-              <h3 className="font-medium">Job Content:</h3>
-              <p className="text-gray-700">{job.content}</p>
+              <h3 className="font-medium">{t("jobContent")}:</h3>
+              <p className="">{job.content}</p>
               
               <div className="mt-4">
-                <h3 className="font-medium">Time Remaining:</h3>
+                <h3 className="font-medium">{t("timeRemaining")}:</h3>
                 <div className="mt-1">
                   {job.isFinished ? (
-                    <p className="text-green-600 font-medium">Ready for collection!</p>
+                    <p className="text-green-600 font-medium">{t("readyForCollection")}</p>
                   ) : (
                     <>
                       <p>{formatTimeRemaining(job.timeRemaining)}</p>
@@ -133,23 +135,23 @@ export default function JobsList({ jobs }: JobsListProps) {
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" onClick={() => setEditingJob(job)}>
-                  Edit
+                  {t("edit")}
                 </Button>
               </DialogTrigger>
               
               {editingJob?.id === job.id && (
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Edit Refining Job</DialogTitle>
+                    <DialogTitle>{t("editRefiningJob")}</DialogTitle>
                     <DialogDescription>
-                      Update the details of your refining job
+                      {t("updateRefiningJobDetails")}
                     </DialogDescription>
                   </DialogHeader>
                   
                   <form onSubmit={handleUpdate} className="space-y-4 pt-4">
                     <div>
                       <label htmlFor="content" className="block text-sm font-medium">
-                        Job Content
+                        {t("jobContent")}
                       </label>
                       <textarea
                         id="content"
@@ -162,7 +164,7 @@ export default function JobsList({ jobs }: JobsListProps) {
                     
                     <div>
                       <label htmlFor="duration" className="block text-sm font-medium">
-                        Duration (minutes)
+                        {t("duration")}
                       </label>
                       <input
                         type="number"
@@ -176,10 +178,10 @@ export default function JobsList({ jobs }: JobsListProps) {
                     
                     <DialogFooter>
                       <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancel</Button>
+                        <Button type="button" variant="outline">{t("cancel")}</Button>
                       </DialogClose>
                       <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Saving..." : "Save Changes"}
+                        {isSubmitting ? t("saving") : t("saveChanges")}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -192,7 +194,7 @@ export default function JobsList({ jobs }: JobsListProps) {
               size="sm"
               onClick={() => handleDelete(job.id)}
             >
-              Remove
+              {t("delete")}
             </Button>
           </CardFooter>
         </Card>

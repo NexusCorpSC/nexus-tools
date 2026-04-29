@@ -2,6 +2,7 @@ import { getFeaturedItems, ShopItem } from "@/lib/shop-items";
 import Link from "next/link";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 export default async function ShoppingPage() {
   const t = await getTranslations("Shopping");
@@ -9,12 +10,23 @@ export default async function ShoppingPage() {
   const showcasedItems: ShopItem[] = await getFeaturedItems();
 
   return (
-    <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4 h-dvh">
+    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm h-dvh">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">{t("home")}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{t("title")}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
       <Link
         href="/shopping/sell"
-        className="uppercase block rounded-lg bg-primary bg-linear-to-r from-orange-800 hover:from-orange-600 to-blue-800 hover:to-blue-600 p-8 m-4 text-secondary font-bold"
+        className="block rounded-lg bg-primary bg-linear-to-r p-4 m-4 text-secondary font-bold"
       >
         {t("ctaSellButton")}
       </Link>
@@ -22,6 +34,7 @@ export default async function ShoppingPage() {
       <div>
         <h2 className="text-xl font-bold mb-4">{t("featuredItemsTitle")}</h2>
 
+          {showcasedItems.length === 0 ? <p>{t("noFeaturedItems")}</p> : (
         <div className="mt-8 grid grid-cols-1 gap-y-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4 xl:gap-x-8">
           {showcasedItems.map((item) => (
             <div key={item.id}>
@@ -70,10 +83,12 @@ export default async function ShoppingPage() {
               </div>
             </div>
           ))}
-        </div>
+        </div>)}
       </div>
-
-      <h2 className="text-xl font-bold mb-4">{t("shops")}</h2>
+      <div>
+        <h2 className="text-xl font-bold mb-4">{t("shops")}</h2>
+        <p>{t("noShops")}</p>
+      </div>
     </div>
   );
 }

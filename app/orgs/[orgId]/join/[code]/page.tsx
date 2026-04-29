@@ -53,7 +53,7 @@ export default async function JoinOrgPage({
   }
 
   return (
-    <div className="m-2 p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+    <div className="m-2 mx-auto max-w-xl space-y-6 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

@@ -38,7 +38,7 @@ export default function Footer() {
   const t = useTranslations("Footer");
 
   return (
-    <footer className="bg-gray-900">
+    <footer className="border-t border-[#9ED0FF]/15 bg-gray-900 backdrop-blur-md">
       <div className="mx-auto max-w-7xl overflow-hidden px-6 py-20 sm:py-24 lg:px-8">
         <nav
           aria-label="Footer"
@@ -48,7 +48,7 @@ export default function Footer() {
             <Link
               key={item.name}
               href={item.href}
-              className="text-gray-400 hover:text-white"
+              className="text-[#9ED0FF]/70 transition-colors hover:text-[#CCE7FF]"
             >
               {t(`links.${item.name}`)}
             </Link>
@@ -60,14 +60,14 @@ export default function Footer() {
             <Link
               key={item.name}
               href={item.href}
-              className="text-gray-400 hover:text-gray-300"
+              className="text-[#9ED0FF]/70 transition-colors hover:text-[#CCE7FF]"
             >
               <span className="sr-only">{item.name}</span>
               <item.icon aria-hidden="true" className="h-6 w-6" />
             </Link>
           ))}
         </div>
-        <p className="mt-10 text-center text-sm/6 text-gray-400">
+        <p className="mt-10 text-center text-sm/6 text-[#9ED0FF]/55">
           {t("copyright")}
         </p>
       </div>

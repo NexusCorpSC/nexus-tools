@@ -32,7 +32,7 @@ export default async function ShopPage({
 
   if (!shop) {
     return (
-      <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+      <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
         <h1 className="text-2xl font-bold mb-4">{t("notFound")}</h1>
       </div>
     );
@@ -41,7 +41,7 @@ export default async function ShopPage({
   const shopItems = await getShopItemsOfShop(shopId, { offset: 0, limit: 10 });
 
   return (
-    <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold mb-4">{shop.name}</h1>
         <Suspense fallback={null}>
@@ -52,6 +52,8 @@ export default async function ShopPage({
       <MarkdownContent content={shop.description} />
 
       <h2 className="text-xl font-bold mb-4">{t("products")}</h2>
+    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
+      <h1 className="text-2xl font-bold mb-4">{shop.name}</h1>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
         {shopItems.map((item) => (

@@ -181,7 +181,7 @@ function LocationCombobox({
             </button>
           )}
           {suggestions.length === 0 && !inputValue.trim() && (
-            <p className="px-3 py-2 text-sm text-gray-500">
+            <p className="px-3 py-2 text-sm">
               {t("locationEmpty")}
             </p>
           )}
@@ -361,7 +361,7 @@ function AddItemDialog({
             className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
               orgVisible
                 ? "border-blue-300 bg-blue-50 text-blue-700"
-                : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
+                : "border-gray-200 bg-gray-50 hover:bg-gray-100"
             }`}
           >
             <div className="flex items-center gap-2">
@@ -678,7 +678,7 @@ function DeleteConfirmPopover({
       </PopoverTrigger>
       <PopoverContent className="w-56 p-3" align="end">
         <p className="text-sm font-medium mb-1">{t("deleteConfirmTitle")}</p>
-        <p className="text-xs text-gray-500 mb-3">{t("deleteConfirmDescription")}</p>
+        <p className="text-xs mb-3">{t("deleteConfirmDescription")}</p>
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setOpen(false)}>
             {t("cancel")}
@@ -834,7 +834,7 @@ function PackageSidebar({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ArchiveBoxIcon className="size-5 text-gray-500" />
+          <ArchiveBoxIcon className="size-5" />
           <h2 className="font-semibold text-gray-900">{t("packageTitle")}</h2>
           <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
             {items.length}
@@ -909,7 +909,7 @@ function PackageSidebar({
           </PopoverTrigger>
           <PopoverContent className="w-64 p-3" align="center">
             <p className="text-sm font-medium mb-1">{t("packageDeleteConfirmTitle")}</p>
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="text-xs mb-3">
               {t("packageDeleteConfirmDescription")}
             </p>
             <div className="flex gap-2">
@@ -1023,7 +1023,7 @@ function InventoryItemCard({
       </div>
 
       {item.description && (
-        <p className="text-sm text-gray-500 line-clamp-2">{item.description}</p>
+        <p className="text-sm line-clamp-2">{item.description}</p>
       )}
 
       <div className="flex items-center justify-between text-sm pt-1">
@@ -1032,7 +1032,7 @@ function InventoryItemCard({
           {item.unit ? ` ${item.unit}` : ""}
         </span>
         {item.location ? (
-          <span className="flex items-center gap-1 text-gray-500">
+          <span className="flex items-center gap-1">
             <MapPinIcon className="size-3.5" />
             {item.location.name}
           </span>
@@ -1207,7 +1207,7 @@ export function InventoryGrid() {
             <button
               type="button"
               onClick={() => setQualityFilter("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2"
             >
               <XMarkIcon className="size-4" />
             </button>
@@ -1223,7 +1223,7 @@ export function InventoryGrid() {
 
       {/* Results count */}
       {!loading && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm">
           {t("resultsCount", { count: items.length })}
         </p>
       )}
@@ -1239,8 +1239,8 @@ export function InventoryGrid() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <CubeIcon className="size-10 mx-auto mb-3 text-gray-300" />
+        <div className="text-center py-16">
+          <CubeIcon className="size-10 mx-auto mb-3" />
           <p className="font-medium">{t("emptyTitle")}</p>
           <p className="text-sm mt-1">{t("emptySubtitle")}</p>
         </div>
