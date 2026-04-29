@@ -1,3 +1,17 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "À propos",
+  description:
+    "Découvrez Nexus Tools, une collection d'outils pour Star Citizen maintenue par la Nexus Corporation. Informations sur la confidentialité de vos données.",
+  openGraph: {
+    title: "À propos — Nexus Tools",
+    description:
+      "Nexus Tools est maintenu par la Nexus Corporation, organisation francophone Star Citizen.",
+    url: "https://tools.nexus.services/about",
+  },
+};
+
 export default function Page() {
   return (
     <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">

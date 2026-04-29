@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import { ObjectId } from "bson";
@@ -7,6 +8,18 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+
+export const metadata: Metadata = {
+  title: "Organisations",
+  description:
+    "Rejoignez ou créez une organisation Star Citizen sur Nexus Tools. Gérez vos membres, partagez vos ressources et coordonnez vos activités.",
+  openGraph: {
+    title: "Organisations — Nexus Tools",
+    description:
+      "Découvrez les organisations publiques Star Citizen et rejoignez la communauté Nexus.",
+    url: "https://tools.nexus.services/orgs",
+  },
+};
 
 export type Organization = {
   _id: string;

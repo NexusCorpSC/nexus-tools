@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { getFactions, getPlayerReputations } from "@/lib/reputations";
@@ -6,6 +7,18 @@ import { FactionsList } from "@/app/reps/components/factions-list";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+
+export const metadata: Metadata = {
+  title: "Réputations",
+  description:
+    "Centralisez et suivez les réputations de faction de vos membres Star Citizen. Partagez votre progression avec votre guilde.",
+  openGraph: {
+    title: "Réputations — Nexus Tools",
+    description:
+      "Suivez les niveaux de réputation de faction pour vous et vos équipiers Star Citizen.",
+    url: "https://tools.nexus.services/reps",
+  },
+};
 
 export default async function ReputationPage() {
   const t = await getTranslations("Reputations");

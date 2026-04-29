@@ -1,6 +1,7 @@
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import db from "@/lib/db";
+import type { Metadata } from "next";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
 import Image from "next/image";
@@ -11,6 +12,12 @@ import {
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+
+export const metadata: Metadata = {
+  title: "Mon profil",
+  description: "Gérez votre profil Nexus Tools : avatar, nom d'utilisateur, organisations.",
+  robots: { index: false, follow: false },
+};
 
 export type User = {
   _id: ObjectId;

@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import {
   Breadcrumb,
@@ -15,6 +16,18 @@ import { hasPermission } from "@/lib/permissions";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { BlueprintGrid } from "./components";
+
+export const metadata: Metadata = {
+  title: "Blueprints",
+  description:
+    "Parcourez tous les blueprints de crafting disponibles dans Star Citizen. Gérez votre collection, filtrez par catégorie et partagez avec votre organisation.",
+  openGraph: {
+    title: "Blueprints — Nexus Tools",
+    description:
+      "Tous les blueprints de crafting Star Citizen : recettes, matériaux, temps de fabrication.",
+    url: "https://tools.nexus.services/crafting/blueprints",
+  },
+};
 
 export default async function Page() {
   const t = await getTranslations("Crafting");

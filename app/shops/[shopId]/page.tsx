@@ -5,6 +5,7 @@ import {
 } from "@/lib/shop-items";
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { ShopButtons } from "@/app/shops/[shopId]/components";
@@ -13,6 +14,33 @@ import { PlaceOrderForm } from "@/app/shops/[shopId]/order-components";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { ObjectId } from "bson";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ shopId: string }>;
+}): Promise<Metadata> {
+  const shopId = (await params).shopId;
+  const shop = await getShop(shopId);
+
+  if (!shop) {
+    return { title: "Boutique introuvable" };
+  }
+
+  const description = shop.description
+    ? shop.description.replace(/[#*_[\]]/g, "").slice(0, 160)
+    : `Découvrez la boutique ${shop.name} sur le Marketplace Nexus Tools.`;
+
+  return {
+    title: shop.name,
+    description,
+    openGraph: {
+      title: `${shop.name} — Marketplace Nexus Tools`,
+      description,
+      url: `https://tools.nexus.services/shops/${shopId}`,
+    },
+  };
+}
 
 export default async function ShopPage({
   params,

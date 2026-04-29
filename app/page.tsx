@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { ShoppingCartIcon, WrenchScrewdriverIcon, StarIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
@@ -8,6 +9,18 @@ import LinkButton from "@/components/ui/link-button";
 import ImgCrafting from "./img-crafting.png";
 import ImgReputation from "./img-reputation.png";
 import ImgShopping from "./img-shopping.png";
+
+export const metadata: Metadata = {
+  title: "Accueil",
+  description:
+    "Nexus Tools — la boîte à outils communautaire pour Star Citizen. Gérez votre inventaire, vos réputations, vos organisations et achetez ou vendez sur le marketplace.",
+  openGraph: {
+    title: "Nexus Tools — Star Citizen Community Tools",
+    description:
+      "Marketplace, crafting, réputations et organisations pour les joueurs de Star Citizen.",
+    url: "https://tools.nexus.services",
+  },
+};
 
 export default function Home() {
   const t = useTranslations("HomePage");

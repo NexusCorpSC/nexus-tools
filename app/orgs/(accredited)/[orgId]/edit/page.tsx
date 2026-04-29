@@ -18,6 +18,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Modifier l'organisation",
+  description:
+    "Modifiez le profil de votre organisation Star Citizen sur Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default async function EditOrgPage({
   params,

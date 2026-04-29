@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { AddPasskeyForm } from "./components";
+
+export const metadata: Metadata = {
+  title: "Paramètres",
+  description: "Gérez vos paramètres de sécurité : passkeys, WebAuthN et préférences de connexion.",
+  robots: { index: false, follow: false },
+};
 
 export default async function ProfilePage() {
   const session = await auth.api.getSession({

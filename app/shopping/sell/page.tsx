@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import type { Metadata } from "next";
 import { User } from "@/app/(auth)/profile/page";
 import { Shop } from "@/lib/shop-items";
 import {
@@ -16,6 +17,12 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Vendre un article",
+  description: "Mettez en vente un article ou un service sur le Marketplace Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default async function SellPage() {
   const t = await getTranslations("ShoppingNewItem");

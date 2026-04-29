@@ -1,7 +1,20 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+
+export const metadata: Metadata = {
+  title: "Crafting",
+  description:
+    "Gérez vos blueprints et recettes de crafting dans Star Citizen. Partagez-les avec votre organisation et optimisez votre production.",
+  openGraph: {
+    title: "Crafting — Nexus Tools",
+    description:
+      "Gérez vos blueprints et recettes de crafting Star Citizen au sein de votre organisation.",
+    url: "https://tools.nexus.services/crafting",
+  },
+};
 
 export default function CraftingPage() {
   const t = useTranslations("Crafting");

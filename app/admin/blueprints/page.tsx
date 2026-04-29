@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Admin — Blueprints",
+  description: "Administration des blueprints Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default function AdminBlueprintsPage() {
   return (

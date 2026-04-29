@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { getShop, isUserSellerOfShop } from "@/lib/shop-items";
 import { getOrderById } from "@/lib/shop-orders";
 import { auth } from "@/lib/auth";
@@ -14,6 +15,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { RespondForm } from "@/app/shops/[shopId]/bo/orders/components";
+
+export const metadata: Metadata = {
+  title: "Détail de commande — Back-office",
+  description: "Consultez et répondez aux commandes de vos clients sur Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",

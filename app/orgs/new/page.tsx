@@ -1,6 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+
+export const metadata: Metadata = {
+  title: "Nouvelle organisation",
+  description: "Créez votre organisation Star Citizen sur Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default function NewOrgPage() {
   const t = useTranslations("NewOrganization");

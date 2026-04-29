@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Vérification",
+  description: "Vérifiez votre adresse e-mail pour accéder à Nexus Tools.",
+  robots: { index: false, follow: false },
+};
+
 export default async function Verify({
   searchParams,
 }: {

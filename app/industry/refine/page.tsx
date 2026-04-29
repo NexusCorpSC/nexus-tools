@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   getUserRefiningJobs,
   RefiningJobWithTimeRemaining,
@@ -17,6 +18,18 @@ import NewJobForm from "./components/new-job-form";
 import JobsList from "./components/jobs-list";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+
+export const metadata: Metadata = {
+  title: "Raffinage",
+  description:
+    "Tableau de bord du raffinage de minerais dans Star Citizen. Suivez vos jobs de raffinage en cours et optimisez votre production.",
+  openGraph: {
+    title: "Raffinage — Nexus Tools",
+    description:
+      "Gérez vos jobs de raffinage de minerais Star Citizen depuis votre tableau de bord Nexus.",
+    url: "https://tools.nexus.services/industry/refine",
+  },
+};
 
 export default async function RefinePage() {
   const session = await auth.api.getSession({

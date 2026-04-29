@@ -2,6 +2,7 @@ import db from "@/lib/db";
 import { JoinRequest, Organization } from "@/app/orgs/page";
 import { ObjectId } from "bson";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { handleRemoveMember } from "@/app/orgs/actions";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -21,6 +22,37 @@ import {
   JoinLinkSection,
   JoinRequestsSection,
 } from "@/app/orgs/(accredited)/[orgId]/components";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ orgId: string }>;
+}): Promise<Metadata> {
+  const { orgId } = await params;
+  const org = await db
+    .db()
+    .collection<Organization>("organizations")
+    .findOne({ _id: orgId }, { projection: { name: 1, description: 1, image: 1, tag: 1 } });
+
+  if (!org) {
+    return { title: "Organisation introuvable" };
+  }
+
+  const description = org.description
+    ? org.description.slice(0, 160)
+    : `Découvrez l'organisation ${org.name} [${org.tag}] sur Nexus Tools.`;
+
+  return {
+    title: `${org.name} [${org.tag}]`,
+    description,
+    openGraph: {
+      title: `${org.name} [${org.tag}] — Nexus Tools`,
+      description,
+      url: `https://tools.nexus.services/orgs/${orgId}`,
+      images: org.image ? [{ url: org.image, alt: `Logo de ${org.name}` }] : undefined,
+    },
+  };
+}
 
 export default async function OrganizationPage({
   params,

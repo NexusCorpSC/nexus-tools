@@ -2,6 +2,7 @@ import db from "@/lib/db";
 import { JoinRequest, Organization } from "@/app/orgs/page";
 import { ObjectId } from "bson";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -14,6 +15,26 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { JoinRequestButton } from "@/app/orgs/[orgId]/join/[code]/components";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ orgId: string; code: string }>;
+}): Promise<Metadata> {
+  const { orgId, code } = await params;
+  const org = await db
+    .db()
+    .collection<Organization>("organizations")
+    .findOne({ _id: orgId, joinCode: code }, { projection: { name: 1, tag: 1, description: 1, image: 1 } });
+
+  if (!org) return { title: "Invitation introuvable", robots: { index: false, follow: false } };
+
+  return {
+    title: `Rejoindre ${org.name} [${org.tag}]`,
+    description: `Vous avez été invité à rejoindre l'organisation ${org.name} [${org.tag}] sur Nexus Tools.`,
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function JoinOrgPage({
   params,

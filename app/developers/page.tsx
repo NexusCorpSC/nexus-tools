@@ -1,5 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Développeurs",
+  description:
+    "Intégrez les outils Nexus directement dans vos applications via notre API ouverte. Nexus Tools s'engage pour la modularité et l'accessibilité.",
+  openGraph: {
+    title: "Développeurs — Nexus Tools",
+    description:
+      "API ouverte pour intégrer les outils Nexus dans vos applications Star Citizen.",
+    url: "https://tools.nexus.services/developers",
+  },
+};
 
 export default function DevelopersPage() {
   return (

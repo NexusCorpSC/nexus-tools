@@ -1,6 +1,7 @@
 import { getBlueprintBySlug } from "@/lib/crafting";
 import { formatCraftingTime } from "@/lib/crafting-time";
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,6 +20,44 @@ import {
   BlueprintCraftSection,
 } from "./server-components";
 import { BlueprintImageCover } from "@/app/crafting/blueprints/[slug]/components";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const blueprint = await getBlueprintBySlug(slug);
+
+  if (!blueprint) {
+    return { title: "Blueprint introuvable" };
+  }
+
+  const description = blueprint.description
+    ? blueprint.description.slice(0, 160)
+    : `Blueprint de crafting Star Citizen : ${blueprint.name}. Catégorie : ${blueprint.category}.`;
+
+  const imageUrl =
+    blueprint.imageUrl ??
+    `https://gwgsmex5adyadzri.public.blob.vercel-storage.com/blueprints/images/${blueprint.slug}.jpg`;
+
+  return {
+    title: blueprint.name,
+    description,
+    openGraph: {
+      title: `${blueprint.name} — Blueprints Nexus Tools`,
+      description,
+      url: `https://tools.nexus.services/crafting/blueprints/${slug}`,
+      images: [{ url: imageUrl, alt: blueprint.name }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${blueprint.name} — Blueprints Nexus Tools`,
+      description,
+      images: [imageUrl],
+    },
+  };
+}
 
 export default async function BlueprintDetailPage({
   params,

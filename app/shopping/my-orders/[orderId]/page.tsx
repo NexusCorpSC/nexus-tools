@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { getOrderById } from "@/lib/shop-orders";
 import { getShop } from "@/lib/shop-items";
 import { auth } from "@/lib/auth";
@@ -13,6 +14,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { OrderActions } from "../components";
+
+export const metadata: Metadata = {
+  title: "Détail de commande",
+  description: "Consultez le détail de votre commande sur le Marketplace Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",

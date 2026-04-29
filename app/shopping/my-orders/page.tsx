@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { getOrdersForUser, countOrdersForUser } from "@/lib/shop-orders";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -14,6 +15,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Mes commandes",
+  description: "Consultez et gérez vos commandes passées sur le Marketplace Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 const PAGE_SIZE = 15;
 

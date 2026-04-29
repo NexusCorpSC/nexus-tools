@@ -1,5 +1,6 @@
 import { getBlueprintBySlug } from "@/lib/crafting";
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { requirePermission } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import {
@@ -11,6 +12,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { EditBlueprintForm } from "./edit-blueprint-form";
+
+export const metadata: Metadata = {
+  title: "Modifier un blueprint",
+  description: "Modifiez les informations d'un blueprint de crafting sur Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default async function EditBlueprintPage({
   params,

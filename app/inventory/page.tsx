@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,6 +12,13 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { InventoryGrid } from "./components";
+
+export const metadata: Metadata = {
+  title: "Inventaire",
+  description:
+    "Gérez votre inventaire de matériaux et d'objets Star Citizen. Suivez vos stocks par emplacement de stockage.",
+  robots: { index: false, follow: false },
+};
 
 export default async function InventoryPage() {
   const session = await auth.api.getSession({ headers: await headers() });

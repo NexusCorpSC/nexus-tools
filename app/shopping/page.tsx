@@ -1,5 +1,6 @@
 import { getFeaturedItems, ShopItem } from "@/lib/shop-items";
 import Link from "next/link";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import {
@@ -10,6 +11,18 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+
+export const metadata: Metadata = {
+  title: "Marketplace",
+  description:
+    "Achetez et vendez des objets, vaisseaux et services Star Citizen sur le Marketplace Nexus Tools. Parcourez les articles en vedette et les boutiques disponibles.",
+  openGraph: {
+    title: "Marketplace — Nexus Tools",
+    description:
+      "Achetez et vendez des objets et services Star Citizen sur le Marketplace communautaire.",
+    url: "https://tools.nexus.services/shopping",
+  },
+};
 
 export default async function ShoppingPage() {
   const t = await getTranslations("Shopping");

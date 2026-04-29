@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { getShop, getShopSellers } from "@/lib/shop-items";
 import {
   Breadcrumb,
@@ -11,6 +12,12 @@ import {
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { AddSellerButton, RemoveSellerButton, ShopInfoEditor } from "./components";
+
+export const metadata: Metadata = {
+  title: "Gestion de la boutique",
+  description: "Gérez les informations et les vendeurs de votre boutique sur Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default async function ShopManagementPage({
   params,

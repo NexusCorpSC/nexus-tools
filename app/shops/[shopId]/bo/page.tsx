@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { getShop, isUserSellerOfShop } from "@/lib/shop-items";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -14,6 +15,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ClipboardList } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Back-office",
+  description: "Tableau de bord de gestion de votre boutique sur Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default async function BoDashboardPage({
   params,

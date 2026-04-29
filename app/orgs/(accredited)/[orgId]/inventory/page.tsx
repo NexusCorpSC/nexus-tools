@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
@@ -14,6 +15,13 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Organization } from "@/app/orgs/page";
 import { OrgInventoryGrid } from "./components";
+
+export const metadata: Metadata = {
+  title: "Inventaire de l'organisation",
+  description:
+    "Consultez l'inventaire partagé de votre organisation Star Citizen sur Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default async function OrgInventoryPage({
   params,

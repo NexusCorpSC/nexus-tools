@@ -1,5 +1,6 @@
 import { getShopItem } from "@/lib/shop-items";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { CheckIcon, CrossCircledIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
@@ -7,6 +8,39 @@ import { Suspense } from "react";
 import { StockModificationSection } from "@/app/shopping/i/[itemId]/server-components";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ itemId: string }>;
+}): Promise<Metadata> {
+  const item = await getShopItem((await params).itemId);
+
+  if (!item) {
+    return { title: "Article introuvable" };
+  }
+
+  const description = item.description
+    ? item.description.slice(0, 160)
+    : `${item.name} — ${item.price} aUEC. Vendu par ${item.shop.name} sur Nexus Tools.`;
+
+  return {
+    title: item.name,
+    description,
+    openGraph: {
+      title: `${item.name} — Marketplace Nexus Tools`,
+      description,
+      url: `https://tools.nexus.services/shopping/i/${item.id ?? ""}`,
+      images: item.image ? [{ url: item.image, alt: item.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${item.name} — Marketplace Nexus Tools`,
+      description,
+      images: item.image ? [item.image] : undefined,
+    },
+  };
+}
 
 export default async function ShopItemDetailsPage({
   params,

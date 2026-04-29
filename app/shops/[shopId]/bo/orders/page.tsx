@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { getShop } from "@/lib/shop-items";
 import { isUserSellerOfShop } from "@/lib/shop-items";
 import { getOrdersForShop, countOrdersForShop } from "@/lib/shop-orders";
@@ -16,6 +17,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Commandes — Back-office",
+  description: "Gérez les commandes reçues sur votre boutique Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 const PAGE_SIZE = 15;
 

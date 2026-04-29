@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { getFactions } from "@/lib/reputations";
 import {
   Breadcrumb,
@@ -11,6 +12,13 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { PlayerReputations } from "@/types/reputations";
+
+export const metadata: Metadata = {
+  title: "Réputations de l'organisation",
+  description:
+    "Consultez les réputations de faction de tous les membres de votre organisation Star Citizen.",
+  robots: { index: false, follow: false },
+};
 
 export default async function ReputationPage({
   params,

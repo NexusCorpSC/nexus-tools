@@ -19,8 +19,53 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus Tools",
-  description: "A collection of tools for Star Citizen.",
+  metadataBase: new URL("https://tools.nexus.services"),
+  title: {
+    template: "%s | Nexus Tools",
+    default: "Nexus Tools — Star Citizen Community Tools",
+  },
+  description:
+    "Nexus Tools est une boîte à outils communautaire pour Star Citizen : marketplace, crafting, réputations, organisations et plus encore.",
+  keywords: [
+    "Star Citizen",
+    "tools",
+    "outils",
+    "crafting",
+    "marketplace",
+    "reputation",
+    "organisation",
+    "Nexus Corporation",
+  ],
+  authors: [{ name: "Nexus Corporation", url: "https://tools.nexus.services" }],
+  creator: "Nexus Corporation",
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    url: "https://tools.nexus.services",
+    siteName: "Nexus Tools",
+    title: "Nexus Tools — Star Citizen Community Tools",
+    description:
+      "Une boîte à outils communautaire pour Star Citizen : marketplace, crafting, réputations et organisations.",
+    images: [
+      {
+        url: "/nexus_logo_square.png",
+        width: 512,
+        height: 512,
+        alt: "Nexus Tools logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Nexus Tools — Star Citizen Community Tools",
+    description:
+      "Une boîte à outils communautaire pour Star Citizen : marketplace, crafting, réputations et organisations.",
+    images: ["/nexus_logo_square.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function RootLayout({

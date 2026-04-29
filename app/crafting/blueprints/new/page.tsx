@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import { requirePermission } from "@/lib/permissions";
 import {
   Breadcrumb,
@@ -9,6 +10,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NewBlueprintForm } from "./new-blueprint-form";
+
+export const metadata: Metadata = {
+  title: "Nouveau blueprint",
+  description: "Créez un nouveau blueprint de crafting dans Nexus Tools.",
+  robots: { index: false, follow: false },
+};
 
 export default async function NewBlueprintPage() {
   await requirePermission("blueprints:edit");
