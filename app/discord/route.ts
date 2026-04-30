@@ -58,6 +58,15 @@ async function handleAskCommand(interaction: APIChatInputApplicationCommandInter
         return NextResponse.json({ success: true }, { status: 200 });
     }
 
+    await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+        body: {
+            type: 4,
+            data: {
+                content: "I'm looking into it...",
+            },
+        },
+    });
+
     const responseRaw = await fetch(`${process.env.BREIGN_ENDPOINT}/agents/${agentId}/prompts`, {
         method: 'POST',
         headers: {
@@ -71,9 +80,7 @@ async function handleAskCommand(interaction: APIChatInputApplicationCommandInter
     });
     const response = await responseRaw.json();
 
-    console.log(response);
-
-    await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+    await rest.patch(Routes.webhookMessage(interaction.id, interaction.token, '@original'), {
         body: {
             type: 4,
             data: {
