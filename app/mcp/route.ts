@@ -10,7 +10,7 @@ async function handleSearchBlueprints(input: { query: string }): Promise<{ conte
         content: [
             {
                 type: 'text',
-                text: `You searched for: ${input.query}\n\nFound ${blueprints.length} blueprints:\n` + blueprints.map(bp => `- ${bp.name} (slug: ${bp.slug}) (link: ![${bp.name}](https://tools.services.nexus/crafting/blueprints/${bp.slug}))`).join('\n'),
+                text: `You searched for: ${input.query}\n\nFound ${blueprints.length} blueprints:\n` + blueprints.map(bp => `- ${bp.name} (slug: ${bp.slug}) (link: [${bp.name}](https://tools.services.nexus/crafting/blueprints/${bp.slug}))`).join('\n'),
             },
         ],
     };
@@ -19,7 +19,7 @@ async function handleSearchBlueprints(input: { query: string }): Promise<{ conte
 const handler = createMcpHandler(server => {
     server.registerTool("search_blueprints", {
         title: "Search for a blueprint",
-        description: "Search for blueprints and their details.",
+        description: "Search for 3 blueprints with a generic query and return their slugs and full names.",
         inputSchema: {
             query: z.string(),
         },
@@ -47,7 +47,7 @@ const handler = createMcpHandler(server => {
             content: [
                 {
                     type: 'text',
-                    text: `Blueprint Details:\nName: ${blueprint.name}\nCategory: ${blueprint.category}\nSubcategory: ${blueprint.subcategory}\nObtained from: ${blueprint.obtention}\nDescription: ${blueprint.description}\nLink with details: ![${blueprint.name}](https://tools.services.nexus/crafting/blueprints/${blueprint.slug})`,
+                    text: `Blueprint Details:\nName: ${blueprint.name}\nCategory: ${blueprint.category}\nSubcategory: ${blueprint.subcategory}\nObtained from: ${blueprint.obtention || "No information about how to get this blueprint."}\nDescription: ${blueprint.description}\nLink with details: [${blueprint.name}](https://tools.services.nexus/crafting/blueprints/${blueprint.slug})\n${blueprint.imageUrl ? `Image: ![${blueprint.name}](${blueprint.imageUrl})` : ""}`,
                 },
             ],
         };
