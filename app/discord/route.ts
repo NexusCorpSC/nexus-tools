@@ -80,7 +80,7 @@ async function handleAskCommand(interaction: APIChatInputApplicationCommandInter
     });
     const response = await responseRaw.json();
 
-    await rest.patch(Routes.webhookMessage(interaction.id, interaction.token, '@original'), {
+    await rest.patch(Routes.webhookMessage(interaction.application_id, interaction.token, '@original'), {
         body: {
             type: 4,
             data: {
