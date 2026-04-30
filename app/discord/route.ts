@@ -71,13 +71,11 @@ async function handleAskCommand(interaction: APIChatInputApplicationCommandInter
     });
     const response = await responseRaw.json();
 
-    console.log({ response })
-
     await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
         body: {
             type: 4,
             data: {
-                content: response.content,
+                content: response.text,
             },
         },
     });
