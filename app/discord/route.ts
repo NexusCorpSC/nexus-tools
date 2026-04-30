@@ -5,6 +5,8 @@ import { verify } from "discord-verify/node";
 import { NextResponse } from "next/server";
 import crypto from 'node:crypto'; 
 
+const agentId = "eee0b470-5a15-40f0-bb0d-ff816867ab50";
+
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN ?? '');
 
 export async function POST(req: Request) {
@@ -56,11 +58,26 @@ async function handleAskCommand(interaction: APIChatInputApplicationCommandInter
         return NextResponse.json({ success: true }, { status: 200 });
     }
 
+    const responseRaw = await fetch(`${process.env.BREIGN_ENDPOINT}/agents/${agentId}/prompts`, {
+        method: 'POST',
+        headers: {
+            "Content-Type": "application/json",
+            "X-API-KEY": process.env.BREIGN_API_KEY ?? '',
+        },
+        body: JSON.stringify({
+            message: message,
+            lang: "auto", 
+        }),
+    });
+    const response = await responseRaw.json();
+
+    console.log({ response })
+
     await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
         body: {
             type: 4,
             data: {
-                content: `Coming soon...`,
+                content: response.content,
             },
         },
     });
