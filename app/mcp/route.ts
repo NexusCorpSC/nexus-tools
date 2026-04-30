@@ -19,14 +19,14 @@ async function handleSearchBlueprints(input: { query: string }): Promise<{ conte
 const handler = createMcpHandler(server => {
     server.registerTool("search_blueprints", {
         title: "Search for a blueprint",
-        description: "Search for 3 blueprints with a generic query and return their slugs and full names.",
+        description: "Search for 3 blueprints with a generic query and return their slugs and full names to use with other tools.",
         inputSchema: {
             query: z.string(),
         },
     }, handleSearchBlueprints);
     server.registerTool("get_blueprint_by_slug", {
         title: "Get blueprint details by slug",
-        description: "Retrieve detailed information about a blueprint using its slug.",
+        description: "Retrieve detailed information about a blueprint, recipe, obtention, statistics, ... using its slug.",
         inputSchema: {
             slug: z.string(),
         },
