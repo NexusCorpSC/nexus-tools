@@ -13,6 +13,8 @@ export async function registerDiscordCommands() {
         new SlashCommandBuilder()
             .setName('blueprints')
             .setNameLocalization('fr', 'blueprints')
+            .setDescription('Search for blueprints')
+            .setDescriptionLocalization('fr', 'Rechercher des blueprints')
             .addStringOption(option =>
                 option.setName('query')
                     .setNameLocalization('fr', 'requete')
@@ -24,6 +26,8 @@ export async function registerDiscordCommands() {
         new SlashCommandBuilder()
             .setName('ask')
             .setNameLocalization('fr', 'demander')
+            .setDescription('Ask a question to the bot')
+            .setDescriptionLocalization('fr', 'Poser une question au bot')
             .addStringOption(option =>
                 option.setName('message')
                     .setNameLocalization('fr', 'message')

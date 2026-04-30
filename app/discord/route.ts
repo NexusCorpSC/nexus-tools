@@ -36,7 +36,36 @@ export async function POST(req: Request) {
 async function handleApplicationCommand(body: APIChatInputApplicationCommandInteraction) {
     if (body.data.name === 'blueprints') {
         return handleSearchBlueprintsCommand(body);
+    } else if (body.data.name === 'ask') {
+        return handleAskCommand(body);
     }
+}
+
+async function handleAskCommand(interaction: APIChatInputApplicationCommandInteraction) {
+    const message = interaction.data.options?.find(option => option.name === 'message' && option.type === 3) as { value: string } | undefined;
+    if (!message?.value) {
+        await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+            body: {
+                type: 4,
+                data: {
+                    content: 'Veuillez fournir un message.',
+                    flags: 64, // Ephemeral
+                },
+            },
+        });
+        return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+        body: {
+            type: 4,
+            data: {
+                content: `Coming soon...`,
+            },
+        },
+    });
+
+    return NextResponse.json({ success: true }, { status: 200 });
 }
 
 async function handleSearchBlueprintsCommand(interaction: APIChatInputApplicationCommandInteraction) {
