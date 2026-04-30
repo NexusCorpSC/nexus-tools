@@ -65,7 +65,7 @@ async function handleAskCommand(interaction: APIChatInputApplicationCommandInter
             "X-API-KEY": process.env.BREIGN_API_KEY ?? '',
         },
         body: JSON.stringify({
-            message: message,
+            message: message.value,
             lang: "auto", 
         }),
     });
