@@ -82,10 +82,7 @@ async function handleAskCommand(interaction: APIChatInputApplicationCommandInter
 
     await rest.patch(Routes.webhookMessage(interaction.application_id, interaction.token, '@original'), {
         body: {
-            type: 4,
-            data: {
-                content: response.text,
-            },
+            content: response.text,
         },
     });
 
