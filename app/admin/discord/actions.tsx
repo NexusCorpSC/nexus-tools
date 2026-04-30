@@ -11,8 +11,8 @@ export async function registerDiscordCommands() {
     console.log('Updating commands...');
     const commands = [
         new SlashCommandBuilder()
-            .setName('Search Blueprints')
-            .setNameLocalization('fr', 'Rechercher des blueprints')
+            .setName('blueprints')
+            .setNameLocalization('fr', 'blueprints')
             .addStringOption(option =>
                 option.setName('query')
                     .setNameLocalization('fr', 'requete')
@@ -22,10 +22,10 @@ export async function registerDiscordCommands() {
             )
             .toJSON(),
         new SlashCommandBuilder()
-            .setName('Ask')
-            .setNameLocalization('fr', 'Demander')
+            .setName('ask')
+            .setNameLocalization('fr', 'demander')
             .addStringOption(option =>
-                option.setName('query')
+                option.setName('message')
                     .setNameLocalization('fr', 'message')
                     .setDescription('Your message to the bot')
                     .setDescriptionLocalization('fr', 'Votre message au bot')

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
 
 async function handleApplicationCommand(body: APIChatInputApplicationCommandInteraction) {
-    if (body.data.name === 'Search Blueprints') {
+    if (body.data.name === 'blueprints') {
         return handleSearchBlueprintsCommand(body);
     }
 }
