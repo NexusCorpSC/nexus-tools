@@ -249,6 +249,54 @@ async function handleSearchBlueprintsCommand(
 
   const blueprints = await searchBlueprints(query.value, { fuzzy: true });
 
+  if (blueprints.length === 0) {
+    await rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 4,
+          data: {
+            content: `Aucun blueprint trouvé pour votre recherche : ${query.value}`,
+          },
+        },
+      },
+    );
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  }
+
+  if (blueprints.length === 1) {
+    const blueprint = await getBlueprintBySlug(blueprints[0].slug);
+    if (!blueprint) {
+      await rest.post(
+        Routes.interactionCallback(interaction.id, interaction.token),
+        {
+          body: {
+            type: 4,
+            data: {
+              content: `Aucun blueprint trouvé pour votre recherche : ${query.value}`,
+            },
+          },
+        },
+      );
+
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    await rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 4,
+          data: {
+            content: `Informations pour : ${blueprint.name}`,
+          },
+        },
+      },
+    );
+    return NextResponse.json({ success: true }, { status: 200 });
+  }
+
   const embed = new EmbedBuilder().setDescription(
     "Voici quelques blueprints correspondant à votre recherche :",
   );
