@@ -190,7 +190,7 @@ async function handleSearchBlueprintsCommand(
       body: {
         type: 4,
         data: {
-          content: `Voici les blueprints correspondant à votre recherche : ${query.value}\n${blueprints.map((bp) => `- ${bp.name}`).join("\n")}`,
+          content: `Voici quelques blueprints correspondant à votre recherche : ${query.value}\n${blueprints.map((bp) => `- [${bp.name}](https://tools.services.nexus/crafting/blueprints/${bp.slug})`).join("\n")}`,
         },
       },
     },
