@@ -5,16 +5,20 @@ import {
   APIMessageComponentSelectMenuInteraction,
   InteractionType,
   Routes,
+  ButtonStyle,
 } from "discord-api-types/v10";
 import { verify } from "discord-verify/node";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import {
   ActionRowBuilder,
+  ButtonBuilder,
   EmbedBuilder,
   SelectMenuBuilder,
   SelectMenuOptionBuilder,
 } from "@discordjs/builders";
+import { Blueprint } from "@/types/crafting";
+import { formatCraftingTime } from "@/lib/crafting-time";
 
 const agentId = "eee0b470-5a15-40f0-bb0d-ff816867ab50";
 const aiAllowedDiscordIds = JSON.parse(
@@ -62,6 +66,46 @@ export async function POST(req: Request) {
   return NextResponse.json({ success: true }, { status: 200 });
 }
 
+function blueprintDetailsMessage(blueprint: Blueprint) {
+  return {
+    content: `Informations pour : ${blueprint.name}`,
+    embeds: [
+      new EmbedBuilder()
+        .setTitle(blueprint.name)
+        .setDescription(blueprint.description)
+        .setFields(
+          blueprint.recipe?.components.map((c) => ({
+            name: c.name,
+            value: c.options[0]
+              ? `${c.options[0].name} - ${c.options[0].quantity}`
+              : "",
+          })) ?? [],
+        )
+        .setImage(blueprint.imageUrl ?? null)
+        .setFooter(
+          blueprint.craftingTime
+            ? {
+                text: formatCraftingTime(blueprint.craftingTime),
+              }
+            : null,
+        ),
+    ],
+    components: [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setLabel("Passer un ordre de fabrication")
+          .setStyle(ButtonStyle.Premium),
+        new ButtonBuilder()
+          .setLabel("Commander les ressources")
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setLabel("Ajouter le blueprint")
+          .setStyle(ButtonStyle.Success),
+      ),
+    ],
+  };
+}
+
 async function handleComponentSelectMenuInteraction(
   interaction: APIMessageComponentSelectMenuInteraction,
 ) {
@@ -92,9 +136,7 @@ async function handleComponentSelectMenuInteraction(
       {
         body: {
           type: 4,
-          data: {
-            content: `Informations pour : ${blueprint.name}`,
-          },
+          data: blueprintDetailsMessage(blueprint),
         },
       },
     );
@@ -288,9 +330,7 @@ async function handleSearchBlueprintsCommand(
       {
         body: {
           type: 4,
-          data: {
-            content: `Informations pour : ${blueprint.name}`,
-          },
+          data: blueprintDetailsMessage(blueprint),
         },
       },
     );
