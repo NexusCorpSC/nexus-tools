@@ -94,10 +94,10 @@ function blueprintDetailsMessage(blueprint: Blueprint) {
       new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setLabel("Passer un ordre de fabrication")
-          .setStyle(ButtonStyle.Premium),
+          .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
           .setLabel("Commander les ressources")
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
           .setLabel("Ajouter le blueprint")
           .setStyle(ButtonStyle.Success),
