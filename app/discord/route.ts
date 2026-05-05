@@ -74,7 +74,9 @@ function blueprintDetailsMessage(blueprint: Blueprint) {
         .setURL(
           `https://tools.services.nexus/crafting/blueprints/${blueprint.slug}`,
         )
-        .setDescription(blueprint.description)
+        .setDescription(
+          `${blueprint.description}${blueprint.obtention ? `\n\n# Obtention\n${blueprint.obtention}` : ""}`,
+        )
         .setFields(
           blueprint.recipe?.components.map((c) => ({
             name: c.name,
