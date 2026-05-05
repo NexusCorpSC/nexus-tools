@@ -94,12 +94,15 @@ function blueprintDetailsMessage(blueprint: Blueprint) {
       new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setLabel("Passer un ordre de fabrication")
+          .setCustomId(`${blueprint.id}-craft-order`)
           .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
           .setLabel("Commander les ressources")
+          .setCustomId(`${blueprint.id}-compo-order`)
           .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
           .setLabel("Ajouter le blueprint")
+          .setCustomId(`${blueprint.id}-add-own`)
           .setStyle(ButtonStyle.Success),
       ),
     ],
