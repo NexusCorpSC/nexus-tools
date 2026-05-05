@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth";
 import { searchBlueprints } from "@/lib/crafting";
 import { REST } from "@discordjs/rest";
 import { APIApplicationCommandInteraction, APIChatInputApplicationCommandInteraction, APIMessage, APIMessageApplicationCommandInteraction, InteractionType, Routes } from "discord-api-types/v10";
@@ -6,6 +7,7 @@ import { NextResponse } from "next/server";
 import crypto from 'node:crypto'; 
 
 const agentId = "eee0b470-5a15-40f0-bb0d-ff816867ab50";
+const aiAllowedDiscordIds = JSON.parse(process.env.AI_ALLOWED_DISCORD_IDS ?? '[]') as string[];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN ?? '');
 
@@ -51,6 +53,32 @@ async function handleAskCommand(interaction: APIChatInputApplicationCommandInter
                 type: 4,
                 data: {
                     content: 'Veuillez fournir un message.',
+                    flags: 64, // Ephemeral
+                },
+            },
+        });
+        return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    const userDiscordId = interaction.user?.id ?? interaction.member?.user?.id;
+    if (!userDiscordId) {
+        await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+            body: {
+                type: 4,
+                data: {
+                    content: 'Impossible de récupérer votre ID Discord.',
+                    flags: 64, // Ephemeral
+                },
+            },
+        });
+        return NextResponse.json({ success: true }, { status: 200 });
+    }
+    if (!aiAllowedDiscordIds.includes(userDiscordId)) {
+        await rest.post(Routes.interactionCallback(interaction.id, interaction.token), {
+            body: {
+                type: 4,
+                data: {
+                    content: 'Votre compte Discord n\'est pas autorisé à utiliser cette commande en langage naturel.',
                     flags: 64, // Ephemeral
                 },
             },
