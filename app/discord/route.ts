@@ -68,7 +68,6 @@ export async function POST(req: Request) {
 
 function blueprintDetailsMessage(blueprint: Blueprint) {
   return {
-    content: `Informations pour : ${blueprint.name}`,
     embeds: [
       new EmbedBuilder()
         .setTitle(blueprint.name)
@@ -82,13 +81,14 @@ function blueprintDetailsMessage(blueprint: Blueprint) {
             value: c.options[0]
               ? `${c.options[0].name} - ${c.options[0].quantity}`
               : "",
+            inline: true,
           })) ?? [],
         )
         .setImage(blueprint.imageUrl ?? null)
         .setFooter(
           blueprint.craftingTime
             ? {
-                text: formatCraftingTime(blueprint.craftingTime),
+                text: `Temps de fabrication: ${formatCraftingTime(blueprint.craftingTime)}`,
               }
             : null,
         ),
