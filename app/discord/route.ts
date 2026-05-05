@@ -53,6 +53,10 @@ export async function POST(req: Request) {
     return handleApplicationCommand(
       body as APIChatInputApplicationCommandInteraction,
     );
+  } else if (body.type === InteractionType.MessageComponent) {
+    return handleComponentSelectMenuInteraction(
+      body as APIMessageComponentSelectMenuInteraction,
+    );
   }
 
   return NextResponse.json({ success: true }, { status: 200 });
