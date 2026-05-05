@@ -72,6 +72,9 @@ function blueprintDetailsMessage(blueprint: Blueprint) {
     embeds: [
       new EmbedBuilder()
         .setTitle(blueprint.name)
+        .setURL(
+          `https://tools.services.nexus/crafting/blueprints/${blueprint.slug}`,
+        )
         .setDescription(blueprint.description)
         .setFields(
           blueprint.recipe?.components.map((c) => ({
