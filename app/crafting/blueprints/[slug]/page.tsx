@@ -110,7 +110,7 @@ export default async function BlueprintDetailPage({
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-2">
             <span className="inline-block text-xs font-semibold uppercase tracking-wide text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-              {t(`categories.${blueprint.category}`)}
+              {t(`Blueprints.categories.${blueprint.category}`)}
             </span>
             <h1 className="text-3xl font-bold">{blueprint.name}</h1>
           </div>
