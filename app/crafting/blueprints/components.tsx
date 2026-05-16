@@ -81,7 +81,9 @@ function MaterialTagInput({
 
   return (
     <div className="relative">
-      <div className={`flex flex-wrap gap-1.5 items-center min-h-9 ${compact ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm"} rounded-md border border-input bg-background shadow-xs focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-[color,box-shadow]`}>
+      <div
+        className={`flex flex-wrap gap-1.5 items-center min-h-9 ${compact ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm"} rounded-md border border-input bg-background shadow-xs focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-[color,box-shadow]`}
+      >
         {value.map((tag) => (
           <span
             key={tag}
@@ -182,8 +184,10 @@ function BlueprintCard({
           {blueprint.name}
         </p>
         <p className="text-xs text-muted-foreground truncate">
-          {blueprint.category}
-          {blueprint.subcategory ? ` › ${blueprint.subcategory}` : ""}
+          {t(`categories.${blueprint.category}`)}
+          {blueprint.subcategory
+            ? ` › ${t(`categories.${blueprint.subcategory}`)}`
+            : ""}
         </p>
       </div>
     </Link>
@@ -315,7 +319,14 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchResults({ query, category, subcategory, ownedFilter, materials, page: effectivePage });
+      fetchResults({
+        query,
+        category,
+        subcategory,
+        ownedFilter,
+        materials,
+        page: effectivePage,
+      });
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -327,9 +338,24 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
     (newPage: number) => {
       setPage(newPage);
       updatePageInUrl(newPage);
-      fetchResults({ query, category, subcategory, ownedFilter, materials, page: newPage });
+      fetchResults({
+        query,
+        category,
+        subcategory,
+        ownedFilter,
+        materials,
+        page: newPage,
+      });
     },
-    [query, category, subcategory, ownedFilter, materials, fetchResults, updatePageInUrl],
+    [
+      query,
+      category,
+      subcategory,
+      ownedFilter,
+      materials,
+      fetchResults,
+      updatePageInUrl,
+    ],
   );
 
   const resetFilters = () => {
@@ -393,7 +419,7 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
               <SelectItem value="_all">{t("filterAllCategories")}</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.category} value={c.category}>
-                  {c.category}
+                  {t(`categories.${c.category}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -416,7 +442,7 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
                 </SelectItem>
                 {subcategories.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {s}
+                    {t(`categories.${s}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
