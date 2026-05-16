@@ -75,7 +75,7 @@ async function updateBlueprints() {
   const blueprints = rawBlueprints.blueprints;
 
   const prepared: Omit<Blueprint, "id">[] = blueprints
-    .filter((bp) => bp.tiers?.[0])
+    .filter((bp) => bp.tiers?.[0] && bp.productName)
     .map((bp): Omit<Blueprint, "id"> => {
       return {
         name: bp.productName,

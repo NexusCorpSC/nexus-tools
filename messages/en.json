@@ -68,6 +68,7 @@
     "blueprints": "Blueprints",
     "inventory": "Inventory",
     "Blueprints": {
+      "home": "Home",
       "title": "Blueprints",
       "header": "Manage your blueprints and share them with your organization members.",
       "searchPlaceholder": "Search for a blueprint...",

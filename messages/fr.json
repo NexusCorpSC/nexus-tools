@@ -68,6 +68,7 @@
       "header": "Maintenez à jour votre inventaire de matériaux et d'objets pour faciliter la gestion de vos recettes d'artisanat."
     },
     "Blueprints": {
+      "home": "Accueil",
       "title": "Plans",
       "header": "Gérez vos plans d'artisanat, associez-les à des recettes et partagez-les avec votre organisation pour faciliter la collaboration entre artisans et acheteurs.",
       "searchPlaceholder": "Rechercher un plan...",

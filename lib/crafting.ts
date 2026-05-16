@@ -468,6 +468,11 @@ export async function getBlueprintCategories(): Promise<
           subcategories: { $addToSet: "$subcategory" },
         },
       },
+      {
+        $match: {
+          _id: { $exists: true, $ne: null },
+        },
+      },
       { $sort: { _id: 1 } },
     ])
     .toArray();

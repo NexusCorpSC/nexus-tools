@@ -17,7 +17,6 @@ async function importImage(
   const match = pageText.match(metaRegex);
   if (match && match[1]) {
     const imageUrl = match[1];
-    console.log(imageUrl);
 
     if (
       imageUrl !== "https://media.starcitizen.tools/9/93/Placeholderv2.png" &&
