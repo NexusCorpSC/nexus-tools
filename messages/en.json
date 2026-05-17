@@ -560,6 +560,11 @@
     "factionBlueprintRewards": "Blueprints rewarded by this faction",
     "missionsList": "Missions",
     "noMissions": "No missions for this faction.",
-    "exploreFactions": "Explore factions"
+    "exploreFactions": "Explore factions",
+    "factions": "Factions",
+    "factionsHeader": "Explore all factions in the 'Verse with their missions and blueprint rewards.",
+    "factionsSearchPlaceholder": "Search for a faction...",
+    "factionsCount": "{count, plural, one {# faction} other {# factions}}",
+    "factionsNoResults": "No factions found."
   }
 }

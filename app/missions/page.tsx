@@ -13,6 +13,8 @@ import db from "@/lib/db";
 import { MissionsExplorer } from "@/app/missions/components";
 import { FactionDb } from "@/lib/data/factions";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { UsersIcon } from "@heroicons/react/24/outline";
 
 export const metadata: Metadata = {
   title: "Missions",
@@ -56,9 +58,13 @@ export default async function MissionsPage() {
         <div>
           <h1 className="text-2xl font-bold mb-1">{t("title")}</h1>
           <p className="text-nexus">{t("header")}</p>
-
-          <Button>{t("exploreFactions")}</Button>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/missions/factions">
+            <UsersIcon className="size-4 mr-1.5" />
+            {t("exploreFactions")}
+          </Link>
+        </Button>
       </div>
 
       <Suspense>
