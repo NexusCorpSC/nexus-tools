@@ -576,6 +576,24 @@
   "Missions": {
     "title": "Missions",
     "home": "Accueil",
-    "header": "Explorer toutes les missions du 'Verse."
+    "header": "Explorer toutes les missions du 'Verse.",
+    "searchPlaceholder": "Rechercher une mission...",
+    "filterAllFactions": "Toutes les factions",
+    "filterWithBlueprints": "Avec blueprints",
+    "filterReset": "Réinitialiser",
+    "resultsCount": "{count, plural, one {# mission trouvée} other {# missions trouvées}}",
+    "noResults": "Aucune mission trouvée.",
+    "paginationPrev": "Précédent",
+    "paginationNext": "Suivant",
+    "paginationPage": "Page {page} sur {totalPages}",
+    "illegal": "Illégal",
+    "shareable": "Partageable",
+    "blueprintsCount": "{count, plural, one {# blueprint} other {# blueprints}}",
+    "blueprintRewards": "Blueprints récompensés",
+    "factionMissionsCount": "{count, plural, one {# mission} other {# missions}}",
+    "factionBlueprintRewards": "Blueprints récompensés par cette faction",
+    "missionsList": "Missions",
+    "noMissions": "Aucune mission pour cette faction.",
+    "exploreFactions": "Explorer les factions"
   }
 }

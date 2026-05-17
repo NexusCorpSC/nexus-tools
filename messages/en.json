@@ -542,6 +542,24 @@
   "Missions": {
     "title": "Missions",
     "home": "Home",
-    "header": "Explore all missions within the 'Verse."
+    "header": "Explore all missions within the 'Verse.",
+    "searchPlaceholder": "Search for a mission...",
+    "filterAllFactions": "All factions",
+    "filterWithBlueprints": "With blueprints",
+    "filterReset": "Reset filters",
+    "resultsCount": "{count, plural, one {# mission found} other {# missions found}}",
+    "noResults": "No missions found.",
+    "paginationPrev": "Previous",
+    "paginationNext": "Next",
+    "paginationPage": "Page {page} of {totalPages}",
+    "illegal": "Illegal",
+    "shareable": "Shareable",
+    "blueprintsCount": "{count, plural, one {# blueprint} other {# blueprints}}",
+    "blueprintRewards": "Blueprint Rewards",
+    "factionMissionsCount": "{count, plural, one {# mission} other {# missions}}",
+    "factionBlueprintRewards": "Blueprints rewarded by this faction",
+    "missionsList": "Missions",
+    "noMissions": "No missions for this faction.",
+    "exploreFactions": "Explore factions"
   }
 }

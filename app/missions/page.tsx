@@ -9,6 +9,10 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
+import db from "@/lib/db";
+import { MissionsExplorer } from "@/app/missions/components";
+import { FactionDb } from "@/lib/data/factions";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Missions",
@@ -24,6 +28,15 @@ export const metadata: Metadata = {
 
 export default async function MissionsPage() {
   const t = await getTranslations("Missions");
+
+  const factions = (
+    await db
+      .db()
+      .collection<FactionDb>("factions")
+      .find({}, { projection: { _id: 1, name: 1 } })
+      .sort({ name: 1 })
+      .toArray()
+  ).map((f) => ({ ...f, _id: f._id.toString() }));
 
   return (
     <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
@@ -43,10 +56,14 @@ export default async function MissionsPage() {
         <div>
           <h1 className="text-2xl font-bold mb-1">{t("title")}</h1>
           <p className="text-nexus">{t("header")}</p>
+
+          <Button>{t("exploreFactions")}</Button>
         </div>
       </div>
 
-      <Suspense></Suspense>
+      <Suspense>
+        <MissionsExplorer factions={factions} />
+      </Suspense>
     </div>
   );
 }
