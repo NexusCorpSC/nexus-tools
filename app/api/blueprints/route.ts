@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
 
   const limitParam = searchParams.get("limit");
   const pageParam = searchParams.get("page");
-  const limit = limitParam ? Math.max(1, Math.min(100, parseInt(limitParam, 10))) : 24;
+  const limit = limitParam
+    ? Math.max(1, Math.min(100, parseInt(limitParam, 10)))
+    : 24;
   const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
 
   const session = await auth.api.getSession({

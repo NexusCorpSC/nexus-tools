@@ -29,7 +29,7 @@ const navigation = [
   { name: "crafting", href: "/crafting" },
   { name: "inventory", href: "/inventory" },
   { name: "industry", href: "/industry" },
-  { name: "reputation", href: "/reps" },
+  { name: "missions", href: "/missions" },
   { name: "organizations", href: "/orgs" },
 ];
 const userNavigation = [
@@ -66,7 +66,10 @@ export default async function Topbar() {
     : null;
 
   return (
-    <Disclosure as="header" className="border-b border-[#9ED0FF]/15 bg-gray-800 backdrop-blur-md">
+    <Disclosure
+      as="header"
+      className="border-b border-[#9ED0FF]/15 bg-gray-800 backdrop-blur-md"
+    >
       <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:divide-y lg:divide-[#9ED0FF]/10 lg:px-8">
         <div className="relative flex h-16 justify-between">
           <div className="relative z-10 flex px-2 lg:px-0">
@@ -201,7 +204,11 @@ export default async function Topbar() {
         </nav>
       </div>
 
-      <DisclosurePanel as="nav" aria-label="Global" className="border-t border-[#9ED0FF]/10 lg:hidden">
+      <DisclosurePanel
+        as="nav"
+        aria-label="Global"
+        className="border-t border-[#9ED0FF]/10 lg:hidden"
+      >
         <div className="space-y-1 px-2 pb-3 pt-2">
           {navigation.map((item) => (
             <TopBarNavMenuItem

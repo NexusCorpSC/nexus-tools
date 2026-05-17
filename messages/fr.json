@@ -16,7 +16,8 @@
       "myProfile": "Mon Profil",
       "settings": "Paramètres",
       "signOut": "Déconnexion",
-      "signIn": "Connexion"
+      "signIn": "Connexion",
+      "missions": "Missions"
     },
     "openMenu": "Ouvrir le menu",
     "openUserMenu": "Ouvrir le menu utilisateur",
@@ -571,5 +572,10 @@
     "orgInventoryEmptySubtitle": "Les membres peuvent partager des objets depuis leur inventaire personnel.",
     "orgInventoryFilterAllMembers": "Tous les membres",
     "orgInventoryLoadMore": "Charger plus"
+  },
+  "Missions": {
+    "title": "Missions",
+    "home": "Accueil",
+    "header": "Explorer toutes les missions du 'Verse."
   }
 }
