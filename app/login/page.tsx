@@ -16,7 +16,9 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="flex w-full max-w-sm flex-col space-y-4 rounded-2xl border border-[#9ED0FF]/20 bg-[#0B3A5A]/70 p-8 shadow-xl shadow-black/20 backdrop-blur-sm">
-        <h1 className="mb-6 text-center text-2xl font-bold text-[#CCE7FF]">Login</h1>
+        <h1 className="mb-6 text-center text-2xl font-bold text-[#CCE7FF]">
+          Login
+        </h1>
         {emailSent ? (
           <form
             className="space-y-4"
@@ -145,9 +147,9 @@ export default function Login() {
               fetchOptions: {
                 onSuccess() {
                   if (callbackUrl) {
-                    router.push(callbackUrl);
+                    //router.push(callbackUrl);
                   } else {
-                    router.push("/");
+                    //router.push("/");
                   }
                 },
               },
