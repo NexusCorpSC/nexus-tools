@@ -3,6 +3,7 @@ import db from "./db";
 import { Blueprint, UserBlueprint } from "@/types/crafting";
 import { ObjectId, Document } from "bson";
 import { Organization } from "@/app/orgs/page";
+import { inspect } from "node:util";
 
 export async function searchBlueprints(
   query: string,
@@ -163,7 +164,7 @@ export async function filterBlueprints(
   if (materials && materials.length > 0) {
     for (const material of materials) {
       matchConditions.push({
-        "recipe.components": { $elemMatch: { name: material } },
+        "recipe.components.options": { $elemMatch: { name: material } },
       });
     }
   }
