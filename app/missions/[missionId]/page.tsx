@@ -20,16 +20,59 @@ import {
   CubeIcon,
   TagIcon,
 } from "@heroicons/react/24/outline";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 type Props = { params: Promise<{ missionId: string }> };
 
-async function getMission(missionId: string): Promise<Mission | null> {
+async function getMission(missionId: string, userId?: string): Promise<Mission | null> {
   let objectId: ObjectId;
   try {
     objectId = new ObjectId(missionId);
   } catch {
     return null;
   }
+
+  const blueprintLookupPipeline = userId
+    ? [
+        { $match: { $expr: { $in: ["$_id", "$$blueprintIds"] } } },
+        {
+          $lookup: {
+            from: "user-blueprints",
+            let: { bpId: { $toString: "$_id" } },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$blueprintId", "$$bpId"] },
+                      { $eq: ["$userId", userId] },
+                    ],
+                  },
+                },
+              },
+            ],
+            as: "ownership",
+          },
+        },
+        {
+          $addFields: {
+            owned: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$isDefault", true] },
+                    { $gt: [{ $size: "$ownership" }, 0] },
+                  ],
+                },
+                true,
+                false,
+              ],
+            },
+          },
+        },
+      ]
+    : [{ $match: { $expr: { $in: ["$_id", "$$blueprintIds"] } } }];
 
   const [mission] = await db
     .db()
@@ -48,8 +91,8 @@ async function getMission(missionId: string): Promise<Mission | null> {
       {
         $lookup: {
           from: "blueprints",
-          localField: "blueprints",
-          foreignField: "_id",
+          let: { blueprintIds: "$blueprints" },
+          pipeline: blueprintLookupPipeline,
           as: "blueprintDetails",
         },
       },
@@ -72,7 +115,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function MissionDetailPage({ params }: Props) {
   const { missionId } = await params;
   const t = await getTranslations("Missions");
-  const mission = await getMission(missionId);
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+  const mission = await getMission(missionId, userId);
 
   if (!mission) notFound();
 
@@ -172,7 +217,7 @@ export default async function MissionDetailPage({ params }: Props) {
                     <CubeIcon className="size-5 text-purple-400/60" />
                   </div>
                 )}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{bp.name}</p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <TagIcon className="size-3" />
@@ -180,6 +225,17 @@ export default async function MissionDetailPage({ params }: Props) {
                     {bp.subcategory && ` · ${bp.subcategory}`}
                   </p>
                 </div>
+                {bp.owned !== undefined && (
+                  bp.owned ? (
+                    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30 rounded-full">
+                      {t("blueprintOwned")}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 text-xs font-semibold bg-white/5 text-muted-foreground border border-white/10 rounded-full">
+                      {t("blueprintNotOwned")}
+                    </span>
+                  )
+                )}
               </Link>
             ))}
           </div>

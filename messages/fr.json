@@ -599,6 +599,8 @@
     "factionsHeader": "Explorez toutes les factions du 'Verse et leurs missions et récompenses.",
     "factionsSearchPlaceholder": "Rechercher une faction...",
     "factionsCount": "{count, plural, one {# faction} other {# factions}}",
-    "factionsNoResults": "Aucune faction trouvée."
+    "factionsNoResults": "Aucune faction trouvée.",
+    "blueprintOwned": "Possédé",
+    "blueprintNotOwned": "Non possédé"
   }
 }

@@ -5,6 +5,8 @@ export type MissionBlueprint = {
   category: string;
   subcategory?: string;
   imageUrl?: string;
+  /** Si l'utilisateur est connecté, indique s'il possède ce blueprint */
+  owned?: boolean;
 };
 
 export type MissionFaction = {

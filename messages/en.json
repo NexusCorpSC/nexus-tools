@@ -565,6 +565,8 @@
     "factionsHeader": "Explore all factions in the 'Verse with their missions and blueprint rewards.",
     "factionsSearchPlaceholder": "Search for a faction...",
     "factionsCount": "{count, plural, one {# faction} other {# factions}}",
-    "factionsNoResults": "No factions found."
+    "factionsNoResults": "No factions found.",
+    "blueprintOwned": "Owned",
+    "blueprintNotOwned": "Not owned"
   }
 }
