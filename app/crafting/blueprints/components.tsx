@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { BlueprintImageCover } from "@/app/crafting/blueprints/[slug]/components";
+import { BlueprintQuickAdd } from "./server-components";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -150,8 +151,10 @@ function MaterialTagInput({
 
 function BlueprintCard({
   blueprint,
+  showQuickAdd,
 }: {
   blueprint: Blueprint & { owned?: boolean };
+  showQuickAdd: boolean;
 }) {
   const t = useTranslations("Crafting.Blueprints");
   return (
@@ -177,6 +180,9 @@ function BlueprintCard({
           <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-semibold bg-green-500 text-white rounded-full shadow">
             {t("owned")}
           </span>
+        )}
+        {showQuickAdd && !blueprint.owned && (
+          <BlueprintQuickAdd blueprint={blueprint} />
         )}
       </div>
       <div className="p-3 flex flex-col gap-0.5 flex-1">
@@ -520,7 +526,7 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
       ) : results.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {results.map((blueprint) => (
-            <BlueprintCard key={blueprint.id} blueprint={blueprint} />
+            <BlueprintCard key={blueprint.id} blueprint={blueprint} showQuickAdd={isLoggedIn} />
           ))}
         </div>
       ) : hasLoaded ? (
