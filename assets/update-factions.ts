@@ -53,6 +53,9 @@ async function updateFactions() {
     await readFileSync(path.join(__dirname, "missions.json"), "utf8"),
   );
 
+  await db.db().collection("missions").drop();
+  await db.db().collection("factions").drop();
+
   const factions: {
     id: string;
     name: string;

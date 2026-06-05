@@ -1,5 +1,5 @@
 {
-  "version": "4.8.0-live.11825000",
+  "version": "4.8.1-live.11875683",
   "meta": {
     "totalBlueprints": 1553,
     "totalProducts": 1523,
@@ -8,7 +8,45 @@
   },
   "dismantle": {
     "efficiency": 0.5,
-    "dismantleTimeSeconds": 15
+    "dismantleTimeSeconds": 15,
+    "blacklistedResources": [
+      {
+        "guid": "bde5a2c8-2ef4-46ac-9403-2fcb79e4016c",
+        "name": "Quantainium"
+      },
+      {
+        "guid": "8cd317a3-df9b-4315-8ac3-0f1fca42dfd4",
+        "name": "Stileron"
+      },
+      {
+        "guid": "4a47cad8-0271-4048-b19b-d9b52521fc20",
+        "name": "Savrilium"
+      },
+      {
+        "guid": "392b4dca-449a-4d4d-8fef-beab024d9ee7",
+        "name": "Lindinium"
+      },
+      {
+        "guid": "86d00bd8-08f7-4231-b375-a609803fc46d",
+        "name": "Riccite"
+      },
+      {
+        "guid": "989f9b73-f636-4f35-a81d-579dcbe3f0ab",
+        "name": "Ouratite"
+      }
+    ],
+    "blacklistedEntityClasses": [
+      {
+        "guid": "e954d75e-fb1e-487e-90a8-170f0284b502",
+        "name": "Janalite",
+        "nameKey": "@items_commodities_janalite"
+      },
+      {
+        "guid": "ee704f52-8794-434d-bcd7-47fec365ffbd",
+        "name": "Saldynium (Ore)",
+        "nameKey": "@items_commodities_saldynium_ore"
+      }
+    ]
   },
   "properties": {
     "weapon_recoil_handling": {
@@ -35868,7 +35906,7 @@
           ]
         }
       ],
-      "productName": "Oracle Helmet",
+      "productName": "Oracle Helmet",
       "manufacturer": "Kastak Arms"
     },
     {
@@ -36002,7 +36040,7 @@
           ]
         }
       ],
-      "productName": "Lynx Legs",
+      "productName": "Lynx Legs",
       "manufacturer": "Kastak Arms"
     },
     {
@@ -55126,7 +55164,16 @@
                   "resourceName": "Laranite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             },
             {
               "name": "Insulative Liner",
@@ -55138,7 +55185,24 @@
                   "resourceName": "Aslarite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Min Temp",
+                  "propertyKey": "armor_temperaturemin"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Max Temp",
+                  "propertyKey": "armor_temperaturemax"
+                }
+              ]
             },
             {
               "name": "Casing Weave",
@@ -55150,7 +55214,16 @@
                   "resourceName": "Stileron"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             }
           ]
         }
@@ -55179,7 +55252,16 @@
                   "resourceName": "Laranite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             },
             {
               "name": "Insulative Liner",
@@ -55203,7 +55285,16 @@
                   "resourceName": "Stileron"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             }
           ]
         }
@@ -55232,7 +55323,16 @@
                   "resourceName": "Laranite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             },
             {
               "name": "Insulative Liner",
@@ -55244,7 +55344,24 @@
                   "resourceName": "Aslarite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Min Temp",
+                  "propertyKey": "armor_temperaturemin"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Max Temp",
+                  "propertyKey": "armor_temperaturemax"
+                }
+              ]
             },
             {
               "name": "Casing Weave",
@@ -55256,7 +55373,16 @@
                   "resourceName": "Stileron"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             }
           ]
         }
@@ -55285,7 +55411,16 @@
                   "resourceName": "Laranite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             },
             {
               "name": "Insulative Liner",
@@ -55297,7 +55432,24 @@
                   "resourceName": "Aslarite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Min Temp",
+                  "propertyKey": "armor_temperaturemin"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Max Temp",
+                  "propertyKey": "armor_temperaturemax"
+                }
+              ]
             },
             {
               "name": "Casing Weave",
@@ -55309,7 +55461,16 @@
                   "resourceName": "Stileron"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             }
           ]
         }
@@ -55338,7 +55499,16 @@
                   "resourceName": "Laranite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             },
             {
               "name": "Insulative Liner",
@@ -55350,7 +55520,24 @@
                   "resourceName": "Aslarite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Min Temp",
+                  "propertyKey": "armor_temperaturemin"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Max Temp",
+                  "propertyKey": "armor_temperaturemax"
+                }
+              ]
             },
             {
               "name": "Casing Weave",
@@ -55362,7 +55549,16 @@
                   "resourceName": "Stileron"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             }
           ]
         }
@@ -55391,7 +55587,16 @@
                   "resourceName": "Laranite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             },
             {
               "name": "Insulative Liner",
@@ -55403,7 +55608,24 @@
                   "resourceName": "Aslarite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Min Temp",
+                  "propertyKey": "armor_temperaturemin"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Max Temp",
+                  "propertyKey": "armor_temperaturemax"
+                }
+              ]
             },
             {
               "name": "Casing Weave",
@@ -55415,7 +55637,16 @@
                   "resourceName": "Stileron"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             }
           ]
         }
@@ -55444,7 +55675,16 @@
                   "resourceName": "Laranite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             },
             {
               "name": "Insulative Liner",
@@ -55456,7 +55696,24 @@
                   "resourceName": "Aslarite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Min Temp",
+                  "propertyKey": "armor_temperaturemin"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Max Temp",
+                  "propertyKey": "armor_temperaturemax"
+                }
+              ]
             },
             {
               "name": "Casing Weave",
@@ -55468,7 +55725,16 @@
                   "resourceName": "Stileron"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             }
           ]
         }
@@ -55509,7 +55775,24 @@
                   "resourceName": "Aslarite"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Min Temp",
+                  "propertyKey": "armor_temperaturemin"
+                },
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.8,
+                  "modifierAtEnd": 1.2,
+                  "propertyName": "Max Temp",
+                  "propertyKey": "armor_temperaturemax"
+                }
+              ]
             },
             {
               "name": "Casing Weave",
@@ -55521,7 +55804,16 @@
                   "resourceName": "Stileron"
                 }
               ],
-              "modifiers": null
+              "modifiers": [
+                {
+                  "startQuality": 0,
+                  "endQuality": 1000,
+                  "modifierAtStart": 0.925,
+                  "modifierAtEnd": 1.075,
+                  "propertyName": "Damage Mitigation",
+                  "propertyKey": "armor_damagemitigation"
+                }
+              ]
             }
           ]
         }
@@ -106576,7 +106868,7 @@
           ]
         }
       ],
-      "productName": "Hellion Scattergun",
+      "productName": "Hellion Scattergun",
       "manufacturer": "Apocalypse Arms"
     },
     {
@@ -125275,7 +125567,7 @@
           ]
         }
       ],
-      "productName": "P8-SC \"Midnight\" SMG",
+      "productName": "P8-SC \"Midnight\" SMG",
       "manufacturer": "Behring"
     },
     {
@@ -125395,7 +125687,7 @@
           ]
         }
       ],
-      "productName": "P8-SC \"Nightstalker\" SMG",
+      "productName": "P8-SC \"Nightstalker\" SMG",
       "manufacturer": "Behring"
     },
     {
@@ -125515,7 +125807,7 @@
           ]
         }
       ],
-      "productName": "P8-SC \"Executive Edition\" SMG",
+      "productName": "P8-SC \"Executive Edition\" SMG",
       "manufacturer": "Behring"
     },
     {
@@ -125635,7 +125927,7 @@
           ]
         }
       ],
-      "productName": "P8-SC \"Warhawk\" SMG",
+      "productName": "P8-SC \"Warhawk\" SMG",
       "manufacturer": "Behring"
     },
     {
@@ -129806,7 +130098,7 @@
           ]
         }
       ],
-      "productName": "Arrowhead \"Voyager\" Sniper Rifle",
+      "productName": "Arrowhead \"Voyager\" Sniper Rifle",
       "manufacturer": "Klaus & Werner"
     },
     {
@@ -130163,7 +130455,7 @@
           ]
         }
       ],
-      "productName": "Arrowhead \"Pathfinder\" Sniper Rifle",
+      "productName": "Arrowhead \"Pathfinder\" Sniper Rifle",
       "manufacturer": "Klaus & Werner"
     },
     {
