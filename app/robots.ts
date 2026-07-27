@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: "/admin/",
     },
-    sitemap: "https://tools.services.nexus/sitemap.xml",
+    sitemap: "https://tools.nexus.services/sitemap.xml",
   };
 }
