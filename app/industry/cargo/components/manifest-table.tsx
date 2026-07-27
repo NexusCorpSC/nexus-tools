@@ -242,7 +242,8 @@ export default function ManifestTable({
 
           {missionGroups.map((group) => (
             <tbody
-              key={group.mission || "__unassigned__"}
+              // Prefixed so a mission cannot collide with the empty group.
+              key={`mission:${group.mission}`}
               className="divide-y divide-[#9ED0FF]/10 border-t border-[#9ED0FF]/20"
             >
               {showMissions && (

@@ -183,9 +183,11 @@ export const EMPTY_FILTERS: ManifestFilters = {
 
 /**
  * Facet value standing for "lines that have nothing in this field". An empty
- * string already means "no filter", hence the dedicated marker.
+ * string already means "no filter", hence the dedicated marker. The surrounding
+ * spaces keep it out of reach of user input, which is always trimmed, so a
+ * mission genuinely named "__unassigned__" stays filterable.
  */
-export const UNASSIGNED_FILTER = "__unassigned__";
+export const UNASSIGNED_FILTER = " __unassigned__ ";
 
 function matchesFacet(value: string, filter: string): boolean {
   if (!filter) {
@@ -196,7 +198,13 @@ function matchesFacet(value: string, filter: string): boolean {
 }
 
 export function hasActiveFilters(filters: ManifestFilters): boolean {
-  return Object.values(filters).some((value) => value !== "");
+  // A whitespace-only search filters nothing, so it does not count as active.
+  return (
+    filters.search.trim() !== "" ||
+    filters.mission !== "" ||
+    filters.destination !== "" ||
+    filters.location !== ""
+  );
 }
 
 export function filterLines(
@@ -332,8 +340,9 @@ export interface ParsedBulkLine {
 
 /**
  * Parses a single bulk row: `Destination;Contenu;Volume;Emplacement[;Mission]`.
- * The mission is optional. Returns null when the row is malformed so the
- * caller can report it.
+ * The mission is optional and any further column is ignored, so a CSV export —
+ * which appends the container counts — can be pasted straight back in. Returns
+ * null when the row is malformed so the caller can report it.
  */
 export function parseBulkLine(raw: string): ParsedBulkLine | null {
   const parts = raw.split(";").map((part) => part.trim());
