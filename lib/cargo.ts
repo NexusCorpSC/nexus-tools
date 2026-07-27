@@ -1,0 +1,223 @@
+/**
+ * Cargo manifest domain logic.
+ *
+ * Splits a cargo volume expressed in SCU into the standard Star Citizen
+ * container sizes, so a hauler knows exactly how many boxes of each size to
+ * load for a given destination.
+ */
+
+export const CONTAINER_SIZES = [32, 24, 16, 8, 4, 2, 1] as const;
+
+export type ContainerSize = (typeof CONTAINER_SIZES)[number];
+
+export interface Transport {
+  id: string;
+  name: string;
+  capacity: number;
+}
+
+export const TRANSPORTS: Transport[] = [
+  { id: "hull-b", name: "Hull B", capacity: 512 },
+  { id: "railen", name: "Railen", capacity: 640 },
+  { id: "ironclad", name: "Ironclad", capacity: 2160 },
+];
+
+/** Pseudo transport letting the user type an arbitrary capacity. */
+export const CUSTOM_TRANSPORT_ID = "custom";
+
+export const DEFAULT_TRANSPORT_ID = "ironclad";
+export const DEFAULT_MAX_CONTAINER: ContainerSize = 16;
+
+/** Below this many SCU left, the remaining capacity is flagged as tight. */
+export const LOW_CAPACITY_THRESHOLD = 50;
+
+export const MAX_VOLUME = 100_000;
+
+export interface CargoLine {
+  id: string;
+  destination: string;
+  content: string;
+  /** "Emplacement": where the cargo sits (pad, hangar, warehouse...). */
+  location: string;
+  volume: number;
+  /** Largest container size allowed when this line was computed. */
+  maxContainer: ContainerSize;
+  /** Container counts, aligned with CONTAINER_SIZES. */
+  quantities: number[];
+}
+
+export interface DestinationTotals {
+  destination: string;
+  volume: number;
+  quantities: number[];
+  lineCount: number;
+}
+
+export function emptyQuantities(): number[] {
+  return CONTAINER_SIZES.map(() => 0);
+}
+
+export function isContainerSize(value: number): value is ContainerSize {
+  return (CONTAINER_SIZES as readonly number[]).includes(value);
+}
+
+export function getTransport(id: string): Transport | undefined {
+  return TRANSPORTS.find((transport) => transport.id === id);
+}
+
+/**
+ * Greedily fills the largest allowed containers first. Because 1 SCU is part of
+ * the size list, the decomposition is always exact for a positive integer
+ * volume.
+ */
+export function splitVolume(volume: number, maxContainer: number): number[] {
+  let remaining = Math.max(0, Math.floor(volume));
+
+  return CONTAINER_SIZES.map((size) => {
+    if (size > maxContainer) {
+      return 0;
+    }
+
+    const count = Math.floor(remaining / size);
+    remaining -= count * size;
+    return count;
+  });
+}
+
+export function sumQuantities(lines: CargoLine[]): number[] {
+  return lines.reduce<number[]>((totals, line) => {
+    line.quantities.forEach((quantity, index) => {
+      totals[index] += quantity;
+    });
+    return totals;
+  }, emptyQuantities());
+}
+
+export function totalVolume(lines: CargoLine[]): number {
+  return lines.reduce((total, line) => total + line.volume, 0);
+}
+
+/** Total number of physical boxes, all sizes combined. */
+export function containerCount(quantities: number[]): number {
+  return quantities.reduce((total, quantity) => total + quantity, 0);
+}
+
+export function groupByDestination(lines: CargoLine[]): DestinationTotals[] {
+  const groups = new Map<string, CargoLine[]>();
+
+  for (const line of lines) {
+    const existing = groups.get(line.destination);
+    if (existing) {
+      existing.push(line);
+    } else {
+      groups.set(line.destination, [line]);
+    }
+  }
+
+  return [...groups.entries()]
+    .map(([destination, groupLines]) => ({
+      destination,
+      volume: totalVolume(groupLines),
+      quantities: sumQuantities(groupLines),
+      lineCount: groupLines.length,
+    }))
+    .sort((a, b) => a.destination.localeCompare(b.destination));
+}
+
+export interface ParsedBulkLine {
+  destination: string;
+  content: string;
+  volume: number;
+  location: string;
+}
+
+/**
+ * Parses a single bulk row: `Destination;Contenu;Volume;Emplacement`.
+ * Returns null when the row is malformed so the caller can report it.
+ */
+export function parseBulkLine(raw: string): ParsedBulkLine | null {
+  const parts = raw.split(";").map((part) => part.trim());
+
+  if (parts.length < 4) {
+    return null;
+  }
+
+  const [destination, content, volumeRaw, location] = parts;
+
+  if (!destination || !volumeRaw) {
+    return null;
+  }
+
+  const volume = Number(volumeRaw.replace(",", "."));
+
+  if (!Number.isFinite(volume)) {
+    return null;
+  }
+
+  const rounded = Math.floor(volume);
+
+  if (rounded <= 0 || rounded > MAX_VOLUME) {
+    return null;
+  }
+
+  return { destination, content, volume: rounded, location };
+}
+
+export interface BulkParseResult {
+  parsed: ParsedBulkLine[];
+  invalid: string[];
+}
+
+export function parseBulk(raw: string): BulkParseResult {
+  const parsed: ParsedBulkLine[] = [];
+  const invalid: string[] = [];
+
+  for (const rawLine of raw.split(/\r?\n/)) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const line = parseBulkLine(trimmed);
+    if (line) {
+      parsed.push(line);
+    } else {
+      invalid.push(trimmed);
+    }
+  }
+
+  return { parsed, invalid };
+}
+
+function csvCell(value: string | number): string {
+  const text = String(value);
+  return /[";\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+/** Semicolon separated export, matching the bulk import format. */
+export function linesToCsv(lines: CargoLine[]): string {
+  const header = [
+    "Destination",
+    "Contenu",
+    "Emplacement",
+    "Volume",
+    ...CONTAINER_SIZES.map(String),
+  ];
+
+  const rows = lines.map((line) =>
+    [
+      line.destination,
+      line.content,
+      line.location,
+      line.volume,
+      ...line.quantities,
+    ].map(csvCell),
+  );
+
+  const totals = sumQuantities(lines);
+  const totalRow = ["TOTAL", "", "", totalVolume(lines), ...totals].map(
+    csvCell,
+  );
+
+  return [header, ...rows, totalRow].map((row) => row.join(";")).join("\n");
+}

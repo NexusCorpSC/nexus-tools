@@ -14,7 +14,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Industrie",
   description:
-    "Outils industriels pour Star Citizen : gestion du raffinage de minerais et optimisation de votre chaîne de production.",
+    "Outils industriels pour Star Citizen : gestion du raffinage de minerais, planification du cargo et optimisation de votre chaîne de production.",
   openGraph: {
     title: "Industrie — Nexus Tools",
     description:
@@ -39,9 +39,14 @@ export default function IndustryPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <Button asChild>
-        <Link href="/industry/refine">{t("refine")}</Link>
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild>
+          <Link href="/industry/refine">{t("refine")}</Link>
+        </Button>
+        <Button asChild>
+          <Link href="/industry/cargo">{t("cargo")}</Link>
+        </Button>
+      </div>
     </div>
   );
 }
