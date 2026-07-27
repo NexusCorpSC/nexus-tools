@@ -54,6 +54,8 @@ function sanitizeLine(raw: unknown): CargoLine | null {
     destination: typeof line.destination === "string" ? line.destination : "",
     content: typeof line.content === "string" ? line.content : "",
     location: typeof line.location === "string" ? line.location : "",
+    // Manifests stored before missions existed simply have no mission.
+    mission: typeof line.mission === "string" ? line.mission : "",
     volume: sanitizedVolume,
     maxContainer,
     // Quantities are derived from the volume and the maximum container size:

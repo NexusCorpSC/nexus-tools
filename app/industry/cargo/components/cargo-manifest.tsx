@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ import {
 } from "../storage";
 import AddLineForm, { NewCargoLine } from "./add-line-form";
 import BulkImportDialog from "./bulk-import-dialog";
+import EditLineDialog from "./edit-line-dialog";
 import ManifestTable from "./manifest-table";
 import ManifestToolbar from "./manifest-toolbar";
 
@@ -47,6 +48,7 @@ function buildLine(
     destination: input.destination,
     content: input.content,
     location: input.location,
+    mission: input.mission,
     volume: input.volume,
     maxContainer,
     quantities: splitVolume(input.volume, maxContainer),
@@ -66,6 +68,7 @@ interface CargoManifestProps {
 
 export default function CargoManifest({ transports }: CargoManifestProps) {
   const t = useTranslations("Cargo");
+  const [editingLine, setEditingLine] = useState<CargoLine | null>(null);
 
   // The manifest lives in the browser: it is a scratchpad, not shared data.
   const state = useSyncExternalStore(
@@ -99,6 +102,11 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
     [state.lines],
   );
 
+  const missions = useMemo(
+    () => distinct(state.lines.map((line) => line.mission)),
+    [state.lines],
+  );
+
   function addLine(input: NewCargoLine) {
     updateManifest((current) => ({
       ...current,
@@ -120,6 +128,24 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
     });
   }
 
+  /** Keeps the line in place and re-splits it with its own maximum size. */
+  function editLine(id: string, values: NewCargoLine) {
+    updateManifest((current) => ({
+      ...current,
+      lines: current.lines.map((line) =>
+        line.id === id
+          ? {
+              ...line,
+              ...values,
+              quantities: splitVolume(values.volume, line.maxContainer),
+            }
+          : line,
+      ),
+    }));
+
+    setEditingLine(null);
+  }
+
   function deleteLine(id: string) {
     updateManifest((current) => ({
       ...current,
@@ -138,6 +164,13 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
     updateManifest((current) => ({
       ...current,
       lines: current.lines.filter((line) => line.location !== location),
+    }));
+  }
+
+  function deleteByMission(mission: string) {
+    updateManifest((current) => ({
+      ...current,
+      lines: current.lines.filter((line) => line.mission !== mission),
     }));
   }
 
@@ -197,7 +230,11 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
 
       <div className="bg-nexus space-y-4 rounded-lg p-4">
         <h2 className="text-xl font-semibold">{t("addLine")}</h2>
-        <AddLineForm maxContainer={state.maxContainer} onAdd={addLine} />
+        <AddLineForm
+          maxContainer={state.maxContainer}
+          onAdd={addLine}
+          onAddMany={importLines}
+        />
       </div>
 
       <div className="space-y-3">
@@ -259,7 +296,17 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
           </div>
         </div>
 
-        <ManifestTable lines={state.lines} onDeleteLine={deleteLine} />
+        <ManifestTable
+          lines={state.lines}
+          onDeleteLine={deleteLine}
+          onEditLine={setEditingLine}
+        />
+
+        <EditLineDialog
+          line={editingLine}
+          onClose={() => setEditingLine(null)}
+          onSave={editLine}
+        />
 
         {destinations.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -291,6 +338,23 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
                 className="inline-flex items-center gap-1 rounded-full border border-[#9ED0FF]/25 bg-[#0B3A5A]/60 px-2.5 py-1 text-[#C9E4FF] transition-colors hover:border-red-400/60 hover:text-red-300"
               >
                 {location}
+                <XMarkIcon className="h-3 w-3" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {missions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-[#9ED0FF]/70">{t("removeByMission")}</span>
+            {missions.map((mission) => (
+              <button
+                key={mission}
+                type="button"
+                onClick={() => deleteByMission(mission)}
+                className="inline-flex items-center gap-1 rounded-full border border-[#9ED0FF]/25 bg-[#0B3A5A]/60 px-2.5 py-1 text-[#C9E4FF] transition-colors hover:border-red-400/60 hover:text-red-300"
+              >
+                {mission}
                 <XMarkIcon className="h-3 w-3" />
               </button>
             ))}

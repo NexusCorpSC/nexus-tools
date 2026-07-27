@@ -46,6 +46,8 @@ export interface CargoLine {
   content: string;
   /** "Emplacement": where the cargo sits (pad, hangar, warehouse...). */
   location: string;
+  /** Optional mission the line belongs to; groups rows in the table. */
+  mission: string;
   volume: number;
   /** Largest container size allowed when this line was computed. */
   maxContainer: ContainerSize;
@@ -152,16 +154,158 @@ export function groupByDestination(lines: CargoLine[]): DestinationTotals[] {
     .sort((a, b) => a.destination.localeCompare(b.destination));
 }
 
+export const SORT_KEYS = [
+  "manifest",
+  "destination",
+  "content",
+  "location",
+  "volume",
+  "boxes",
+] as const;
+
+export type SortKey = (typeof SORT_KEYS)[number];
+export type SortDirection = "asc" | "desc";
+
+export interface ManifestFilters {
+  /** Free text matched against every text field of a line. */
+  search: string;
+  mission: string;
+  destination: string;
+  location: string;
+}
+
+export const EMPTY_FILTERS: ManifestFilters = {
+  search: "",
+  mission: "",
+  destination: "",
+  location: "",
+};
+
+/**
+ * Facet value standing for "lines that have nothing in this field". An empty
+ * string already means "no filter", hence the dedicated marker.
+ */
+export const UNASSIGNED_FILTER = "__unassigned__";
+
+function matchesFacet(value: string, filter: string): boolean {
+  if (!filter) {
+    return true;
+  }
+
+  return filter === UNASSIGNED_FILTER ? value === "" : value === filter;
+}
+
+export function hasActiveFilters(filters: ManifestFilters): boolean {
+  return Object.values(filters).some((value) => value !== "");
+}
+
+export function filterLines(
+  lines: CargoLine[],
+  filters: ManifestFilters,
+): CargoLine[] {
+  const search = filters.search.trim().toLowerCase();
+
+  return lines.filter((line) => {
+    if (
+      !matchesFacet(line.mission, filters.mission) ||
+      !matchesFacet(line.destination, filters.destination) ||
+      !matchesFacet(line.location, filters.location)
+    ) {
+      return false;
+    }
+
+    if (!search) {
+      return true;
+    }
+
+    return [line.destination, line.content, line.location, line.mission].some(
+      (field) => field.toLowerCase().includes(search),
+    );
+  });
+}
+
+/** Sorts a copy of the lines; "manifest" keeps the order they were added in. */
+export function sortLines(
+  lines: CargoLine[],
+  key: SortKey,
+  direction: SortDirection,
+): CargoLine[] {
+  if (key === "manifest") {
+    return direction === "asc" ? [...lines] : [...lines].reverse();
+  }
+
+  const factor = direction === "asc" ? 1 : -1;
+
+  return [...lines].sort((a, b) => {
+    switch (key) {
+      case "volume":
+        return (a.volume - b.volume) * factor;
+      case "boxes":
+        return (
+          (containerCount(a.quantities) - containerCount(b.quantities)) * factor
+        );
+      default:
+        return a[key].localeCompare(b[key]) * factor;
+    }
+  });
+}
+
+export interface MissionGroup {
+  mission: string;
+  lines: CargoLine[];
+  volume: number;
+  quantities: number[];
+}
+
+/**
+ * Splits the manifest into mission groups, in order of first appearance, so
+ * the table can show one block per mission. Lines without a mission end up in
+ * a single trailing group keyed by an empty string.
+ */
+export function groupByMission(lines: CargoLine[]): MissionGroup[] {
+  const groups = new Map<string, CargoLine[]>();
+
+  for (const line of lines) {
+    const existing = groups.get(line.mission);
+    if (existing) {
+      existing.push(line);
+    } else {
+      groups.set(line.mission, [line]);
+    }
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => {
+      // Unassigned lines stay last, everything else keeps insertion order.
+      if (a === b) return 0;
+      if (!a) return 1;
+      if (!b) return -1;
+      return 0;
+    })
+    .map(([mission, groupLines]) => ({
+      mission,
+      lines: groupLines,
+      volume: totalVolume(groupLines),
+      quantities: sumQuantities(groupLines),
+    }));
+}
+
+export function hasMissions(lines: CargoLine[]): boolean {
+  return lines.some((line) => line.mission !== "");
+}
+
 export interface ParsedBulkLine {
   destination: string;
   content: string;
   volume: number;
   location: string;
+  mission: string;
 }
 
 /**
- * Parses a single bulk row: `Destination;Contenu;Volume;Emplacement`.
- * Returns null when the row is malformed so the caller can report it.
+ * Parses a single bulk row: `Destination;Contenu;Volume;Emplacement[;Mission]`.
+ * The mission is optional. Returns null when the row is malformed so the
+ * caller can report it.
  */
 export function parseBulkLine(raw: string): ParsedBulkLine | null {
   const parts = raw.split(";").map((part) => part.trim());
@@ -171,6 +315,7 @@ export function parseBulkLine(raw: string): ParsedBulkLine | null {
   }
 
   const [destination, content, volumeRaw, location] = parts;
+  const mission = parts[4] ?? "";
 
   if (!destination || !volumeRaw) {
     return null;
@@ -188,7 +333,7 @@ export function parseBulkLine(raw: string): ParsedBulkLine | null {
     return null;
   }
 
-  return { destination, content, volume: rounded, location };
+  return { destination, content, volume: rounded, location, mission };
 }
 
 export interface BulkParseResult {
@@ -232,6 +377,7 @@ export function linesToCsv(lines: CargoLine[]): string {
     "Contenu",
     "Volume",
     "Emplacement",
+    "Mission",
     ...CONTAINER_SIZES.map(String),
   ];
 
@@ -241,12 +387,13 @@ export function linesToCsv(lines: CargoLine[]): string {
       line.content,
       line.volume,
       line.location,
+      line.mission,
       ...line.quantities,
     ].map(csvCell),
   );
 
   const totals = sumQuantities(lines);
-  const totalRow = ["TOTAL", "", totalVolume(lines), "", ...totals].map(
+  const totalRow = ["TOTAL", "", totalVolume(lines), "", "", ...totals].map(
     csvCell,
   );
 
