@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { parseBulk, ParsedBulkLine } from "@/lib/cargo";
+import { ParsedBulkLine } from "@/lib/cargo";
+import { parseQuickEntry } from "@/lib/mission-objectives";
 
 interface BulkImportDialogProps {
   onImport: (lines: ParsedBulkLine[]) => void;
@@ -25,7 +26,7 @@ export default function BulkImportDialog({ onImport }: BulkImportDialogProps) {
   const [open, setOpen] = useState(false);
   const [raw, setRaw] = useState("");
 
-  const { parsed, invalid } = parseBulk(raw);
+  const { parsed, invalid } = parseQuickEntry(raw);
 
   function handleImport() {
     if (parsed.length === 0) {
