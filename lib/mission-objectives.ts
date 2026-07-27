@@ -73,11 +73,13 @@ export function parseMissionText(raw: string): MissionParseResult {
     const previous = merged[merged.length - 1];
 
     // The game closes every objective with a period, so an objective line
-    // without one is a wrapped line waiting for its tail.
+    // without one is a wrapped line waiting for its tail. The terminator is
+    // matched as loosely as the patterns below read it, since OCR turns the
+    // period into a comma or a semicolon often enough.
     const continues =
       previous !== undefined &&
       /^(deliver|collect)/i.test(previous) &&
-      !/\.$/.test(previous) &&
+      !/[.,;]$/.test(previous) &&
       !/^(deliver|collect)/i.test(line);
 
     if (continues) {

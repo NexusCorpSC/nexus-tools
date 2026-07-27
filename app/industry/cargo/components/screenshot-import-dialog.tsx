@@ -42,8 +42,13 @@ export default function ScreenshotImportDialog({
   const [objectives, setObjectives] = useState<MissionObjective[]>([]);
   const [ignored, setIgnored] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Bumped on every read and on every reset: an OCR run that finishes after
+  // the dialog was closed, or after another capture was dropped in, must not
+  // resurrect its results.
+  const runRef = useRef(0);
 
   function reset() {
+    runRef.current += 1;
     setStatus("idle");
     setProgress(0);
     setError(null);
@@ -59,6 +64,9 @@ export default function ScreenshotImportDialog({
   }
 
   const readImage = useCallback(async (file: File) => {
+    const run = (runRef.current += 1);
+    const isCurrent = () => runRef.current === run;
+
     setStatus("reading");
     setProgress(0);
     setError(null);
@@ -78,7 +86,7 @@ export default function ScreenshotImportDialog({
 
       const worker = await createWorker("eng", 1, {
         logger: (message: { status: string; progress: number }) => {
-          if (message.status === "recognizing text") {
+          if (message.status === "recognizing text" && isCurrent()) {
             setProgress(Math.round(message.progress * 100));
           }
         },
@@ -86,6 +94,11 @@ export default function ScreenshotImportDialog({
 
       try {
         const { data } = await worker.recognize(file);
+
+        if (!isCurrent()) {
+          return;
+        }
+
         const parsed = parseMissionText(data.text);
 
         setText(data.text);
@@ -97,6 +110,11 @@ export default function ScreenshotImportDialog({
       }
     } catch (cause) {
       console.error(cause);
+
+      if (!isCurrent()) {
+        return;
+      }
+
       setError(cause instanceof Error ? cause.message : String(cause));
       setStatus("error");
     }
