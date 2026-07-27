@@ -8,6 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { getAvailableTransports } from "@/lib/cargo-ships";
 import CargoManifest from "./components/cargo-manifest";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
 
 export default async function CargoPage() {
   const t = await getTranslations("Cargo");
+  const transports = await getAvailableTransports();
 
   return (
     <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
@@ -49,7 +51,7 @@ export default async function CargoPage() {
         <p className="mt-1 text-xs text-[#9ED0FF]/60">{t("localOnly")}</p>
       </div>
 
-      <CargoManifest />
+      <CargoManifest transports={transports} />
     </div>
   );
 }

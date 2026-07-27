@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
@@ -17,14 +17,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  applyBulkChanges,
+  BulkLineChanges,
   CargoLine,
   ContainerSize,
   CUSTOM_TRANSPORT_ID,
-  getTransport,
+  findTransport,
   linesToCsv,
   ParsedBulkLine,
   splitVolume,
   totalVolume,
+  Transport,
 } from "@/lib/cargo";
 import {
   getManifestServerSnapshot,
@@ -34,6 +37,7 @@ import {
 } from "../storage";
 import AddLineForm, { NewCargoLine } from "./add-line-form";
 import BulkImportDialog from "./bulk-import-dialog";
+import EditLineDialog from "./edit-line-dialog";
 import ManifestTable from "./manifest-table";
 import ManifestToolbar from "./manifest-toolbar";
 
@@ -46,6 +50,7 @@ function buildLine(
     destination: input.destination,
     content: input.content,
     location: input.location,
+    mission: input.mission,
     volume: input.volume,
     maxContainer,
     quantities: splitVolume(input.volume, maxContainer),
@@ -58,8 +63,18 @@ function distinct(values: string[]): string[] {
   );
 }
 
-export default function CargoManifest() {
+interface CargoManifestProps {
+  /** Ships offered in the transport picker, managed from the admin section. */
+  transports: Transport[];
+}
+
+export default function CargoManifest({ transports }: CargoManifestProps) {
   const t = useTranslations("Cargo");
+  const [editingLine, setEditingLine] = useState<CargoLine | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    field: "destination" | "location" | "mission";
+    value: string;
+  } | null>(null);
 
   // The manifest lives in the browser: it is a scratchpad, not shared data.
   const state = useSyncExternalStore(
@@ -68,10 +83,18 @@ export default function CargoManifest() {
     getManifestServerSnapshot,
   );
 
+  // A stored ship may have been renamed away or deleted by an administrator:
+  // fall back to the first one still available rather than a 0 SCU capacity.
+  const selectedTransport = findTransport(transports, state.transportId);
+  const transportId =
+    state.transportId === CUSTOM_TRANSPORT_ID || selectedTransport
+      ? state.transportId
+      : (transports[0]?.id ?? CUSTOM_TRANSPORT_ID);
+
   const capacity =
-    state.transportId === CUSTOM_TRANSPORT_ID
+    transportId === CUSTOM_TRANSPORT_ID
       ? state.customCapacity
-      : (getTransport(state.transportId)?.capacity ?? 0);
+      : (findTransport(transports, transportId)?.capacity ?? 0);
 
   const usedVolume = useMemo(() => totalVolume(state.lines), [state.lines]);
 
@@ -84,6 +107,17 @@ export default function CargoManifest() {
     () => distinct(state.lines.map((line) => line.location)),
     [state.lines],
   );
+
+  const missions = useMemo(
+    () => distinct(state.lines.map((line) => line.mission)),
+    [state.lines],
+  );
+
+  const pendingDeleteCount = pendingDelete
+    ? state.lines.filter(
+        (line) => line[pendingDelete.field] === pendingDelete.value,
+      ).length
+    : 0;
 
   function addLine(input: NewCargoLine) {
     updateManifest((current) => ({
@@ -106,6 +140,24 @@ export default function CargoManifest() {
     });
   }
 
+  /** Keeps the line in place and re-splits it with its own maximum size. */
+  function editLine(id: string, values: NewCargoLine) {
+    updateManifest((current) => ({
+      ...current,
+      lines: current.lines.map((line) =>
+        line.id === id
+          ? {
+              ...line,
+              ...values,
+              quantities: splitVolume(values.volume, line.maxContainer),
+            }
+          : line,
+      ),
+    }));
+
+    setEditingLine(null);
+  }
+
   function deleteLine(id: string) {
     updateManifest((current) => ({
       ...current,
@@ -113,18 +165,31 @@ export default function CargoManifest() {
     }));
   }
 
-  function deleteByDestination(destination: string) {
+  function bulkEdit(ids: string[], changes: BulkLineChanges) {
     updateManifest((current) => ({
       ...current,
-      lines: current.lines.filter((line) => line.destination !== destination),
+      lines: applyBulkChanges(current.lines, ids, changes),
     }));
+
+    toast.success(t("bulkEditedTitle"), {
+      description: t("bulkEditedDescription", { count: ids.length }),
+    });
   }
 
-  function deleteByLocation(location: string) {
+  /** Wiping a whole destination, location or mission asks first. */
+  function confirmBulkDelete() {
+    if (!pendingDelete) {
+      return;
+    }
+
+    const { field, value } = pendingDelete;
+
     updateManifest((current) => ({
       ...current,
-      lines: current.lines.filter((line) => line.location !== location),
+      lines: current.lines.filter((line) => line[field] !== value),
     }));
+
+    setPendingDelete(null);
   }
 
   /** Re-splits every existing line with the currently selected maximum. */
@@ -163,7 +228,8 @@ export default function CargoManifest() {
     <div className="space-y-6">
       <div className="bg-nexus space-y-4 rounded-lg p-4">
         <ManifestToolbar
-          transportId={state.transportId}
+          transports={transports}
+          transportId={transportId}
           customCapacity={state.customCapacity}
           capacity={capacity}
           maxContainer={state.maxContainer}
@@ -182,7 +248,11 @@ export default function CargoManifest() {
 
       <div className="bg-nexus space-y-4 rounded-lg p-4">
         <h2 className="text-xl font-semibold">{t("addLine")}</h2>
-        <AddLineForm maxContainer={state.maxContainer} onAdd={addLine} />
+        <AddLineForm
+          maxContainer={state.maxContainer}
+          onAdd={addLine}
+          onAddMany={importLines}
+        />
       </div>
 
       <div className="space-y-3">
@@ -244,7 +314,18 @@ export default function CargoManifest() {
           </div>
         </div>
 
-        <ManifestTable lines={state.lines} onDeleteLine={deleteLine} />
+        <ManifestTable
+          lines={state.lines}
+          onDeleteLine={deleteLine}
+          onEditLine={setEditingLine}
+          onBulkEdit={bulkEdit}
+        />
+
+        <EditLineDialog
+          line={editingLine}
+          onClose={() => setEditingLine(null)}
+          onSave={editLine}
+        />
 
         {destinations.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -255,7 +336,9 @@ export default function CargoManifest() {
               <button
                 key={destination}
                 type="button"
-                onClick={() => deleteByDestination(destination)}
+                onClick={() =>
+                  setPendingDelete({ field: "destination", value: destination })
+                }
                 className="inline-flex items-center gap-1 rounded-full border border-[#9ED0FF]/25 bg-[#0B3A5A]/60 px-2.5 py-1 text-[#C9E4FF] transition-colors hover:border-red-400/60 hover:text-red-300"
               >
                 {destination}
@@ -272,7 +355,9 @@ export default function CargoManifest() {
               <button
                 key={location}
                 type="button"
-                onClick={() => deleteByLocation(location)}
+                onClick={() =>
+                  setPendingDelete({ field: "location", value: location })
+                }
                 className="inline-flex items-center gap-1 rounded-full border border-[#9ED0FF]/25 bg-[#0B3A5A]/60 px-2.5 py-1 text-[#C9E4FF] transition-colors hover:border-red-400/60 hover:text-red-300"
               >
                 {location}
@@ -281,6 +366,59 @@ export default function CargoManifest() {
             ))}
           </div>
         )}
+
+        {missions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-[#9ED0FF]/70">{t("removeByMission")}</span>
+            {missions.map((mission) => (
+              <button
+                key={mission}
+                type="button"
+                onClick={() =>
+                  setPendingDelete({ field: "mission", value: mission })
+                }
+                className="inline-flex items-center gap-1 rounded-full border border-[#9ED0FF]/25 bg-[#0B3A5A]/60 px-2.5 py-1 text-[#C9E4FF] transition-colors hover:border-red-400/60 hover:text-red-300"
+              >
+                {mission}
+                <XMarkIcon className="h-3 w-3" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        <Dialog
+          open={pendingDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingDelete(null);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {t("bulkDeleteTitle", { value: pendingDelete?.value ?? "" })}
+              </DialogTitle>
+              <DialogDescription>
+                {t("bulkDeleteDescription", { count: pendingDeleteCount })}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  {t("cancel")}
+                </Button>
+              </DialogClose>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={confirmBulkDelete}
+              >
+                {t("delete")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

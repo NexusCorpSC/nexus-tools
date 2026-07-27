@@ -16,10 +16,11 @@ import {
   CUSTOM_TRANSPORT_ID,
   isContainerSize,
   LOW_CAPACITY_THRESHOLD,
-  TRANSPORTS,
+  Transport,
 } from "@/lib/cargo";
 
 interface ManifestToolbarProps {
+  transports: Transport[];
   transportId: string;
   customCapacity: number;
   capacity: number;
@@ -31,6 +32,7 @@ interface ManifestToolbarProps {
 }
 
 export default function ManifestToolbar({
+  transports,
   transportId,
   customCapacity,
   capacity,
@@ -68,7 +70,7 @@ export default function ManifestToolbar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {TRANSPORTS.map((transport) => (
+            {transports.map((transport) => (
               <SelectItem key={transport.id} value={transport.id}>
                 {transport.name} — {transport.capacity} SCU
               </SelectItem>
