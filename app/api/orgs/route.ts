@@ -3,10 +3,25 @@ import { headers } from "next/headers";
 import { ObjectId } from "bson";
 import { auth } from "@/lib/auth";
 import db from "@/lib/db";
-import { Organization } from "@/app/orgs/page";
+import type { Organization } from "@/app/orgs/page";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+
+/** Parses a positive integer query param, falling back when absent or invalid. */
+function parsePositiveInt(value: string | null, fallback: number): number {
+  const parsed = parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Escapes regex metacharacters so a search term is matched literally.
+ * This endpoint is publicly reachable, so an unescaped `$regex` would let a
+ * caller change the matching semantics or send a pathological pattern.
+ */
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 /**
  * GET /api/orgs
@@ -20,18 +35,19 @@ export async function GET(request: NextRequest) {
 
   const sp = request.nextUrl.searchParams;
   const query = (sp.get("query") ?? "").trim();
-  const page = Math.max(1, parseInt(sp.get("page") ?? "1", 10));
+  const page = parsePositiveInt(sp.get("page"), 1);
   const limit = Math.min(
     MAX_LIMIT,
-    Math.max(1, parseInt(sp.get("limit") ?? String(DEFAULT_LIMIT), 10)),
+    parsePositiveInt(sp.get("limit"), DEFAULT_LIMIT),
   );
   const skip = (page - 1) * limit;
 
   const publicMatch: Record<string, unknown> = { public: true };
   if (query) {
+    const pattern = escapeRegex(query);
     publicMatch.$or = [
-      { name: { $regex: query, $options: "i" } },
-      { tag: { $regex: query, $options: "i" } },
+      { name: { $regex: pattern, $options: "i" } },
+      { tag: { $regex: pattern, $options: "i" } },
     ];
   }
 
