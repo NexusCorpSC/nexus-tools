@@ -23,7 +23,10 @@ import {
   ContainerSize,
   CUSTOM_TRANSPORT_ID,
   findTransport,
+  FIRST_MISSION_COUNTER,
   linesToCsv,
+  missionName,
+  nextMissionCounter,
   ParsedBulkLine,
   splitVolume,
   totalVolume,
@@ -44,13 +47,15 @@ import ManifestToolbar from "./manifest-toolbar";
 function buildLine(
   input: NewCargoLine,
   maxContainer: ContainerSize,
+  defaultMission: string,
 ): CargoLine {
   return {
     id: nanoid(),
     destination: input.destination,
     content: input.content,
     location: input.location,
-    mission: input.mission,
+    // An entry that names no mission joins the one currently being filled.
+    mission: input.mission.trim() || defaultMission,
     volume: input.volume,
     maxContainer,
     quantities: splitVolume(input.volume, maxContainer),
@@ -119,10 +124,27 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
       ).length
     : 0;
 
+  const currentMission = missionName(state.missionCounter);
+
   function addLine(input: NewCargoLine) {
     updateManifest((current) => ({
       ...current,
-      lines: [...current.lines, buildLine(input, current.maxContainer)],
+      lines: [
+        ...current.lines,
+        buildLine(
+          input,
+          current.maxContainer,
+          missionName(current.missionCounter),
+        ),
+      ],
+    }));
+  }
+
+  /** Moves on to the next mission for everything entered from now on. */
+  function startNewMission() {
+    updateManifest((current) => ({
+      ...current,
+      missionCounter: nextMissionCounter(current.missionCounter, current.lines),
     }));
   }
 
@@ -131,7 +153,13 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
       ...current,
       lines: [
         ...current.lines,
-        ...imported.map((line) => buildLine(line, current.maxContainer)),
+        ...imported.map((line) =>
+          buildLine(
+            line,
+            current.maxContainer,
+            missionName(current.missionCounter),
+          ),
+        ),
       ],
     }));
 
@@ -209,7 +237,12 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
   }
 
   function reset() {
-    updateManifest((current) => ({ ...current, lines: [] }));
+    // Starting over also restarts the mission numbering.
+    updateManifest((current) => ({
+      ...current,
+      lines: [],
+      missionCounter: FIRST_MISSION_COUNTER,
+    }));
   }
 
   function exportCsv() {
@@ -250,8 +283,10 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
         <h2 className="text-xl font-semibold">{t("addLine")}</h2>
         <AddLineForm
           maxContainer={state.maxContainer}
+          currentMission={currentMission}
           onAdd={addLine}
           onAddMany={importLines}
+          onNewMission={startNewMission}
         />
       </div>
 

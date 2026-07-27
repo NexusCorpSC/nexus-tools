@@ -26,14 +26,19 @@ export interface NewCargoLine {
 
 interface AddLineFormProps {
   maxContainer: ContainerSize;
+  /** Mission given to entries that leave the field empty. */
+  currentMission: string;
   onAdd: (line: NewCargoLine) => void;
   onAddMany: (lines: ParsedBulkLine[]) => void;
+  onNewMission: () => void;
 }
 
 export default function AddLineForm({
   maxContainer,
+  currentMission,
   onAdd,
   onAddMany,
+  onNewMission,
 }: AddLineFormProps) {
   const t = useTranslations("Cargo");
   const [destination, setDestination] = useState("");
@@ -119,14 +124,33 @@ export default function AddLineForm({
             {t("quickAdd")}
           </Button>
         </div>
-        <p className="text-xs text-[#9ED0FF]/60">
-          {t("quickEntryHint")}
-          {quickParse.invalid.length > 0 && (
-            <span className="ml-2 text-red-400">
-              {t("bulkInvalid", { count: quickParse.invalid.length })}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9ED0FF]/60">
+          <p>
+            {t("quickEntryHint")}
+            {quickParse.invalid.length > 0 && (
+              <span className="ml-2 text-red-400">
+                {t("bulkInvalid", { count: quickParse.invalid.length })}
+              </span>
+            )}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <span>
+              {t("currentMission")}{" "}
+              <span className="font-medium text-[#C9E4FF]">
+                {currentMission}
+              </span>
             </span>
-          )}
-        </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={onNewMission}
+            >
+              {t("newMission")}
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 text-xs text-[#9ED0FF]/50">
@@ -190,7 +214,7 @@ export default function AddLineForm({
               id="cargo-mission"
               value={mission}
               onChange={(event) => setMission(event.target.value)}
-              placeholder={t("missionPlaceholder")}
+              placeholder={currentMission}
             />
           </div>
         </div>

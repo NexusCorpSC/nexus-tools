@@ -1,6 +1,7 @@
 import {
   CargoLine,
   ContainerSize,
+  FIRST_MISSION_COUNTER,
   DEFAULT_MAX_CONTAINER,
   DEFAULT_TRANSPORT_ID,
   isContainerSize,
@@ -15,6 +16,8 @@ export interface ManifestState {
   /** Capacity used when the custom transport is selected. */
   customCapacity: number;
   maxContainer: ContainerSize;
+  /** Numbers the mission given to entries that do not name one. */
+  missionCounter: number;
   lines: CargoLine[];
 }
 
@@ -22,6 +25,7 @@ export const initialManifestState: ManifestState = {
   transportId: DEFAULT_TRANSPORT_ID,
   customCapacity: 1000,
   maxContainer: DEFAULT_MAX_CONTAINER,
+  missionCounter: FIRST_MISSION_COUNTER,
   lines: [],
 };
 
@@ -78,6 +82,7 @@ export function loadManifest(): ManifestState {
 
     const parsed = JSON.parse(raw) as Partial<ManifestState>;
     const customCapacity = Number(parsed.customCapacity);
+    const missionCounter = Number(parsed.missionCounter);
 
     return {
       transportId:
@@ -93,6 +98,11 @@ export function loadManifest(): ManifestState {
         isContainerSize(parsed.maxContainer)
           ? parsed.maxContainer
           : initialManifestState.maxContainer,
+      missionCounter:
+        Number.isInteger(missionCounter) &&
+        missionCounter >= FIRST_MISSION_COUNTER
+          ? missionCounter
+          : FIRST_MISSION_COUNTER,
       lines: Array.isArray(parsed.lines)
         ? parsed.lines
             .map(sanitizeLine)

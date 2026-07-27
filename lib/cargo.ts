@@ -330,6 +330,34 @@ export function hasMissions(lines: CargoLine[]): boolean {
   return lines.some((line) => line.mission !== "");
 }
 
+export const FIRST_MISSION_COUNTER = 1;
+
+/**
+ * Name given to entries that do not carry a mission of their own. Plain data,
+ * not a translated label: it is stored in the manifest as typed.
+ */
+export function missionName(counter: number): string {
+  return `Mission ${counter}`;
+}
+
+/**
+ * Next counter for the "new mission" button, skipping numbers already used so
+ * a fresh mission never lands in an existing block.
+ */
+export function nextMissionCounter(
+  counter: number,
+  lines: CargoLine[],
+): number {
+  const used = new Set(lines.map((line) => line.mission));
+  let next = counter + 1;
+
+  while (used.has(missionName(next))) {
+    next += 1;
+  }
+
+  return next;
+}
+
 export interface ParsedBulkLine {
   destination: string;
   content: string;
