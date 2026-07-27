@@ -16,7 +16,10 @@ export interface ManifestState {
   /** Capacity used when the custom transport is selected. */
   customCapacity: number;
   maxContainer: ContainerSize;
-  /** Numbers the mission given to entries that do not name one. */
+  /**
+   * Number of the mission being filled: entries that name no mission of their
+   * own join "Mission <missionCounter>".
+   */
   missionCounter: number;
   lines: CargoLine[];
 }
