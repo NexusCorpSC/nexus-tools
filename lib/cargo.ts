@@ -250,6 +250,34 @@ export function sortLines(
   });
 }
 
+/** Fields a bulk edit can rewrite; an absent key is left untouched. */
+export interface BulkLineChanges {
+  destination?: string;
+  content?: string;
+  location?: string;
+  mission?: string;
+}
+
+export function hasBulkChanges(changes: BulkLineChanges): boolean {
+  return Object.keys(changes).length > 0;
+}
+
+export function applyBulkChanges(
+  lines: CargoLine[],
+  ids: Iterable<string>,
+  changes: BulkLineChanges,
+): CargoLine[] {
+  const targets = new Set(ids);
+
+  if (targets.size === 0 || !hasBulkChanges(changes)) {
+    return lines;
+  }
+
+  return lines.map((line) =>
+    targets.has(line.id) ? { ...line, ...changes } : line,
+  );
+}
+
 export interface MissionGroup {
   mission: string;
   lines: CargoLine[];

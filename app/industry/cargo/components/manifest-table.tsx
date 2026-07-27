@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import {
+  BulkLineChanges,
   CargoLine,
   CONTAINER_SIZES,
   containerCount,
@@ -26,12 +27,14 @@ import {
   sumQuantities,
   totalVolume,
 } from "@/lib/cargo";
+import BulkEditDialog from "./bulk-edit-dialog";
 import ManifestFiltersBar from "./manifest-filters";
 
 interface ManifestTableProps {
   lines: CargoLine[];
   onDeleteLine: (id: string) => void;
   onEditLine: (line: CargoLine) => void;
+  onBulkEdit: (ids: string[], changes: BulkLineChanges) => void;
 }
 
 const numericCell = "px-2 py-2 text-right tabular-nums";
@@ -95,6 +98,7 @@ export default function ManifestTable({
   lines,
   onDeleteLine,
   onEditLine,
+  onBulkEdit,
 }: ManifestTableProps) {
   const t = useTranslations("Cargo");
   const [filters, setFilters] = useState<ManifestFilters>(EMPTY_FILTERS);
@@ -132,6 +136,17 @@ export default function ManifestTable({
 
   const filtersBar = (
     <ManifestFiltersBar
+      bulkEdit={
+        <BulkEditDialog
+          targetCount={visibleLines.length}
+          onApply={(changes) =>
+            onBulkEdit(
+              visibleLines.map((line) => line.id),
+              changes,
+            )
+          }
+        />
+      }
       filters={filters}
       missions={missions}
       destinations={destinationValues}

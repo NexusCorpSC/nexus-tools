@@ -22,6 +22,8 @@ import {
 const ALL = "__all__";
 
 interface ManifestFiltersProps {
+  /** Bulk edit trigger, rendered here because it acts on the visible lines. */
+  bulkEdit: React.ReactNode;
   filters: ManifestFilters;
   missions: string[];
   destinations: string[];
@@ -32,6 +34,7 @@ interface ManifestFiltersProps {
 }
 
 export default function ManifestFiltersBar({
+  bulkEdit,
   filters,
   missions,
   destinations,
@@ -115,19 +118,27 @@ export default function ManifestFiltersBar({
         ))}
       </div>
 
-      {isFiltered && (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9ED0FF]/70">
-          <span>{t("filteredCount", { matchCount, totalCount })}</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={() => onChange(EMPTY_FILTERS)}
-          >
-            {t("clearFilters")}
-          </Button>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9ED0FF]/70">
+        <span>
+          {isFiltered
+            ? t("filteredCount", { matchCount, totalCount })
+            : t("lineCount", { count: totalCount })}
+        </span>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {isFiltered && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => onChange(EMPTY_FILTERS)}
+            >
+              {t("clearFilters")}
+            </Button>
+          )}
+          {bulkEdit}
         </div>
-      )}
+      </div>
     </div>
   );
 }

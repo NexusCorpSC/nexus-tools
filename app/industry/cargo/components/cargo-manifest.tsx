@@ -17,6 +17,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  applyBulkChanges,
+  BulkLineChanges,
   CargoLine,
   ContainerSize,
   CUSTOM_TRANSPORT_ID,
@@ -69,6 +71,10 @@ interface CargoManifestProps {
 export default function CargoManifest({ transports }: CargoManifestProps) {
   const t = useTranslations("Cargo");
   const [editingLine, setEditingLine] = useState<CargoLine | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    field: "destination" | "location" | "mission";
+    value: string;
+  } | null>(null);
 
   // The manifest lives in the browser: it is a scratchpad, not shared data.
   const state = useSyncExternalStore(
@@ -106,6 +112,12 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
     () => distinct(state.lines.map((line) => line.mission)),
     [state.lines],
   );
+
+  const pendingDeleteCount = pendingDelete
+    ? state.lines.filter(
+        (line) => line[pendingDelete.field] === pendingDelete.value,
+      ).length
+    : 0;
 
   function addLine(input: NewCargoLine) {
     updateManifest((current) => ({
@@ -153,25 +165,31 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
     }));
   }
 
-  function deleteByDestination(destination: string) {
+  function bulkEdit(ids: string[], changes: BulkLineChanges) {
     updateManifest((current) => ({
       ...current,
-      lines: current.lines.filter((line) => line.destination !== destination),
+      lines: applyBulkChanges(current.lines, ids, changes),
     }));
+
+    toast.success(t("bulkEditedTitle"), {
+      description: t("bulkEditedDescription", { count: ids.length }),
+    });
   }
 
-  function deleteByLocation(location: string) {
-    updateManifest((current) => ({
-      ...current,
-      lines: current.lines.filter((line) => line.location !== location),
-    }));
-  }
+  /** Wiping a whole destination, location or mission asks first. */
+  function confirmBulkDelete() {
+    if (!pendingDelete) {
+      return;
+    }
 
-  function deleteByMission(mission: string) {
+    const { field, value } = pendingDelete;
+
     updateManifest((current) => ({
       ...current,
-      lines: current.lines.filter((line) => line.mission !== mission),
+      lines: current.lines.filter((line) => line[field] !== value),
     }));
+
+    setPendingDelete(null);
   }
 
   /** Re-splits every existing line with the currently selected maximum. */
@@ -300,6 +318,7 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
           lines={state.lines}
           onDeleteLine={deleteLine}
           onEditLine={setEditingLine}
+          onBulkEdit={bulkEdit}
         />
 
         <EditLineDialog
@@ -317,7 +336,9 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
               <button
                 key={destination}
                 type="button"
-                onClick={() => deleteByDestination(destination)}
+                onClick={() =>
+                  setPendingDelete({ field: "destination", value: destination })
+                }
                 className="inline-flex items-center gap-1 rounded-full border border-[#9ED0FF]/25 bg-[#0B3A5A]/60 px-2.5 py-1 text-[#C9E4FF] transition-colors hover:border-red-400/60 hover:text-red-300"
               >
                 {destination}
@@ -334,7 +355,9 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
               <button
                 key={location}
                 type="button"
-                onClick={() => deleteByLocation(location)}
+                onClick={() =>
+                  setPendingDelete({ field: "location", value: location })
+                }
                 className="inline-flex items-center gap-1 rounded-full border border-[#9ED0FF]/25 bg-[#0B3A5A]/60 px-2.5 py-1 text-[#C9E4FF] transition-colors hover:border-red-400/60 hover:text-red-300"
               >
                 {location}
@@ -351,7 +374,9 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
               <button
                 key={mission}
                 type="button"
-                onClick={() => deleteByMission(mission)}
+                onClick={() =>
+                  setPendingDelete({ field: "mission", value: mission })
+                }
                 className="inline-flex items-center gap-1 rounded-full border border-[#9ED0FF]/25 bg-[#0B3A5A]/60 px-2.5 py-1 text-[#C9E4FF] transition-colors hover:border-red-400/60 hover:text-red-300"
               >
                 {mission}
@@ -360,6 +385,40 @@ export default function CargoManifest({ transports }: CargoManifestProps) {
             ))}
           </div>
         )}
+
+        <Dialog
+          open={pendingDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingDelete(null);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {t("bulkDeleteTitle", { value: pendingDelete?.value ?? "" })}
+              </DialogTitle>
+              <DialogDescription>
+                {t("bulkDeleteDescription", { count: pendingDeleteCount })}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  {t("cancel")}
+                </Button>
+              </DialogClose>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={confirmBulkDelete}
+              >
+                {t("delete")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

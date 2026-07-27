@@ -515,6 +515,14 @@
     "unassignedValue": "Unassigned",
     "filteredCount": "{matchCount, plural, one {Showing # line} other {Showing # lines}} of {totalCount}",
     "clearFilters": "Clear filters",
+    "lineCount": "{count, plural, one {# line} other {# lines}}",
+    "bulkEdit": "Bulk edit",
+    "bulkEditDescription": "{count, plural, one {The change will apply to the line on screen.} other {The change will apply to the # lines on screen.}}",
+    "bulkEditApply": "{count, plural, one {Edit # line} other {Edit # lines}}",
+    "bulkEditUnchanged": "Unchanged",
+    "bulkEditClearHint": "Leave empty to clear the field",
+    "bulkEditedTitle": "Lines updated",
+    "bulkEditedDescription": "{count, plural, one {# line changed.} other {# lines changed.}}",
     "total": "Total",
     "totalFor": "Total {destination}",
     "totalForMission": "Total {mission}",
@@ -522,6 +530,7 @@
     "boxesShort": "Boxes",
     "actions": "Actions",
     "deleteLine": "Delete line",
+    "delete": "Delete",
     "editLine": "Edit line",
     "editLineFor": "Edit the {destination} line",
     "editLineDescription": "The container split is recomputed if the volume changes.",
@@ -545,7 +554,9 @@
     "cancel": "Cancel",
     "removeByDestination": "Remove by destination:",
     "removeByLocation": "Remove by location:",
-    "removeByMission": "Remove by mission:"
+    "removeByMission": "Remove by mission:",
+    "bulkDeleteTitle": "Delete “{value}”?",
+    "bulkDeleteDescription": "{count, plural, one {# line will be removed from the route sheet.} other {# lines will be removed from the route sheet.}}"
   },
   "Inventory": {
     "title": "Inventory",

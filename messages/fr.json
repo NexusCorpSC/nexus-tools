@@ -549,6 +549,14 @@
     "unassignedValue": "Non renseigné",
     "filteredCount": "{matchCount, plural, one {# ligne affichée} other {# lignes affichées}} sur {totalCount}",
     "clearFilters": "Effacer les filtres",
+    "lineCount": "{count, plural, one {# ligne} other {# lignes}}",
+    "bulkEdit": "Édition en masse",
+    "bulkEditDescription": "{count, plural, one {La modification s'appliquera à la ligne affichée.} other {La modification s'appliquera aux # lignes affichées.}}",
+    "bulkEditApply": "{count, plural, one {Modifier # ligne} other {Modifier # lignes}}",
+    "bulkEditUnchanged": "Inchangé",
+    "bulkEditClearHint": "Laisser vide pour effacer le champ",
+    "bulkEditedTitle": "Lignes mises à jour",
+    "bulkEditedDescription": "{count, plural, one {# ligne modifiée.} other {# lignes modifiées.}}",
     "total": "Total",
     "totalFor": "Total {destination}",
     "totalForMission": "Total {mission}",
@@ -556,6 +564,7 @@
     "boxesShort": "Boîtes",
     "actions": "Actions",
     "deleteLine": "Supprimer la ligne",
+    "delete": "Supprimer",
     "editLine": "Modifier la ligne",
     "editLineFor": "Modifier la ligne {destination}",
     "editLineDescription": "Le découpage en conteneurs est recalculé si le volume change.",
@@ -579,7 +588,9 @@
     "cancel": "Annuler",
     "removeByDestination": "Supprimer par destination :",
     "removeByLocation": "Supprimer par emplacement :",
-    "removeByMission": "Supprimer par mission :"
+    "removeByMission": "Supprimer par mission :",
+    "bulkDeleteTitle": "Supprimer « {value} » ?",
+    "bulkDeleteDescription": "{count, plural, one {# ligne sera supprimée de la feuille de route.} other {# lignes seront supprimées de la feuille de route.}}"
   },
   "Inventory": {
     "title": "Inventaire",
