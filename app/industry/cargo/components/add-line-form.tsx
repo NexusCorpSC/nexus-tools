@@ -15,6 +15,7 @@ import {
   ParsedBulkLine,
   splitVolume,
 } from "@/lib/cargo";
+import ScreenshotImportDialog from "./screenshot-import-dialog";
 
 export interface NewCargoLine {
   destination: string;
@@ -115,14 +116,16 @@ export default function AddLineForm({
             className="font-mono text-sm"
             placeholder={t("bulkFormat")}
           />
-          <Button
-            type="button"
-            onClick={submitQuick}
-            disabled={!canSubmitQuick}
-            className="sm:self-end"
-          >
-            {t("quickAdd")}
-          </Button>
+          <div className="flex gap-2 sm:flex-col sm:self-end">
+            <Button
+              type="button"
+              onClick={submitQuick}
+              disabled={!canSubmitQuick}
+            >
+              {t("quickAdd")}
+            </Button>
+            <ScreenshotImportDialog onImport={setQuick} />
+          </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9ED0FF]/60">
           <p>
