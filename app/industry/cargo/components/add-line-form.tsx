@@ -11,10 +11,10 @@ import {
   ContainerSize,
   containerCount,
   MAX_VOLUME,
-  parseBulk,
   ParsedBulkLine,
   splitVolume,
 } from "@/lib/cargo";
+import { parseQuickEntry } from "@/lib/mission-objectives";
 import ScreenshotImportDialog from "./screenshot-import-dialog";
 
 export interface NewCargoLine {
@@ -60,7 +60,7 @@ export default function AddLineForm({
     ? splitVolume(parsedVolume, maxContainer)
     : null;
 
-  const quickParse = parseBulk(quick);
+  const quickParse = parseQuickEntry(quick);
   const canSubmitQuick = quickParse.parsed.length > 0;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -130,6 +130,11 @@ export default function AddLineForm({
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9ED0FF]/60">
           <p>
             {t("quickEntryHint")}
+            {quickParse.source === "objectives" && (
+              <span className="ml-2 text-emerald-300">
+                {t("screenshotObjectives", { count: quickParse.parsed.length })}
+              </span>
+            )}
             {quickParse.invalid.length > 0 && (
               <span className="ml-2 text-red-400">
                 {t("bulkInvalid", { count: quickParse.invalid.length })}

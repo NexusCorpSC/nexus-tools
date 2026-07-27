@@ -500,6 +500,7 @@
     "quickEntry": "Quick entry",
     "quickAdd": "Add",
     "quickEntryHint": "Enter to add, Shift+Enter to type one more line.",
+    "quickEntryMissionHint": "You can also paste the mission log text as is.",
     "currentMission": "Current mission:",
     "newMission": "New mission",
     "screenshotImport": "Import a screenshot",

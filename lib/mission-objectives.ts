@@ -7,7 +7,12 @@
  *     Collect [Resource] from [Origin].
  */
 
-import { MAX_VOLUME } from "@/lib/cargo";
+import {
+  type BulkParseResult,
+  MAX_VOLUME,
+  type ParsedBulkLine,
+  parseBulk,
+} from "@/lib/cargo";
 
 export interface MissionObjective {
   volume: number;
@@ -119,6 +124,43 @@ export function parseMissionText(raw: string): MissionParseResult {
   }
 
   return { objectives, ignored };
+}
+
+/** Objectives as cargo lines: the pickup station becomes the location. */
+export function objectivesToBulkLines(
+  objectives: MissionObjective[],
+): ParsedBulkLine[] {
+  return objectives.map((objective) => ({
+    destination: objective.destination,
+    content: objective.resource,
+    volume: objective.volume,
+    location: objective.origin,
+    mission: "",
+  }));
+}
+
+export interface QuickEntryParseResult extends BulkParseResult {
+  /** Which format the text was read as, for wording the feedback. */
+  source: "objectives" | "rows";
+}
+
+/**
+ * Reads the quick entry field, which accepts both formats: the usual
+ * `Destination;Contenu;Volume;Emplacement` rows, and mission log text pasted
+ * straight from the game — or from the OCR debug box.
+ */
+export function parseQuickEntry(raw: string): QuickEntryParseResult {
+  const mission = parseMissionText(raw);
+
+  if (mission.objectives.length > 0) {
+    return {
+      parsed: objectivesToBulkLines(mission.objectives),
+      invalid: mission.ignored,
+      source: "objectives",
+    };
+  }
+
+  return { ...parseBulk(raw), source: "rows" };
 }
 
 /** Turns objectives into rows for the quick entry field. */

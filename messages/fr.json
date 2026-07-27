@@ -534,6 +534,7 @@
     "quickEntry": "Saisie rapide",
     "quickAdd": "Ajouter",
     "quickEntryHint": "Entrée pour ajouter, Maj+Entrée pour saisir une ligne de plus.",
+    "quickEntryMissionHint": "Vous pouvez aussi coller le texte du journal de mission tel quel.",
     "currentMission": "Mission en cours :",
     "newMission": "Nouvelle mission",
     "screenshotImport": "Importer une capture",
