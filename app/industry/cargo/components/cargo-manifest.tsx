@@ -20,11 +20,12 @@ import {
   CargoLine,
   ContainerSize,
   CUSTOM_TRANSPORT_ID,
-  getTransport,
+  findTransport,
   linesToCsv,
   ParsedBulkLine,
   splitVolume,
   totalVolume,
+  Transport,
 } from "@/lib/cargo";
 import {
   getManifestServerSnapshot,
@@ -58,7 +59,12 @@ function distinct(values: string[]): string[] {
   );
 }
 
-export default function CargoManifest() {
+interface CargoManifestProps {
+  /** Ships offered in the transport picker, managed from the admin section. */
+  transports: Transport[];
+}
+
+export default function CargoManifest({ transports }: CargoManifestProps) {
   const t = useTranslations("Cargo");
 
   // The manifest lives in the browser: it is a scratchpad, not shared data.
@@ -68,10 +74,18 @@ export default function CargoManifest() {
     getManifestServerSnapshot,
   );
 
+  // A stored ship may have been renamed away or deleted by an administrator:
+  // fall back to the first one still available rather than a 0 SCU capacity.
+  const selectedTransport = findTransport(transports, state.transportId);
+  const transportId =
+    state.transportId === CUSTOM_TRANSPORT_ID || selectedTransport
+      ? state.transportId
+      : (transports[0]?.id ?? CUSTOM_TRANSPORT_ID);
+
   const capacity =
-    state.transportId === CUSTOM_TRANSPORT_ID
+    transportId === CUSTOM_TRANSPORT_ID
       ? state.customCapacity
-      : (getTransport(state.transportId)?.capacity ?? 0);
+      : (findTransport(transports, transportId)?.capacity ?? 0);
 
   const usedVolume = useMemo(() => totalVolume(state.lines), [state.lines]);
 
@@ -163,7 +177,8 @@ export default function CargoManifest() {
     <div className="space-y-6">
       <div className="bg-nexus space-y-4 rounded-lg p-4">
         <ManifestToolbar
-          transportId={state.transportId}
+          transports={transports}
+          transportId={transportId}
           customCapacity={state.customCapacity}
           capacity={capacity}
           maxContainer={state.maxContainer}

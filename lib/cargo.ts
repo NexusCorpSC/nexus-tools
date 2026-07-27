@@ -16,7 +16,11 @@ export interface Transport {
   capacity: number;
 }
 
-export const TRANSPORTS: Transport[] = [
+/**
+ * Ships available out of the box. Administrators can extend or replace this
+ * list from /admin/cargo-ships; these are the fallback when none is stored.
+ */
+export const DEFAULT_TRANSPORTS: Transport[] = [
   { id: "hull-b", name: "Hull B", capacity: 512 },
   { id: "railen", name: "Railen", capacity: 640 },
   { id: "ironclad", name: "Ironclad", capacity: 2160 },
@@ -27,6 +31,9 @@ export const CUSTOM_TRANSPORT_ID = "custom";
 
 export const DEFAULT_TRANSPORT_ID = "ironclad";
 export const DEFAULT_MAX_CONTAINER: ContainerSize = 16;
+
+export const MAX_SHIP_NAME_LENGTH = 80;
+export const MAX_SHIP_CAPACITY = 1_000_000;
 
 /** Below this many SCU left, the remaining capacity is flagged as tight. */
 export const LOW_CAPACITY_THRESHOLD = 50;
@@ -61,8 +68,27 @@ export function isContainerSize(value: number): value is ContainerSize {
   return (CONTAINER_SIZES as readonly number[]).includes(value);
 }
 
-export function getTransport(id: string): Transport | undefined {
-  return TRANSPORTS.find((transport) => transport.id === id);
+export function findTransport(
+  transports: Transport[],
+  id: string,
+): Transport | undefined {
+  return transports.find((transport) => transport.id === id);
+}
+
+/**
+ * Turns a ship name into a stable, readable identifier. Manifests reference
+ * ships by id from the browser, so ids must not change when a ship is renamed.
+ */
+export function toShipId(name: string): string {
+  return (
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, MAX_SHIP_NAME_LENGTH) || "ship"
+  );
 }
 
 /**
