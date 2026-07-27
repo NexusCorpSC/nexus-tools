@@ -1,7 +1,6 @@
 import {
   CargoLine,
   ContainerSize,
-  CONTAINER_SIZES,
   DEFAULT_MAX_CONTAINER,
   DEFAULT_TRANSPORT_ID,
   isContainerSize,
@@ -48,24 +47,18 @@ function sanitizeLine(raw: unknown): CargoLine | null {
       ? line.maxContainer
       : DEFAULT_MAX_CONTAINER;
 
-  const storedQuantities = Array.isArray(line.quantities)
-    ? line.quantities
-    : null;
-
-  const quantities =
-    storedQuantities?.length === CONTAINER_SIZES.length &&
-    storedQuantities.every((quantity) => Number.isFinite(Number(quantity)))
-      ? storedQuantities.map((quantity) => Number(quantity))
-      : splitVolume(volume, maxContainer);
+  const sanitizedVolume = Math.floor(volume);
 
   return {
     id: line.id,
     destination: typeof line.destination === "string" ? line.destination : "",
     content: typeof line.content === "string" ? line.content : "",
     location: typeof line.location === "string" ? line.location : "",
-    volume: Math.floor(volume),
+    volume: sanitizedVolume,
     maxContainer,
-    quantities,
+    // Quantities are derived from the volume and the maximum container size:
+    // recomputing is cheap and rules out stale or corrupted stored counts.
+    quantities: splitVolume(sanitizedVolume, maxContainer),
   };
 }
 

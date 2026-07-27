@@ -194,13 +194,16 @@ function csvCell(value: string | number): string {
   return /[";\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-/** Semicolon separated export, matching the bulk import format. */
+/**
+ * Semicolon separated export. The four leading columns follow the bulk import
+ * format so an export can be pasted straight back into the bulk dialog.
+ */
 export function linesToCsv(lines: CargoLine[]): string {
   const header = [
     "Destination",
     "Contenu",
-    "Emplacement",
     "Volume",
+    "Emplacement",
     ...CONTAINER_SIZES.map(String),
   ];
 
@@ -208,14 +211,14 @@ export function linesToCsv(lines: CargoLine[]): string {
     [
       line.destination,
       line.content,
-      line.location,
       line.volume,
+      line.location,
       ...line.quantities,
     ].map(csvCell),
   );
 
   const totals = sumQuantities(lines);
-  const totalRow = ["TOTAL", "", "", totalVolume(lines), ...totals].map(
+  const totalRow = ["TOTAL", "", totalVolume(lines), "", ...totals].map(
     csvCell,
   );
 
