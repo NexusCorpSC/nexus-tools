@@ -29,6 +29,32 @@ function collection() {
   return db.db().collection<CargoShipDbModel>(COLLECTION);
 }
 
+let indexesReady: Promise<unknown> | null = null;
+
+/**
+ * Ids are the key every other operation targets, so uniqueness is enforced by
+ * the database rather than by a read-then-write check.
+ */
+function ensureIndexes() {
+  indexesReady ??= collection()
+    .createIndex({ id: 1 }, { unique: true, name: "cargoShips_id_unique" })
+    .catch((error) => {
+      // Let the next call retry instead of caching a transient failure.
+      indexesReady = null;
+      throw error;
+    });
+
+  return indexesReady;
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: number }).code === 11000
+  );
+}
+
 function sortShips(ships: CargoShip[]): CargoShip[] {
   return ships.sort(
     (a, b) => a.capacity - b.capacity || a.name.localeCompare(b.name),
@@ -77,39 +103,42 @@ export function normalizeShipInput(input: CargoShipInput): CargoShipInput {
   return { name, capacity };
 }
 
-/** Derives an id from the name, suffixing it until it is free. */
-async function uniqueShipId(name: string): Promise<string> {
-  const base = toShipId(name);
-  let candidate = base;
-  let suffix = 2;
+const MAX_ID_ATTEMPTS = 50;
 
-  while (
-    await collection().findOne({ id: candidate }, { projection: { id: 1 } })
-  ) {
-    candidate = `${base}-${suffix}`;
-    suffix += 1;
-  }
-
-  return candidate;
-}
-
+/**
+ * Inserts under the id derived from the name, taking the next free suffix when
+ * it is already taken. The unique index arbitrates, so two concurrent creates
+ * cannot end up sharing an id.
+ */
 export async function createCargoShip(
   input: CargoShipInput,
 ): Promise<CargoShip> {
   const { name, capacity } = normalizeShipInput(input);
+  await ensureIndexes();
+
+  const base = toShipId(name);
   const now = new Date().toISOString();
 
-  const ship: CargoShip = {
-    id: await uniqueShipId(name),
-    name,
-    capacity,
-    createdAt: now,
-    updatedAt: now,
-  };
+  for (let attempt = 0; attempt < MAX_ID_ATTEMPTS; attempt++) {
+    const ship: CargoShip = {
+      id: attempt === 0 ? base : `${base}-${attempt + 1}`,
+      name,
+      capacity,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-  await collection().insertOne({ ...ship });
+    try {
+      await collection().insertOne({ ...ship });
+      return ship;
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) {
+        throw error;
+      }
+    }
+  }
 
-  return ship;
+  throw new Error(`Could not find a free identifier for "${name}"`);
 }
 
 /** Renaming keeps the id: manifests stored in browsers reference it. */
@@ -142,6 +171,8 @@ export async function deleteCargoShip(id: string): Promise<void> {
  * from the known list instead of retyping it. Existing ships are left alone.
  */
 export async function seedDefaultCargoShips(): Promise<number> {
+  await ensureIndexes();
+
   const existing = await collection()
     .find({}, { projection: { id: 1, _id: 0 } })
     .toArray();
@@ -157,7 +188,19 @@ export async function seedDefaultCargoShips(): Promise<number> {
     return 0;
   }
 
-  await collection().insertMany(missing);
+  try {
+    const result = await collection().insertMany(missing, { ordered: false });
+    return result.insertedCount;
+  } catch (error) {
+    // A concurrent seed may have inserted some of them in the meantime; the
+    // unique index rejects those and the rest still go through.
+    if (!isDuplicateKeyError(error)) {
+      throw error;
+    }
 
-  return missing.length;
+    return (
+      (error as { result?: { insertedCount?: number } }).result
+        ?.insertedCount ?? 0
+    );
+  }
 }

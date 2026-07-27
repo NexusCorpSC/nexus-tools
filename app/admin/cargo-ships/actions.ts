@@ -27,9 +27,12 @@ function readShipForm(formData: FormData): {
   name: string;
   capacity: number;
 } {
-  // Ajv coerces the form string into a number in place.
+  // A crafted request can send a File for any field, so nothing is trimmed
+  // before checking it really is a string. Ajv then coerces the capacity.
+  const rawName = formData.get("name");
+
   const ship: Record<string, unknown> = {
-    name: (formData.get("name") as string | null)?.trim() ?? "",
+    name: typeof rawName === "string" ? rawName.trim() : rawName,
     capacity: formData.get("capacity"),
   };
 

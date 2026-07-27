@@ -86,8 +86,10 @@ export function toShipId(name: string): string {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, MAX_SHIP_NAME_LENGTH) || "ship"
+      // Truncating last, then trimming, so a cut mid-separator cannot leave a
+      // dangling hyphen behind.
+      .slice(0, MAX_SHIP_NAME_LENGTH)
+      .replace(/^-+|-+$/g, "") || "ship"
   );
 }
 
