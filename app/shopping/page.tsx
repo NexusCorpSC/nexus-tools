@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     title: "Marketplace — Nexus Tools",
     description:
       "Achetez et vendez des objets et services Star Citizen sur le Marketplace communautaire.",
-    url: "https://tools.nexus.services/shopping",
+    url: "https://tools.services.nexus/shopping",
   },
 };
 

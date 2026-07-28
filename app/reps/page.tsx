@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: "Réputations — Nexus Tools",
     description:
       "Suivez les niveaux de réputation de faction pour vous et vos équipiers Star Citizen.",
-    url: "https://tools.nexus.services/reps",
+    url: "https://tools.services.nexus/reps",
   },
 };
 

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     title: "Cargo — Nexus Tools",
     description:
       "Planifiez vos convois Star Citizen : découpage automatique en conteneurs SCU, totaux par destination et capacité restante.",
-    url: "https://tools.nexus.services/industry/cargo",
+    url: "https://tools.services.nexus/industry/cargo",
   },
 };
 

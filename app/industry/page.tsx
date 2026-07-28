@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     title: "Industrie — Nexus Tools",
     description:
       "Gérez vos opérations industrielles dans Star Citizen : raffinage, production et plus.",
-    url: "https://tools.nexus.services/industry",
+    url: "https://tools.services.nexus/industry",
   },
 };
 

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     title: "Crafting — Nexus Tools",
     description:
       "Gérez vos blueprints et recettes de crafting Star Citizen au sein de votre organisation.",
-    url: "https://tools.nexus.services/crafting",
+    url: "https://tools.services.nexus/crafting",
   },
 };
 

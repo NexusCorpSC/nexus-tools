@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     title: "Organisations — Nexus Tools",
     description:
       "Découvrez les organisations publiques Star Citizen et rejoignez la communauté Nexus.",
-    url: "https://tools.nexus.services/orgs",
+    url: "https://tools.services.nexus/orgs",
   },
 };
 
