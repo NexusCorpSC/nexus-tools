@@ -18,6 +18,7 @@ import {
   TopBarNavItem,
   TopBarNavMenuItem,
 } from "@/components/topbar-components";
+import { ScratchPadPanel } from "@/components/scratch-pad-panel";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -30,6 +31,7 @@ const navigation = [
   { name: "inventory", href: "/inventory" },
   { name: "industry", href: "/industry" },
   { name: "missions", href: "/missions" },
+  { name: "notes", href: "/notes" },
   { name: "organizations", href: "/orgs" },
 ];
 const userNavigation = [
@@ -105,6 +107,12 @@ export default async function Topbar() {
               </div>
             </div>
           </div>
+          {user ? (
+            <div className="relative z-10 ml-auto flex items-center pr-2 lg:pr-0">
+              {/* Scratch pad, opens a side panel from the right */}
+              <ScratchPadPanel />
+            </div>
+          ) : null}
           <div className="relative z-10 flex items-center lg:hidden">
             {/* Mobile menu button */}
             <DisclosureButton className="group relative inline-flex items-center justify-center rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-2 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:bg-[#0B3A5A]/80 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-[#9ED0FF]/60">
