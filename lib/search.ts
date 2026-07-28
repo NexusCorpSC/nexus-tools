@@ -5,6 +5,8 @@ import type { Document } from "bson";
 import db from "@/lib/db";
 import { getAvailableTransports } from "@/lib/cargo-ships";
 import {
+  DEFAULT_SEARCH_LIMIT,
+  MIN_SEARCH_QUERY_LENGTH,
   PRIVATE_SEARCH_TYPES,
   SEARCH_TYPES,
   type SearchResult,
@@ -471,21 +473,32 @@ export type SearchEverythingResult = {
 export async function searchEverything({
   query,
   types = [...SEARCH_TYPES],
-  limit = 5,
+  limit = DEFAULT_SEARCH_LIMIT,
   userId,
 }: SearchEverythingOptions): Promise<SearchEverythingResult> {
   const trimmed = query.trim();
 
+  // A shorter term would match nearly every document of every collection.
+  // The route already rejects it, but this is reachable from anywhere.
+  if (trimmed.length < MIN_SEARCH_QUERY_LENGTH) {
+    return { types: [], results: [], countsByType: {}, hasMore: [] };
+  }
+
+  // A duplicated type would run its query twice and repeat its results, and a
+  // non-positive limit would make Mongo return whole collections.
+  const wanted = [...new Set(types)];
+  const perTypeLimit = Math.max(1, Math.floor(limit));
+
   // Types reading private data are dropped for anonymous callers instead of
   // returning an error: the rest of the search stays useful.
   const searched = userId
-    ? types
-    : types.filter((type) => !PRIVATE_SEARCH_TYPES.includes(type));
+    ? wanted
+    : wanted.filter((type) => !PRIVATE_SEARCH_TYPES.includes(type));
 
   const context: SearchContext = {
     needle: trimmed.toLowerCase(),
     matcher: { $regex: escapeRegex(trimmed), $options: "i" },
-    candidates: Math.min(MAX_CANDIDATES, limit * CANDIDATE_FACTOR),
+    candidates: Math.min(MAX_CANDIDATES, perTypeLimit * CANDIDATE_FACTOR),
     userId,
   };
 
@@ -499,14 +512,14 @@ export async function searchEverything({
 
   searched.forEach((type, index) => {
     const matches = perType[index].sort(compareResults);
-    const kept = matches.slice(0, limit);
+    const kept = matches.slice(0, perTypeLimit);
 
     results.push(...kept);
     countsByType[type] = kept.length;
 
     // The candidate pool is larger than `limit`, so an overflow here means the
     // collection really has more matches than what is returned.
-    if (matches.length > limit) {
+    if (matches.length > perTypeLimit) {
       hasMore.push(type);
     }
   });
