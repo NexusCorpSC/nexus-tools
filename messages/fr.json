@@ -17,7 +17,8 @@
       "settings": "Paramètres",
       "signOut": "Déconnexion",
       "signIn": "Connexion",
-      "missions": "Missions"
+      "missions": "Missions",
+      "notes": "Bloc-notes"
     },
     "openMenu": "Ouvrir le menu",
     "openUserMenu": "Ouvrir le menu utilisateur",
@@ -699,5 +700,34 @@
     "factionsNoResults": "Aucune faction trouvée.",
     "blueprintOwned": "Possédé",
     "blueprintNotOwned": "Non possédé"
+  },
+  "Notes": {
+    "home": "Accueil",
+    "title": "Bloc-notes",
+    "instructions": "Prenez vos notes ici : elles sont enregistrées en ligne sur votre compte et vous les retrouvez depuis n'importe quel appareil. Le format Markdown est supporté.",
+    "shortcutHint": "Vous pouvez aussi ouvrir votre note à tout moment depuis le bouton de la barre de navigation ou avec le raccourci {shortcut}.",
+    "connectToUse": "Connectez-vous pour prendre des notes et les retrouver sur tous vos appareils.",
+    "signIn": "Connexion",
+    "open": "Ouvrir le bloc-notes",
+    "openFullPage": "Ouvrir en pleine page",
+    "close": "Fermer",
+    "shortcut": "Alt + N",
+    "loading": "Chargement…",
+    "contentPlaceholder": "Écrivez vos notes ici…",
+    "emptyPreview": "Votre note est vide.",
+    "edit": "Éditer",
+    "preview": "Aperçu",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "statusSaving": "Enregistrement…",
+    "statusSaved": "Enregistrée",
+    "statusUnsaved": "Modifications non enregistrées",
+    "statusError": "Échec de l'enregistrement",
+    "lastUpdated": "Modifiée {time}",
+    "characters": "{count} / {max} caractères",
+    "loadErrorTitle": "Chargement impossible",
+    "loadErrorDescription": "Votre note n'a pas pu être chargée.",
+    "saveErrorTitle": "Enregistrement impossible",
+    "saveErrorDescription": "Vos modifications n'ont pas pu être enregistrées."
   }
 }

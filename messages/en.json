@@ -17,7 +17,8 @@
       "settings": "Settings",
       "signOut": "Sign Out",
       "signIn": "Sign In",
-      "missions": "Missions"
+      "missions": "Missions",
+      "notes": "Scratch Pad"
     },
     "openMenu": "Open menu",
     "openUserMenu": "Open user menu",
@@ -665,5 +666,34 @@
     "factionsNoResults": "No factions found.",
     "blueprintOwned": "Owned",
     "blueprintNotOwned": "Not owned"
+  },
+  "Notes": {
+    "home": "Home",
+    "title": "Scratch Pad",
+    "instructions": "Jot down your notes here: they are stored online on your account, so you can pick them up from any device. Markdown is supported.",
+    "shortcutHint": "You can also open your note at any time from the navigation bar button or with the {shortcut} shortcut.",
+    "connectToUse": "Sign in to take notes and find them back on any device.",
+    "signIn": "Sign in",
+    "open": "Open the scratch pad",
+    "openFullPage": "Open full page",
+    "close": "Close",
+    "shortcut": "Alt + N",
+    "loading": "Loading…",
+    "contentPlaceholder": "Write your notes here…",
+    "emptyPreview": "Your note is empty.",
+    "edit": "Edit",
+    "preview": "Preview",
+    "save": "Save",
+    "saving": "Saving…",
+    "statusSaving": "Saving…",
+    "statusSaved": "Saved",
+    "statusUnsaved": "Unsaved changes",
+    "statusError": "Save failed",
+    "lastUpdated": "Edited {time}",
+    "characters": "{count} / {max} characters",
+    "loadErrorTitle": "Could not load",
+    "loadErrorDescription": "Your note could not be loaded.",
+    "saveErrorTitle": "Could not save",
+    "saveErrorDescription": "Your changes could not be saved."
   }
 }
