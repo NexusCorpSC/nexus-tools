@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     title: "Développeurs — Nexus Tools",
     description:
       "API ouverte pour intégrer les outils Nexus dans vos applications Star Citizen.",
-    url: "https://tools.nexus.services/developers",
+    url: "https://tools.services.nexus/developers",
   },
 };
 

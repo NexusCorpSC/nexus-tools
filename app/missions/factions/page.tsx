@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     title: "Factions — Nexus Tools",
     description:
       "Explorez les factions de Star Citizen et leurs missions.",
-    url: "https://tools.nexus.services/missions/factions",
+    url: "https://tools.services.nexus/missions/factions",
   },
 };
 

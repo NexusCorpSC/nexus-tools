@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     title: "Nexus Tools — Star Citizen Community Tools",
     description:
       "Marketplace, crafting, réputations et organisations pour les joueurs de Star Citizen.",
-    url: "https://tools.nexus.services",
+    url: "https://tools.services.nexus",
   },
 };
 

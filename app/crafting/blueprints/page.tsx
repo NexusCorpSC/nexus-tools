@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     title: "Blueprints — Nexus Tools",
     description:
       "Tous les blueprints de crafting Star Citizen : recettes, matériaux, temps de fabrication.",
-    url: "https://tools.nexus.services/crafting/blueprints",
+    url: "https://tools.services.nexus/crafting/blueprints",
   },
 };
 

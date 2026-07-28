@@ -48,7 +48,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${org.name} [${org.tag}] — Nexus Tools`,
       description,
-      url: `https://tools.nexus.services/orgs/${orgId}`,
+      url: `https://tools.services.nexus/orgs/${orgId}`,
       images: org.image ? [{ url: org.image, alt: `Logo de ${org.name}` }] : undefined,
     },
   };

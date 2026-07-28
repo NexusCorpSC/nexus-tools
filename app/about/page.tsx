@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: "À propos — Nexus Tools",
     description:
       "Nexus Tools est maintenu par la Nexus Corporation, organisation francophone Star Citizen.",
-    url: "https://tools.nexus.services/about",
+    url: "https://tools.services.nexus/about",
   },
 };
 

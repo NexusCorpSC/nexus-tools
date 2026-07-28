@@ -47,7 +47,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${blueprint.name} — Blueprints Nexus Tools`,
       description,
-      url: `https://tools.nexus.services/crafting/blueprints/${slug}`,
+      url: `https://tools.services.nexus/crafting/blueprints/${slug}`,
       images: [{ url: imageUrl, alt: blueprint.name }],
     },
     twitter: {

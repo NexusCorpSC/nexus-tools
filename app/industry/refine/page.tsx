@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     title: "Raffinage — Nexus Tools",
     description:
       "Gérez vos jobs de raffinage de minerais Star Citizen depuis votre tableau de bord Nexus.",
-    url: "https://tools.nexus.services/industry/refine",
+    url: "https://tools.services.nexus/industry/refine",
   },
 };
 

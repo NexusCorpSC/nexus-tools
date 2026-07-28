@@ -19,7 +19,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://tools.nexus.services"),
+  metadataBase: new URL("https://tools.services.nexus"),
   title: {
     template: "%s | Nexus Tools",
     default: "Nexus Tools — Star Citizen Community Tools",
@@ -36,12 +36,12 @@ export const metadata: Metadata = {
     "organisation",
     "Nexus Corporation",
   ],
-  authors: [{ name: "Nexus Corporation", url: "https://tools.nexus.services" }],
+  authors: [{ name: "Nexus Corporation", url: "https://tools.services.nexus" }],
   creator: "Nexus Corporation",
   openGraph: {
     type: "website",
     locale: "fr_FR",
-    url: "https://tools.nexus.services",
+    url: "https://tools.services.nexus",
     siteName: "Nexus Tools",
     title: "Nexus Tools — Star Citizen Community Tools",
     description:

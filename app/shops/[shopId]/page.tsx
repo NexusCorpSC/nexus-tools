@@ -37,7 +37,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${shop.name} — Marketplace Nexus Tools`,
       description,
-      url: `https://tools.nexus.services/shops/${shopId}`,
+      url: `https://tools.services.nexus/shops/${shopId}`,
     },
   };
 }

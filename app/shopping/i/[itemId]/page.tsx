@@ -30,7 +30,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${item.name} — Marketplace Nexus Tools`,
       description,
-      url: `https://tools.nexus.services/shopping/i/${item.id ?? ""}`,
+      url: `https://tools.services.nexus/shopping/i/${item.id ?? ""}`,
       images: item.image ? [{ url: item.image, alt: item.name }] : undefined,
     },
     twitter: {

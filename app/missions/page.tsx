@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     title: "Missions — Nexus Tools",
     description:
       "Parcourez toutes les missions du jeu et leurs détails et récompenses.",
-    url: "https://tools.nexus.services/missions",
+    url: "https://tools.services.nexus/missions",
   },
 };
 
