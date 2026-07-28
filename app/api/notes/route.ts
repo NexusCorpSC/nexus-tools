@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { auth } from "@/lib/auth";
 import { getUserNote, saveUserNote } from "@/lib/notes";
@@ -58,6 +59,10 @@ export async function PUT(request: NextRequest) {
   }
 
   const note = await saveUserNote(new ObjectId(session.user.id), content);
+
+  // `saveNoteAction` does the same: without it, a note written from the desktop
+  // app leaves an already-visited /notes serving its cached copy.
+  revalidatePath("/notes");
 
   return NextResponse.json(note);
 }
