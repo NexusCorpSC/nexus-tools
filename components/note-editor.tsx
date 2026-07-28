@@ -74,21 +74,48 @@ export function NoteEditor({
 
   const isDirty = content !== note.content;
 
+  // Saves can overlap (autosave, manual save, flush on close) and responses may
+  // come back out of order: only the latest request is allowed to update the UI,
+  // and nothing is updated once the editor is gone.
+  const lastRequestRef = useRef(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const save = useCallback(
     async (value: string) => {
+      const requestId = ++lastRequestRef.current;
+      const isCurrent = () =>
+        isMountedRef.current && requestId === lastRequestRef.current;
+
       setStatus("saving");
 
       try {
         const saved = await saveNoteAction(value);
 
+        if (!isCurrent()) {
+          return;
+        }
+
         setNote(saved);
         setStatus("saved");
       } catch (error) {
-        setStatus("error");
+        // The note may have been closed already: warn in every case, but only
+        // the latest request drives the displayed status.
         toast.error(t("saveErrorTitle"), {
           description:
             error instanceof Error ? error.message : t("saveErrorDescription"),
         });
+
+        if (isCurrent()) {
+          setStatus("error");
+        }
       }
     },
     [t],
