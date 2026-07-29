@@ -372,12 +372,18 @@ export async function addBlueprintToUser(
   return result.upsertedCount > 0;
 }
 
+/**
+ * `deleteMany` rather than `deleteOne`: the add above only stopped duplicates
+ * from being created, and the rows an earlier insert already left behind would
+ * otherwise survive a removal one at a time — `isUserOwningBlueprint` finding
+ * any one of them keeps the blueprint owned after the user asked to drop it.
+ */
 export async function removeBlueprintFromUser(
   userId: string,
   blueprintId: string,
 ): Promise<void> {
   const collection = db.db().collection<UserBlueprint>("user-blueprints");
-  await collection.deleteOne({ userId, blueprintId });
+  await collection.deleteMany({ userId, blueprintId });
 }
 
 export async function deleteBlueprint(blueprintId: string): Promise<void> {

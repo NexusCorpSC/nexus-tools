@@ -41,10 +41,20 @@ export async function POST(
   const blueprint = await db
     .db()
     .collection("blueprints")
-    .findOne({ _id: new ObjectId(blueprintId) }, { projection: { slug: 1 } });
+    .findOne(
+      { _id: new ObjectId(blueprintId) },
+      { projection: { slug: 1, isDefault: 1 } },
+    );
 
   if (!blueprint) {
     return NextResponse.json({ error: "Blueprint not found" }, { status: 404 });
+  }
+
+  // A default blueprint is owned by everyone — that is what `owned` says
+  // everywhere else. Recording it would write a row that changes nothing and
+  // answer «added», which is not what happened.
+  if (blueprint.isDefault === true) {
+    return NextResponse.json({ owned: true, added: false });
   }
 
   const added = await addBlueprintToUser(session.user.id!, blueprintId);
