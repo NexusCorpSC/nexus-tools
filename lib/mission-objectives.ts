@@ -41,7 +41,7 @@ export interface MissionParseResult {
  */
 
 /** A digit, or one of the letters the in-game font's digits are read as. */
-const DIGIT = "[0-9OolIiSBZ]";
+const DIGIT = "[0-9OoQlIiSBZ]";
 
 /** The already-delivered count, "0/", which is dropped. */
 const DELIVERED = `(?:${DIGIT}{1,5}\\s*[/|\\\\]\\s*)?`;
@@ -76,6 +76,7 @@ const VERB_LOOKBACK = 12;
 const DIGIT_LOOKALIKES: Record<string, string> = {
   O: "0",
   o: "0",
+  Q: "0",
   l: "1",
   I: "1",
   i: "1",
@@ -127,9 +128,14 @@ function cleanLine(raw: string): string {
     .trim();
 }
 
-/** The same bullet, left behind at the tail of the objective before it. */
+/**
+ * The same bullet, left behind at the tail of the objective before it — every
+ * glyph `cleanLine` drops at the head, and the letter OCR sometimes reads in
+ * its place. The leading `\s+` is what keeps the objective's own period: a
+ * terminator has no space in front of it.
+ */
 function trimTrailingBullet(line: string): string {
-  return line.replace(/\s+[OoQ0e©*•]$/u, "").trim();
+  return line.replace(/\s+[^\p{L}\p{N}]*[OoQ0e]?[^\p{L}\p{N}]*$/u, "").trim();
 }
 
 /**
