@@ -4,40 +4,53 @@ import { revalidatePath } from "next/cache";
 import { ObjectId } from "bson";
 import { auth } from "@/lib/auth";
 import db from "@/lib/db";
-import { addBlueprintToUser } from "@/lib/crafting";
+import { addBlueprintToUser, removeBlueprintFromUser } from "@/lib/crafting";
 
 /**
- * POST /api/blueprints/[blueprintId]/ownership
- * Adds the blueprint to the authenticated user's own blueprints.
+ * Whether the authenticated user owns a given blueprint, as a REST resource.
  *
- * Mirrors `addBlueprintAction`, which the site's own buttons call, so API
- * clients (desktop app) can do the same thing.
+ * Mirrors `addBlueprintAction` / `removeBlueprintAction`, which the site's own
+ * buttons call, so API clients (desktop app) can do the same thing.
  *
- * Idempotent, and says which of the two happened: `added: false` means the
- * blueprint was already there. A client can word its feedback from that alone,
- * without asking a second question — which matters for the desktop search
- * palette, where the result carries no ownership of its own.
+ * Both verbs are idempotent and say which of the two happened: `added` and
+ * `removed` are false when the blueprint was already on the side asked for. A
+ * client can word its feedback from that alone, without asking a second
+ * question — which matters for the desktop search palette, where the result
+ * carries no ownership of its own.
  */
-export async function POST(
-  _request: NextRequest,
-  { params }: { params: Promise<{ blueprintId: string }> },
-) {
+
+type Resolved = {
+  userId: string;
+  blueprintId: string;
+  slug: string;
+  /** Owned by everyone, and therefore not something a user can drop. */
+  isDefault: boolean;
+};
+
+/** The session, the id and the blueprint — or the answer to send instead. */
+async function resolve(
+  params: Promise<{ blueprintId: string }>,
+): Promise<{ refused: NextResponse } | { resolved: Resolved }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return {
+      refused: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
   }
 
   const { blueprintId } = await params;
 
   if (!ObjectId.isValid(blueprintId)) {
-    return NextResponse.json(
-      { error: "`blueprintId` is not a valid id" },
-      { status: 400 },
-    );
+    return {
+      refused: NextResponse.json(
+        { error: "`blueprintId` is not a valid id" },
+        { status: 400 },
+      ),
+    };
   }
 
-  // Read before writing: `user-blueprints` holds ids and nothing else, so an
-  // id that matches no blueprint would sit there unnoticed for good.
+  // Read the blueprint before touching anything: `user-blueprints` holds ids
+  // and nothing else, so an id that matches nothing would sit there unnoticed.
   const blueprint = await db
     .db()
     .collection("blueprints")
@@ -47,24 +60,76 @@ export async function POST(
     );
 
   if (!blueprint) {
-    return NextResponse.json({ error: "Blueprint not found" }, { status: 404 });
+    return {
+      refused: NextResponse.json(
+        { error: "Blueprint not found" },
+        { status: 404 },
+      ),
+    };
   }
+
+  return {
+    resolved: {
+      userId: session.user.id!,
+      blueprintId,
+      slug: blueprint.slug,
+      isDefault: blueprint.isDefault === true,
+    },
+  };
+}
+
+/**
+ * The site renders possession server-side, so a change made from elsewhere has
+ * to drop the pages the user will come back to.
+ */
+function revalidate(slug: string): void {
+  revalidatePath(`/crafting/blueprints/${slug}`);
+  revalidatePath("/crafting/blueprints");
+}
+
+/** POST — adds the blueprint to the user's own. */
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ blueprintId: string }> },
+) {
+  const outcome = await resolve(params);
+  if ("refused" in outcome) return outcome.refused;
+
+  const { userId, blueprintId, slug, isDefault } = outcome.resolved;
 
   // A default blueprint is owned by everyone — that is what `owned` says
   // everywhere else. Recording it would write a row that changes nothing and
   // answer «added», which is not what happened.
-  if (blueprint.isDefault === true) {
+  if (isDefault) {
     return NextResponse.json({ owned: true, added: false });
   }
 
-  const added = await addBlueprintToUser(session.user.id!, blueprintId);
+  const added = await addBlueprintToUser(userId, blueprintId);
 
-  // The site renders possession server-side, so an add made from elsewhere has
-  // to drop the pages the user will come back to.
-  if (added) {
-    revalidatePath(`/crafting/blueprints/${blueprint.slug}`);
-    revalidatePath("/crafting/blueprints");
-  }
+  if (added) revalidate(slug);
 
   return NextResponse.json({ owned: true, added });
+}
+
+/**
+ * DELETE — drops the blueprint from the user's own.
+ *
+ * A default blueprint stays owned whatever happens, so `owned` is what the user
+ * ends up with rather than an echo of the verb. Any row one of them picked up
+ * before this route refused to write them is cleared on the way through.
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ blueprintId: string }> },
+) {
+  const outcome = await resolve(params);
+  if ("refused" in outcome) return outcome.refused;
+
+  const { userId, blueprintId, slug, isDefault } = outcome.resolved;
+
+  const removed = await removeBlueprintFromUser(userId, blueprintId);
+
+  if (removed) revalidate(slug);
+
+  return NextResponse.json({ owned: isDefault, removed });
 }
