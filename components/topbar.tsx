@@ -70,7 +70,7 @@ export default async function Topbar() {
   return (
     <Disclosure
       as="header"
-      className="border-b border-[#9ED0FF]/15 bg-gray-800 backdrop-blur-md"
+      className="relative z-40 border-b border-[#9ED0FF]/15 bg-gray-800 backdrop-blur-md"
     >
       <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:divide-y lg:divide-[#9ED0FF]/10 lg:px-8">
         <div className="relative flex h-16 justify-between">
@@ -156,7 +156,7 @@ export default async function Topbar() {
                 </div>
                 <MenuItems
                   transition
-                  className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/95 py-1 shadow-xl shadow-black/20 ring-1 ring-[#9ED0FF]/10 transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-leave:duration-75 data-enter:ease-out data-leave:ease-in"
+                  className="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/95 py-1 shadow-xl shadow-black/20 ring-1 ring-[#9ED0FF]/10 backdrop-blur-md transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-leave:duration-75 data-enter:ease-out data-leave:ease-in"
                 >
                   {userNavigation.map((item) => (
                     <MenuItem key={item.name}>
