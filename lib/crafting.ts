@@ -240,6 +240,10 @@ export async function filterBlueprints(
         category: bp.category,
         subcategory: bp.subcategory,
         owned: (bp as unknown as { owned: boolean }).owned,
+        // Alongside `owned`, and for the same reason: a default blueprint is
+        // owned by everyone, so it is the one thing a client cannot offer to
+        // remove. Absent from the anonymous branch, like `owned` itself.
+        isDefault: bp.isDefault,
         imageUrl: bp.imageUrl,
         tier: bp.tier,
       })),
@@ -381,9 +385,11 @@ export async function addBlueprintToUser(
 export async function removeBlueprintFromUser(
   userId: string,
   blueprintId: string,
-): Promise<void> {
+): Promise<boolean> {
   const collection = db.db().collection<UserBlueprint>("user-blueprints");
-  await collection.deleteMany({ userId, blueprintId });
+  const result = await collection.deleteMany({ userId, blueprintId });
+
+  return result.deletedCount > 0;
 }
 
 export async function deleteBlueprint(blueprintId: string): Promise<void> {
