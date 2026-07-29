@@ -350,24 +350,40 @@ export async function isUserOwningBlueprint(
   return entry !== null;
 }
 
+/**
+ * Adds a blueprint to a user's own, and says whether it was actually added.
+ *
+ * Upsert rather than insert: possession is a fact, not a tally. A second call
+ * used to add a second row, which `removeBlueprintFromUser` — a `deleteOne` —
+ * would then only half undo, leaving the blueprint owned after the user asked
+ * for the opposite.
+ */
 export async function addBlueprintToUser(
   userId: string,
   blueprintId: string,
-): Promise<void> {
+): Promise<boolean> {
   const collection = db.db().collection<UserBlueprint>("user-blueprints");
-  await collection.insertOne({
-    userId,
-    blueprintId,
-    addedAt: new Date().toISOString(),
-  });
+  const result = await collection.updateOne(
+    { userId, blueprintId },
+    { $setOnInsert: { addedAt: new Date().toISOString() } },
+    { upsert: true },
+  );
+
+  return result.upsertedCount > 0;
 }
 
+/**
+ * `deleteMany` rather than `deleteOne`: the add above only stopped duplicates
+ * from being created, and the rows an earlier insert already left behind would
+ * otherwise survive a removal one at a time — `isUserOwningBlueprint` finding
+ * any one of them keeps the blueprint owned after the user asked to drop it.
+ */
 export async function removeBlueprintFromUser(
   userId: string,
   blueprintId: string,
 ): Promise<void> {
   const collection = db.db().collection<UserBlueprint>("user-blueprints");
-  await collection.deleteOne({ userId, blueprintId });
+  await collection.deleteMany({ userId, blueprintId });
 }
 
 export async function deleteBlueprint(blueprintId: string): Promise<void> {
