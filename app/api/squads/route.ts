@@ -56,6 +56,16 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    // `[]`, `"x"` and `null` parse, and none of them is a `{ name? }`. Reading
+    // `.name` off them would answer 201 to a request nobody could honour, which
+    // is a client bug this route would be hiding rather than reporting.
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json(
+        { error: "Body must be an object" },
+        { status: 400 },
+      );
+    }
   }
 
   const requested = (body as { name?: unknown } | null)?.name;

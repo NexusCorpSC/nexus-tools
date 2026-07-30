@@ -232,9 +232,26 @@ export async function joinSquad(
     updated = await collection().findOneAndUpdate(
       {
         _id: squad._id,
-        // Re-checked inside the write: the count above was read a moment ago,
-        // and two people can accept the same invitation at the same time.
-        $expr: { $lt: [{ $size: "$members" }, SQUAD_MAX_MEMBERS] },
+        /*
+         * Everything the three reads above established, re-established inside
+         * the write, because each of them is a moment old:
+         *
+         * - not a member yet. The unique index does not help here: MongoDB
+         *   de-duplicates keys within a document, so nothing but this guard
+         *   stops two requests for the same user from pushing two rows into the
+         *   same squad;
+         * - not full. Two people can accept the same invitation at once;
+         * - not empty. A squad with no members is one the last leaver is in the
+         *   middle of removing; joining it would produce a squad whose leader is
+         *   somebody who is gone, which nothing can put right.
+         */
+        "members.userId": { $ne: userId },
+        $expr: {
+          $and: [
+            { $lt: [{ $size: "$members" }, SQUAD_MAX_MEMBERS] },
+            { $gt: [{ $size: "$members" }, 0] },
+          ],
+        },
       },
       {
         $push: { members: newMember(userId, memberName, now) },
@@ -254,16 +271,21 @@ export async function joinSquad(
 
   if (updated) return { squad: toSquad(updated) };
 
-  // The guard above is the only thing that can have refused the write — unless
-  // the squad went away entirely between the two reads, which is what the last
-  // member leaving does. Telling those apart costs one read on a path that is
-  // already rare, and «full» would otherwise be said of a squad that is gone.
-  const stillThere = await collection().countDocuments(
-    { _id: squad._id },
-    { limit: 1 },
-  );
+  /*
+   * One of the three guards refused, and only the document says which. Worth the
+   * read on a path this rare: the alternatives are all lies — «full» said of a
+   * squad that is gone, or of one the caller is now a member of because their
+   * other client got there first.
+   */
+  const current = await collection().findOne({ _id: squad._id });
 
-  return { refusal: stillThere > 0 ? "full" : "not-found" };
+  if (!current || current.members.length === 0) return { refusal: "not-found" };
+
+  if (current.members.some((member) => member.userId === userId)) {
+    return { squad: toSquad(current) };
+  }
+
+  return { refusal: "full" };
 }
 
 /**
