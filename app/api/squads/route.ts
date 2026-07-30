@@ -37,9 +37,27 @@ export async function POST(request: NextRequest) {
 
   const { caller } = outcome;
 
-  // An absent body is the normal case: a squad rarely has a name worth typing
-  // while a drop is starting. A present but unusable one is still an error.
-  const body = await request.json().catch(() => null);
+  /*
+   * An absent body is the normal case: a squad rarely has a name worth typing
+   * while a drop is starting. A present but unusable one is still an error —
+   * which is why the text is read before being parsed. `json()` throws the same
+   * way for both, and answering 201 to a request nobody could read would hide a
+   * client bug behind a squad named after its owner.
+   */
+  const raw = (await request.text()).trim();
+  let body: unknown = null;
+
+  if (raw) {
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
+  }
+
   const requested = (body as { name?: unknown } | null)?.name;
 
   if (requested !== undefined && typeof requested !== "string") {
@@ -61,7 +79,17 @@ export async function POST(request: NextRequest) {
 
   const name = requested?.trim() || `Escouade de ${caller.name}`;
 
-  const squad = await createSquad(caller.userId, name, caller.name);
+  const created = await createSquad(caller.userId, name, caller.name);
 
-  return NextResponse.json({ squad }, { status: 201 });
+  // The caller joined something else while this was being handled — two of their
+  // clients racing. Nothing was created, and saying so beats answering 201 with
+  // a squad they are not in.
+  if ("refusal" in created) {
+    return NextResponse.json(
+      { error: "Already in another squad" },
+      { status: 409 },
+    );
+  }
+
+  return NextResponse.json({ squad: created.squad }, { status: 201 });
 }

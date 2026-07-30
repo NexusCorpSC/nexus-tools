@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateSquadMember } from "@/lib/squads";
+import { removeSquadMember, updateSquadMember } from "@/lib/squads";
 import { POSITION_MAX_LENGTH, type SquadMemberPatch } from "@/types/squad";
 import { readBody, resolveSquad } from "../../caller";
 
@@ -96,6 +96,53 @@ export async function PATCH(
     patch,
     isSelf ? caller.name : undefined,
   );
+
+  if (!updated) {
+    return NextResponse.json(
+      { error: "No such member in this squad" },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({ squad: updated });
+}
+
+/**
+ * DELETE /api/squads/members/[userId]
+ * Puts a member out of the squad.
+ *
+ * **The leader alone, and never on themselves.** A leader who wants out uses
+ * `POST /api/squads/leave`, which hands the squad over on the way — removing
+ * yourself here would leave it with a leader who is no longer a member.
+ *
+ * The removed member's own client finds out the ordinary way: their next poll
+ * answers `{ squad: null }`, since they are in no squad anymore.
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> },
+) {
+  const outcome = await resolveSquad();
+  if ("refused" in outcome) return outcome.refused;
+
+  const { caller, squad } = outcome;
+  const { userId: targetUserId } = await params;
+
+  if (squad.leaderId !== caller.userId) {
+    return NextResponse.json(
+      { error: "Only the squad leader may remove a member" },
+      { status: 403 },
+    );
+  }
+
+  if (targetUserId === caller.userId) {
+    return NextResponse.json(
+      { error: "The leader leaves through /api/squads/leave" },
+      { status: 409 },
+    );
+  }
+
+  const updated = await removeSquadMember(squad.id, targetUserId);
 
   if (!updated) {
     return NextResponse.json(

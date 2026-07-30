@@ -51,16 +51,26 @@ function toSquad(doc: DbSquad): Squad {
 let indexesPromise: Promise<unknown> | null = null;
 
 /**
- * Runs once per process. Failures are not fatal: the code is checked for
- * uniqueness by the insert retry below, and the member lookup works without an
- * index — it is only slower.
+ * Runs once per process. A failure here is not fatal but it does lower the
+ * guarantees: without the indexes, the writes below stop being refused and
+ * start being merely unlikely to collide.
  */
 export async function ensureSquadIndexes() {
   if (!indexesPromise) {
     indexesPromise = Promise.all([
       collection().createIndex({ code: 1 }, { unique: true }),
-      // Every poll of every member goes through this one.
-      collection().createIndex({ "members.userId": 1 }),
+      /*
+       * Every poll of every member goes through this one — and it is unique,
+       * which is not about speed: it is what makes «one squad at a time» a fact
+       * rather than a convention the code hopes to keep. Two requests for the
+       * same user racing each other would otherwise leave them a member of two
+       * squads with no way back, since `leaveSquad` only ever finds one of them.
+       *
+       * Unique *and* multikey is fine: MongoDB de-duplicates index keys within
+       * a document, so a squad may list a member once and no other squad may
+       * list them at all.
+       */
+      collection().createIndex({ "members.userId": 1 }, { unique: true }),
     ]).catch((error) => {
       indexesPromise = null;
       console.warn({ error, message: "Could not create squads indexes" });
@@ -94,9 +104,34 @@ export function normalizeCode(raw: string): string {
   return raw.trim().toUpperCase();
 }
 
-function isDuplicateKey(error: unknown): boolean {
-  return (error as { code?: number } | null)?.code === 11000;
+/**
+ * Which of the two unique indexes a write collided with, or `null` if it did not
+ * collide at all.
+ *
+ * Both cases are duplicate keys and neither is a bug, but they call for opposite
+ * answers: a taken code is retried with another one, whereas a user who is
+ * already in a squad is not something a retry can fix.
+ */
+function duplicateOf(error: unknown): "code" | "member" | null {
+  const failure = error as {
+    code?: number;
+    keyPattern?: Record<string, unknown>;
+    message?: string;
+  } | null;
+
+  if (failure?.code !== 11000) return null;
+
+  // `keyPattern` names the index; the message is the fallback for drivers or
+  // proxies that do not carry it.
+  const named = failure.keyPattern
+    ? Object.keys(failure.keyPattern).join(" ")
+    : (failure.message ?? "");
+
+  return named.includes("members.userId") ? "member" : "code";
 }
+
+/** Answered when a user turns out to have joined something else in between. */
+export type Elsewhere = { refusal: "elsewhere" };
 
 function newMember(
   userId: string,
@@ -127,7 +162,7 @@ export async function createSquad(
   userId: string,
   name: string,
   memberName: string,
-): Promise<Squad> {
+): Promise<{ squad: Squad } | Elsewhere> {
   await ensureSquadIndexes();
   await leaveSquad(userId);
 
@@ -148,9 +183,15 @@ export async function createSquad(
 
     try {
       await collection().insertOne(doc);
-      return toSquad(doc);
+      return { squad: toSquad(doc) };
     } catch (error) {
-      if (!isDuplicateKey(error)) throw error;
+      const duplicate = duplicateOf(error);
+      if (duplicate === null) throw error;
+
+      // Not the code: another request put this user in a squad between the
+      // `leaveSquad` above and this insert. A retry would collide again — they
+      // are somewhere else now, and only they can decide to leave it.
+      if (duplicate === "member") return { refusal: "elsewhere" };
     }
   }
 
@@ -160,7 +201,8 @@ export async function createSquad(
 export type JoinOutcome =
   | { squad: Squad }
   | { refusal: "not-found" }
-  | { refusal: "full" };
+  | { refusal: "full" }
+  | Elsewhere;
 
 /** Adds the caller to the squad holding `code`, leaving whatever they were in. */
 export async function joinSquad(
@@ -185,20 +227,30 @@ export async function joinSquad(
 
   const now = new Date().toISOString();
 
-  const updated = await collection().findOneAndUpdate(
-    {
-      _id: squad._id,
-      // Re-checked inside the write: the count above was read a moment ago, and
-      // two people can accept the same invitation at the same time.
-      $expr: { $lt: [{ $size: "$members" }, SQUAD_MAX_MEMBERS] },
-    },
-    {
-      $push: { members: newMember(userId, memberName, now) },
-      $set: { updatedAt: now },
-      $inc: { version: 1 },
-    },
-    { returnDocument: "after" },
-  );
+  let updated;
+  try {
+    updated = await collection().findOneAndUpdate(
+      {
+        _id: squad._id,
+        // Re-checked inside the write: the count above was read a moment ago,
+        // and two people can accept the same invitation at the same time.
+        $expr: { $lt: [{ $size: "$members" }, SQUAD_MAX_MEMBERS] },
+      },
+      {
+        $push: { members: newMember(userId, memberName, now) },
+        $set: { updatedAt: now },
+        $inc: { version: 1 },
+      },
+      { returnDocument: "after" },
+    );
+  } catch (error) {
+    if (duplicateOf(error) !== "member") throw error;
+
+    // The unique index caught a second request for this user landing between
+    // the leave above and this push. Refused rather than papered over: they are
+    // in a squad, just not this one.
+    return { refusal: "elsewhere" };
+  }
 
   if (updated) return { squad: toSquad(updated) };
 
@@ -226,30 +278,88 @@ export async function leaveSquad(userId: string): Promise<void> {
   const squad = await collection().findOne({ "members.userId": userId });
   if (!squad) return;
 
-  const remaining = squad.members.filter((member) => member.userId !== userId);
+  if (squad.members.length === 1) {
+    // Guarded on the size at write time, not on the size that was read: someone
+    // may have joined since, and deleting the document would take their squad
+    // with it. If the guard refuses, the pipeline below handles it as an
+    // ordinary departure.
+    const removed = await collection().deleteOne({
+      _id: squad._id,
+      $expr: { $eq: [{ $size: "$members" }, 1] },
+    });
 
-  if (remaining.length === 0) {
-    await collection().deleteOne({ _id: squad._id });
-    return;
+    if (removed.deletedCount > 0) return;
   }
 
-  const successor = remaining.reduce((oldest, member) =>
-    member.joinedAt < oldest.joinedAt ? member : oldest,
-  );
-
-  await collection().updateOne(
-    { _id: squad._id },
+  /*
+   * The pull and the succession in one write, with the successor picked by the
+   * server from what is left *after* the pull.
+   *
+   * Choosing it here from the document read above would race every other
+   * departure: the member picked could have walked out in between, and the squad
+   * would end up naming a leader who is not one of its members — a state nothing
+   * in this module can recover from, since leadership is only ever handed over by
+   * someone leaving.
+   */
+  await collection().updateOne({ _id: squad._id }, [
     {
-      // The pull and the succession in one write: a squad must never be seen
-      // without the member it still calls its leader.
-      $pull: { members: { userId } },
       $set: {
-        leaderId: squad.leaderId === userId ? successor.userId : squad.leaderId,
-        updatedAt: new Date().toISOString(),
+        members: {
+          $filter: {
+            input: "$members",
+            cond: { $ne: ["$$this.userId", userId] },
+          },
+        },
       },
-      $inc: { version: 1 },
     },
-  );
+    {
+      $set: {
+        leaderId: {
+          $cond: [
+            { $eq: ["$leaderId", userId] },
+            {
+              $let: {
+                vars: {
+                  // The longest-standing member left. `$reduce` rather than
+                  // `$sortArray`, which wants a newer server than this asks for.
+                  oldest: {
+                    $reduce: {
+                      input: "$members",
+                      initialValue: null,
+                      in: {
+                        $cond: [
+                          {
+                            $or: [
+                              { $eq: ["$$value", null] },
+                              { $lt: ["$$this.joinedAt", "$$value.joinedAt"] },
+                            ],
+                          },
+                          "$$this",
+                          "$$value",
+                        ],
+                      },
+                    },
+                  },
+                },
+                in: "$$oldest.userId",
+              },
+            },
+            "$leaderId",
+          ],
+        },
+        updatedAt: new Date().toISOString(),
+        version: { $add: ["$version", 1] },
+      },
+    },
+  ]);
+
+  // Only reachable when everyone else left while this one was being written, so
+  // the pipeline pulled the last member instead of the delete above. A squad
+  // nobody is in is invisible to every query — and would keep its code forever.
+  await collection().deleteOne({
+    _id: squad._id,
+    "members.0": { $exists: false },
+  });
 }
 
 /**
@@ -277,6 +387,34 @@ export async function updateSquadMember(
   const updated = await collection().findOneAndUpdate(
     { _id: new ObjectId(squadId), "members.userId": targetUserId },
     { $set: set, $inc: { version: 1 } },
+    { returnDocument: "after" },
+  );
+
+  return updated ? toSquad(updated) : null;
+}
+
+/**
+ * Takes a member out of a squad someone else runs.
+ *
+ * Distinct from `leaveSquad`, which is somebody removing *themselves*: there is
+ * no succession to arrange here — the leader is the one doing the removing, so
+ * they are still there afterwards — and no chance of emptying the squad, since
+ * that same leader is never the target.
+ *
+ * Answers `null` when the target is not in the squad, which is what a second
+ * click on the same button sends.
+ */
+export async function removeSquadMember(
+  squadId: string,
+  targetUserId: string,
+): Promise<Squad | null> {
+  const updated = await collection().findOneAndUpdate(
+    { _id: new ObjectId(squadId), "members.userId": targetUserId },
+    {
+      $pull: { members: { userId: targetUserId } },
+      $set: { updatedAt: new Date().toISOString() },
+      $inc: { version: 1 },
+    },
     { returnDocument: "after" },
   );
 

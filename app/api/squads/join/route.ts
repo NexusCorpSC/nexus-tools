@@ -35,12 +35,23 @@ export async function POST(request: NextRequest) {
   );
 
   if ("refusal" in joined) {
-    return joined.refusal === "full"
-      ? NextResponse.json({ error: "Squad is full" }, { status: 409 })
-      : NextResponse.json(
+    switch (joined.refusal) {
+      case "full":
+        return NextResponse.json({ error: "Squad is full" }, { status: 409 });
+      // Two of the caller's clients joining at once: one of them won, and it is
+      // not this one. Refused rather than papered over — they are in a squad,
+      // just not the one this request asked for.
+      case "elsewhere":
+        return NextResponse.json(
+          { error: "Already in another squad" },
+          { status: 409 },
+        );
+      default:
+        return NextResponse.json(
           { error: "No squad with that code" },
           { status: 404 },
         );
+    }
   }
 
   return NextResponse.json({ squad: joined.squad });
