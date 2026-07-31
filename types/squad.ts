@@ -31,6 +31,14 @@ export interface SquadMember {
   /** «actif» when true, «éliminé» when false. */
   alive: boolean;
   position: string;
+  /**
+   * Commands the squad alongside the leader, with exactly the same powers —
+   * including appointing further lieutenants and handing over the leadership.
+   *
+   * A rank rather than a second leader: the squad still has one `leaderId`, so
+   * succession and «who is in charge» stay answerable by one field.
+   */
+  lieutenant: boolean;
 }
 
 export interface Squad {
@@ -49,9 +57,17 @@ export interface Squad {
   updatedAt: string;
 }
 
-/** What a member may change about themselves, and a leader about anyone. */
+/**
+ * What a member may change about themselves, and what commanding the squad lets
+ * you change about anyone.
+ *
+ * `lieutenant` is the odd one out: it is never something a member reports about
+ * themselves, so the route refuses it from anyone who does not command — see
+ * `app/api/squads/members/[userId]/route.ts`.
+ */
 export interface SquadMemberPatch {
   ready?: boolean;
   alive?: boolean;
   position?: string;
+  lieutenant?: boolean;
 }

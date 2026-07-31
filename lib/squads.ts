@@ -19,13 +19,21 @@ import {
  * read-modify-write of the array would do.
  */
 
+/**
+ * A member as the collection actually holds one, which is not quite what the API
+ * hands out: `lieutenant` is missing from every squad created before the rank
+ * existed. Typing it as present would let TypeScript vouch for a field nothing
+ * guarantees — `toSquad` is where it becomes true.
+ */
+type StoredMember = Omit<SquadMember, "lieutenant"> & { lieutenant?: boolean };
+
 export interface DbSquad {
   _id: ObjectId;
   name: string;
   code: string;
   leaderId: string;
   announcements: string;
-  members: SquadMember[];
+  members: StoredMember[];
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -42,7 +50,12 @@ function toSquad(doc: DbSquad): Squad {
     code: doc.code,
     leaderId: doc.leaderId,
     announcements: doc.announcements,
-    members: doc.members,
+    // The one place the stored shape becomes the promised one, so no caller —
+    // route, client or overlay — has to know that «absent» meant «no».
+    members: doc.members.map((member) => ({
+      ...member,
+      lieutenant: member.lieutenant ?? false,
+    })),
     version: doc.version,
     updatedAt: doc.updatedAt,
   };
@@ -138,7 +151,32 @@ function newMember(
   name: string,
   joinedAt: string,
 ): SquadMember {
-  return { userId, name, joinedAt, ready: false, alive: true, position: "" };
+  return {
+    userId,
+    name,
+    joinedAt,
+    ready: false,
+    alive: true,
+    position: "",
+    lieutenant: false,
+  };
+}
+
+/**
+ * Whether this user gives the orders — the leader, or a lieutenant they
+ * appointed.
+ *
+ * The one predicate the whole permission model rests on. Lieutenants hold the
+ * leader's powers entire, appointing further lieutenants among them, so there is
+ * nothing to tell apart past this point: every route asks this question and no
+ * other.
+ */
+export function commandsSquad(squad: Squad, userId: string): boolean {
+  if (squad.leaderId === userId) return true;
+
+  return squad.members.some(
+    (member) => member.userId === userId && member.lieutenant,
+  );
 }
 
 export async function getSquadForUser(userId: string): Promise<Squad | null> {
@@ -373,6 +411,35 @@ export async function leaveSquad(userId: string): Promise<void> {
         version: { $add: ["$version", 1] },
       },
     },
+    {
+      /*
+       * The rank never applies to whoever leads, and succession is the one place
+       * it could: the longest-standing member left may well be a lieutenant.
+       *
+       * A third stage rather than part of the one above, because it has to read
+       * the `leaderId` that stage just wrote — a pipeline stage only ever sees
+       * what came out of the previous one.
+       */
+      $set: {
+        members: {
+          $map: {
+            input: "$members",
+            in: {
+              $mergeObjects: [
+                "$$this",
+                {
+                  $cond: [
+                    { $eq: ["$$this.userId", "$leaderId"] },
+                    { lieutenant: false },
+                    {},
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
   ]);
 
   // Only reachable when everyone else left while this one was being written, so
@@ -404,6 +471,9 @@ export async function updateSquadMember(
   if (patch.ready !== undefined) set["members.$.ready"] = patch.ready;
   if (patch.alive !== undefined) set["members.$.alive"] = patch.alive;
   if (patch.position !== undefined) set["members.$.position"] = patch.position;
+  if (patch.lieutenant !== undefined) {
+    set["members.$.lieutenant"] = patch.lieutenant;
+  }
   if (name !== undefined) set["members.$.name"] = name;
 
   const updated = await collection().findOneAndUpdate(
@@ -416,12 +486,79 @@ export async function updateSquadMember(
 }
 
 /**
+ * Hands the squad to another member.
+ *
+ * One write, and an aggregation pipeline for the same reason `leaveSquad` needs
+ * one: the two rows involved change together. The outgoing leader is made a
+ * lieutenant on the way out — they keep the powers they had a moment ago, and a
+ * handover during a drop should not cost the person who organised it their say —
+ * while the incoming one loses a rank that has become meaningless.
+ *
+ * Guarded on the target still being a member: they may have left between the
+ * click and the write, and a squad whose `leaderId` names nobody is the one
+ * state nothing here can repair.
+ */
+export async function transferLeadership(
+  squadId: string,
+  fromUserId: string,
+  toUserId: string,
+): Promise<Squad | null> {
+  const updated = await collection().findOneAndUpdate(
+    {
+      _id: new ObjectId(squadId),
+      "members.userId": toUserId,
+      // Whoever is handing over must still be the leader: two commanders naming
+      // two different successors at once would otherwise both «succeed», and the
+      // last write would silently win.
+      leaderId: fromUserId,
+    },
+    [
+      {
+        $set: {
+          leaderId: toUserId,
+          members: {
+            $map: {
+              input: "$members",
+              in: {
+                $mergeObjects: [
+                  "$$this",
+                  {
+                    $switch: {
+                      branches: [
+                        {
+                          case: { $eq: ["$$this.userId", toUserId] },
+                          then: { lieutenant: false },
+                        },
+                        {
+                          case: { $eq: ["$$this.userId", fromUserId] },
+                          then: { lieutenant: true },
+                        },
+                      ],
+                      default: {},
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          updatedAt: new Date().toISOString(),
+          version: { $add: ["$version", 1] },
+        },
+      },
+    ],
+    { returnDocument: "after" },
+  );
+
+  return updated ? toSquad(updated) : null;
+}
+
+/**
  * Takes a member out of a squad someone else runs.
  *
  * Distinct from `leaveSquad`, which is somebody removing *themselves*: there is
- * no succession to arrange here — the leader is the one doing the removing, so
- * they are still there afterwards — and no chance of emptying the squad, since
- * that same leader is never the target.
+ * no succession to arrange here — the route refuses to remove the leader, so
+ * whoever is in charge is still there afterwards — and no chance of emptying the
+ * squad, since that leader is never the target.
  *
  * Answers `null` when the target is not in the squad, which is what a second
  * click on the same button sends.
