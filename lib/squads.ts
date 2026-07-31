@@ -19,13 +19,21 @@ import {
  * read-modify-write of the array would do.
  */
 
+/**
+ * A member as the collection actually holds one, which is not quite what the API
+ * hands out: `lieutenant` is missing from every squad created before the rank
+ * existed. Typing it as present would let TypeScript vouch for a field nothing
+ * guarantees — `toSquad` is where it becomes true.
+ */
+type StoredMember = Omit<SquadMember, "lieutenant"> & { lieutenant?: boolean };
+
 export interface DbSquad {
   _id: ObjectId;
   name: string;
   code: string;
   leaderId: string;
   announcements: string;
-  members: SquadMember[];
+  members: StoredMember[];
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -42,7 +50,12 @@ function toSquad(doc: DbSquad): Squad {
     code: doc.code,
     leaderId: doc.leaderId,
     announcements: doc.announcements,
-    members: doc.members,
+    // The one place the stored shape becomes the promised one, so no caller —
+    // route, client or overlay — has to know that «absent» meant «no».
+    members: doc.members.map((member) => ({
+      ...member,
+      lieutenant: member.lieutenant ?? false,
+    })),
     version: doc.version,
     updatedAt: doc.updatedAt,
   };
@@ -396,6 +409,35 @@ export async function leaveSquad(userId: string): Promise<void> {
         },
         updatedAt: new Date().toISOString(),
         version: { $add: ["$version", 1] },
+      },
+    },
+    {
+      /*
+       * The rank never applies to whoever leads, and succession is the one place
+       * it could: the longest-standing member left may well be a lieutenant.
+       *
+       * A third stage rather than part of the one above, because it has to read
+       * the `leaderId` that stage just wrote — a pipeline stage only ever sees
+       * what came out of the previous one.
+       */
+      $set: {
+        members: {
+          $map: {
+            input: "$members",
+            in: {
+              $mergeObjects: [
+                "$$this",
+                {
+                  $cond: [
+                    { $eq: ["$$this.userId", "$leaderId"] },
+                    { lieutenant: false },
+                    {},
+                  ],
+                },
+              ],
+            },
+          },
+        },
       },
     },
   ]);

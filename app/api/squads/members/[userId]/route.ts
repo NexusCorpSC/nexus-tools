@@ -149,11 +149,15 @@ export async function PATCH(
  * DELETE /api/squads/members/[userId]
  * Puts a member out of the squad.
  *
- * **Whoever commands the squad, and never the leader.** A leader who wants out
- * uses `POST /api/squads/leave`, which hands the squad over on the way — removing
- * them here would leave a squad whose `leaderId` names nobody. A lieutenant who
- * wants them gone has to take the squad first, through
- * `PATCH /api/squads/leader`, which is a decision with a name on it.
+ * **Whoever commands the squad, and never on the leader nor on yourself.**
+ *
+ * A leader who wants out uses `POST /api/squads/leave`, which hands the squad
+ * over on the way — removing them here would leave a squad whose `leaderId`
+ * names nobody. A lieutenant who wants them gone has to take the squad first,
+ * through `PATCH /api/squads/leader`, which is a decision with a name on it.
+ *
+ * Leaving is the same route for everyone, commanders included: `/leave` handles
+ * succession and the empty squad, neither of which this one knows about.
  *
  * The removed member's own client finds out the ordinary way: their next poll
  * answers `{ squad: null }`, since they are in no squad anymore.
