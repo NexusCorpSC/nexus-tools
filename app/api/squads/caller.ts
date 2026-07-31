@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getSquadForUser } from "@/lib/squads";
+import { commandsSquad, getSquadForUser } from "@/lib/squads";
 import type { Squad } from "@/types/squad";
 
 /**
@@ -52,6 +52,26 @@ export async function resolveSquad(): Promise<
   if (!squad) return refuse("Not in a squad", 404);
 
   return { caller: outcome.caller, squad };
+}
+
+/**
+ * The squad, plus whether the caller gives the orders in it.
+ *
+ * Every route that writes on someone else's behalf asks exactly this: the leader
+ * and the lieutenants they appointed are indistinguishable past this point,
+ * which is the whole point of the rank.
+ */
+export async function resolveCommand(): Promise<
+  | { refused: NextResponse }
+  | { caller: Caller; squad: Squad; commands: boolean }
+> {
+  const outcome = await resolveSquad();
+  if ("refused" in outcome) return outcome;
+
+  return {
+    ...outcome,
+    commands: commandsSquad(outcome.squad, outcome.caller.userId),
+  };
 }
 
 /** Reads a string field off a parsed body, or says what is wrong with it. */

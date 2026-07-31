@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { setSquadAnnouncements } from "@/lib/squads";
 import { ANNOUNCEMENTS_MAX_LENGTH } from "@/types/squad";
-import { readBody, readString, resolveSquad } from "../caller";
+import { readBody, readString, resolveCommand } from "../caller";
 
 /**
  * PATCH /api/squads/announcements
@@ -10,17 +10,21 @@ import { readBody, readString, resolveSquad } from "../caller";
  * Body: `{ announcements }`, replacing the whole text — it is one field a single
  * person edits, so there is nothing to merge.
  *
- * **The leader alone may write here.** Everyone else reads it.
+ * **Whoever commands the squad writes here** — the leader, or a lieutenant.
+ * Everyone else reads it.
  */
 export async function PATCH(request: NextRequest) {
-  const outcome = await resolveSquad();
+  const outcome = await resolveCommand();
   if ("refused" in outcome) return outcome.refused;
 
-  const { caller, squad } = outcome;
+  const { squad, commands } = outcome;
 
-  if (squad.leaderId !== caller.userId) {
+  if (!commands) {
     return NextResponse.json(
-      { error: "Only the squad leader may write the announcements" },
+      {
+        error:
+          "Only the squad leader or a lieutenant may write the announcements",
+      },
       { status: 403 },
     );
   }
