@@ -337,19 +337,6 @@ const sections: LegalSection[] = [
     ),
   },
   {
-    id: "mineurs",
-    title: "Mineurs",
-    content: (
-      <p>
-        Le Service n&apos;est pas destiné aux enfants de moins de 15 ans. Si
-        vous constatez qu&apos;un compte a été créé par un enfant de moins de 15
-        ans sans l&apos;accord de ses représentants légaux, signalez-le à{" "}
-        <Link href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</Link>&nbsp;: le
-        compte et les données associées seront supprimés.
-      </p>
-    ),
-  },
-  {
     id: "modification",
     title: "Modification de cette politique",
     content: (
