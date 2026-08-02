@@ -48,13 +48,110 @@
         "title": "Modular",
         "description": "Intégrez nos outils directement dans vos applications via notre API ouverte."
       }
+    },
+    "tools": {
+      "cta": "Voir toutes les fonctionnalités",
+      "eyebrow": "La boîte à outils",
+      "title": "Tout ce que Nexus Tools sait déjà faire",
+      "subtitle": "Chaque outil règle un problème précis du quotidien dans le Verse — et tous travaillent sur les mêmes données, celles de votre compte.",
+      "items": {
+        "inventory": {
+          "title": "Inventaire",
+          "description": "Suivez vos objets lieu par lieu, composez des colis, déplacez-les d'un geste et partagez ce que vous voulez avec votre organisation.",
+          "tag": "Compte"
+        },
+        "cargo": {
+          "title": "Feuille de cargo",
+          "description": "Saisissez vos volumes en SCU : la répartition en conteneurs et la capacité restante du vaisseau se calculent toutes seules.",
+          "tag": "Sans compte"
+        },
+        "refining": {
+          "title": "Raffinage",
+          "description": "Enregistrez vos travaux de raffinage, suivez le temps restant et voyez d'un coup d'œil ce qui est prêt à être collecté.",
+          "tag": "Compte"
+        },
+        "missions": {
+          "title": "Missions & factions",
+          "description": "Explorez les missions du Verse, les factions qui les donnent et les plans qu'elles récompensent.",
+          "tag": "Public"
+        },
+        "organizations": {
+          "title": "Organisations",
+          "description": "Réunissez vos membres, partagez inventaire et réputations, et faites rejoindre les nouveaux venus par un simple code.",
+          "tag": "Compte"
+        },
+        "notes": {
+          "title": "Bloc-notes",
+          "description": "Prenez vos notes en Markdown, retrouvez-les sur tous vos appareils et rouvrez-les sans quitter la page avec Alt + N.",
+          "tag": "Compte"
+        },
+        "orders": {
+          "title": "Commandes & devis",
+          "description": "Passez commande auprès d'une boutique, recevez un devis, acceptez ou refusez : tout l'échange reste au même endroit.",
+          "tag": "Compte"
+        },
+        "mcp": {
+          "title": "API & MCP",
+          "description": "Une API REST ouverte et un serveur MCP pour brancher vos applications, vos bots et vos assistants sur les données Nexus.",
+          "tag": "Développeurs"
+        }
+      }
+    },
+    "app": {
+      "eyebrow": "Nexus App · Application de bureau",
+      "title": "Nexus Tools, posé par-dessus le jeu.",
+      "description": "Nexus App est le client de bureau de Nexus Tools : une vraie application native, pas une fenêtre de navigateur déguisée. Elle s'affiche au-dessus de Star Citizen, répond à un raccourci même quand le jeu tient le clavier, et travaille sur les mêmes données que le site.",
+      "highlights": {
+        "overlay": {
+          "title": "Superposition en jeu",
+          "description": "Recherche, bloc-notes et feuille de cargo s'affichent par-dessus le jeu, sans jamais avoir à le quitter."
+        },
+        "shortcuts": {
+          "title": "Raccourcis globaux",
+          "description": "Enregistrés au niveau du système : ils répondent fenêtre minimisée, et même quand le jeu a le clavier."
+        },
+        "capture": {
+          "title": "Capture de zone",
+          "description": "Sélectionnez une portion du journal de mission : le texte est lu sur votre machine et remplit la feuille de cargo."
+        },
+        "squad": {
+          "title": "Escouade",
+          "description": "Gardez vos équipiers et vos chefs de section sous les yeux, en superposition, pendant toute la sortie."
+        },
+        "notifications": {
+          "title": "Notifications natives",
+          "description": "Les alertes s'affichent dans le coin d'écran de votre choix, même quand la fenêtre est rangée."
+        },
+        "updates": {
+          "title": "Mises à jour signées",
+          "description": "L'application vérifie les nouvelles versions, vous montre les notes, et n'installe rien sans votre clic."
+        }
+      },
+      "download": "Télécharger l'application",
+      "source": "Voir le code source",
+      "platforms": "Windows et Linux · Tauri + React · Code source ouvert · Un compte Nexus Tools est nécessaire pour les écrans connectés.",
+      "mock": {
+        "searchPlaceholder": "Rechercher un plan, une mission, un objet…",
+        "resultPrimary": "Plan · Bouclier de taille 1",
+        "resultSecondary": "Mission · Livraison à Hurston"
+      },
+      "shortcutsTitle": "Raccourcis par défaut",
+      "shortcuts": {
+        "search": { "keys": "Ctrl + Maj + B", "label": "Palette de recherche" },
+        "capture": { "keys": "Ctrl + Maj + S", "label": "Capture de zone" },
+        "notes": { "keys": "Ctrl + Maj + N", "label": "Bloc-notes" },
+        "cargo": { "keys": "Ctrl + Maj + G", "label": "Feuille de cargo" }
+      },
+      "shortcutsHint": "Toutes les combinaisons se redéfinissent depuis les paramètres de l'application."
     }
   },
   "Footer": {
     "copyright": "© 2025 Nexus Corporation. Tous droits réservés. Images et assets de Star Citizen appartiennent à Cloud Imperium Games.",
     "links": {
       "about": "A propos",
-      "blog": "Blog"
+      "blog": "Blog",
+      "cgu": "CGU",
+      "privacy": "Confidentialité"
     }
   },
   "Crafting": {

@@ -7,6 +7,8 @@ const navigation = {
   main: [
     { name: "about", href: "/about" },
     { name: "blog", href: "/blog" },
+    { name: "cgu", href: "/cgu" },
+    { name: "privacy", href: "/privacy" },
   ],
   social: [
     {

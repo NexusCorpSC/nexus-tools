@@ -54,13 +54,110 @@
         "title": "Modular",
         "description": "Integrate our tools directly into your applications via our open API."
       }
+    },
+    "tools": {
+      "cta": "See every feature",
+      "eyebrow": "The toolbox",
+      "title": "Everything Nexus Tools already does",
+      "subtitle": "Each tool solves one precise day-to-day problem in the Verse — and they all work on the same data, the one tied to your account.",
+      "items": {
+        "inventory": {
+          "title": "Inventory",
+          "description": "Track your items across every storage location, build packages, move them in one gesture and share what you want with your organization.",
+          "tag": "Account"
+        },
+        "cargo": {
+          "title": "Cargo sheet",
+          "description": "Enter your volumes in SCU: the container split and your ship's remaining capacity are worked out for you.",
+          "tag": "No account"
+        },
+        "refining": {
+          "title": "Refining",
+          "description": "Log your refining jobs, follow the remaining time and see at a glance what is ready to be collected.",
+          "tag": "Account"
+        },
+        "missions": {
+          "title": "Missions & factions",
+          "description": "Explore the missions of the Verse, the factions handing them out and the blueprints they reward.",
+          "tag": "Public"
+        },
+        "organizations": {
+          "title": "Organizations",
+          "description": "Gather your members, share inventory and reputations, and let newcomers join with a simple code.",
+          "tag": "Account"
+        },
+        "notes": {
+          "title": "Scratch pad",
+          "description": "Write your notes in Markdown, find them back on every device and reopen them without leaving the page with Alt + N.",
+          "tag": "Account"
+        },
+        "orders": {
+          "title": "Orders & quotes",
+          "description": "Order from a shop, get a quote, accept or decline: the whole exchange stays in one place.",
+          "tag": "Account"
+        },
+        "mcp": {
+          "title": "API & MCP",
+          "description": "An open REST API and an MCP server to plug your applications, your bots and your assistants into Nexus data.",
+          "tag": "Developers"
+        }
+      }
+    },
+    "app": {
+      "eyebrow": "Nexus App · Desktop client",
+      "title": "Nexus Tools, right on top of the game.",
+      "description": "Nexus App is the Nexus Tools desktop client: a real native application, not a browser window in disguise. It draws over Star Citizen, answers a shortcut even while the game holds the keyboard, and works on the same data as the website.",
+      "highlights": {
+        "overlay": {
+          "title": "In-game overlay",
+          "description": "Search, scratch pad and cargo sheet show up on top of the game, without ever leaving it."
+        },
+        "shortcuts": {
+          "title": "Global shortcuts",
+          "description": "Registered at system level: they answer while the window is minimized, and even while the game holds the keyboard."
+        },
+        "capture": {
+          "title": "Screen capture",
+          "description": "Select a piece of the mission log: the text is read on your own machine and fills your cargo sheet."
+        },
+        "squad": {
+          "title": "Squad",
+          "description": "Keep your squadmates and section leaders in sight, as an overlay, for the whole run."
+        },
+        "notifications": {
+          "title": "Native notifications",
+          "description": "Alerts show up in the screen corner you picked, even when the window is tucked away."
+        },
+        "updates": {
+          "title": "Signed updates",
+          "description": "The app checks for new versions, shows you the release notes, and installs nothing without your click."
+        }
+      },
+      "download": "Download the app",
+      "source": "Browse the source code",
+      "platforms": "Windows and Linux · Tauri + React · Open source · A Nexus Tools account is required for the signed-in screens.",
+      "mock": {
+        "searchPlaceholder": "Search a blueprint, a mission, an item…",
+        "resultPrimary": "Blueprint · Size 1 shield",
+        "resultSecondary": "Mission · Hurston delivery"
+      },
+      "shortcutsTitle": "Default shortcuts",
+      "shortcuts": {
+        "search": { "keys": "Ctrl + Shift + B", "label": "Search palette" },
+        "capture": { "keys": "Ctrl + Shift + S", "label": "Screen capture" },
+        "notes": { "keys": "Ctrl + Shift + N", "label": "Scratch pad" },
+        "cargo": { "keys": "Ctrl + Shift + G", "label": "Cargo sheet" }
+      },
+      "shortcutsHint": "Every combination can be redefined from the application settings."
     }
   },
   "Footer": {
     "copyright": "© 2025 Nexus Corporation. All rights reserved. Images and assets from Star Citizen owned by Cloud Imperium Games.",
     "links": {
       "about": "About",
-      "blog": "Blog"
+      "blog": "Blog",
+      "cgu": "Terms",
+      "privacy": "Privacy"
     }
   },
   "Crafting": {
