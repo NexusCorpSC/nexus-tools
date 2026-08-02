@@ -63,7 +63,7 @@
       "items": {
         "inventory": {
           "title": "Inventory",
-          "description": "Track your items location by location, build packages, move them in one gesture and share what you want with your organization.",
+          "description": "Track your items across every storage location, build packages, move them in one gesture and share what you want with your organization.",
           "tag": "Account"
         },
         "cargo": {
@@ -88,8 +88,8 @@
         },
         "notes": {
           "title": "Scratch pad",
-          "description": "Write your notes in Markdown, find them back on every device and reopen them with a shortcut without leaving the page.",
-          "tag": "Alt + N"
+          "description": "Write your notes in Markdown, find them back on every device and reopen them without leaving the page with Alt + N.",
+          "tag": "Account"
         },
         "orders": {
           "title": "Orders & quotes",

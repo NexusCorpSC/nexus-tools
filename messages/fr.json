@@ -82,8 +82,8 @@
         },
         "notes": {
           "title": "Bloc-notes",
-          "description": "Prenez vos notes en Markdown, retrouvez-les sur tous vos appareils et rouvrez-les d'un raccourci sans quitter la page.",
-          "tag": "Alt + N"
+          "description": "Prenez vos notes en Markdown, retrouvez-les sur tous vos appareils et rouvrez-les sans quitter la page avec Alt + N.",
+          "tag": "Compte"
         },
         "orders": {
           "title": "Commandes & devis",

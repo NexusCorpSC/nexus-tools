@@ -178,10 +178,10 @@ export default function Home() {
                   {"  "}
                   <span className="text-[#CCE7FF]">{"fetch("}</span>
                   <span className="text-[#9ED0FF]/70">
-                    {"\n    'https://tools.nexus"}
+                    {"\n    'https://tools.services"}
                   </span>
                   <span className="text-[#9ED0FF]/70">
-                    {".services/api/reps'"}
+                    {".nexus/api/reps'"}
                   </span>
                   <span className="text-[#CCE7FF]">{"\n  );"}</span>
                   {"\n"}
