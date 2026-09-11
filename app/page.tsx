@@ -6,6 +6,7 @@ import {
   BeakerIcon,
   ChatBubbleLeftRightIcon,
   CodeBracketIcon,
+  CubeIcon,
   CpuChipIcon,
   FlagIcon,
   PencilSquareIcon,
@@ -38,6 +39,7 @@ export const metadata: Metadata = {
 };
 
 const tools = [
+  { key: "items", href: "/items", icon: CubeIcon },
   { key: "inventory", href: "/inventory", icon: ArchiveBoxIcon },
   { key: "cargo", href: "/industry/cargo", icon: TruckIcon },
   { key: "refining", href: "/industry/refine", icon: BeakerIcon },

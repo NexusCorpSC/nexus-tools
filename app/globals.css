@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 @plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
@@ -44,10 +44,10 @@
   --radius-sm: calc(var(--radius) - 4px);
 
   /* Custom Nexus colors */
-  --color-nexus-bg: #092F49;
-  --color-nexus-fg: #C9E4FF;
-  --color-nexus-primary: #CCE7FF;
-  --color-nexus-border: #9ED0FF;
+  --color-nexus-bg: #092f49;
+  --color-nexus-fg: #c9e4ff;
+  --color-nexus-primary: #cce7ff;
+  --color-nexus-border: #9ed0ff;
 }
 
 /*
@@ -163,4 +163,29 @@
 
 .text-nexus-primary {
   color: var(--color-nexus-primary);
+}
+/*
+  Coins coupés des fiches d'armes : le même biseau que les chips et les panneaux
+  du dossier de tir, pour garder l'angle net que les cartes arrondies n'ont pas.
+*/
+.clip-notch {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+.clip-tag {
+  clip-path: polygon(
+    6px 0,
+    100% 0,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    0 100%,
+    0 6px
+  );
 }
