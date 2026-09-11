@@ -4,6 +4,7 @@ import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { formatCraftingTime } from "@/lib/crafting-time";
 import { isNumber, type ItemDetails, type ResourceMarket } from "@/types/items";
 import { ItemAdminMenu } from "../components";
+import { ItemCompareButton } from "../compare-button";
 import {
   BlueprintCard,
   CommonSections,
@@ -149,7 +150,10 @@ export async function ResourceView({
       >
         <div className="flex items-start justify-between gap-2">
           <ItemBreadcrumb name={item.name} />
-          {canEdit && <ItemAdminMenu slug={item.slug} />}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <ItemCompareButton item={item} accent={ACCENT} />
+            {canEdit && <ItemAdminMenu slug={item.slug} />}
+          </div>
         </div>
 
         <div className="mt-3.5 flex flex-wrap items-end justify-between gap-6">

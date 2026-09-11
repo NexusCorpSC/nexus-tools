@@ -5,12 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
+  ArrowRightIcon,
+  CheckIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
+  ViewColumnsIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -25,6 +28,7 @@ import { ImageCover } from "@/components/image-cover";
 import {
   ITEM_KINDS,
   ITEM_PAGE_SIZE,
+  MAX_COMPARE_ITEMS,
   type ItemFacets,
   type ItemListResponse,
   type ItemSummary,
@@ -40,14 +44,27 @@ const EMPTY_FACETS: ItemFacets = {
 /** Value the selects use for "no filter": Radix forbids an empty string. */
 const ANY = "_all";
 
-export function ItemCard({ item }: { item: ItemSummary }) {
+/**
+ * Une carte de résultat. En mode comparaison elle ne navigue plus : elle se
+ * coche, et les objets d'un autre type que le premier coché s'éteignent —
+ * une comparaison porte sur un seul type d'objet.
+ */
+export function ItemCard({
+  item,
+  selection,
+}: {
+  item: ItemSummary;
+  selection?: {
+    selected: boolean;
+    disabled: boolean;
+    reason?: string;
+    onToggle: () => void;
+  };
+}) {
   const t = useTranslations("Items");
 
-  return (
-    <Link
-      href={`/items/${item.slug}`}
-      className="group flex flex-col rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all overflow-hidden"
-    >
+  const body = (
+    <>
       <div className="relative w-full aspect-square bg-muted flex items-center justify-center overflow-hidden">
         <ImageCover
           imageUrl={item.imageUrl}
@@ -56,7 +73,18 @@ export function ItemCard({ item }: { item: ItemSummary }) {
           height={400}
           className="h-full object-cover"
         />
-        {typeof item.tier === "number" && item.tier > 0 && (
+        {selection && (
+          <span
+            className={`absolute top-2 left-2 flex size-6 items-center justify-center rounded-md border ${
+              selection.selected
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-white/60 bg-black/50 backdrop-blur-sm"
+            }`}
+          >
+            {selection.selected && <CheckIcon className="size-4 stroke-[3]" />}
+          </span>
+        )}
+        {!selection && typeof item.tier === "number" && item.tier > 0 && (
           <span className="absolute top-2 left-2 px-2 py-0.5 text-xs font-bold bg-black/60 text-white rounded-full backdrop-blur-sm">
             T{item.tier}
           </span>
@@ -64,8 +92,13 @@ export function ItemCard({ item }: { item: ItemSummary }) {
         <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-semibold bg-black/60 text-white rounded-full backdrop-blur-sm">
           {t(`kinds.${item.kind}`)}
         </span>
+        {selection?.disabled && selection.reason && (
+          <span className="absolute inset-x-2 bottom-2 rounded-md bg-[#092F49]/85 px-2 py-1 text-[11px] leading-snug text-nexus/80">
+            {selection.reason}
+          </span>
+        )}
       </div>
-      <div className="p-3 flex flex-col gap-0.5 flex-1">
+      <div className="p-3 flex flex-col gap-0.5 flex-1 text-left">
         <p className="font-semibold text-sm leading-snug line-clamp-2">
           {item.name}
         </p>
@@ -78,6 +111,33 @@ export function ItemCard({ item }: { item: ItemSummary }) {
           </p>
         )}
       </div>
+    </>
+  );
+
+  if (selection) {
+    return (
+      <button
+        type="button"
+        onClick={selection.onToggle}
+        disabled={selection.disabled}
+        aria-pressed={selection.selected}
+        className={`group flex flex-col overflow-hidden rounded-xl border bg-card transition-all ${
+          selection.selected
+            ? "border-primary shadow-md"
+            : "border-border hover:border-primary/40"
+        } ${selection.disabled ? "cursor-not-allowed opacity-45" : ""}`}
+      >
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      href={`/items/${item.slug}`}
+      className="group flex flex-col rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-md transition-all overflow-hidden"
+    >
+      {body}
     </Link>
   );
 }
@@ -110,6 +170,8 @@ export function ItemGrid() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [compareMode, setCompareMode] = useState(false);
+  const [picked, setPicked] = useState<ItemSummary[]>([]);
   const [page, setPage] = useState(() => {
     const parsed = parseInt(searchParams.get("page") ?? "1", 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
@@ -238,6 +300,40 @@ export function ItemGrid() {
 
   const hasActiveFilters =
     !!query || !!kind || !!category || !!subcategory || !!manufacturer;
+
+  // Le type du premier objet coché verrouille la sélection : ce qui suit doit
+  // être comparable, sinon le tableau n'aurait aucune ligne en commun.
+  const lockedKind = picked[0]?.kind ?? null;
+  const canCompare = picked.length >= 2;
+
+  const togglePicked = (item: ItemSummary) => {
+    setPicked((current) => {
+      if (current.some((entry) => entry.slug === item.slug)) {
+        return current.filter((entry) => entry.slug !== item.slug);
+      }
+      if (current.length >= MAX_COMPARE_ITEMS) return current;
+      return [...current, item];
+    });
+  };
+
+  const selectionFor = (item: ItemSummary) => {
+    if (!compareMode) return undefined;
+
+    const selected = picked.some((entry) => entry.slug === item.slug);
+    const wrongKind = lockedKind !== null && item.kind !== lockedKind;
+    const full = picked.length >= MAX_COMPARE_ITEMS;
+
+    return {
+      selected,
+      disabled: !selected && (wrongKind || full),
+      reason: wrongKind
+        ? t("Compare.otherKind")
+        : full
+          ? t("Compare.limitReached")
+          : undefined,
+      onToggle: () => togglePicked(item),
+    };
+  };
 
   const resetFilters = () => {
     setQuery("");
@@ -382,6 +478,23 @@ export function ItemGrid() {
             {t("filterReset")}
           </Button>
         )}
+
+        {/* Comparaison */}
+        <Button
+          variant={compareMode ? "default" : "outline"}
+          size="sm"
+          className="ml-auto h-9"
+          aria-pressed={compareMode}
+          onClick={() => {
+            setCompareMode((value) => !value);
+            setPicked([]);
+          }}
+        >
+          <ViewColumnsIcon className="size-4" />
+          {compareMode
+            ? t("Compare.selectionExit")
+            : t("Compare.selectionStart")}
+        </Button>
       </div>
 
       {/* Result count */}
@@ -401,7 +514,11 @@ export function ItemGrid() {
       ) : results.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {results.map((item) => (
-            <ItemCard key={item.id} item={item} />
+            <ItemCard
+              key={item.id}
+              item={item}
+              selection={selectionFor(item)}
+            />
           ))}
         </div>
       ) : hasLoaded ? (
@@ -410,6 +527,76 @@ export function ItemGrid() {
           <p className="text-muted-foreground">{t("noResults")}</p>
         </div>
       ) : null}
+
+      {/* Barre de comparaison */}
+      {compareMode && (
+        <div className="sticky bottom-2 z-30">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#9ED0FF]/20 bg-popover/95 p-3 shadow-lg shadow-black/30 backdrop-blur-sm">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <ViewColumnsIcon className="size-5" />
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">
+                {t("Compare.selectedCount", { count: picked.length })}
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {picked.map((item) => (
+                  <span
+                    key={item.slug}
+                    className="inline-flex h-6 items-center gap-1.5 rounded-full border border-[#9ED0FF]/28 pl-2.5 pr-1 text-xs text-nexus"
+                  >
+                    {item.name}
+                    <button
+                      type="button"
+                      onClick={() => togglePicked(item)}
+                      aria-label={t("Compare.removeColumn")}
+                      className="flex size-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+                    >
+                      <XMarkIcon className="size-3" />
+                    </button>
+                  </span>
+                ))}
+                {!canCompare && (
+                  <span className="text-xs text-muted-foreground">
+                    {picked.length === 0
+                      ? t("Compare.pickTwo")
+                      : t("Compare.pickOneMore")}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPicked([])}
+              disabled={picked.length === 0}
+              className="text-muted-foreground"
+            >
+              {t("Compare.clearSelection")}
+            </Button>
+
+            {canCompare ? (
+              <Button asChild size="sm">
+                <Link
+                  href={`/items/compare?ids=${picked
+                    .map((item) => item.slug)
+                    .join(",")}`}
+                >
+                  {t("Compare.compareCount", { count: picked.length })}
+                  <ArrowRightIcon className="size-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button size="sm" disabled>
+                {t("Compare.compareAction")}
+                <ArrowRightIcon className="size-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Pagination */}
       {hasLoaded && totalPages > 1 && (

@@ -1,7 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import { ImageCover } from "@/components/image-cover";
+import { KIND_ACCENT } from "@/lib/item-accents";
 import type { ItemDetails } from "@/types/items";
 import { ItemAdminMenu } from "../components";
+import { ItemCompareButton } from "../compare-button";
 import {
   CommonSections,
   ItemBreadcrumb,
@@ -43,7 +45,10 @@ export async function StandardView({
             </p>
           )}
         </div>
-        {canEdit && <ItemAdminMenu slug={item.slug} />}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <ItemCompareButton item={item} accent={KIND_ACCENT[item.kind]} />
+          {canEdit && <ItemAdminMenu slug={item.slug} />}
+        </div>
       </div>
 
       <div className="relative flex min-h-24 w-full items-center justify-center overflow-hidden rounded-xl border border-[#9ED0FF]/15">

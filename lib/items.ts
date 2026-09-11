@@ -3,8 +3,10 @@ import "server-only";
 import type { Document } from "bson";
 import type { UpdateFilter } from "mongodb";
 import db from "@/lib/db";
+import { buildComparisonGroups } from "@/lib/item-comparison";
 import {
   ITEM_PAGE_SIZE,
+  MAX_COMPARE_ITEMS,
   MAX_ITEM_NAME_LENGTH,
   MAX_ITEM_PAGE_SIZE,
   MAX_ITEM_TEXT_LENGTH,
@@ -17,6 +19,7 @@ import {
   type ExtractionFrequency,
   type Item,
   type ItemBlueprintLink,
+  type ItemComparison,
   type ItemDetails,
   type ItemFacets,
   type ItemKind,
@@ -1067,6 +1070,63 @@ export async function getItemDetails(
     weaponProfile: weaponComparison.profile,
     weaponPeers: weaponComparison.peers,
     mountedOn,
+  };
+}
+
+/** Les fiches demandées, dans l'ordre des slugs — les inconnues sont sautées. */
+export async function getItemsBySlugs(slugs: string[]): Promise<Item[]> {
+  if (slugs.length === 0) return [];
+
+  const found = (await collection()
+    .find({ slug: { $in: slugs } }, { projection: { _id: 0 } })
+    .limit(slugs.length)
+    .toArray()) as unknown as Item[];
+
+  const bySlug = new Map(found.map((item) => [item.slug, item]));
+
+  return slugs
+    .map((slug) => bySlug.get(slug))
+    .filter((item): item is Item => item !== undefined);
+}
+
+function toSummary(item: Item): ItemSummary {
+  return {
+    id: item.id,
+    slug: item.slug,
+    name: item.name,
+    kind: item.kind,
+    category: item.category,
+    subcategory: item.subcategory,
+    manufacturer: item.manufacturer,
+    imageUrl: item.imageUrl,
+    tier: item.tier,
+    variantName: item.variantName,
+    setName: item.setName,
+  };
+}
+
+/**
+ * Une comparaison multi-colonnes, verrouillée sur le type du premier objet
+ * demandé : un lien partagé peut mélanger un vaisseau et un bouclier, la vue
+ * écarte alors ce qui ne se compare pas plutôt que d'échouer.
+ */
+export async function getItemComparison(
+  slugs: string[],
+): Promise<ItemComparison | null> {
+  const found = await getItemsBySlugs(slugs.slice(0, MAX_COMPARE_ITEMS));
+  if (found.length === 0) return null;
+
+  const kind = found[0].kind;
+  const kept = found.filter((item) => item.kind === kind);
+
+  return {
+    items: kept.map(toSummary),
+    kind,
+    category: found[0].category,
+    subcategory: found[0].subcategory,
+    groups: buildComparisonGroups(kept),
+    missing: slugs.filter((slug) => !found.some((item) => item.slug === slug)),
+    rejected: found.filter((item) => item.kind !== kind).map(toSummary),
   };
 }
 
