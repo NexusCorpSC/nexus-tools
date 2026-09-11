@@ -8,15 +8,31 @@ import {
   MAX_ITEM_NAME_LENGTH,
   MAX_ITEM_PAGE_SIZE,
   MAX_ITEM_TEXT_LENGTH,
+  EXTRACTION_FREQUENCIES,
+  MAX_ITEM_ROWS,
+  RESOURCE_MARKET_SIDES,
   isItemKind,
   toItemSlug,
+  type ExtractionFrequency,
   type Item,
   type ItemBlueprintLink,
   type ItemDetails,
   type ItemFacets,
   type ItemKind,
+  type ItemSlot,
   type ItemStatistics,
   type ItemSummary,
+  type ResolvedItemSlot,
+  type ResourceDetails,
+  type ResourceExtraction,
+  type ResourceMarket,
+  type ResourceMarketSide,
+  type ResourceRefining,
+  type VehicleDetails,
+  type WeaponDetails,
+  type WeaponPeer,
+  type WeaponStat,
+  type WeaponStatScale,
 } from "@/types/items";
 
 const COLLECTION = "gameItems";
@@ -136,6 +152,199 @@ function normalizeSlugList(value: unknown): string[] | undefined {
   return slugs.length > 0 ? slugs : undefined;
 }
 
+function optionalBoolean(value: unknown): boolean | undefined {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return undefined;
+}
+
+/** Keeps a list of form rows bounded and drops the ones with no content. */
+function rows(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (entry): entry is Record<string, unknown> =>
+        !!entry && typeof entry === "object",
+    )
+    .slice(0, MAX_ITEM_ROWS);
+}
+
+function normalizeSlots(value: unknown): ItemSlot[] | undefined {
+  const slots = rows(value)
+    .map((row): ItemSlot | null => {
+      const label = text(row.label, MAX_ITEM_NAME_LENGTH);
+      if (!label) return null;
+
+      return {
+        label,
+        size: optionalNumber(row.size),
+        itemSlug: optionalText(row.itemSlug, MAX_ITEM_NAME_LENGTH),
+        itemName: optionalText(row.itemName, MAX_ITEM_NAME_LENGTH),
+        quantity: optionalNumber(row.quantity),
+        note: optionalText(row.note, MAX_ITEM_NAME_LENGTH),
+      };
+    })
+    .filter((slot): slot is ItemSlot => slot !== null);
+
+  return slots.length > 0 ? slots : undefined;
+}
+
+/** Drops a details block that carries nothing, so the view shows its notice. */
+function compact<T extends object>(details: T): T | undefined {
+  const hasValue = Object.values(details).some(
+    (value) => value !== undefined && value !== "",
+  );
+  return hasValue ? details : undefined;
+}
+
+function normalizeVehicle(value: unknown): VehicleDetails | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  return compact({
+    crew: optionalNumber(input.crew),
+    speedMax: optionalNumber(input.speedMax),
+    speedScm: optionalNumber(input.speedScm),
+    cargoScu: optionalNumber(input.cargoScu),
+    mass: optionalNumber(input.mass),
+    length: optionalNumber(input.length),
+    width: optionalNumber(input.width),
+    height: optionalNumber(input.height),
+    hardpoints: normalizeSlots(input.hardpoints),
+    components: normalizeSlots(input.components),
+  });
+}
+
+function normalizeWeaponProfile(value: unknown): WeaponStat[] | undefined {
+  const profile = rows(value)
+    .map((row): WeaponStat | null => {
+      const label = text(row.label, MAX_ITEM_NAME_LENGTH);
+      const statValue = optionalNumber(row.value);
+      if (!label || statValue === undefined) return null;
+
+      return {
+        label,
+        value: statValue,
+        unit: optionalText(row.unit, 24),
+      };
+    })
+    .filter((stat): stat is WeaponStat => stat !== null);
+
+  return profile.length > 0 ? profile : undefined;
+}
+
+function normalizeWeapon(value: unknown): WeaponDetails | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  return compact({
+    damageType: optionalText(input.damageType, MAX_ITEM_NAME_LENGTH),
+    caliber: optionalText(input.caliber, MAX_ITEM_NAME_LENGTH),
+    profile: normalizeWeaponProfile(input.profile),
+    rateOfFire: optionalNumber(input.rateOfFire),
+    magazine: optionalNumber(input.magazine),
+    reloadTime: optionalNumber(input.reloadTime),
+    mass: optionalNumber(input.mass),
+    attachments: normalizeSlots(input.attachments),
+  });
+}
+
+function normalizeMarkets(value: unknown): ResourceMarket[] | undefined {
+  const markets = rows(value)
+    .map((row): ResourceMarket | null => {
+      const location = text(row.location, MAX_ITEM_NAME_LENGTH);
+      const price = optionalNumber(row.price);
+      if (!location || price === undefined) return null;
+
+      const side = text(row.side, 12);
+      return {
+        location,
+        side: ((RESOURCE_MARKET_SIDES as readonly string[]).includes(side)
+          ? side
+          : "buy") as ResourceMarketSide,
+        price,
+        stock: optionalNumber(row.stock),
+      };
+    })
+    .filter((market): market is ResourceMarket => market !== null);
+
+  return markets.length > 0 ? markets : undefined;
+}
+
+function normalizeExtraction(value: unknown): ResourceExtraction[] | undefined {
+  const sites = rows(value)
+    .map((row): ResourceExtraction | null => {
+      const location = text(row.location, MAX_ITEM_NAME_LENGTH);
+      if (!location) return null;
+
+      const frequency = text(row.frequency, 16);
+      return {
+        location,
+        method: optionalText(row.method, MAX_ITEM_NAME_LENGTH),
+        frequency: (EXTRACTION_FREQUENCIES as readonly string[]).includes(
+          frequency,
+        )
+          ? (frequency as ExtractionFrequency)
+          : undefined,
+      };
+    })
+    .filter((site): site is ResourceExtraction => site !== null);
+
+  return sites.length > 0 ? sites : undefined;
+}
+
+function normalizeRefining(value: unknown): ResourceRefining | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  return compact({
+    process: optionalText(input.process, MAX_ITEM_NAME_LENGTH),
+    yield: optionalNumber(input.yield),
+    durationSeconds: optionalNumber(input.durationSeconds),
+    cost: optionalNumber(input.cost),
+    outputName: optionalText(input.outputName, MAX_ITEM_NAME_LENGTH),
+  });
+}
+
+/** Accepts the history as a list, or as the comma-separated string a form sends. */
+function normalizePriceHistory(value: unknown): number[] | undefined {
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[,;\s]+/)
+      : [];
+
+  const history = raw
+    .map((entry) => optionalNumber(entry))
+    .filter((entry): entry is number => entry !== undefined)
+    .slice(0, MAX_ITEM_ROWS);
+
+  return history.length > 1 ? history : undefined;
+}
+
+function normalizeResource(value: unknown): ResourceDetails | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  const markets = normalizeMarkets(input.markets);
+
+  return compact({
+    form: optionalText(input.form, MAX_ITEM_NAME_LENGTH),
+    volatile: optionalBoolean(input.volatile),
+    unitVolumeScu: optionalNumber(input.unitVolumeScu),
+    purityMin: optionalNumber(input.purityMin),
+    purityMax: optionalNumber(input.purityMax),
+    markets,
+    priceHistory: normalizePriceHistory(input.priceHistory),
+    refining: normalizeRefining(input.refining),
+    extraction: normalizeExtraction(input.extraction),
+    transportNote: optionalText(input.transportNote),
+    // Prices are only as fresh as the save that entered them, so the moment is
+    // stamped here rather than typed in by hand.
+    pricesUpdatedAt: markets ? new Date().toISOString() : undefined,
+  });
+}
+
 export type ItemInput = {
   name: string;
   slug?: string;
@@ -154,6 +363,9 @@ export type ItemInput = {
   variantName?: string;
   setId?: string;
   setName?: string;
+  vehicle?: unknown;
+  weapon?: unknown;
+  resource?: unknown;
 };
 
 type NormalizedItem = Omit<Item, "id" | "createdAt" | "updatedAt">;
@@ -210,6 +422,13 @@ export function normalizeItemInput(input: ItemInput): NormalizedItem {
     variantName: optionalText(input.variantName, MAX_ITEM_NAME_LENGTH),
     setId: setId || undefined,
     setName: setId ? (setName ?? setId) : undefined,
+    // Only the block matching the kind is kept: a weapon has no business
+    // carrying vehicle data, and changing an object's kind changes which fiche
+    // it is answering for.
+    vehicle: kind === "vehicle" ? normalizeVehicle(input.vehicle) : undefined,
+    weapon: kind === "weapon" ? normalizeWeapon(input.weapon) : undefined,
+    resource:
+      kind === "resource" ? normalizeResource(input.resource) : undefined,
   };
 }
 
@@ -368,6 +587,147 @@ export async function getBlueprintsForItem(
   return { blueprints: docs.map(toBlueprintLink), inferred: docs.length > 0 };
 }
 
+/**
+ * Resolves the objects mounted in a set of slots in one query, so a vehicle's
+ * armament and components link to the fiches of the items they carry.
+ */
+async function resolveSlots(
+  ...groups: (ItemSlot[] | undefined)[]
+): Promise<ResolvedItemSlot[][]> {
+  const slugs = [
+    ...new Set(
+      groups
+        .flatMap((group) => group ?? [])
+        .map((slot) => slot.itemSlug)
+        .filter((slug): slug is string => !!slug),
+    ),
+  ];
+
+  const mounted =
+    slugs.length > 0
+      ? await collection()
+          .find({ slug: { $in: slugs } }, { projection: SUMMARY_PROJECTION })
+          .toArray()
+      : [];
+
+  const bySlug = new Map(
+    (mounted as ItemSummary[]).map((item) => [item.slug, item]),
+  );
+
+  return groups.map((group) =>
+    (group ?? []).map((slot) => ({
+      ...slot,
+      mounted: slot.itemSlug ? bySlug.get(slot.itemSlug) : undefined,
+    })),
+  );
+}
+
+/**
+ * Blueprints consuming this object as a material. Matched on the name, which
+ * is how a recipe names its components — a resource is rarely linked by hand.
+ */
+async function getBlueprintsConsuming(
+  name: string,
+): Promise<ItemBlueprintLink[]> {
+  const matcher = { $regex: `^${escapeRegex(name)}$`, $options: "i" };
+
+  const docs = await db
+    .db()
+    .collection(BLUEPRINTS_COLLECTION)
+    .find(
+      { "recipe.components.options": { $elemMatch: { name: matcher } } },
+      { projection: { ...BLUEPRINT_PROJECTION, "recipe.components": 1 } },
+    )
+    .limit(12)
+    .toArray();
+
+  return docs.map((doc) => {
+    const options = (
+      (doc.recipe?.components ?? []) as {
+        options?: { name?: string; quantity?: number }[];
+      }[]
+    ).flatMap((component) => component.options ?? []);
+    const used = options.find(
+      (option) => option.name?.toLowerCase() === name.toLowerCase(),
+    );
+
+    return { ...toBlueprintLink(doc), quantity: used?.quantity };
+  });
+}
+
+/**
+ * Rescales a weapon's profile against the weapons it shares a category with:
+ * the class maximum fills the bar, the class average marks the tick. Computing
+ * both here rather than storing them keeps the comparison honest as the
+ * catalogue grows.
+ */
+async function getWeaponComparison(
+  item: Item,
+): Promise<{ profile: WeaponStatScale[]; peers: WeaponPeer[] }> {
+  const profile = item.weapon?.profile;
+  if (!profile || profile.length === 0) return { profile: [], peers: [] };
+
+  const siblings = (await collection()
+    .find(
+      {
+        kind: "weapon",
+        category: item.category,
+        ...(item.subcategory ? { subcategory: item.subcategory } : {}),
+        "weapon.profile": { $exists: true },
+      },
+      { projection: { _id: 0, slug: 1, name: 1, weapon: 1 } },
+    )
+    .limit(80)
+    .toArray()) as unknown as Pick<Item, "slug" | "name" | "weapon">[];
+
+  const valuesByLabel = new Map<string, number[]>();
+  for (const sibling of siblings) {
+    for (const stat of sibling.weapon?.profile ?? []) {
+      const values = valuesByLabel.get(stat.label) ?? [];
+      values.push(stat.value);
+      valuesByLabel.set(stat.label, values);
+    }
+  }
+
+  const scaled = profile.map((stat) => {
+    const values = valuesByLabel.get(stat.label) ?? [stat.value];
+    const average =
+      values.length > 1
+        ? values.reduce((sum, value) => sum + value, 0) / values.length
+        : undefined;
+
+    return {
+      ...stat,
+      max: Math.max(stat.value, ...values) || 1,
+      average,
+      comparable: values.length > 1,
+    };
+  });
+
+  // The comparison chart ranks the class on the first stat of the profile,
+  // which is the headline figure the fiche leads with.
+  const headline = profile[0].label;
+  const peers = siblings
+    .map((sibling) => {
+      const stat = sibling.weapon?.profile?.find(
+        (entry) => entry.label === headline,
+      );
+      return stat
+        ? {
+            slug: sibling.slug,
+            name: sibling.name,
+            value: stat.value,
+            isCurrent: sibling.slug === item.slug,
+          }
+        : null;
+    })
+    .filter((peer): peer is WeaponPeer => peer !== null)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  return { profile: scaled, peers: peers.length > 1 ? peers : [] };
+}
+
 /** Everything the detail page shows: the item, its blueprints, variants and set. */
 export async function getItemDetails(
   slug: string,
@@ -375,18 +735,38 @@ export async function getItemDetails(
   const item = await getItemBySlug(slug);
   if (!item) return null;
 
-  const [{ blueprints, inferred }, variants, setItems] = await Promise.all([
+  const [
+    { blueprints, inferred },
+    consumedBy,
+    variants,
+    setItems,
+    [hardpoints, components, attachments],
+    weaponComparison,
+  ] = await Promise.all([
     getBlueprintsForItem(item),
+    getBlueprintsConsuming(item.name),
     item.variantGroup ? listSiblings("variantGroup", item.variantGroup) : [],
     item.setId ? listSiblings("setId", item.setId) : [],
+    resolveSlots(
+      item.vehicle?.hardpoints,
+      item.vehicle?.components,
+      item.weapon?.attachments,
+    ),
+    getWeaponComparison(item),
   ]);
 
   return {
     ...item,
     blueprints,
     blueprintsInferred: inferred,
+    consumedBy,
     variants,
     setItems,
+    hardpoints,
+    components,
+    attachments,
+    weaponProfile: weaponComparison.profile,
+    weaponPeers: weaponComparison.peers,
   };
 }
 
@@ -449,6 +829,24 @@ export async function getItemFacets(): Promise<ItemFacets> {
   };
 }
 
+/**
+ * Drops every `undefined`, at any depth. The driver would otherwise store them
+ * as `null`, and a `null` speed reads back as a real zero on the fiche.
+ */
+function withoutUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry) => withoutUndefined(entry)) as T;
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entry]) => entry !== undefined)
+        .map(([key, entry]) => [key, withoutUndefined(entry)]),
+    ) as T;
+  }
+  return value;
+}
+
 export async function createItem(input: ItemInput): Promise<Item> {
   const normalized = normalizeItemInput(input);
   await ensureIndexes();
@@ -463,14 +861,7 @@ export async function createItem(input: ItemInput): Promise<Item> {
   };
 
   try {
-    // Empty optional fields are left out rather than inserted: the driver
-    // stores `undefined` as `null`, which would then be served as such by the
-    // API and would defeat the `$nin: [null, ""]` filters building the facets.
-    await collection().insertOne(
-      Object.fromEntries(
-        Object.entries(item).filter(([, value]) => value !== undefined),
-      ) as ItemDbModel,
-    );
+    await collection().insertOne(withoutUndefined(item) as ItemDbModel);
   } catch (error) {
     if (isDuplicateKeyError(error)) {
       throw new Error(`Un objet utilise déjà le slug « ${item.slug} »`);
@@ -497,9 +888,9 @@ export async function updateItem(
   // (which the driver would store as `null`), otherwise the old value would
   // survive an edit meant to clear it — and `$set` and `$unset` cannot both
   // carry the same path.
-  const $set: Document = Object.fromEntries(
-    entries.filter(([, value]) => value !== undefined),
-  );
+  const $set: Document = withoutUndefined(
+    Object.fromEntries(entries.filter(([, value]) => value !== undefined)),
+  ) as Document;
   const $unset: Document = Object.fromEntries(
     entries
       .filter(([, value]) => value === undefined)

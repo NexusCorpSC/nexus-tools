@@ -32,6 +32,22 @@ import {
   statisticsToRows,
   type StatRow,
 } from "./statistics-editor";
+import {
+  REFINING_KEYS,
+  RESOURCE_KEYS,
+  ResourceFields,
+  VEHICLE_KEYS,
+  VehicleFields,
+  WEAPON_KEYS,
+  WeaponFields,
+  buildKindPayload,
+  extractionToRows,
+  marketsToRows,
+  profileToRows,
+  scalarsToRow,
+  slotsToRows,
+  type EditorRow,
+} from "./kind-fields";
 
 const EMPTY_FACETS: ItemFacets = {
   categories: [],
@@ -122,6 +138,42 @@ export function ItemForm({
   // Named `setLabel` to stay clear of the `name` state setter above.
   const [setLabel, setSetLabel] = useState(item?.setName ?? "");
 
+  // Kind-specific blocks. Each one is edited as strings and rebuilt on submit;
+  // only the block matching the selected kind is sent.
+  const [vehicle, setVehicle] = useState<EditorRow>(() =>
+    scalarsToRow(item?.vehicle, VEHICLE_KEYS),
+  );
+  const [hardpoints, setHardpoints] = useState<EditorRow[]>(() =>
+    slotsToRows(item?.vehicle?.hardpoints),
+  );
+  const [components, setComponents] = useState<EditorRow[]>(() =>
+    slotsToRows(item?.vehicle?.components),
+  );
+  const [weapon, setWeapon] = useState<EditorRow>(() =>
+    scalarsToRow(item?.weapon, WEAPON_KEYS),
+  );
+  const [profile, setProfile] = useState<EditorRow[]>(() =>
+    profileToRows(item?.weapon?.profile),
+  );
+  const [attachments, setAttachments] = useState<EditorRow[]>(() =>
+    slotsToRows(item?.weapon?.attachments),
+  );
+  const [resource, setResource] = useState<EditorRow>(() =>
+    scalarsToRow(item?.resource, RESOURCE_KEYS),
+  );
+  const [refining, setRefining] = useState<EditorRow>(() =>
+    scalarsToRow(item?.resource?.refining, REFINING_KEYS),
+  );
+  const [markets, setMarkets] = useState<EditorRow[]>(() =>
+    marketsToRows(item?.resource?.markets),
+  );
+  const [extraction, setExtraction] = useState<EditorRow[]>(() =>
+    extractionToRows(item?.resource?.extraction),
+  );
+  const [priceHistory, setPriceHistory] = useState(
+    (item?.resource?.priceHistory ?? []).join(", "),
+  );
+
   useEffect(() => {
     fetch("/api/items/facets")
       .then((response) => response.json())
@@ -164,6 +216,19 @@ export function ItemForm({
       // name end up in the same set without anyone managing identifiers.
       setId: toItemSlug(setLabel),
       setName: setLabel,
+      ...buildKindPayload(kind, {
+        vehicle,
+        hardpoints,
+        components,
+        weapon,
+        profile,
+        attachments,
+        resource,
+        refining,
+        markets,
+        extraction,
+        priceHistory,
+      }),
     };
 
     startTransition(async () => {
@@ -313,6 +378,43 @@ export function ItemForm({
           onChange={setImageUrl}
         />
       </div>
+
+      {kind === "vehicle" && (
+        <VehicleFields
+          scalars={vehicle}
+          onScalars={setVehicle}
+          hardpoints={hardpoints}
+          onHardpoints={setHardpoints}
+          components={components}
+          onComponents={setComponents}
+        />
+      )}
+
+      {kind === "weapon" && (
+        <WeaponFields
+          scalars={weapon}
+          onScalars={setWeapon}
+          profile={profile}
+          onProfile={setProfile}
+          attachments={attachments}
+          onAttachments={setAttachments}
+        />
+      )}
+
+      {kind === "resource" && (
+        <ResourceFields
+          scalars={resource}
+          onScalars={setResource}
+          refining={refining}
+          onRefining={setRefining}
+          markets={markets}
+          onMarkets={setMarkets}
+          extraction={extraction}
+          onExtraction={setExtraction}
+          priceHistory={priceHistory}
+          onPriceHistory={setPriceHistory}
+        />
+      )}
 
       <StatisticsEditor rows={statRows} onChange={setStatRows} />
 
