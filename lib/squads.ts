@@ -640,10 +640,23 @@ export async function setSquadName(
  * Random rather than derived from the label, which is the shape of bug this
  * avoids: two roles named the same, or a role renamed into another's slug,
  * would share an id — and every read of `members.role` resolves to whichever
- * comes first. Seven bytes is far more than a squad of twenty needs.
+ * comes first.
+ *
+ * Drawn by `newCode`, so it is `randomBytes` rather than `Math.random`. Not
+ * only for the collision odds, which a squad of twenty roles would never have
+ * met: `Math.random().toString(36)` is as long as the draw happens to be, and
+ * a value like `0.5` yields a *one-character* id. The prefix keeps it out of
+ * the base roles' own slugs, which are lowercase words.
  */
 function newRoleId(): string {
-  return `r${Math.random().toString(36).slice(2, 9)}`;
+  return `r${newCode()}`;
+}
+
+/** Whether the squad's roles — stored or implied — hold this id. */
+function hasRole(roleId: string) {
+  return {
+    $in: [roleId, { $map: { input: STORED_ROLES, in: "$$this.id" } }],
+  };
 }
 
 /**
@@ -699,7 +712,11 @@ export async function updateSquadRole(
   if (patch.icon !== undefined) changed.icon = patch.icon;
 
   const updated = await collection().findOneAndUpdate(
-    { _id: new ObjectId(squadId) },
+    // Guarded on the role existing, because the pipeline below cannot refuse:
+    // without this, asking about a role nobody has would still materialise the
+    // seven, bump the version and move `updatedAt` — a write on the way to a
+    // 404, and a poll waking every member of the squad for nothing.
+    { _id: new ObjectId(squadId), $expr: hasRole(roleId) },
     [
       {
         $set: {
@@ -723,12 +740,7 @@ export async function updateSquadRole(
     { returnDocument: "after" },
   );
 
-  if (!updated) return null;
-
-  // A pipeline `$map` cannot refuse: it rewrote nothing and answered the squad
-  // unchanged. The caller asked about a role that is not there.
-  const squad = toSquad(updated);
-  return squad.roles.some((role) => role.id === roleId) ? squad : null;
+  return updated ? toSquad(updated) : null;
 }
 
 /**
@@ -748,7 +760,10 @@ export async function deleteSquadRole(
   if (!ObjectId.isValid(squadId)) return null;
 
   const updated = await collection().findOneAndUpdate(
-    { _id: new ObjectId(squadId) },
+    // Same guard as `updateSquadRole`: two commanders deleting the same role at
+    // once, and the second one writes nothing rather than writing nothing
+    // loudly.
+    { _id: new ObjectId(squadId), $expr: hasRole(roleId) },
     [
       {
         $set: {

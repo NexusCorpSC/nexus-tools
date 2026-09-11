@@ -141,8 +141,13 @@ export async function DELETE(
 
   const updated = await deleteSquadRole(squad.id, roleId);
 
+  // The role was there a moment ago, when this route read the squad. Another
+  // commander deleting the same one is the ordinary way to get here.
   if (!updated) {
-    return NextResponse.json({ error: "Squad not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "No such role in this squad" },
+      { status: 404 },
+    );
   }
 
   return squadResponse(updated);
