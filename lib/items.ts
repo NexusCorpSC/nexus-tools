@@ -687,6 +687,9 @@ export async function getBlueprintsForItem(
 /** What a slot can hold: a vehicle or a resource is never mounted on anything. */
 const MOUNTABLE_KINDS: ItemKind[] = ["item", "weapon"];
 
+/** What has slots: vehicles (hardpoints, components) and weapons (attachments). */
+const CARRIER_KINDS: ItemKind[] = ["vehicle", "weapon"];
+
 /** The slot lists of the model, as dotted paths into a stored document. */
 const SLOT_PATHS = [
   "vehicle.hardpoints",
@@ -743,7 +746,9 @@ async function findMountableByName(
  * components link to the fiches of the items they carry. A slot that names
  * its object without pointing to a fiche — the ship matrix names what a hull
  * carries, never our slugs — is matched on that name, so the link appears as
- * soon as the fiche exists, whichever side was created first.
+ * soon as the fiche exists, whichever side was created first. A slug that
+ * points nowhere is left alone: an explicit link an administrator chose must
+ * not be silently redirected to whatever fiche shares the name.
  */
 async function resolveSlots(
   ...groups: (ItemSlot[] | undefined)[]
@@ -770,7 +775,7 @@ async function resolveSlots(
 
   const byName = await findMountableByName(
     slots
-      .filter((slot) => !(slot.itemSlug && bySlug.has(slot.itemSlug)))
+      .filter((slot) => !slot.itemSlug)
       .map((slot) => slot.itemName)
       .filter((name): name is string => !!name),
   );
@@ -778,9 +783,11 @@ async function resolveSlots(
   return groups.map((group) =>
     (group ?? []).map((slot) => ({
       ...slot,
-      mounted:
-        (slot.itemSlug ? bySlug.get(slot.itemSlug) : undefined) ??
-        (slot.itemName ? byName.get(nameKey(slot.itemName)) : undefined),
+      mounted: slot.itemSlug
+        ? bySlug.get(slot.itemSlug)
+        : slot.itemName
+          ? byName.get(nameKey(slot.itemName))
+          : undefined,
     })),
   );
 }
@@ -805,7 +812,11 @@ async function getMountedOn(item: Item): Promise<ItemSummary[]> {
 
   const carriers = await collection()
     .find(
-      { slug: { $ne: item.slug }, $or: references },
+      {
+        kind: { $in: CARRIER_KINDS },
+        slug: { $ne: item.slug },
+        $or: references,
+      },
       { projection: SUMMARY_PROJECTION },
     )
     .sort({ name: 1 })
