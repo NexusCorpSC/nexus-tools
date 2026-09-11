@@ -381,6 +381,8 @@ export type ItemDetails = Item & {
   weaponProfile: WeaponStatScale[];
   /** Comparatif de classe sur la première caractéristique du profil. */
   weaponPeers: WeaponPeer[];
+  /** Objets (véhicules, armes) qui embarquent celui-ci dans un emplacement. */
+  mountedOn: ItemSummary[];
 };
 
 export type ItemCategoryFacet = {

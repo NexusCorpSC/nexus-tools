@@ -10,6 +10,7 @@ import {
   KindDataNotice,
   SectionTitle,
   SlotRow,
+  StatisticsGrid,
   KIND_ACCENT,
 } from "../sections";
 
@@ -698,6 +699,13 @@ export async function WeaponView({
             canEdit={canEdit}
             sharp
           />
+        )}
+
+        {item.statistics && Object.keys(item.statistics).length > 0 && (
+          <div>
+            <SectionTitle>{t("statistics")}</SectionTitle>
+            <StatisticsGrid statistics={item.statistics} />
+          </div>
         )}
 
         <CommonSections item={item} canEdit={canEdit} />

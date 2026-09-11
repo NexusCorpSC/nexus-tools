@@ -524,6 +524,8 @@
       "ammunitionHint": "Le projectile et sa chute de dégâts avec la distance."
     },
     "consumedByTitle": "Utilisé dans",
+    "mountedOnTitle": "{count, plural, one {Monté sur # objet} other {Monté sur # objets}}",
+    "mountedOnHint": "D'après l'équipement d'origine renseigné sur chaque fiche : un emplacement qui nomme cet objet y renvoie.",
     "quantityUnits": "{count} u",
     "Empty": {
       "fill": "Compléter",

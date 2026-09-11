@@ -1,7 +1,7 @@
 /**
  * Importe le catalogue des objets depuis les sources publiques du jeu.
  *
- *   npm run import:catalogue -- <rsi|scwiki|uex|all> [options]
+ *   npm run import:catalogue -- <rsi|scwiki|uex|all|link> [options]
  *
  *   --limit N          n'importer que les N premiers objets de chaque source
  *   --filter TEXTE     ne garder que les objets dont le nom contient TEXTE
@@ -19,15 +19,25 @@
  *   scwiki  API du Star Citizen Wiki (données extraites du jeu, en français) :
  *           armes personnelles et de vaisseau, accessoires, armures, composants.
  *   uex     UEX Corp : ressources échangeables et leurs cours par comptoir.
+ *   link    n'importe rien : relie seulement les emplacements aux fiches.
  *
  * Chaque objet importé porte sa provenance (`source`) : relancer l'import ne
  * crée jamais de doublon, et `--update` met à jour ce que la source connaît en
  * gardant ce qu'un administrateur a ajouté à la main.
+ *
+ * Après chaque import, les points d'emport, composants et accessoires qui
+ * nomment un objet sans pointer vers sa fiche sont reliés à la fiche du même
+ * nom (armes, racks de missiles, montures, composants…), quel que soit l'ordre
+ * des imports.
  */
 
 import { put } from "@vercel/blob";
 import db from "@/lib/db";
-import { upsertImportedItem, type ItemInput } from "@/lib/items";
+import {
+  linkSlotsByName,
+  upsertImportedItem,
+  type ItemInput,
+} from "@/lib/items";
 import {
   MAX_ITEM_ROWS,
   toItemSlug,
@@ -44,7 +54,7 @@ import {
 // ─── Ligne de commande ────────────────────────────────────────────────────────
 
 type Options = {
-  source: "rsi" | "scwiki" | "uex" | "all";
+  source: "rsi" | "scwiki" | "uex" | "all" | "link";
   limit?: number;
   filter?: string;
   types?: string[];
@@ -56,9 +66,9 @@ type Options = {
 
 function parseArgs(argv: string[]): Options {
   const [source, ...rest] = argv;
-  if (!["rsi", "scwiki", "uex", "all"].includes(source ?? "")) {
+  if (!["rsi", "scwiki", "uex", "all", "link"].includes(source ?? "")) {
     console.error(
-      "Usage : npm run import:catalogue -- <rsi|scwiki|uex|all> [options]",
+      "Usage : npm run import:catalogue -- <rsi|scwiki|uex|all|link> [options]",
     );
     process.exit(1);
   }
@@ -537,6 +547,17 @@ const WIKI_TYPES: Record<
 > = {
   WeaponPersonal: { kind: "weapon", category: "Arme personnelle" },
   WeaponGun: { kind: "weapon", category: "Arme de vaisseau" },
+  MissileLauncher: {
+    kind: "weapon",
+    category: "Arme de vaisseau",
+    subcategory: "Rack de missiles",
+  },
+  // Gimbal mounts and turrets: what the ship matrix lists on most hardpoints.
+  Turret: {
+    kind: "item",
+    category: "Composant de vaisseau",
+    subcategory: "Monture et tourelle",
+  },
   WeaponAttachment: { kind: "item", category: "Accessoire d'arme" },
   Char_Armor_Helmet: {
     kind: "item",
@@ -853,7 +874,10 @@ async function importScWiki(options: Options, report: Report): Promise<void> {
       if (url) await sleep(250);
     }
 
-    const selected = select(items, (item) => item.name, options);
+    // A few entries never got a display name and carry their class name
+    // instead (`mrck_s05_rsi_perseus_torpedo_l`): not a fiche anyone wants.
+    const named = items.filter((item) => item.name && !item.name.includes("_"));
+    const selected = select(named, (item) => item.name, options);
     console.log(`  ${selected.length} objet(s) retenu(s) sur ${items.length}`);
     await persist(selected.map(wikiCandidate), options, report);
   }
@@ -1025,8 +1049,11 @@ async function main() {
     process.exit(1);
   }
 
+  const importing = options.source !== "link";
   console.log(
-    `Import ${options.source}${options.dryRun ? " (simulation)" : ""}${options.update ? " avec mise à jour" : ""}`,
+    importing
+      ? `Import ${options.source}${options.dryRun ? " (simulation)" : ""}${options.update ? " avec mise à jour" : ""}`
+      : "Appariement des emplacements aux fiches",
   );
 
   if (options.source === "rsi" || options.source === "all")
@@ -1036,9 +1063,18 @@ async function main() {
   if (options.source === "uex" || options.source === "all")
     await importUex(options, report);
 
-  if (!options.dryRun) {
+  if (importing && !options.dryRun) {
     console.log(
       `\nTerminé : ${report.created} créé(s), ${report.updated} mis à jour, ${report.skipped} déjà présent(s), ${report.failed} en erreur.`,
+    );
+  }
+
+  // Whichever side an import brought — the hull naming a weapon, or the
+  // weapon's own fiche — the slots now naming an existing fiche get linked.
+  if (!options.dryRun) {
+    const links = await linkSlotsByName();
+    console.log(
+      `Appariement : ${links.slots} emplacement(s) relié(s) sur ${links.items} objet(s).`,
     );
   }
 
