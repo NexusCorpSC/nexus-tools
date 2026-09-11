@@ -35,6 +35,9 @@ import {
   type ItemSlot,
   type ItemStatistics,
   type ResourceMarket,
+  type WeaponAmmunition,
+  type WeaponFireMode,
+  type WeaponSpread,
   type WeaponStat,
 } from "@/types/items";
 
@@ -471,8 +474,43 @@ type WikiItem = {
     damage_per_shot?: number;
     rpm?: number;
     effective_range?: number;
-    modes?: { damage_per_second?: number; rpm?: number }[];
+    modes?: WikiFireMode[];
+    spread?: WikiSpread | null;
+    ads_spread?: WikiSpread | null;
+    ammunition?: WikiAmmunition | null;
   } | null;
+};
+
+type WikiFireMode = {
+  mode?: string;
+  localised?: string;
+  rpm?: number;
+  damage_per_second?: number;
+  ammo_per_shot?: number;
+  pellets_per_shot?: number;
+  shot_count?: number | null;
+  heat_per_shot?: number | null;
+};
+
+type WikiSpread = {
+  min?: number | null;
+  max?: number | null;
+  first_attack?: number | null;
+  per_attack?: number | null;
+  decay?: number | null;
+};
+
+type WikiAmmunition = {
+  size?: number;
+  speed?: number;
+  range?: number;
+  lifetime?: number;
+  capacity?: number;
+  max_penetration_thickness?: number;
+  impact_damage?: { name?: string; damage?: number }[];
+  damage_drop_min_distance?: { total?: number };
+  damage_drop_per_meter?: { total?: number };
+  damage_drop_min_damage?: { total?: number };
 };
 
 type WikiPage = { data: WikiItem[]; links?: { next?: string | null } };
@@ -602,6 +640,81 @@ function wikiAttachments(item: WikiItem): ItemSlot[] | undefined {
   return slots.length > 0 ? slots : undefined;
 }
 
+/** The game names damage types in English; the fiche speaks French. */
+const WIKI_DAMAGE_TYPES: Record<string, string> = {
+  physical: "Physique",
+  energy: "Énergie",
+  distortion: "Distorsion",
+  thermal: "Thermique",
+  stun: "Étourdissement",
+  biochemical: "Biochimique",
+};
+
+function wikiFireModes(
+  modes: WikiFireMode[] | undefined,
+): WeaponFireMode[] | undefined {
+  const fireModes = (modes ?? [])
+    .map((mode): WeaponFireMode | null => {
+      // "[AUTO]" as the game displays it, without the brackets.
+      const label = (mode.localised ?? mode.mode ?? "")
+        .replace(/^\[|\]$/g, "")
+        .trim();
+      if (!label) return null;
+      return {
+        label,
+        rpm: number(mode.rpm),
+        dps: mode.damage_per_second
+          ? Math.round(mode.damage_per_second * 10) / 10
+          : undefined,
+        ammoPerShot: number(mode.ammo_per_shot),
+        pelletsPerShot:
+          (mode.pellets_per_shot ?? 1) > 1 ? mode.pellets_per_shot : undefined,
+        burstCount: number(mode.shot_count),
+        heatPerShot: number(mode.heat_per_shot),
+      };
+    })
+    .filter((mode): mode is WeaponFireMode => mode !== null);
+
+  return fireModes.length > 0 ? fireModes : undefined;
+}
+
+function wikiSpread(
+  spread: WikiSpread | null | undefined,
+): WeaponSpread | undefined {
+  if (!spread) return undefined;
+  return {
+    min: number(spread.min),
+    max: number(spread.max),
+    firstShot: number(spread.first_attack),
+    perShot: number(spread.per_attack),
+    decay: number(spread.decay),
+  };
+}
+
+function wikiAmmunition(
+  ammo: WikiAmmunition | null | undefined,
+): WeaponAmmunition | undefined {
+  if (!ammo) return undefined;
+  const impact = ammo.impact_damage?.[0];
+  const damageType = impact?.name?.toLowerCase();
+
+  return {
+    size: number(ammo.size),
+    speed: number(ammo.speed),
+    range: number(ammo.range),
+    lifetime: number(ammo.lifetime),
+    capacity: number(ammo.capacity),
+    damageType: damageType
+      ? (WIKI_DAMAGE_TYPES[damageType] ?? impact?.name)
+      : undefined,
+    damagePerShot: number(impact?.damage),
+    falloffStart: number(ammo.damage_drop_min_distance?.total),
+    falloffPerMeter: number(ammo.damage_drop_per_meter?.total),
+    falloffMinDamage: number(ammo.damage_drop_min_damage?.total),
+    penetration: number(ammo.max_penetration_thickness),
+  };
+}
+
 function wikiWeapon(item: WikiItem, header: Record<string, string>) {
   const weapon = item.personal_weapon;
   if (!weapon) return undefined;
@@ -636,6 +749,10 @@ function wikiWeapon(item: WikiItem, header: Record<string, string>) {
     mass: number(item.mass),
     profile,
     attachments: wikiAttachments(item),
+    fireModes: wikiFireModes(weapon.modes),
+    spread: wikiSpread(weapon.spread),
+    adsSpread: wikiSpread(weapon.ads_spread),
+    ammunition: wikiAmmunition(weapon.ammunition),
   };
 }
 

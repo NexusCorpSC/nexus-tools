@@ -32,7 +32,10 @@ import {
   type ResourceMarketSide,
   type ResourceRefining,
   type VehicleDetails,
+  type WeaponAmmunition,
   type WeaponDetails,
+  type WeaponFireMode,
+  type WeaponSpread,
   type WeaponPeer,
   type WeaponStat,
   type WeaponStatScale,
@@ -240,6 +243,59 @@ function normalizeWeaponProfile(value: unknown): WeaponStat[] | undefined {
   return profile.length > 0 ? profile : undefined;
 }
 
+function normalizeFireModes(value: unknown): WeaponFireMode[] | undefined {
+  const modes = rows(value)
+    .map((row): WeaponFireMode | null => {
+      const label = text(row.label, 32);
+      if (!label) return null;
+
+      return {
+        label,
+        rpm: optionalNumber(row.rpm),
+        dps: optionalNumber(row.dps),
+        ammoPerShot: optionalNumber(row.ammoPerShot),
+        pelletsPerShot: optionalNumber(row.pelletsPerShot),
+        burstCount: optionalNumber(row.burstCount),
+        heatPerShot: optionalNumber(row.heatPerShot),
+      };
+    })
+    .filter((mode): mode is WeaponFireMode => mode !== null);
+
+  return modes.length > 0 ? modes : undefined;
+}
+
+function normalizeSpread(value: unknown): WeaponSpread | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  return compact({
+    min: optionalNumber(input.min),
+    max: optionalNumber(input.max),
+    firstShot: optionalNumber(input.firstShot),
+    perShot: optionalNumber(input.perShot),
+    decay: optionalNumber(input.decay),
+  });
+}
+
+function normalizeAmmunition(value: unknown): WeaponAmmunition | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  return compact({
+    size: optionalNumber(input.size),
+    speed: optionalNumber(input.speed),
+    range: optionalNumber(input.range),
+    lifetime: optionalNumber(input.lifetime),
+    capacity: optionalNumber(input.capacity),
+    damageType: optionalText(input.damageType, 40),
+    damagePerShot: optionalNumber(input.damagePerShot),
+    falloffStart: optionalNumber(input.falloffStart),
+    falloffPerMeter: optionalNumber(input.falloffPerMeter),
+    falloffMinDamage: optionalNumber(input.falloffMinDamage),
+    penetration: optionalNumber(input.penetration),
+  });
+}
+
 function normalizeWeapon(value: unknown): WeaponDetails | undefined {
   if (!value || typeof value !== "object") return undefined;
   const input = value as Record<string, unknown>;
@@ -253,6 +309,10 @@ function normalizeWeapon(value: unknown): WeaponDetails | undefined {
     reloadTime: optionalNumber(input.reloadTime),
     mass: optionalNumber(input.mass),
     attachments: normalizeSlots(input.attachments),
+    fireModes: normalizeFireModes(input.fireModes),
+    spread: normalizeSpread(input.spread),
+    adsSpread: normalizeSpread(input.adsSpread),
+    ammunition: normalizeAmmunition(input.ammunition),
   });
 }
 

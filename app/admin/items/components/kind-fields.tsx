@@ -12,6 +12,7 @@ import {
   type ItemSlot,
   type ResourceExtraction,
   type ResourceMarket,
+  type WeaponFireMode,
   type WeaponStat,
 } from "@/types/items";
 
@@ -215,6 +216,18 @@ export function profileToRows(profile?: WeaponStat[]): EditorRow[] {
   }));
 }
 
+export function fireModesToRows(modes?: WeaponFireMode[]): EditorRow[] {
+  return (modes ?? []).map((mode) => ({
+    label: mode.label,
+    rpm: mode.rpm?.toString() ?? "",
+    dps: mode.dps?.toString() ?? "",
+    ammoPerShot: mode.ammoPerShot?.toString() ?? "",
+    pelletsPerShot: mode.pelletsPerShot?.toString() ?? "",
+    burstCount: mode.burstCount?.toString() ?? "",
+    heatPerShot: mode.heatPerShot?.toString() ?? "",
+  }));
+}
+
 export function marketsToRows(markets?: ResourceMarket[]): EditorRow[] {
   return (markets ?? []).map((market) => ({
     location: market.location,
@@ -263,6 +276,22 @@ export const WEAPON_KEYS = [
   "magazine",
   "reloadTime",
   "mass",
+];
+
+export const SPREAD_KEYS = ["min", "max", "firstShot", "perShot", "decay"];
+
+export const AMMUNITION_KEYS = [
+  "damageType",
+  "damagePerShot",
+  "speed",
+  "range",
+  "lifetime",
+  "capacity",
+  "size",
+  "penetration",
+  "falloffStart",
+  "falloffPerMeter",
+  "falloffMinDamage",
 ];
 
 export const RESOURCE_KEYS = [
@@ -373,6 +402,14 @@ export function WeaponFields({
   onProfile,
   attachments,
   onAttachments,
+  fireModes,
+  onFireModes,
+  spread,
+  onSpread,
+  adsSpread,
+  onAdsSpread,
+  ammunition,
+  onAmmunition,
 }: {
   scalars: EditorRow;
   onScalars: (values: EditorRow) => void;
@@ -380,8 +417,29 @@ export function WeaponFields({
   onProfile: (rows: EditorRow[]) => void;
   attachments: EditorRow[];
   onAttachments: (rows: EditorRow[]) => void;
+  fireModes: EditorRow[];
+  onFireModes: (rows: EditorRow[]) => void;
+  spread: EditorRow;
+  onSpread: (values: EditorRow) => void;
+  adsSpread: EditorRow;
+  onAdsSpread: (values: EditorRow) => void;
+  ammunition: EditorRow;
+  onAmmunition: (values: EditorRow) => void;
 }) {
   const t = useTranslations("Items.Admin");
+  const tw = useTranslations("Items.Weapon");
+  const spreadFields: FieldSpec[] = [
+    { key: "min", label: tw("spreadMin"), type: "number", step: "0.01" },
+    { key: "max", label: tw("spreadMax"), type: "number", step: "0.01" },
+    {
+      key: "firstShot",
+      label: tw("spreadFirst"),
+      type: "number",
+      step: "0.01",
+    },
+    { key: "perShot", label: tw("spreadPer"), type: "number", step: "0.01" },
+    { key: "decay", label: tw("spreadDecay"), type: "number", step: "0.1" },
+  ];
 
   return (
     <fieldset className="space-y-4 rounded-xl border border-[#9ED0FF]/15 p-4">
@@ -438,6 +496,121 @@ export function WeaponFields({
         onChange={onAttachments}
         addLabel={t("addAttachment")}
       />
+
+      <RowsEditor
+        label={t("fireModes")}
+        hint={t("fireModesHint")}
+        columns={[
+          { key: "label", label: tw("modeLabel"), basis: 18 },
+          { key: "rpm", label: tw("modeRpm"), type: "number", basis: 13 },
+          {
+            key: "dps",
+            label: tw("modeDps"),
+            type: "number",
+            step: "0.1",
+            basis: 13,
+          },
+          {
+            key: "ammoPerShot",
+            label: tw("modeAmmo"),
+            type: "number",
+            basis: 13,
+          },
+          {
+            key: "pelletsPerShot",
+            label: tw("modePellets"),
+            type: "number",
+            basis: 13,
+          },
+          {
+            key: "burstCount",
+            label: tw("modeBurst"),
+            type: "number",
+            basis: 11,
+          },
+          {
+            key: "heatPerShot",
+            label: tw("modeHeat"),
+            type: "number",
+            step: "0.1",
+            basis: 11,
+          },
+        ]}
+        rows={fireModes}
+        onChange={onFireModes}
+        addLabel={t("addFireMode")}
+      />
+
+      <div className="space-y-3">
+        <Label>{t("spreadLegend")}</Label>
+        <p className="text-xs text-nexus">{t("spreadHint")}</p>
+        <p className="text-xs font-medium">{t("spreadHipLegend")}</p>
+        <FieldGrid
+          columns={4}
+          values={spread}
+          onChange={onSpread}
+          fields={spreadFields}
+        />
+        <p className="text-xs font-medium">{t("spreadAdsLegend")}</p>
+        <FieldGrid
+          columns={4}
+          values={adsSpread}
+          onChange={onAdsSpread}
+          fields={spreadFields}
+        />
+      </div>
+
+      <div className="space-y-3">
+        <Label>{t("ammunitionLegend")}</Label>
+        <p className="text-xs text-nexus">{t("ammunitionHint")}</p>
+        <FieldGrid
+          columns={4}
+          values={ammunition}
+          onChange={onAmmunition}
+          fields={[
+            { key: "damageType", label: tw("ammoDamage") },
+            {
+              key: "damagePerShot",
+              label: `${tw("ammoDamage")} ${tw("spreadPer").toLowerCase()}`,
+              type: "number",
+              step: "0.1",
+            },
+            { key: "speed", label: `${tw("ammoSpeed")} (m/s)`, type: "number" },
+            { key: "range", label: `${tw("ammoRange")} (m)`, type: "number" },
+            {
+              key: "lifetime",
+              label: `${tw("ammoLifetime")} (s)`,
+              type: "number",
+              step: "0.1",
+            },
+            { key: "capacity", label: tw("ammoCapacity"), type: "number" },
+            { key: "size", label: tw("ammoSize"), type: "number" },
+            {
+              key: "penetration",
+              label: tw("ammoPenetration"),
+              type: "number",
+              step: "0.1",
+            },
+            {
+              key: "falloffStart",
+              label: `${tw("falloffTitle")} — ${tw("spreadFirst").toLowerCase()} (m)`,
+              type: "number",
+            },
+            {
+              key: "falloffPerMeter",
+              label: `${tw("falloffTitle")} — / m`,
+              type: "number",
+              step: "0.001",
+            },
+            {
+              key: "falloffMinDamage",
+              label: `${tw("falloffTitle")} — ${tw("falloffFloor").toLowerCase()}`,
+              type: "number",
+              step: "0.1",
+            },
+          ]}
+        />
+      </div>
     </fieldset>
   );
 }
@@ -588,6 +761,10 @@ export function buildKindPayload(
     weapon: EditorRow;
     profile: EditorRow[];
     attachments: EditorRow[];
+    fireModes: EditorRow[];
+    spread: EditorRow;
+    adsSpread: EditorRow;
+    ammunition: EditorRow;
     resource: EditorRow;
     refining: EditorRow;
     markets: EditorRow[];
@@ -610,6 +787,10 @@ export function buildKindPayload(
           ...state.weapon,
           profile: state.profile,
           attachments: state.attachments,
+          fireModes: state.fireModes,
+          spread: state.spread,
+          adsSpread: state.adsSpread,
+          ammunition: state.ammunition,
         },
       };
     case "resource":
