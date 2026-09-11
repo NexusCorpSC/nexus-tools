@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSquad, getSquadForUser } from "@/lib/squads";
+import { createSquad, getSquadForUser, setSquadName } from "@/lib/squads";
 import { SQUAD_NAME_MAX_LENGTH } from "@/types/squad";
-import { resolveCaller } from "./caller";
+import {
+  readBody,
+  readString,
+  resolveCaller,
+  resolveCommand,
+  squadResponse,
+  squadView,
+} from "./caller";
 
 /**
  * The caller's squad, as a resource of its own.
@@ -21,7 +28,7 @@ export async function GET() {
 
   const squad = await getSquadForUser(outcome.caller.userId);
 
-  return NextResponse.json({ squad });
+  return NextResponse.json(await squadView(squad));
 }
 
 /**
@@ -101,5 +108,54 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ squad: created.squad }, { status: 201 });
+  return squadResponse(created.squad, { status: 201 });
+}
+
+/**
+ * PATCH /api/squads
+ * Renames the squad.
+ *
+ * Body: `{ name }` — trimmed, and refused when empty: a squad with no name is
+ * a row of blank pixels in the overlay's title bar, and the creation route
+ * already guarantees every squad has one.
+ *
+ * **Whoever commands the squad** — the leader, or a lieutenant. The name is
+ * read by everyone and typed by the few, like the announcements beside it.
+ */
+export async function PATCH(request: NextRequest) {
+  const outcome = await resolveCommand();
+  if ("refused" in outcome) return outcome.refused;
+
+  const { squad, commands } = outcome;
+
+  if (!commands) {
+    return NextResponse.json(
+      { error: "Only the squad leader or a lieutenant may rename the squad" },
+      { status: 403 },
+    );
+  }
+
+  const parsed = await readBody(request);
+  if ("refused" in parsed) return parsed.refused;
+
+  const field = readString(parsed.body, "name", SQUAD_NAME_MAX_LENGTH);
+  if ("error" in field) {
+    return NextResponse.json({ error: field.error }, { status: 400 });
+  }
+
+  const name = field.value.trim();
+  if (!name) {
+    return NextResponse.json(
+      { error: "`name` must not be empty" },
+      { status: 400 },
+    );
+  }
+
+  const updated = await setSquadName(squad.id, name);
+
+  if (!updated) {
+    return NextResponse.json({ error: "Squad not found" }, { status: 404 });
+  }
+
+  return squadResponse(updated);
 }

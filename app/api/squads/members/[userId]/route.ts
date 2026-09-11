@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { removeSquadMember, updateSquadMember } from "@/lib/squads";
 import { POSITION_MAX_LENGTH, type SquadMemberPatch } from "@/types/squad";
-import { readBody, resolveCommand } from "../../caller";
+import { readBody, resolveCommand, squadResponse } from "../../caller";
 
 /**
  * PATCH /api/squads/members/[userId]
  * Rewrites what a member reports about themselves.
  *
- * Body: `{ ready?, alive?, position?, lieutenant? }` — any subset; an absent
- * field is left alone rather than cleared.
+ * Body: `{ ready?, alive?, position?, role?, lieutenant? }` — any subset; an
+ * absent field is left alone rather than cleared.
  *
  * **Who may write what**: a member writes to their own row, and whoever commands
  * the squad — the leader or a lieutenant — writes to anyone's. That is the whole
@@ -86,6 +86,30 @@ export async function PATCH(
     patch.position = body.position;
   }
 
+  if (body?.role !== undefined) {
+    if (typeof body.role !== "string") {
+      return NextResponse.json(
+        { error: "`role` must be a string" },
+        { status: 400 },
+      );
+    }
+
+    /*
+     * Checked against the squad's own list rather than accepted as written:
+     * roles belong to the squad, so an id from somewhere else would put a
+     * member in a role nobody can see, name or take off them. `""` is how a
+     * member says they have none.
+     */
+    if (body.role && !squad.roles.some((role) => role.id === body.role)) {
+      return NextResponse.json(
+        { error: "No such role in this squad" },
+        { status: 404 },
+      );
+    }
+
+    patch.role = body.role;
+  }
+
   if (body?.lieutenant !== undefined) {
     if (typeof body.lieutenant !== "boolean") {
       return NextResponse.json(
@@ -119,7 +143,7 @@ export async function PATCH(
     return NextResponse.json(
       {
         error:
-          "Nothing to update: pass `ready`, `alive`, `position` or `lieutenant`",
+          "Nothing to update: pass `ready`, `alive`, `position`, `role` or `lieutenant`",
       },
       { status: 400 },
     );
@@ -142,7 +166,7 @@ export async function PATCH(
     );
   }
 
-  return NextResponse.json({ squad: updated });
+  return squadResponse(updated);
 }
 
 /**
@@ -202,5 +226,5 @@ export async function DELETE(
     );
   }
 
-  return NextResponse.json({ squad: updated });
+  return squadResponse(updated);
 }

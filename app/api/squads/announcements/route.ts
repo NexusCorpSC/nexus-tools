@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { setSquadAnnouncements } from "@/lib/squads";
 import { ANNOUNCEMENTS_MAX_LENGTH } from "@/types/squad";
-import { readBody, readString, resolveCommand } from "../caller";
+import {
+  readBody,
+  readString,
+  resolveCommand,
+  squadResponse,
+} from "../caller";
 
 /**
  * PATCH /api/squads/announcements
@@ -48,5 +53,5 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Squad not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ squad: updated });
+  return squadResponse(updated);
 }

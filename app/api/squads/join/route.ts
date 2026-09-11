@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { joinSquad } from "@/lib/squads";
-import { readBody, readString, resolveCaller } from "../caller";
+import {
+  readBody,
+  readString,
+  resolveCaller,
+  squadResponse,
+} from "../caller";
 
 /** Codes are 6 characters; the cap only keeps a pathological body out. */
 const CODE_MAX_LENGTH = 32;
@@ -54,5 +59,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ squad: joined.squad });
+  return squadResponse(joined.squad);
 }

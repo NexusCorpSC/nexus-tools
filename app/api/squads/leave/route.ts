@@ -18,5 +18,5 @@ export async function POST() {
 
   await leaveSquad(outcome.caller.userId);
 
-  return NextResponse.json({ squad: null });
+  return NextResponse.json({ squad: null, raid: null });
 }
