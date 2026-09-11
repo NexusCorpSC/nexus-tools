@@ -48,3 +48,30 @@ npm run build
 ```
 
 > Dev server doesn't run full analysis and type cheking. Run build to detect build issues.
+
+## Import du catalogue d'objets
+
+Les objets, armes, véhicules et ressources de `/items` peuvent être importés
+depuis les sources publiques du jeu :
+
+```bash
+npm run import:catalogue -- rsi              # vaisseaux (matrice officielle RSI + points de vente Fleetyards)
+npm run import:catalogue -- scwiki           # armes, armures, accessoires, composants (Star Citizen Wiki, en français)
+npm run import:catalogue -- uex              # ressources et cours par comptoir (UEX Corp)
+npm run import:catalogue -- all --update     # tout, en rafraîchissant les objets déjà importés
+```
+
+Options utiles : `--dry-run` (n'écrit rien), `--limit N`, `--filter texte`,
+`--types WeaponPersonal,Char_Armor_Helmet` (types du wiki), `--no-fleetyards`,
+`--mirror-images` (recopie les images dans le blob storage, `BLOB_READ_WRITE_TOKEN`
+requis ; sinon les fiches pointent vers les images de la source).
+
+Chaque objet importé porte sa provenance : relancer l'import ne crée jamais de
+doublon. Sans `--update`, un objet déjà présent est laissé tel quel ; avec, la
+source rafraîchit ce qu'elle connaît (caractéristiques, image, emports, cours…)
+en gardant ce qu'un administrateur a ajouté à la main — et une description ou
+une provenance réécrites ne sont jamais écrasées.
+
+> Le script lit `MONGODB_URI` dans `.env.local`. Il s'exécute hors de Next
+> (`tsx`) : aucune permission applicative n'est vérifiée, réservez-le aux
+> opérateurs.

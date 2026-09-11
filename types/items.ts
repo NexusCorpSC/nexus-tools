@@ -191,6 +191,23 @@ export type ResourceDetails = {
   pricesUpdatedAt?: string;
 };
 
+export const ITEM_SOURCES = ["rsi", "scwiki", "uex", "fleetyards"] as const;
+export type ItemSourceName = (typeof ITEM_SOURCES)[number];
+
+/**
+ * D'où vient un objet importé. Le couple `name` + `id` est la clé qu'un
+ * ré-import retrouve pour mettre à jour la fiche au lieu d'en créer une
+ * deuxième ; un objet saisi à la main n'en a pas.
+ */
+export type ItemSource = {
+  name: ItemSourceName;
+  /** Identifiant de l'objet chez la source (id RSI, uuid du wiki, id UEX). */
+  id: string;
+  /** Page de l'objet chez la source, quand elle existe. */
+  url?: string;
+  importedAt?: string;
+};
+
 export type Item = {
   /** nanoid */
   id: string;
@@ -228,6 +245,7 @@ export type Item = {
   weapon?: WeaponDetails;
   /** Données propres aux ressources. Absent = fiche à compléter. */
   resource?: ResourceDetails;
+  source?: ItemSource;
   createdAt?: string;
   updatedAt?: string;
 };

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "import:catalogue": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-catalogue.ts"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
@@ -72,6 +73,7 @@
     "postcss": "^8",
     "prettier": "3.8.1",
     "tailwindcss": "^4.2.2",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   },
   "overrides": {

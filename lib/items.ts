@@ -9,6 +9,7 @@ import {
   MAX_ITEM_PAGE_SIZE,
   MAX_ITEM_TEXT_LENGTH,
   EXTRACTION_FREQUENCIES,
+  ITEM_SOURCES,
   MAX_ITEM_ROWS,
   RESOURCE_MARKET_SIDES,
   isItemKind,
@@ -20,6 +21,8 @@ import {
   type ItemFacets,
   type ItemKind,
   type ItemSlot,
+  type ItemSource,
+  type ItemSourceName,
   type ItemStatistics,
   type ItemSummary,
   type ResolvedItemSlot,
@@ -63,6 +66,10 @@ function ensureIndexes() {
       { name: "gameItems_variant" },
     ),
     collection().createIndex({ setId: 1 }, { name: "gameItems_set" }),
+    collection().createIndex(
+      { "source.name": 1, "source.id": 1 },
+      { name: "gameItems_source", sparse: true },
+    ),
   ]).catch((error) => {
     // Let the next call retry instead of caching a transient failure.
     indexesReady = null;
@@ -322,6 +329,24 @@ function normalizePriceHistory(value: unknown): number[] | undefined {
   return history.length > 1 ? history : undefined;
 }
 
+function normalizeSource(value: unknown): ItemSource | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  const name = text(input.name, 24);
+  const id = text(input.id, MAX_ITEM_NAME_LENGTH);
+  if (!(ITEM_SOURCES as readonly string[]).includes(name) || !id) {
+    return undefined;
+  }
+
+  return {
+    name: name as ItemSourceName,
+    id,
+    url: optionalText(input.url, 2048),
+    importedAt: new Date().toISOString(),
+  };
+}
+
 function normalizeResource(value: unknown): ResourceDetails | undefined {
   if (!value || typeof value !== "object") return undefined;
   const input = value as Record<string, unknown>;
@@ -366,6 +391,7 @@ export type ItemInput = {
   vehicle?: unknown;
   weapon?: unknown;
   resource?: unknown;
+  source?: unknown;
 };
 
 type NormalizedItem = Omit<Item, "id" | "createdAt" | "updatedAt">;
@@ -429,6 +455,7 @@ export function normalizeItemInput(input: ItemInput): NormalizedItem {
     weapon: kind === "weapon" ? normalizeWeapon(input.weapon) : undefined,
     resource:
       kind === "resource" ? normalizeResource(input.resource) : undefined,
+    source: normalizeSource(input.source),
   };
 }
 
@@ -864,7 +891,10 @@ export async function createItem(input: ItemInput): Promise<Item> {
     await collection().insertOne(withoutUndefined(item) as ItemDbModel);
   } catch (error) {
     if (isDuplicateKeyError(error)) {
-      throw new Error(`Un objet utilise déjà le slug « ${item.slug} »`);
+      throw Object.assign(
+        new Error(`Un objet utilise déjà le slug « ${item.slug} »`),
+        { code: 11000 },
+      );
     }
     throw error;
   }
@@ -918,6 +948,88 @@ export async function updateItem(
     }
     throw error;
   }
+}
+
+export async function findItemBySource(
+  name: ItemSourceName,
+  id: string,
+): Promise<Item | null> {
+  const item = await collection().findOne(
+    { "source.name": name, "source.id": id },
+    { projection: { _id: 0 } },
+  );
+  return item ?? null;
+}
+
+export type ImportOutcome = {
+  action: "created" | "updated" | "skipped";
+  item: Item;
+};
+
+/**
+ * Creates the object an import found, or refreshes the one a previous import
+ * created from the same source id. Refreshing merges over the stored document,
+ * so what an administrator added by hand and the source does not know about
+ * (blueprint links, an ensemble, a note) survives the sync — while the blocks
+ * the source does provide are rewritten with its latest data.
+ *
+ * A slug already taken by another object gets the fallbacks in turn, then a
+ * counter: two sources naming things alike must never silently share a page.
+ */
+export async function upsertImportedItem(
+  input: ItemInput,
+  {
+    update = false,
+    slugFallbacks = [],
+  }: { update?: boolean; slugFallbacks?: string[] } = {},
+): Promise<ImportOutcome> {
+  const source = normalizeSource(input.source);
+  if (!source) {
+    throw new Error("Un objet importé doit porter sa provenance");
+  }
+
+  const existing = await findItemBySource(source.name, source.id);
+
+  if (existing) {
+    if (!update) {
+      return { action: "skipped", item: existing };
+    }
+
+    // Only what the source actually provides is refreshed: a key it leaves
+    // undefined must not erase a stored value (a spread would). And the two
+    // prose fields are the ones an administrator rewrites — once filled, the
+    // source never overwrites them.
+    const provided = Object.fromEntries(
+      Object.entries(input).filter(([, value]) => value !== undefined),
+    ) as Partial<ItemInput>;
+    const item = await updateItem(existing.slug, {
+      ...existing,
+      ...provided,
+      description: existing.description ?? provided.description,
+      obtention: existing.obtention ?? provided.obtention,
+      // The slug is the page's address: an update never moves it.
+      slug: existing.slug,
+    } as ItemInput);
+    return { action: "updated", item };
+  }
+
+  const base = toItemSlug(text(input.slug, MAX_ITEM_NAME_LENGTH) || input.name);
+  const candidates = [
+    base,
+    ...slugFallbacks.map((hint) => toItemSlug(`${base} ${hint}`)),
+    ...[2, 3, 4, 5].map((n) => `${base}-${n}`),
+  ];
+
+  for (const slug of candidates) {
+    try {
+      const item = await createItem({ ...input, slug });
+      return { action: "created", item };
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+    }
+  }
+
+  throw new Error(`Aucun slug libre pour « ${input.name} »`);
 }
 
 export async function deleteItem(slug: string): Promise<boolean> {

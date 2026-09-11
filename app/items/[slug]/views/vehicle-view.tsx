@@ -16,15 +16,24 @@ import {
 
 const ACCENT = KIND_ACCENT.vehicle;
 
-/** Where the numbered hardpoints sit on the schematic, in document order. */
-const HARDPOINT_POSITIONS = [
-  { x: 160, y: 66 },
-  { x: 128, y: 128 },
-  { x: 192, y: 128 },
-  { x: 160, y: 160 },
-  { x: 128, y: 196 },
-  { x: 192, y: 196 },
-];
+/**
+ * Where the numbered hardpoints sit on the schematic, in document order: two
+ * columns down the hull, the odd one out centred. Imported ships carry as many
+ * mounts as the matrix lists, so the layout is computed rather than fixed.
+ */
+function hardpointPositions(count: number): { x: number; y: number }[] {
+  const rows = Math.max(1, Math.ceil(count / 2));
+  const step = rows > 1 ? 136 / (rows - 1) : 0;
+
+  return Array.from({ length: count }, (_, index) => {
+    const row = Math.floor(index / 2);
+    const alone = count % 2 === 1 && index === count - 1;
+    return {
+      x: alone ? 160 : index % 2 === 0 ? 128 : 192,
+      y: 60 + row * step,
+    };
+  });
+}
 
 /**
  * A top view of a generic hull with the hardpoints numbered in the order the
@@ -32,7 +41,7 @@ const HARDPOINT_POSITIONS = [
  * the numbers tie each dot to its row.
  */
 function HardpointDiagram({ count, label }: { count: number; label: string }) {
-  const points = HARDPOINT_POSITIONS.slice(0, count);
+  const points = hardpointPositions(Math.min(count, 12));
 
   return (
     <div className="relative w-full shrink-0 overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/45 sm:w-80">
