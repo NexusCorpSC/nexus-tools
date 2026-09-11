@@ -529,6 +529,8 @@
       "ammunitionHint": "The projectile and how its damage falls off with distance."
     },
     "consumedByTitle": "Used in",
+    "mountedOnTitle": "{count, plural, one {Mounted on # object} other {Mounted on # objects}}",
+    "mountedOnHint": "From the stock loadout listed on each page: a slot naming this object links here.",
     "quantityUnits": "{count} u",
     "Empty": {
       "fill": "Fill in",

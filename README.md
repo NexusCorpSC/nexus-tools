@@ -59,6 +59,7 @@ npm run import:catalogue -- rsi              # vaisseaux (matrice officielle RSI
 npm run import:catalogue -- scwiki           # armes, armures, accessoires, composants (Star Citizen Wiki, en français)
 npm run import:catalogue -- uex              # ressources et cours par comptoir (UEX Corp)
 npm run import:catalogue -- all --update     # tout, en rafraîchissant les objets déjà importés
+npm run import:catalogue -- link             # relie seulement les emplacements aux fiches, sans importer
 ```
 
 Options utiles : `--dry-run` (n'écrit rien), `--limit N`, `--filter texte`,
@@ -71,6 +72,15 @@ doublon. Sans `--update`, un objet déjà présent est laissé tel quel ; avec, 
 source rafraîchit ce qu'elle connaît (caractéristiques, image, emports, cours…)
 en gardant ce qu'un administrateur a ajouté à la main — et une description ou
 une provenance réécrites ne sont jamais écrasées.
+
+Les points d'emport, composants et accessoires sont **appariés par nom** aux
+fiches du catalogue : un emplacement qui nomme un objet sans pointer vers sa
+fiche renvoie vers la fiche du même nom, sur la page comme dans le formulaire
+d'administration (le script relie après chaque import, dans l'ordre que l'on
+veut : vaisseaux d'abord ou armes d'abord). En retour, chaque fiche d'arme ou
+de composant liste les vaisseaux qui l'embarquent d'origine. Les montures,
+tourelles et racks de missiles que la matrice RSI nomme sur les vaisseaux
+s'importent avec `scwiki --types Turret,MissileLauncher`.
 
 > Le script lit `MONGODB_URI` dans `.env.local`. Il s'exécute hors de Next
 > (`tsx`) : aucune permission applicative n'est vérifiée, réservez-le aux

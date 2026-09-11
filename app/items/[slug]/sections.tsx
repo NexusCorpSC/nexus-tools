@@ -259,13 +259,27 @@ export function SlotRow({
         >
           {slot.label}
         </span>
-        <span className="block truncate text-xs text-nexus/70">
+        <span
+          className={cn(
+            "block truncate text-xs",
+            slot.mounted
+              ? "underline decoration-dotted underline-offset-2"
+              : "text-nexus/70",
+          )}
+          style={{ color: slot.mounted ? accent : undefined }}
+        >
           {detail || emptyLabel}
         </span>
       </span>
       {isNumber(slot.size) && (
         <span className="shrink-0 rounded-full border border-[#9ED0FF]/25 px-2 py-0.5 font-mono text-xs text-nexus/80">
           S{slot.size}
+        </span>
+      )}
+      {/* A linked slot opens the fiche of what it carries: say so at a glance. */}
+      {slot.mounted && (
+        <span className="shrink-0 text-nexus/50" aria-hidden>
+          ›
         </span>
       )}
     </>
@@ -483,6 +497,26 @@ export async function CommonSections({
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {item.mountedOn.length > 0 && (
+        <div>
+          <SectionTitle>
+            {t("mountedOnTitle", { count: item.mountedOn.length })}
+          </SectionTitle>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {item.mountedOn.map((carrier) => (
+              <RelatedItemCard
+                key={carrier.slug}
+                item={carrier}
+                isCurrent={false}
+                currentLabel={t("currentItem")}
+                accent={KIND_ACCENT[carrier.kind]}
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-nexus/70">{t("mountedOnHint")}</p>
         </div>
       )}
 

@@ -684,17 +684,74 @@ export async function getBlueprintsForItem(
   return { blueprints: docs.map(toBlueprintLink), inferred: docs.length > 0 };
 }
 
+/** What a slot can hold: a vehicle or a resource is never mounted on anything. */
+const MOUNTABLE_KINDS: ItemKind[] = ["item", "weapon"];
+
+/** The slot lists of the model, as dotted paths into a stored document. */
+const SLOT_PATHS = [
+  "vehicle.hardpoints",
+  "vehicle.components",
+  "weapon.attachments",
+] as const;
+
+/** Case- and spacing-insensitive key two names are compared on. */
+function nameKey(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Anchored, case-insensitive matcher for a name, tolerant to spacing. */
+function nameMatcher(name: string): RegExp {
+  const parts = name.trim().split(/\s+/).map(escapeRegex);
+  return new RegExp(`^\\s*${parts.join("\\s+")}\\s*$`, "i");
+}
+
 /**
- * Resolves the objects mounted in a set of slots in one query, so a vehicle's
- * armament and components link to the fiches of the items they carry.
+ * The fiche each name designates, among the objects a slot can hold. The game
+ * data names one weapon several times (the base, the copy mounted on a given
+ * ship, a paint); the plainest fiche — no variant, shortest slug — wins, so a
+ * name always links to the same page.
+ */
+async function findMountableByName(
+  names: Iterable<string>,
+): Promise<Map<string, ItemSummary>> {
+  const wanted = [...new Set([...names].map(nameKey).filter(Boolean))];
+  if (wanted.length === 0) return new Map();
+
+  const found = (await collection()
+    .find(
+      {
+        kind: { $in: MOUNTABLE_KINDS },
+        name: { $in: wanted.map(nameMatcher) },
+      },
+      { projection: SUMMARY_PROJECTION },
+    )
+    .toArray()) as ItemSummary[];
+
+  const rank = (item: ItemSummary) =>
+    `${item.variantName ? 1 : 0}${String(item.slug.length).padStart(4, "0")}${item.slug}`;
+
+  const byName = new Map<string, ItemSummary>();
+  for (const item of found.sort((a, b) => rank(a).localeCompare(rank(b)))) {
+    const key = nameKey(item.name);
+    if (!byName.has(key)) byName.set(key, item);
+  }
+  return byName;
+}
+
+/**
+ * Resolves the objects mounted in a set of slots, so a vehicle's armament and
+ * components link to the fiches of the items they carry. A slot that names
+ * its object without pointing to a fiche — the ship matrix names what a hull
+ * carries, never our slugs — is matched on that name, so the link appears as
+ * soon as the fiche exists, whichever side was created first.
  */
 async function resolveSlots(
   ...groups: (ItemSlot[] | undefined)[]
 ): Promise<ResolvedItemSlot[][]> {
+  const slots = groups.flatMap((group) => group ?? []);
   const slugs = [
     ...new Set(
-      groups
-        .flatMap((group) => group ?? [])
+      slots
         .map((slot) => slot.itemSlug)
         .filter((slug): slug is string => !!slug),
     ),
@@ -711,12 +768,144 @@ async function resolveSlots(
     (mounted as ItemSummary[]).map((item) => [item.slug, item]),
   );
 
+  const byName = await findMountableByName(
+    slots
+      .filter((slot) => !(slot.itemSlug && bySlug.has(slot.itemSlug)))
+      .map((slot) => slot.itemName)
+      .filter((name): name is string => !!name),
+  );
+
   return groups.map((group) =>
     (group ?? []).map((slot) => ({
       ...slot,
-      mounted: slot.itemSlug ? bySlug.get(slot.itemSlug) : undefined,
+      mounted:
+        (slot.itemSlug ? bySlug.get(slot.itemSlug) : undefined) ??
+        (slot.itemName ? byName.get(nameKey(slot.itemName)) : undefined),
     })),
   );
+}
+
+/**
+ * Objects carrying this one in a slot — the vehicles a weapon or component
+ * ships on, the weapons an accessory fits. Matched by slug, and by name when
+ * this fiche is the one its name designates (see `findMountableByName`), so
+ * the list mirrors what the slots themselves link to.
+ */
+async function getMountedOn(item: Item): Promise<ItemSummary[]> {
+  if (!MOUNTABLE_KINDS.includes(item.kind)) return [];
+
+  const byName = await findMountableByName([item.name]);
+  const designated = byName.get(nameKey(item.name))?.slug === item.slug;
+  const matcher = nameMatcher(item.name);
+
+  const references: Document[] = SLOT_PATHS.flatMap((path) => [
+    { [`${path}.itemSlug`]: item.slug },
+    ...(designated ? [{ [`${path}.itemName`]: matcher }] : []),
+  ]);
+
+  const carriers = await collection()
+    .find(
+      { slug: { $ne: item.slug }, $or: references },
+      { projection: SUMMARY_PROJECTION },
+    )
+    .sort({ name: 1 })
+    .limit(MAX_ITEM_ROWS)
+    .toArray();
+  return carriers as ItemSummary[];
+}
+
+export type SlotLinkReport = {
+  /** Objects whose slots gained at least one link. */
+  items: number;
+  /** Slots linked. */
+  slots: number;
+};
+
+function slotsAt(doc: Document, path: string): ItemSlot[] | undefined {
+  const [block, key] = path.split(".");
+  const slots = doc[block]?.[key];
+  return Array.isArray(slots) ? (slots as ItemSlot[]) : undefined;
+}
+
+/**
+ * Writes the name matches down: every slot naming an object without a slug
+ * gets the slug of the fiche its name designates. The pages already resolve
+ * names on the fly; persisting the link shows it in the admin form and keeps
+ * it if the fiche is later renamed. Run after an import, whichever side of
+ * the link it brought.
+ */
+export async function linkSlotsByName(): Promise<SlotLinkReport> {
+  await ensureIndexes();
+
+  // `$in: [null]` also matches a missing key: the admin form and the import
+  // both drop an empty slug, but older documents may carry it as `null`.
+  const unlinked = {
+    $elemMatch: { itemName: { $exists: true }, itemSlug: { $in: [null, ""] } },
+  };
+  const docs = await collection()
+    .find(
+      { $or: SLOT_PATHS.map((path) => ({ [path]: unlinked })) },
+      { projection: { _id: 0, slug: 1, vehicle: 1, weapon: 1 } },
+    )
+    .toArray();
+
+  const byName = await findMountableByName(
+    docs.flatMap((doc) =>
+      SLOT_PATHS.flatMap((path) =>
+        (slotsAt(doc, path) ?? [])
+          .map((slot) => slot.itemName)
+          .filter((name): name is string => !!name),
+      ),
+    ),
+  );
+
+  const report: SlotLinkReport = { items: 0, slots: 0 };
+  for (const doc of docs) {
+    const $set: Document = {};
+    let linked = 0;
+    for (const path of SLOT_PATHS) {
+      const slots = slotsAt(doc, path);
+      if (!slots) continue;
+      const next = slots.map((slot) => {
+        if (slot.itemSlug || !slot.itemName) return slot;
+        const match = byName.get(nameKey(slot.itemName));
+        if (!match || match.slug === doc.slug) return slot;
+        linked++;
+        return { ...slot, itemSlug: match.slug };
+      });
+      if (next.some((slot, index) => slot !== slots[index])) $set[path] = next;
+    }
+    if (linked > 0) {
+      await collection().updateOne({ slug: doc.slug }, { $set });
+      report.items++;
+      report.slots += linked;
+    }
+  }
+  return report;
+}
+
+/**
+ * Carries the links of the stored slots over to the incoming ones: a source
+ * replaces a slot list whole, but a slug set on a slot — by an administrator
+ * or by the linking pass — survives as long as the source still names the
+ * same object in a slot of the same label.
+ */
+function carrySlotLinks(incoming: ItemSlot[], stored: ItemSlot[]): ItemSlot[] {
+  const linked = new Map(
+    stored
+      .filter((slot) => slot.itemSlug && slot.itemName)
+      .map((slot) => [
+        `${nameKey(slot.label)}|${nameKey(slot.itemName!)}`,
+        slot.itemSlug!,
+      ]),
+  );
+  return incoming.map((slot) => {
+    if (slot.itemSlug || !slot.itemName) return slot;
+    const itemSlug = linked.get(
+      `${nameKey(slot.label)}|${nameKey(slot.itemName)}`,
+    );
+    return itemSlug ? { ...slot, itemSlug } : slot;
+  });
 }
 
 /**
@@ -839,6 +1028,7 @@ export async function getItemDetails(
     setItems,
     [hardpoints, components, attachments],
     weaponComparison,
+    mountedOn,
   ] = await Promise.all([
     getBlueprintsForItem(item),
     getBlueprintsConsuming(item.name),
@@ -850,6 +1040,7 @@ export async function getItemDetails(
       item.weapon?.attachments,
     ),
     getWeaponComparison(item),
+    getMountedOn(item),
   ]);
 
   return {
@@ -864,6 +1055,7 @@ export async function getItemDetails(
     attachments,
     weaponProfile: weaponComparison.profile,
     weaponPeers: weaponComparison.peers,
+    mountedOn,
   };
 }
 
@@ -1086,6 +1278,14 @@ export async function upsertImportedItem(
       const stored = existing[block];
       if (incoming && typeof incoming === "object" && stored) {
         provided[block] = { ...stored, ...defined(incoming as object) };
+      }
+    }
+    for (const path of SLOT_PATHS) {
+      const incoming = slotsAt(provided as Document, path);
+      const stored = slotsAt(existing as Document, path);
+      if (incoming && stored) {
+        const [block, key] = path.split(".");
+        (provided as Document)[block][key] = carrySlotLinks(incoming, stored);
       }
     }
 
