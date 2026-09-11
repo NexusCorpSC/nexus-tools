@@ -466,7 +466,24 @@ export async function updateSquadMember(
   };
 
   if (patch.ready !== undefined) set["members.$.ready"] = patch.ready;
-  if (patch.alive !== undefined) set["members.$.alive"] = patch.alive;
+
+  if (patch.alive !== undefined) {
+    set["members.$.alive"] = patch.alive;
+
+    /*
+     * Going down clears «prêt», whatever the row said a second ago.
+     *
+     * Not a convenience: the overlay counts «n/m prêts» over the whole squad,
+     * and a member who was ready when they were shot would keep the squad
+     * reading as ready while it is being wiped. Cleared here rather than asked
+     * of the client so every client agrees — and so the two flags cannot
+     * disagree between a death and whatever the client sends next.
+     */
+    if (patch.alive === false && patch.ready === undefined) {
+      set["members.$.ready"] = false;
+    }
+  }
+
   if (patch.position !== undefined) set["members.$.position"] = patch.position;
   if (patch.role !== undefined) set["members.$.role"] = patch.role;
   if (patch.lieutenant !== undefined) {
