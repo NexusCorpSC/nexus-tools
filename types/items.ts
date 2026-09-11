@@ -410,5 +410,81 @@ export type ItemListResponse = {
   totalPages: number;
 };
 
+/**
+ * Comparaison de plusieurs objets d'un même type, colonne par colonne.
+ *
+ * Une comparaison porte toujours sur un seul `ItemKind` : les lignes viennent
+ * du type comparé (un vaisseau apporte sa soute et ses emports, une arme son
+ * profil de tir), et mélanger les types ne donnerait qu'un tableau de trous.
+ */
+
+/** Nombre maximum de colonnes : au-delà, la lecture se perd. */
+export const MAX_COMPARE_ITEMS = 5;
+
+/** Sens de lecture d'une ligne : 1 = plus c'est haut, mieux c'est. */
+export type ComparisonDirection = 1 | -1;
+
+/** `null` = la fiche ne renseigne pas cette caractéristique. */
+export type ComparisonValue = string | number | null;
+
+export type ComparisonRow = {
+  key: string;
+  /** Clé de traduction sous `Items.Compare.rows`, pour les champs connus. */
+  labelKey?: string;
+  /** Libellé déjà lisible : nom d'une statistique saisie à la main. */
+  label?: string;
+  /** Symbole affiché après la valeur (m/s, SCU, kg…). */
+  unit?: string;
+  /** Absent quand aucune valeur n'est « meilleure » : une longueur, un type. */
+  direction?: ComparisonDirection;
+  /** Comment l'écart à la colonne de référence se lit. */
+  delta?: "pct" | "abs";
+  /** Une barre de proportion a-t-elle un sens sur cette ligne ? */
+  bar?: boolean;
+  /** Les valeurs sont des clés de traduction sous `Items.Compare.values`. */
+  translateValues?: boolean;
+  /** Une valeur par objet comparé, dans l'ordre de `ItemComparison.items`. */
+  values: ComparisonValue[];
+};
+
+export type ComparisonGroup = {
+  /** Clé de traduction sous `Items.Compare.groups`. */
+  key: string;
+  rows: ComparisonRow[];
+};
+
+export type ItemComparison = {
+  /** Les objets comparés, dans l'ordre des colonnes. */
+  items: ItemSummary[];
+  /** Le type sur lequel la comparaison est verrouillée. */
+  kind: ItemKind;
+  /** Catégorie du premier objet : ce que le sélecteur propose en priorité. */
+  category: string;
+  subcategory?: string;
+  groups: ComparisonGroup[];
+  /** Slugs demandés qui n'ont aucune fiche. */
+  missing: string[];
+  /** Objets écartés faute d'être du même type que le premier. */
+  rejected: ItemSummary[];
+};
+
+/**
+ * Lit le paramètre `?ids=` d'une comparaison : des slugs séparés par des
+ * virgules, dédoublonnés et plafonnés. Un lien bricolé à la main ne doit ni
+ * faire échouer la page, ni ouvrir quarante colonnes.
+ */
+export function parseCompareIds(value: string | null | undefined): string[] {
+  if (!value) return [];
+
+  const seen = new Set<string>();
+  for (const part of value.split(",")) {
+    const slug = toItemSlug(part.trim());
+    if (slug) seen.add(slug);
+    if (seen.size >= MAX_COMPARE_ITEMS) break;
+  }
+
+  return [...seen];
+}
+
 /** Permission gating every write on the catalogue of in-game objects. */
 export const ITEMS_EDIT_PERMISSION = "items:edit";

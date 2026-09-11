@@ -2,6 +2,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import Image from "next/image";
 import { isNumber, type ItemDetails } from "@/types/items";
 import { ItemAdminMenu } from "../components";
+import { ItemCompareButton } from "../compare-button";
 import {
   CommonSections,
   EmptySection,
@@ -271,7 +272,10 @@ export async function VehicleView({
 
         <div className="absolute inset-x-6 top-5 flex items-start justify-between gap-2">
           <ItemBreadcrumb name={item.name} />
-          {canEdit && <ItemAdminMenu slug={item.slug} />}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <ItemCompareButton item={item} accent={ACCENT} />
+            {canEdit && <ItemAdminMenu slug={item.slug} />}
+          </div>
         </div>
 
         <div className="absolute inset-x-6 bottom-5">

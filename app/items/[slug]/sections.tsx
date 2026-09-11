@@ -5,6 +5,7 @@ import {
   PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
+import { KIND_ACCENT } from "@/lib/item-accents";
 import { cn } from "@/lib/utils";
 import {
   isNumber,
@@ -17,12 +18,7 @@ import {
 } from "@/types/items";
 
 /** Accent carried by each kind of fiche, so the sections follow their page. */
-export const KIND_ACCENT: Record<ItemKind, string> = {
-  item: "#9ED0FF",
-  vehicle: "#7FD4FF",
-  weapon: "#E8472B",
-  resource: "#D9A441",
-};
+export { KIND_ACCENT };
 
 export async function ItemBreadcrumb({
   name,

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { isNumber, type ItemDetails } from "@/types/items";
 import { ItemAdminMenu } from "../components";
+import { ItemCompareButton } from "../compare-button";
 import {
   CommonSections,
   EmptySection,
@@ -246,7 +247,10 @@ export async function WeaponView({
         <div className="ml-12">
           <div className="flex items-start justify-between gap-2">
             <ItemBreadcrumb name={item.name} />
-            {canEdit && <ItemAdminMenu slug={item.slug} />}
+            <div className="flex shrink-0 items-center gap-1.5">
+              <ItemCompareButton item={item} accent={ACCENT} />
+              {canEdit && <ItemAdminMenu slug={item.slug} />}
+            </div>
           </div>
 
           <p
