@@ -98,6 +98,91 @@ function Readout({
   );
 }
 
+/**
+ * Damage per shot against distance, from the three numbers the game uses:
+ * full damage up to `start`, then a linear drop per metre down to a floor.
+ */
+function FalloffChart({
+  damage,
+  start,
+  perMeter,
+  min,
+  range,
+  axisLabel,
+}: {
+  damage: number;
+  start: number;
+  perMeter: number;
+  min: number;
+  range: number;
+  axisLabel: string;
+}) {
+  const floor = Math.min(min, damage);
+  const reachesFloor = start + (damage - floor) / perMeter;
+  const span = Math.max(range, reachesFloor * 1.1, start * 2, 1);
+  const x = (metres: number) => (metres / span) * 800;
+  const y = (value: number) => 118 - (value / damage) * 100;
+
+  const path = [
+    `M ${x(0)} ${y(damage)}`,
+    `L ${x(start)} ${y(damage)}`,
+    `L ${x(Math.min(reachesFloor, span))} ${y(Math.max(floor, damage - perMeter * (Math.min(reachesFloor, span) - start)))}`,
+    reachesFloor < span ? `L ${x(span)} ${y(floor)}` : "",
+  ].join(" ");
+
+  return (
+    <svg
+      viewBox="0 0 800 140"
+      preserveAspectRatio="none"
+      className="block h-[140px] w-full"
+    >
+      <g stroke="rgba(158,208,255,0.1)" strokeWidth="1">
+        <path d="M0 18 H800 M0 68 H800 M0 118 H800" />
+      </g>
+      <path
+        d={`${path} L 800 138 L 0 138 Z`}
+        fill="rgba(232,71,43,0.10)"
+        stroke="none"
+      />
+      <path
+        d={path}
+        fill="none"
+        stroke={ACCENT}
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <text
+        x="4"
+        y="14"
+        fontSize="10"
+        fill="rgba(158,208,255,0.55)"
+        fontFamily="var(--font-geist-mono), monospace"
+      >
+        {damage}
+      </text>
+      <text
+        x="4"
+        y="132"
+        fontSize="10"
+        fill="rgba(158,208,255,0.55)"
+        fontFamily="var(--font-geist-mono), monospace"
+      >
+        {floor}
+      </text>
+      <text
+        x="796"
+        y="132"
+        fontSize="10"
+        textAnchor="end"
+        fill="rgba(158,208,255,0.55)"
+        fontFamily="var(--font-geist-mono), monospace"
+      >
+        {Math.round(span)} {axisLabel}
+      </text>
+    </svg>
+  );
+}
+
 export async function WeaponView({
   item,
   canEdit,
@@ -340,6 +425,213 @@ export async function WeaponView({
               ) : (
                 <EmptySection
                   label={tw("attachmentsEmpty")}
+                  slug={item.slug}
+                  canEdit={canEdit}
+                  sharp
+                />
+              )}
+            </div>
+
+            <div>
+              <SectionTitle>{tw("fireModes")}</SectionTitle>
+              {weapon.fireModes && weapon.fireModes.length > 0 ? (
+                <div className="clip-notch overflow-hidden border border-[#9ED0FF]/14 bg-white/[0.025]">
+                  <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr] px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest text-nexus/60">
+                    <span>{tw("modeLabel")}</span>
+                    <span className="text-right">{tw("modeRpm")}</span>
+                    <span className="text-right">{tw("modeDps")}</span>
+                    <span className="text-right">{tw("modeAmmo")}</span>
+                    <span className="text-right">{tw("modePellets")}</span>
+                  </div>
+                  {weapon.fireModes.map((mode) => (
+                    <div
+                      key={mode.label}
+                      className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr] items-center border-t border-[#9ED0FF]/[0.09] px-3.5 py-2.5 text-[13px]"
+                    >
+                      <span className="font-mono text-xs font-bold tracking-[0.12em] text-[#F2F7FC]">
+                        {mode.label}
+                        {isNumber(mode.burstCount) && mode.burstCount > 1 && (
+                          <span className="ml-2 font-normal tracking-normal text-nexus/60">
+                            {tw("modeBurst")} ×{mode.burstCount}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-right font-mono text-[#EAF5FF]">
+                        {isNumber(mode.rpm) ? format.number(mode.rpm) : "—"}
+                      </span>
+                      <span className="text-right font-mono text-[#EAF5FF]">
+                        {isNumber(mode.dps) ? format.number(mode.dps) : "—"}
+                      </span>
+                      <span className="text-right font-mono text-nexus/80">
+                        {isNumber(mode.ammoPerShot)
+                          ? format.number(mode.ammoPerShot)
+                          : "—"}
+                      </span>
+                      <span className="text-right font-mono text-nexus/80">
+                        {isNumber(mode.pelletsPerShot)
+                          ? format.number(mode.pelletsPerShot)
+                          : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptySection
+                  label={tw("fireModesEmpty")}
+                  slug={item.slug}
+                  canEdit={canEdit}
+                  sharp
+                />
+              )}
+            </div>
+
+            <div>
+              <SectionTitle>{tw("spread")}</SectionTitle>
+              {weapon.spread || weapon.adsSpread ? (
+                <div className="clip-notch border border-[#9ED0FF]/14 bg-white/[0.025] p-4">
+                  <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-y-2 text-[13px]">
+                    <span />
+                    <span className="text-right text-[10px] font-bold uppercase tracking-widest text-nexus/60">
+                      {tw("spreadHip")}
+                    </span>
+                    <span className="text-right text-[10px] font-bold uppercase tracking-widest text-nexus/60">
+                      {tw("spreadAds")}
+                    </span>
+                    {(
+                      [
+                        ["spreadMin", "min", "°"],
+                        ["spreadMax", "max", "°"],
+                        ["spreadFirst", "firstShot", "°"],
+                        ["spreadPer", "perShot", "°"],
+                        ["spreadDecay", "decay", "°/s"],
+                      ] as const
+                    ).map(([labelKey, field, unit]) => (
+                      <div key={field} className="contents">
+                        <span className="border-t border-[#9ED0FF]/[0.09] pt-2 text-nexus-primary">
+                          {tw(labelKey)}
+                        </span>
+                        {[weapon.spread, weapon.adsSpread].map(
+                          (spread, column) => (
+                            <span
+                              key={column}
+                              className="border-t border-[#9ED0FF]/[0.09] pt-2 text-right font-mono text-[#EAF5FF]"
+                            >
+                              {isNumber(spread?.[field])
+                                ? `${format.number(spread[field], { maximumFractionDigits: 2 })}${unit}`
+                                : "—"}
+                            </span>
+                          ),
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-nexus/60">
+                    {tw("spreadHint")}
+                  </p>
+                </div>
+              ) : (
+                <EmptySection
+                  label={tw("spreadEmpty")}
+                  slug={item.slug}
+                  canEdit={canEdit}
+                  sharp
+                />
+              )}
+            </div>
+
+            <div>
+              <SectionTitle>{tw("ammunition")}</SectionTitle>
+              {weapon.ammunition ? (
+                <div className="space-y-2">
+                  <div
+                    className="grid gap-2"
+                    style={{
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(120px, 1fr))",
+                    }}
+                  >
+                    {(
+                      [
+                        [
+                          "ammoDamage",
+                          weapon.ammunition.damagePerShot,
+                          weapon.ammunition.damageType
+                            ? ` ${weapon.ammunition.damageType}`
+                            : "",
+                        ],
+                        ["ammoSpeed", weapon.ammunition.speed, " m/s"],
+                        ["ammoRange", weapon.ammunition.range, " m"],
+                        ["ammoLifetime", weapon.ammunition.lifetime, " s"],
+                        ["ammoCapacity", weapon.ammunition.capacity, ""],
+                        ["ammoSize", weapon.ammunition.size, ""],
+                        ["ammoPenetration", weapon.ammunition.penetration, ""],
+                      ] as const
+                    )
+                      .filter(([, value]) => isNumber(value))
+                      .map(([labelKey, value, unit]) => (
+                        <Readout
+                          key={labelKey}
+                          value={
+                            labelKey === "ammoSize"
+                              ? `S${value}`
+                              : format.number(value as number, {
+                                  maximumFractionDigits: 2,
+                                })
+                          }
+                          unit={unit || undefined}
+                          label={tw(labelKey)}
+                        />
+                      ))}
+                  </div>
+
+                  {isNumber(weapon.ammunition.damagePerShot) &&
+                    weapon.ammunition.damagePerShot > 0 && (
+                      <div className="clip-notch border border-[#9ED0FF]/14 bg-white/[0.025] p-4">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-nexus/60">
+                          {tw("falloffTitle")}
+                        </p>
+                        {isNumber(weapon.ammunition.falloffPerMeter) &&
+                        weapon.ammunition.falloffPerMeter > 0 ? (
+                          <>
+                            <FalloffChart
+                              damage={weapon.ammunition.damagePerShot}
+                              start={weapon.ammunition.falloffStart ?? 0}
+                              perMeter={weapon.ammunition.falloffPerMeter}
+                              min={weapon.ammunition.falloffMinDamage ?? 0}
+                              range={weapon.ammunition.range ?? 0}
+                              axisLabel={tw("falloffAxis")}
+                            />
+                            <p className="mt-2 text-xs text-nexus/60">
+                              {tw("falloff", {
+                                damage: format.number(
+                                  weapon.ammunition.damagePerShot,
+                                  { maximumFractionDigits: 1 },
+                                ),
+                                start: format.number(
+                                  weapon.ammunition.falloffStart ?? 0,
+                                ),
+                                perMeter: format.number(
+                                  weapon.ammunition.falloffPerMeter,
+                                  { maximumFractionDigits: 3 },
+                                ),
+                                min: format.number(
+                                  weapon.ammunition.falloffMinDamage ?? 0,
+                                  { maximumFractionDigits: 1 },
+                                ),
+                              })}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-nexus/60">
+                            {tw("falloffNone")}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                </div>
+              ) : (
+                <EmptySection
+                  label={tw("ammunitionEmpty")}
                   slug={item.slug}
                   canEdit={canEdit}
                   sharp

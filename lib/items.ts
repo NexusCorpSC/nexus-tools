@@ -9,6 +9,7 @@ import {
   MAX_ITEM_PAGE_SIZE,
   MAX_ITEM_TEXT_LENGTH,
   EXTRACTION_FREQUENCIES,
+  ITEM_SOURCES,
   MAX_ITEM_ROWS,
   RESOURCE_MARKET_SIDES,
   isItemKind,
@@ -20,6 +21,8 @@ import {
   type ItemFacets,
   type ItemKind,
   type ItemSlot,
+  type ItemSource,
+  type ItemSourceName,
   type ItemStatistics,
   type ItemSummary,
   type ResolvedItemSlot,
@@ -29,7 +32,10 @@ import {
   type ResourceMarketSide,
   type ResourceRefining,
   type VehicleDetails,
+  type WeaponAmmunition,
   type WeaponDetails,
+  type WeaponFireMode,
+  type WeaponSpread,
   type WeaponPeer,
   type WeaponStat,
   type WeaponStatScale,
@@ -63,6 +69,16 @@ function ensureIndexes() {
       { name: "gameItems_variant" },
     ),
     collection().createIndex({ setId: 1 }, { name: "gameItems_set" }),
+    // Unique, so two imports running at once cannot both create the same
+    // object; partial, so hand-entered objects (no source) stay unconstrained.
+    collection().createIndex(
+      { "source.name": 1, "source.id": 1 },
+      {
+        unique: true,
+        name: "gameItems_source_unique",
+        partialFilterExpression: { "source.id": { $exists: true } },
+      },
+    ),
   ]).catch((error) => {
     // Let the next call retry instead of caching a transient failure.
     indexesReady = null;
@@ -233,6 +249,59 @@ function normalizeWeaponProfile(value: unknown): WeaponStat[] | undefined {
   return profile.length > 0 ? profile : undefined;
 }
 
+function normalizeFireModes(value: unknown): WeaponFireMode[] | undefined {
+  const modes = rows(value)
+    .map((row): WeaponFireMode | null => {
+      const label = text(row.label, 32);
+      if (!label) return null;
+
+      return {
+        label,
+        rpm: optionalNumber(row.rpm),
+        dps: optionalNumber(row.dps),
+        ammoPerShot: optionalNumber(row.ammoPerShot),
+        pelletsPerShot: optionalNumber(row.pelletsPerShot),
+        burstCount: optionalNumber(row.burstCount),
+        heatPerShot: optionalNumber(row.heatPerShot),
+      };
+    })
+    .filter((mode): mode is WeaponFireMode => mode !== null);
+
+  return modes.length > 0 ? modes : undefined;
+}
+
+function normalizeSpread(value: unknown): WeaponSpread | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  return compact({
+    min: optionalNumber(input.min),
+    max: optionalNumber(input.max),
+    firstShot: optionalNumber(input.firstShot),
+    perShot: optionalNumber(input.perShot),
+    decay: optionalNumber(input.decay),
+  });
+}
+
+function normalizeAmmunition(value: unknown): WeaponAmmunition | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  return compact({
+    size: optionalNumber(input.size),
+    speed: optionalNumber(input.speed),
+    range: optionalNumber(input.range),
+    lifetime: optionalNumber(input.lifetime),
+    capacity: optionalNumber(input.capacity),
+    damageType: optionalText(input.damageType, 40),
+    damagePerShot: optionalNumber(input.damagePerShot),
+    falloffStart: optionalNumber(input.falloffStart),
+    falloffPerMeter: optionalNumber(input.falloffPerMeter),
+    falloffMinDamage: optionalNumber(input.falloffMinDamage),
+    penetration: optionalNumber(input.penetration),
+  });
+}
+
 function normalizeWeapon(value: unknown): WeaponDetails | undefined {
   if (!value || typeof value !== "object") return undefined;
   const input = value as Record<string, unknown>;
@@ -246,6 +315,10 @@ function normalizeWeapon(value: unknown): WeaponDetails | undefined {
     reloadTime: optionalNumber(input.reloadTime),
     mass: optionalNumber(input.mass),
     attachments: normalizeSlots(input.attachments),
+    fireModes: normalizeFireModes(input.fireModes),
+    spread: normalizeSpread(input.spread),
+    adsSpread: normalizeSpread(input.adsSpread),
+    ammunition: normalizeAmmunition(input.ammunition),
   });
 }
 
@@ -322,6 +395,28 @@ function normalizePriceHistory(value: unknown): number[] | undefined {
   return history.length > 1 ? history : undefined;
 }
 
+function normalizeSource(value: unknown): ItemSource | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  const name = text(input.name, 24);
+  const id = text(input.id, MAX_ITEM_NAME_LENGTH);
+  if (!(ITEM_SOURCES as readonly string[]).includes(name) || !id) {
+    return undefined;
+  }
+
+  const importedAt = text(input.importedAt, 40);
+  return {
+    name: name as ItemSourceName,
+    id,
+    url: optionalText(input.url, 2048),
+    // Only a real import sets the moment; anything carrying one along keeps it.
+    importedAt: Number.isNaN(Date.parse(importedAt))
+      ? new Date().toISOString()
+      : importedAt,
+  };
+}
+
 function normalizeResource(value: unknown): ResourceDetails | undefined {
   if (!value || typeof value !== "object") return undefined;
   const input = value as Record<string, unknown>;
@@ -366,6 +461,7 @@ export type ItemInput = {
   vehicle?: unknown;
   weapon?: unknown;
   resource?: unknown;
+  source?: unknown;
 };
 
 type NormalizedItem = Omit<Item, "id" | "createdAt" | "updatedAt">;
@@ -429,6 +525,7 @@ export function normalizeItemInput(input: ItemInput): NormalizedItem {
     weapon: kind === "weapon" ? normalizeWeapon(input.weapon) : undefined,
     resource:
       kind === "resource" ? normalizeResource(input.resource) : undefined,
+    source: normalizeSource(input.source),
   };
 }
 
@@ -864,7 +961,15 @@ export async function createItem(input: ItemInput): Promise<Item> {
     await collection().insertOne(withoutUndefined(item) as ItemDbModel);
   } catch (error) {
     if (isDuplicateKeyError(error)) {
-      throw new Error(`Un objet utilise déjà le slug « ${item.slug} »`);
+      const { keyPattern } = error as { keyPattern?: Record<string, unknown> };
+      throw Object.assign(
+        new Error(
+          keyPattern && "source.id" in keyPattern
+            ? `Un objet importé porte déjà la provenance de « ${item.name} »`
+            : `Un objet utilise déjà le slug « ${item.slug} »`,
+        ),
+        { code: 11000, keyPattern },
+      );
     }
     throw error;
   }
@@ -887,13 +992,15 @@ export async function updateItem(
   // A field the form left empty is removed rather than written as `undefined`
   // (which the driver would store as `null`), otherwise the old value would
   // survive an edit meant to clear it — and `$set` and `$unset` cannot both
-  // carry the same path.
+  // carry the same path. Provenance is the exception: the admin form never
+  // sends it, and an edit must not turn an imported object into a hand-made
+  // one that the next import would then duplicate.
   const $set: Document = withoutUndefined(
     Object.fromEntries(entries.filter(([, value]) => value !== undefined)),
   ) as Document;
   const $unset: Document = Object.fromEntries(
     entries
-      .filter(([, value]) => value === undefined)
+      .filter(([key, value]) => value === undefined && key !== "source")
       .map(([key]) => [key, ""]),
   );
 
@@ -918,6 +1025,119 @@ export async function updateItem(
     }
     throw error;
   }
+}
+
+export async function findItemBySource(
+  name: ItemSourceName,
+  id: string,
+): Promise<Item | null> {
+  const item = await collection().findOne(
+    { "source.name": name, "source.id": id },
+    { projection: { _id: 0 } },
+  );
+  return item ?? null;
+}
+
+export type ImportOutcome = {
+  action: "created" | "updated" | "skipped";
+  item: Item;
+};
+
+/**
+ * Creates the object an import found, or refreshes the one a previous import
+ * created from the same source id. Refreshing merges over the stored document,
+ * so what an administrator added by hand and the source does not know about
+ * (blueprint links, an ensemble, a note) survives the sync — while the blocks
+ * the source does provide are rewritten with its latest data.
+ *
+ * A slug already taken by another object gets the fallbacks in turn, then a
+ * counter: two sources naming things alike must never silently share a page.
+ */
+export async function upsertImportedItem(
+  input: ItemInput,
+  {
+    update = false,
+    slugFallbacks = [],
+  }: { update?: boolean; slugFallbacks?: string[] } = {},
+): Promise<ImportOutcome> {
+  const source = normalizeSource(input.source);
+  if (!source) {
+    throw new Error("Un objet importé doit porter sa provenance");
+  }
+
+  const existing = await findItemBySource(source.name, source.id);
+
+  if (existing) {
+    if (!update) {
+      return { action: "skipped", item: existing };
+    }
+
+    // Only what the source actually provides is refreshed: a key it leaves
+    // undefined must not erase a stored value (a spread would) — and that
+    // holds one level down too, inside the kind-specific block, so a spread
+    // an administrator typed survives a source that knows nothing of it.
+    // Lists inside the block (slots, prices) are replaced whole: there is no
+    // sensible way to merge two of them. And the two prose fields are the
+    // ones an administrator rewrites — once filled, the source never
+    // overwrites them.
+    const provided = defined(input);
+    for (const block of ["vehicle", "weapon", "resource"] as const) {
+      const incoming = provided[block];
+      const stored = existing[block];
+      if (incoming && typeof incoming === "object" && stored) {
+        provided[block] = { ...stored, ...defined(incoming as object) };
+      }
+    }
+
+    const item = await updateItem(existing.slug, {
+      ...existing,
+      ...provided,
+      description: existing.description ?? provided.description,
+      obtention: existing.obtention ?? provided.obtention,
+      // The slug is the page's address: an update never moves it.
+      slug: existing.slug,
+    } as ItemInput);
+    return { action: "updated", item };
+  }
+
+  const base = toItemSlug(text(input.slug, MAX_ITEM_NAME_LENGTH) || input.name);
+  const candidates = [
+    base,
+    ...slugFallbacks.map((hint) => toItemSlug(`${base} ${hint}`)),
+    ...[2, 3, 4, 5].map((n) => `${base}-${n}`),
+  ];
+
+  for (const slug of candidates) {
+    try {
+      const item = await createItem({ ...input, slug });
+      return { action: "created", item };
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+
+      // Another run of the import got there first: the object exists now.
+      // Trying more slugs would only fail the same way.
+      if (isSourceConflict(error)) {
+        const created = await findItemBySource(source.name, source.id);
+        if (created) return { action: "skipped", item: created };
+      }
+    }
+  }
+
+  throw new Error(`Aucun slug libre pour « ${input.name} »`);
+}
+
+/** The keys of an object that carry a value, as a fresh partial. */
+function defined<T extends object>(value: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as Partial<T>;
+}
+
+/** A duplicate-key error raised by the provenance index, not the slug one. */
+function isSourceConflict(error: unknown): boolean {
+  const pattern = (error as { keyPattern?: Record<string, unknown> })
+    .keyPattern;
+  return !!pattern && "source.id" in pattern;
 }
 
 export async function deleteItem(slug: string): Promise<boolean> {

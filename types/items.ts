@@ -109,6 +109,60 @@ export type WeaponStat = {
   unit?: string;
 };
 
+/** Un mode de tir : automatique, semi-automatique, rafale, charge… */
+export type WeaponFireMode = {
+  /** Libellé tel que le jeu l'affiche : AUTO, SEMI, BURST, CHARGE. */
+  label: string;
+  /** Cadence dans ce mode, en coups par minute. */
+  rpm?: number;
+  /** DPS soutenu dans ce mode. */
+  dps?: number;
+  ammoPerShot?: number;
+  /** Projectiles par tir : 12 pour un fusil à pompe. */
+  pelletsPerShot?: number;
+  /** Tirs par rafale, pour un mode rafale. */
+  burstCount?: number;
+  heatPerShot?: number;
+};
+
+/**
+ * Dispersion du tir, en degrés : le cône s'ouvre d'un cran au premier tir
+ * puis à chaque tir, entre un minimum et un maximum, et se referme à la
+ * vitesse `decay` quand on cesse le feu.
+ */
+export type WeaponSpread = {
+  min?: number;
+  max?: number;
+  firstShot?: number;
+  perShot?: number;
+  /** Degrés par seconde. */
+  decay?: number;
+};
+
+export type WeaponAmmunition = {
+  /** Taille de munition (S1, S2…). */
+  size?: number;
+  /** Vitesse du projectile, en m/s. */
+  speed?: number;
+  /** Portée maximale du projectile, en mètres. */
+  range?: number;
+  /** Durée de vol, en secondes. */
+  lifetime?: number;
+  capacity?: number;
+  /** Type de dégâts du projectile : physique, énergie, distorsion… */
+  damageType?: string;
+  /** Dégâts d'un projectile à bout portant. */
+  damagePerShot?: number;
+  /** Distance à partir de laquelle les dégâts chutent, en mètres. */
+  falloffStart?: number;
+  /** Dégâts perdus par mètre au-delà. */
+  falloffPerMeter?: number;
+  /** Plancher sous lequel les dégâts ne descendent plus. */
+  falloffMinDamage?: number;
+  /** Épaisseur maximale traversée. */
+  penetration?: number;
+};
+
 export type WeaponDetails = {
   /** Type de dégâts : ballistique, laser, distortion… */
   damageType?: string;
@@ -126,6 +180,12 @@ export type WeaponDetails = {
   mass?: number;
   /** Accessoires montés ou disponibles. */
   attachments?: ItemSlot[];
+  fireModes?: WeaponFireMode[];
+  /** Dispersion au tir à la hanche. */
+  spread?: WeaponSpread;
+  /** Dispersion en visée. */
+  adsSpread?: WeaponSpread;
+  ammunition?: WeaponAmmunition;
 };
 
 export const RESOURCE_MARKET_SIDES = ["buy", "sell", "grey"] as const;
@@ -191,6 +251,23 @@ export type ResourceDetails = {
   pricesUpdatedAt?: string;
 };
 
+export const ITEM_SOURCES = ["rsi", "scwiki", "uex", "fleetyards"] as const;
+export type ItemSourceName = (typeof ITEM_SOURCES)[number];
+
+/**
+ * D'où vient un objet importé. Le couple `name` + `id` est la clé qu'un
+ * ré-import retrouve pour mettre à jour la fiche au lieu d'en créer une
+ * deuxième ; un objet saisi à la main n'en a pas.
+ */
+export type ItemSource = {
+  name: ItemSourceName;
+  /** Identifiant de l'objet chez la source (id RSI, uuid du wiki, id UEX). */
+  id: string;
+  /** Page de l'objet chez la source, quand elle existe. */
+  url?: string;
+  importedAt?: string;
+};
+
 export type Item = {
   /** nanoid */
   id: string;
@@ -228,6 +305,7 @@ export type Item = {
   weapon?: WeaponDetails;
   /** Données propres aux ressources. Absent = fiche à compléter. */
   resource?: ResourceDetails;
+  source?: ItemSource;
   createdAt?: string;
   updatedAt?: string;
 };

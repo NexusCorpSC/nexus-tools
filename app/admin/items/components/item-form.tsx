@@ -33,8 +33,10 @@ import {
   type StatRow,
 } from "./statistics-editor";
 import {
+  AMMUNITION_KEYS,
   REFINING_KEYS,
   RESOURCE_KEYS,
+  SPREAD_KEYS,
   ResourceFields,
   VEHICLE_KEYS,
   VehicleFields,
@@ -42,6 +44,7 @@ import {
   WeaponFields,
   buildKindPayload,
   extractionToRows,
+  fireModesToRows,
   marketsToRows,
   profileToRows,
   scalarsToRow,
@@ -158,6 +161,18 @@ export function ItemForm({
   const [attachments, setAttachments] = useState<EditorRow[]>(() =>
     slotsToRows(item?.weapon?.attachments),
   );
+  const [fireModes, setFireModes] = useState<EditorRow[]>(() =>
+    fireModesToRows(item?.weapon?.fireModes),
+  );
+  const [spread, setSpread] = useState<EditorRow>(() =>
+    scalarsToRow(item?.weapon?.spread, SPREAD_KEYS),
+  );
+  const [adsSpread, setAdsSpread] = useState<EditorRow>(() =>
+    scalarsToRow(item?.weapon?.adsSpread, SPREAD_KEYS),
+  );
+  const [ammunition, setAmmunition] = useState<EditorRow>(() =>
+    scalarsToRow(item?.weapon?.ammunition, AMMUNITION_KEYS),
+  );
   const [resource, setResource] = useState<EditorRow>(() =>
     scalarsToRow(item?.resource, RESOURCE_KEYS),
   );
@@ -223,6 +238,10 @@ export function ItemForm({
         weapon,
         profile,
         attachments,
+        fireModes,
+        spread,
+        adsSpread,
+        ammunition,
         resource,
         refining,
         markets,
@@ -398,6 +417,14 @@ export function ItemForm({
           onProfile={setProfile}
           attachments={attachments}
           onAttachments={setAttachments}
+          fireModes={fireModes}
+          onFireModes={setFireModes}
+          spread={spread}
+          onSpread={setSpread}
+          adsSpread={adsSpread}
+          onAdsSpread={setAdsSpread}
+          ammunition={ammunition}
+          onAmmunition={setAmmunition}
         />
       )}
 
