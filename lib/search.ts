@@ -137,6 +137,56 @@ async function searchBlueprints({
   }));
 }
 
+async function searchGameItems({
+  matcher,
+  candidates,
+  needle,
+}: SearchContext): Promise<SearchResult[]> {
+  const docs = await db
+    .db()
+    .collection("gameItems")
+    .find({
+      $or: [
+        { name: matcher },
+        { description: matcher },
+        { obtention: matcher },
+        { manufacturer: matcher },
+        { setName: matcher },
+      ],
+    })
+    .project({
+      name: 1,
+      slug: 1,
+      description: 1,
+      kind: 1,
+      category: 1,
+      subcategory: 1,
+      manufacturer: 1,
+      imageUrl: 1,
+      obtention: 1,
+      tier: 1,
+    })
+    .limit(candidates)
+    .toArray();
+
+  return docs.map((doc) => ({
+    type: "item" as const,
+    id: doc._id.toString(),
+    title: doc.name,
+    subtitle:
+      [doc.category, doc.subcategory].filter(Boolean).join(" › ") || undefined,
+    description: nonEmpty(doc.description),
+    url: `/items/${doc.slug}`,
+    imageUrl: nonEmpty(doc.imageUrl),
+    meta: {
+      ...(nonEmpty(doc.kind) ? { kind: doc.kind } : {}),
+      ...(nonEmpty(doc.manufacturer) ? { manufacturer: doc.manufacturer } : {}),
+      ...(typeof doc.tier === "number" ? { tier: doc.tier } : {}),
+    },
+    score: relevance(needle, doc.name, doc.description, doc.manufacturer),
+  }));
+}
+
 async function searchMissions({
   matcher,
   candidates,
@@ -429,6 +479,7 @@ async function searchInventoryItems({
 
 const FETCHERS: Record<SearchType, Fetcher> = {
   blueprint: searchBlueprints,
+  item: searchGameItems,
   mission: searchMissions,
   faction: searchFactions,
   shopItem: searchShopItems,

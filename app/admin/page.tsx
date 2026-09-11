@@ -28,6 +28,12 @@ export default function AdminPage() {
           </Button>
 
           <Button asChild>
+            <Link href="/admin/items" className="w-full">
+              Gérer les objets
+            </Link>
+          </Button>
+
+          <Button asChild>
             <Link href="/admin/cargo-ships" className="w-full">
               Gérer les vaisseaux cargo
             </Link>

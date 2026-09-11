@@ -18,7 +18,8 @@
       "signOut": "Sign Out",
       "signIn": "Sign In",
       "missions": "Missions",
-      "notes": "Scratch Pad"
+      "notes": "Scratch Pad",
+      "items": "Items"
     },
     "openMenu": "Open menu",
     "openUserMenu": "Open user menu",
@@ -61,6 +62,11 @@
       "title": "Everything Nexus Tools already does",
       "subtitle": "Each tool solves one precise day-to-day problem in the Verse — and they all work on the same data, the one tied to your account.",
       "items": {
+        "items": {
+          "title": "In-game items",
+          "description": "Every item, weapon and vehicle of the game: statistics, variants, sets and the blueprints crafting them.",
+          "tag": "Public"
+        },
         "inventory": {
           "title": "Inventory",
           "description": "Track your items across every storage location, build packages, move them in one gesture and share what you want with your organization.",
@@ -143,10 +149,22 @@
       },
       "shortcutsTitle": "Default shortcuts",
       "shortcuts": {
-        "search": { "keys": "Ctrl + Shift + B", "label": "Search palette" },
-        "capture": { "keys": "Ctrl + Shift + S", "label": "Screen capture" },
-        "notes": { "keys": "Ctrl + Shift + N", "label": "Scratch pad" },
-        "cargo": { "keys": "Ctrl + Shift + G", "label": "Cargo sheet" }
+        "search": {
+          "keys": "Ctrl + Shift + B",
+          "label": "Search palette"
+        },
+        "capture": {
+          "keys": "Ctrl + Shift + S",
+          "label": "Screen capture"
+        },
+        "notes": {
+          "keys": "Ctrl + Shift + N",
+          "label": "Scratch pad"
+        },
+        "cargo": {
+          "keys": "Ctrl + Shift + G",
+          "label": "Cargo sheet"
+        }
       },
       "shortcutsHint": "Every combination can be redefined from the application settings."
     }
@@ -329,6 +347,107 @@
     "Inventory": {
       "title": "Inventory",
       "header": "Keep your inventory of materials and items up to date to facilitate the management of your crafting recipes."
+    }
+  },
+  "Items": {
+    "home": "Home",
+    "title": "Items",
+    "header": "Search every item, weapon and vehicle in the game.",
+    "searchPlaceholder": "Search an item, a weapon, a vehicle…",
+    "filterTitle": "Filters",
+    "filterAllKinds": "All",
+    "filterAllCategories": "All categories",
+    "filterAllSubcategories": "All subcategories",
+    "filterAllManufacturers": "All manufacturers",
+    "filterReset": "Reset",
+    "resultsCount": "{count, plural, =0 {No item} one {# item} other {# items}}",
+    "noResults": "No item matches this search.",
+    "paginationFirst": "First page",
+    "paginationPrev": "Previous",
+    "paginationNext": "Next",
+    "paginationLast": "Last page",
+    "paginationPage": "Page {page} / {totalPages}",
+    "kinds": {
+      "item": "Item",
+      "weapon": "Weapon",
+      "vehicle": "Vehicle"
+    },
+    "variantLabel": "Variant: {variant}",
+    "currentItem": "This item",
+    "notFound": "Item not found",
+    "backToItems": "Back to items",
+    "description": "Description",
+    "obtention": "Where to get it",
+    "manufacturer": "Manufacturer",
+    "tier": "Tier",
+    "size": "Size",
+    "statistics": "Statistics",
+    "blueprintsTitle": "Crafting blueprints",
+    "blueprintsInferred": "These blueprints share the item's name. An administrator can set the exact link.",
+    "variantsTitle": "{count, plural, one {# variant} other {# variants}}",
+    "setTitle": "Set",
+    "setTitleNamed": "Set: {set}",
+    "Admin": {
+      "menuLabel": "Administrator actions",
+      "edit": "Edit item",
+      "delete": "Delete item",
+      "deleteConfirmTitle": "Delete this item?",
+      "deleteConfirmDescription": "This cannot be undone. The item will be permanently removed from the catalogue.",
+      "deleteConfirmCancel": "Cancel",
+      "deleteConfirmConfirm": "Delete",
+      "managerTitle": "Items",
+      "managerHeader": "Create, edit and delete the items, weapons and vehicles of the catalogue.",
+      "backToAdmin": "Back to administration",
+      "newItemButton": "New item",
+      "newPageTitle": "New item",
+      "editPageTitle": "Edit item",
+      "columnName": "Name",
+      "columnKind": "Kind",
+      "columnCategory": "Category",
+      "columnActions": "Actions",
+      "loading": "Loading…",
+      "searching": "Searching…",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "editSave": "Save changes",
+      "newCreate": "Create item",
+      "fieldName": "Name",
+      "fieldSlug": "Slug",
+      "fieldSlugHint": "Identifier used in the item's URL. Must be unique.",
+      "fieldKind": "Kind",
+      "fieldCategory": "Category",
+      "fieldSubcategory": "Subcategory (optional)",
+      "fieldManufacturer": "Manufacturer (optional)",
+      "fieldTier": "Tier (optional)",
+      "fieldSize": "Size (optional)",
+      "fieldDescription": "Description (optional)",
+      "fieldObtention": "Where to get this item (optional)",
+      "fieldImage": "Image (optional)",
+      "fieldStatistics": "Statistics (optional)",
+      "fieldStatisticsHint": "Add the item's statistics (e.g. DPS, range, speed…).",
+      "statName": "Stat name",
+      "statValue": "Value",
+      "statUnit": "Unit",
+      "addStat": "Add a statistic",
+      "removeStat": "Remove this statistic",
+      "fieldBlueprints": "Blueprints (optional)",
+      "fieldBlueprintsHint": "Blueprints crafting this item. Without an explicit link, blueprints sharing the item's name are offered on the page.",
+      "blueprintSearchPlaceholder": "Search a blueprint…",
+      "removeBlueprint": "Remove this blueprint",
+      "variantsLegend": "Variants",
+      "variantsHint": "Items sharing a variant group appear on each other's page (e.g. the styles of an armour).",
+      "fieldVariantGroup": "Variant group (optional)",
+      "fieldVariantName": "Variant name (optional)",
+      "setLegend": "Set",
+      "setHint": "Items sharing a set name are listed together (e.g. the pieces of an armour).",
+      "fieldSetName": "Set name (optional)",
+      "imageAdd": "Click to add an image",
+      "imageUploading": "Uploading…",
+      "imageConstraints": "JPEG, PNG or WebP · max 8 MB",
+      "imageRemove": "Remove image",
+      "imagePreview": "Item preview",
+      "imageNeedsSlug": "Fill in the item slug first.",
+      "imageUploadFailed": "Image upload failed."
     }
   },
   "Shopping": {

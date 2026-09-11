@@ -28,6 +28,7 @@ const navigation = [
   { name: "dashboard", href: "/", current: true },
   { name: "shopping", href: "/shopping" },
   { name: "crafting", href: "/crafting" },
+  { name: "items", href: "/items" },
   { name: "inventory", href: "/inventory" },
   { name: "industry", href: "/industry" },
   { name: "missions", href: "/missions" },
