@@ -560,7 +560,7 @@
     "Compare": {
       "title": "Comparison",
       "subtitle": "Put several objects of the same kind ({kind}) side by side and read the gaps statistic by statistic.",
-      "emptyHint": "Nothing to compare yet. Pick at least two objects of the same kind from the catalogue, or open a fiche and use its “Compare” button.",
+      "emptyHint": "Nothing to compare yet. Pick at least two objects of the same kind from the catalogue, or open an object page and use its “Compare” button.",
       "emptyCta": "Back to objects",
       "compareAction": "Compare",
       "compareWith": "Compare with",
@@ -584,7 +584,7 @@
       "missing": "not filled in",
       "lowerIsBetter": "lower is better",
       "hiddenRows": "{count, plural, one {# identical row hidden} other {# identical rows hidden}}",
-      "noRows": "These fiches share no statistic that anyone has filled in: there is nothing to compare yet.",
+      "noRows": "These objects share no statistic that anyone has filled in: there is nothing to compare yet.",
       "shareHint": "This comparison lives in the page address: the link can be shared as is.",
       "searchPlaceholder": "Search for an object to compare…",
       "searchLoading": "Searching…",
@@ -599,7 +599,7 @@
       "selectedCount": "{count, plural, =0 {No object selected} one {# object selected} other {# objects selected}}",
       "clearSelection": "Clear selection",
       "rejected": "{count, plural, one {# object was dropped from the comparison} other {# objects were dropped from the comparison}}: {names} are not the same kind as the first one.",
-      "missingItems": "{count, plural, one {# fiche cannot be found} other {# fiches cannot be found}}: {slugs}.",
+      "missingItems": "{count, plural, one {# object cannot be found} other {# objects cannot be found}}: {slugs}.",
       "groups": {
         "identity": "Identity",
         "performance": "Performance",
