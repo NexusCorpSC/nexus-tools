@@ -69,9 +69,15 @@ function ensureIndexes() {
       { name: "gameItems_variant" },
     ),
     collection().createIndex({ setId: 1 }, { name: "gameItems_set" }),
+    // Unique, so two imports running at once cannot both create the same
+    // object; partial, so hand-entered objects (no source) stay unconstrained.
     collection().createIndex(
       { "source.name": 1, "source.id": 1 },
-      { name: "gameItems_source", sparse: true },
+      {
+        unique: true,
+        name: "gameItems_source_unique",
+        partialFilterExpression: { "source.id": { $exists: true } },
+      },
     ),
   ]).catch((error) => {
     // Let the next call retry instead of caching a transient failure.
@@ -399,11 +405,15 @@ function normalizeSource(value: unknown): ItemSource | undefined {
     return undefined;
   }
 
+  const importedAt = text(input.importedAt, 40);
   return {
     name: name as ItemSourceName,
     id,
     url: optionalText(input.url, 2048),
-    importedAt: new Date().toISOString(),
+    // Only a real import sets the moment; anything carrying one along keeps it.
+    importedAt: Number.isNaN(Date.parse(importedAt))
+      ? new Date().toISOString()
+      : importedAt,
   };
 }
 
@@ -951,9 +961,14 @@ export async function createItem(input: ItemInput): Promise<Item> {
     await collection().insertOne(withoutUndefined(item) as ItemDbModel);
   } catch (error) {
     if (isDuplicateKeyError(error)) {
+      const { keyPattern } = error as { keyPattern?: Record<string, unknown> };
       throw Object.assign(
-        new Error(`Un objet utilise déjà le slug « ${item.slug} »`),
-        { code: 11000 },
+        new Error(
+          keyPattern && "source.id" in keyPattern
+            ? `Un objet importé porte déjà la provenance de « ${item.name} »`
+            : `Un objet utilise déjà le slug « ${item.slug} »`,
+        ),
+        { code: 11000, keyPattern },
       );
     }
     throw error;
@@ -977,13 +992,15 @@ export async function updateItem(
   // A field the form left empty is removed rather than written as `undefined`
   // (which the driver would store as `null`), otherwise the old value would
   // survive an edit meant to clear it — and `$set` and `$unset` cannot both
-  // carry the same path.
+  // carry the same path. Provenance is the exception: the admin form never
+  // sends it, and an edit must not turn an imported object into a hand-made
+  // one that the next import would then duplicate.
   const $set: Document = withoutUndefined(
     Object.fromEntries(entries.filter(([, value]) => value !== undefined)),
   ) as Document;
   const $unset: Document = Object.fromEntries(
     entries
-      .filter(([, value]) => value === undefined)
+      .filter(([key, value]) => value === undefined && key !== "source")
       .map(([key]) => [key, ""]),
   );
 
@@ -1056,12 +1073,22 @@ export async function upsertImportedItem(
     }
 
     // Only what the source actually provides is refreshed: a key it leaves
-    // undefined must not erase a stored value (a spread would). And the two
-    // prose fields are the ones an administrator rewrites — once filled, the
-    // source never overwrites them.
-    const provided = Object.fromEntries(
-      Object.entries(input).filter(([, value]) => value !== undefined),
-    ) as Partial<ItemInput>;
+    // undefined must not erase a stored value (a spread would) — and that
+    // holds one level down too, inside the kind-specific block, so a spread
+    // an administrator typed survives a source that knows nothing of it.
+    // Lists inside the block (slots, prices) are replaced whole: there is no
+    // sensible way to merge two of them. And the two prose fields are the
+    // ones an administrator rewrites — once filled, the source never
+    // overwrites them.
+    const provided = defined(input);
+    for (const block of ["vehicle", "weapon", "resource"] as const) {
+      const incoming = provided[block];
+      const stored = existing[block];
+      if (incoming && typeof incoming === "object" && stored) {
+        provided[block] = { ...stored, ...defined(incoming as object) };
+      }
+    }
+
     const item = await updateItem(existing.slug, {
       ...existing,
       ...provided,
@@ -1086,10 +1113,31 @@ export async function upsertImportedItem(
       return { action: "created", item };
     } catch (error) {
       if (!isDuplicateKeyError(error)) throw error;
+
+      // Another run of the import got there first: the object exists now.
+      // Trying more slugs would only fail the same way.
+      if (isSourceConflict(error)) {
+        const created = await findItemBySource(source.name, source.id);
+        if (created) return { action: "skipped", item: created };
+      }
     }
   }
 
   throw new Error(`Aucun slug libre pour « ${input.name} »`);
+}
+
+/** The keys of an object that carry a value, as a fresh partial. */
+function defined<T extends object>(value: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as Partial<T>;
+}
+
+/** A duplicate-key error raised by the provenance index, not the slug one. */
+function isSourceConflict(error: unknown): boolean {
+  const pattern = (error as { keyPattern?: Record<string, unknown> })
+    .keyPattern;
+  return !!pattern && "source.id" in pattern;
 }
 
 export async function deleteItem(slug: string): Promise<boolean> {

@@ -584,49 +584,50 @@ export async function WeaponView({
                       ))}
                   </div>
 
-                  {isNumber(weapon.ammunition.damagePerShot) && (
-                    <div className="clip-notch border border-[#9ED0FF]/14 bg-white/[0.025] p-4">
-                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-nexus/60">
-                        {tw("falloffTitle")}
-                      </p>
-                      {isNumber(weapon.ammunition.falloffPerMeter) &&
-                      weapon.ammunition.falloffPerMeter > 0 ? (
-                        <>
-                          <FalloffChart
-                            damage={weapon.ammunition.damagePerShot}
-                            start={weapon.ammunition.falloffStart ?? 0}
-                            perMeter={weapon.ammunition.falloffPerMeter}
-                            min={weapon.ammunition.falloffMinDamage ?? 0}
-                            range={weapon.ammunition.range ?? 0}
-                            axisLabel={tw("falloffAxis")}
-                          />
-                          <p className="mt-2 text-xs text-nexus/60">
-                            {tw("falloff", {
-                              damage: format.number(
-                                weapon.ammunition.damagePerShot,
-                                { maximumFractionDigits: 1 },
-                              ),
-                              start: format.number(
-                                weapon.ammunition.falloffStart ?? 0,
-                              ),
-                              perMeter: format.number(
-                                weapon.ammunition.falloffPerMeter,
-                                { maximumFractionDigits: 3 },
-                              ),
-                              min: format.number(
-                                weapon.ammunition.falloffMinDamage ?? 0,
-                                { maximumFractionDigits: 1 },
-                              ),
-                            })}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-xs text-nexus/60">
-                          {tw("falloffNone")}
+                  {isNumber(weapon.ammunition.damagePerShot) &&
+                    weapon.ammunition.damagePerShot > 0 && (
+                      <div className="clip-notch border border-[#9ED0FF]/14 bg-white/[0.025] p-4">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-nexus/60">
+                          {tw("falloffTitle")}
                         </p>
-                      )}
-                    </div>
-                  )}
+                        {isNumber(weapon.ammunition.falloffPerMeter) &&
+                        weapon.ammunition.falloffPerMeter > 0 ? (
+                          <>
+                            <FalloffChart
+                              damage={weapon.ammunition.damagePerShot}
+                              start={weapon.ammunition.falloffStart ?? 0}
+                              perMeter={weapon.ammunition.falloffPerMeter}
+                              min={weapon.ammunition.falloffMinDamage ?? 0}
+                              range={weapon.ammunition.range ?? 0}
+                              axisLabel={tw("falloffAxis")}
+                            />
+                            <p className="mt-2 text-xs text-nexus/60">
+                              {tw("falloff", {
+                                damage: format.number(
+                                  weapon.ammunition.damagePerShot,
+                                  { maximumFractionDigits: 1 },
+                                ),
+                                start: format.number(
+                                  weapon.ammunition.falloffStart ?? 0,
+                                ),
+                                perMeter: format.number(
+                                  weapon.ammunition.falloffPerMeter,
+                                  { maximumFractionDigits: 3 },
+                                ),
+                                min: format.number(
+                                  weapon.ammunition.falloffMinDamage ?? 0,
+                                  { maximumFractionDigits: 1 },
+                                ),
+                              })}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-nexus/60">
+                            {tw("falloffNone")}
+                          </p>
+                        )}
+                      </div>
+                    )}
                 </div>
               ) : (
                 <EmptySection

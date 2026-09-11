@@ -99,20 +99,33 @@ const USER_AGENT = "nexus-tools-import/0.1 (+https://tools.services.nexus)";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** A GET that retries the way a polite client should: backing off on 429/5xx. */
+/**
+ * A GET that retries the way a polite client should: backing off on 429/5xx,
+ * and on the network failing outright (reset, DNS, timeout) — a long import
+ * should not fall over because one request out of a thousand dropped.
+ */
 async function fetchJson<T>(url: string, attempts = 4): Promise<T> {
   for (let attempt = 1; ; attempt++) {
-    const response = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-      signal: AbortSignal.timeout(90_000),
-    });
+    let failure: string;
+    try {
+      const response = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+        signal: AbortSignal.timeout(90_000),
+      });
 
-    if (response.ok) return (await response.json()) as T;
+      if (response.ok) return (await response.json()) as T;
 
-    const retryable = response.status === 429 || response.status >= 500;
-    if (!retryable || attempt >= attempts) {
-      throw new Error(`${response.status} ${response.statusText} — ${url}`);
+      const retryable = response.status === 429 || response.status >= 500;
+      if (!retryable) {
+        throw new Error(`${response.status} ${response.statusText} — ${url}`);
+      }
+      failure = `${response.status} ${response.statusText}`;
+    } catch (error) {
+      if (attempt >= attempts) throw error;
+      failure = (error as Error).message;
     }
+
+    if (attempt >= attempts) throw new Error(`${failure} — ${url}`);
     await sleep(1500 * attempt);
   }
 }

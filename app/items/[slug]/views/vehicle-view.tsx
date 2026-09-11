@@ -16,23 +16,31 @@ import {
 
 const ACCENT = KIND_ACCENT.vehicle;
 
+/** Vertical room each pair of hardpoints takes on the hull. */
+const HARDPOINT_ROW = 32;
+
 /**
  * Where the numbered hardpoints sit on the schematic, in document order: two
- * columns down the hull, the odd one out centred. Imported ships carry as many
- * mounts as the matrix lists, so the layout is computed rather than fixed.
+ * columns down the hull, the odd one out centred. The hull stretches to fit
+ * them all — an imported ship carries as many mounts as the matrix lists.
  */
-function hardpointPositions(count: number): { x: number; y: number }[] {
+function hardpointLayout(count: number) {
   const rows = Math.max(1, Math.ceil(count / 2));
-  const step = rows > 1 ? 136 / (rows - 1) : 0;
+  const height = Math.max(250, 120 + rows * HARDPOINT_ROW);
+  const top = 60;
+  const bottom = height - 54;
+  const step = rows > 1 ? (bottom - top) / (rows - 1) : 0;
 
-  return Array.from({ length: count }, (_, index) => {
+  const points = Array.from({ length: count }, (_, index) => {
     const row = Math.floor(index / 2);
     const alone = count % 2 === 1 && index === count - 1;
     return {
       x: alone ? 160 : index % 2 === 0 ? 128 : 192,
-      y: 60 + row * step,
+      y: top + row * step,
     };
   });
+
+  return { points, height };
 }
 
 /**
@@ -41,7 +49,8 @@ function hardpointPositions(count: number): { x: number; y: number }[] {
  * the numbers tie each dot to its row.
  */
 function HardpointDiagram({ count, label }: { count: number; label: string }) {
-  const points = hardpointPositions(Math.min(count, 12));
+  const { points, height } = hardpointLayout(count);
+  const tail = height - 28;
 
   return (
     <div className="relative w-full shrink-0 overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/45 sm:w-80">
@@ -53,17 +62,21 @@ function HardpointDiagram({ count, label }: { count: number; label: string }) {
           backgroundSize: "24px 24px",
         }}
       />
-      <svg viewBox="0 0 320 250" className="relative w-full" fill="none">
+      <svg
+        viewBox={`0 0 320 ${height}`}
+        className="relative w-full"
+        fill="none"
+      >
         <g
           stroke="rgba(158,208,255,0.45)"
           strokeWidth="1.4"
           strokeLinejoin="round"
         >
           <path
-            d="M132 30 L188 30 L206 84 L206 176 L188 222 L132 222 L114 176 L114 84 Z"
+            d={`M132 30 L188 30 L206 84 L206 ${tail - 46} L188 ${tail} L132 ${tail} L114 ${tail - 46} L114 84 Z`}
             fill="rgba(158,208,255,0.05)"
           />
-          <path d="M114 96 L206 96 M114 160 L206 160" />
+          <path d={`M114 96 L206 96 M114 ${tail - 62} L206 ${tail - 62}`} />
           <rect
             x="92"
             y="66"
@@ -82,7 +95,7 @@ function HardpointDiagram({ count, label }: { count: number; label: string }) {
           />
           <rect
             x="92"
-            y="150"
+            y={tail - 72}
             width="22"
             height="44"
             rx="4"
@@ -90,7 +103,7 @@ function HardpointDiagram({ count, label }: { count: number; label: string }) {
           />
           <rect
             x="206"
-            y="150"
+            y={tail - 72}
             width="22"
             height="44"
             rx="4"
@@ -121,7 +134,7 @@ function HardpointDiagram({ count, label }: { count: number; label: string }) {
         ))}
         <text
           x="160"
-          y="242"
+          y={height - 8}
           textAnchor="middle"
           fontSize="10"
           letterSpacing="1.4"
