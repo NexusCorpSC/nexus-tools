@@ -232,13 +232,13 @@ export function SlotRow({
   index?: number;
 }) {
   const mountedName = slot.mounted?.name ?? slot.itemName;
-  const detail = [
-    slot.quantity && mountedName ? `${slot.quantity} × ${mountedName}` : null,
-    !slot.quantity ? mountedName : null,
-    slot.note,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  // A quantity is only worth showing when there is more than one: "1 ×" is
+  // noise, and a zero means nothing is mounted rather than "no quantity".
+  const mounted =
+    mountedName && isNumber(slot.quantity) && slot.quantity > 1
+      ? `${slot.quantity} × ${mountedName}`
+      : mountedName;
+  const detail = [mounted, slot.note].filter(Boolean).join(" · ");
 
   const body = (
     <>

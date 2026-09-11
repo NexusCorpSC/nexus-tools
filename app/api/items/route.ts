@@ -8,7 +8,7 @@ import {
 
 /**
  * GET /api/items
- * Browses every in-game object (items, weapons, vehicles).
+ * Browses every in-game object (items, weapons, vehicles, resources).
  *
  * Query params: `query`, `kind`, `category`, `subcategory`, `manufacturer`,
  * `set`, `variantGroup`, `limit` (1-100) and `page`.

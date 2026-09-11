@@ -151,6 +151,7 @@ async function searchGameItems({
         { description: matcher },
         { obtention: matcher },
         { manufacturer: matcher },
+        { variantName: matcher },
         { setName: matcher },
       ],
     })
@@ -164,6 +165,8 @@ async function searchGameItems({
       manufacturer: 1,
       imageUrl: 1,
       obtention: 1,
+      variantName: 1,
+      setName: 1,
       tier: 1,
     })
     .limit(candidates)
@@ -183,7 +186,18 @@ async function searchGameItems({
       ...(nonEmpty(doc.manufacturer) ? { manufacturer: doc.manufacturer } : {}),
       ...(typeof doc.tier === "number" ? { tier: doc.tier } : {}),
     },
-    score: relevance(needle, doc.name, doc.description, doc.manufacturer),
+    // Every field the query above matches on is scored here: a document found
+    // only by its variant or its set would otherwise score zero and be dropped
+    // by the per-type limit.
+    score: relevance(
+      needle,
+      doc.name,
+      doc.description,
+      doc.manufacturer,
+      doc.obtention,
+      doc.variantName,
+      doc.setName,
+    ),
   }));
 }
 
