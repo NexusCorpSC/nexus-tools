@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { commandsSquad, getSquadForUser } from "@/lib/squads";
-import type { Squad } from "@/types/squad";
+import { commandsSquad, getRaidView, getSquadForUser } from "@/lib/squads";
+import type { RaidView, Squad, SquadView } from "@/types/squad";
 
 /**
  * The two things every squad route starts by establishing: who is asking, and
@@ -100,4 +100,62 @@ export async function readBody(
   } catch {
     return refuse("Invalid JSON body", 400);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Answering                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * What every squad route answers with: where the caller stands, whole.
+ *
+ * The raid is resolved on the way out rather than asked for separately, so the
+ * overlay draws every sub-squad from the one poll it already makes. It costs a
+ * second query only for the squads that are actually in a raid.
+ */
+export async function squadView(squad: Squad | null): Promise<SquadView> {
+  if (!squad?.raidId) return { squad, raid: null };
+
+  return { squad, raid: await getRaidView(squad.raidId) };
+}
+
+export async function squadResponse(
+  squad: Squad | null,
+  init?: ResponseInit,
+): Promise<NextResponse> {
+  return NextResponse.json(await squadView(squad), init);
+}
+
+/**
+ * The caller's squad, the raid around it, and who they are allowed to be in
+ * each.
+ *
+ * Two ranks, not one: `commands` is the squad's — the leader or a lieutenant —
+ * and `leads` is the raid's, which is the same rank held in the squad that runs
+ * the raid. A raid has no members of its own, so there is nothing else it could
+ * be: whoever the squads trust with their own squad is who speaks for them.
+ */
+export async function resolveRaid(): Promise<
+  | { refused: NextResponse }
+  | {
+      caller: Caller;
+      squad: Squad;
+      raid: RaidView | null;
+      commands: boolean;
+      leads: boolean;
+    }
+> {
+  const outcome = await resolveCommand();
+  if ("refused" in outcome) return outcome;
+
+  const { caller, squad, commands } = outcome;
+  const raid = squad.raidId ? await getRaidView(squad.raidId) : null;
+
+  return {
+    caller,
+    squad,
+    raid,
+    commands,
+    leads: Boolean(raid && raid.leadSquadId === squad.id && commands),
+  };
 }

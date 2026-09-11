@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { transferLeadership } from "@/lib/squads";
-import { readBody, resolveCommand } from "../caller";
+import { readBody, resolveCommand, squadResponse } from "../caller";
 
 /**
  * PATCH /api/squads/leader
@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest) {
   // Already in charge: nothing to do, and answering the squad rather than an
   // error keeps a double click from looking like a failure.
   if (userId === squad.leaderId) {
-    return NextResponse.json({ squad });
+    return squadResponse(squad);
   }
 
   if (!squad.members.some((member) => member.userId === userId)) {
@@ -72,5 +72,5 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ squad: updated });
+  return squadResponse(updated);
 }
