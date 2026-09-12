@@ -104,6 +104,14 @@ let indexesPromise: Promise<unknown> | null = null;
 /** Every poll of every member goes through this one. */
 const MEMBER_INDEX = { "members.userId": 1 } as const;
 
+/** Mongo's error codes, by name: the driver only hands out the numbers. */
+const INDEX_OPTIONS_CONFLICT = 85;
+const INDEX_NOT_FOUND = 27;
+
+function mongoCode(error: unknown): number | undefined {
+  return (error as { code?: number } | null)?.code;
+}
+
 /**
  * The member index, and the migration it carries.
  *
@@ -111,19 +119,42 @@ const MEMBER_INDEX = { "members.userId": 1 } as const;
  * than a convention. A raid's organiser may now open several squads and lead
  * each until somebody takes it over, so the same user is legitimately listed
  * in more than one document. Mongo refuses to *change* an index's options in
- * place (`IndexOptionsConflict`, code 85): a database written by the earlier
- * version still holds the unique one, which is dropped and rebuilt without the
- * option the first time this process touches the collection.
+ * place (`IndexOptionsConflict`): a database written by the earlier version
+ * still holds the unique one, which is dropped and rebuilt without the option
+ * the first time this process touches the collection.
+ *
+ * Dropped by its key rather than by the name the earlier version let Mongo
+ * pick, and an index already gone is not a failure: several instances start
+ * at once on a deploy, and the second to reach this finds the first one's work
+ * done. What matters is that the unique index is gone when this returns —
+ * with it still in place, opening a raid's second squad would fail on a
+ * duplicate key that `insertSquad` no longer expects.
  */
 async function ensureMemberIndex() {
   try {
     await collection().createIndex(MEMBER_INDEX);
+    return;
   } catch (error) {
-    if ((error as { code?: number } | null)?.code !== 85) throw error;
-
-    await collection().dropIndex("members.userId_1");
-    await collection().createIndex(MEMBER_INDEX);
+    if (mongoCode(error) !== INDEX_OPTIONS_CONFLICT) throw error;
   }
+
+  // Found by its key, whatever the earlier version let Mongo name it.
+  const legacy = (await collection().indexes()).find(
+    (index) =>
+      index.key &&
+      Object.keys(index.key).length === 1 &&
+      index.key["members.userId"] === 1,
+  );
+
+  if (legacy?.name) {
+    try {
+      await collection().dropIndex(legacy.name);
+    } catch (error) {
+      if (mongoCode(error) !== INDEX_NOT_FOUND) throw error;
+    }
+  }
+
+  await collection().createIndex(MEMBER_INDEX);
 }
 
 /**

@@ -21,7 +21,8 @@ import type { RaidView, Squad, SquadView } from "@/types/squad";
  * A user is in one squad nearly always, and then there is only «mine». A raid's
  * organiser may be in several; a request then says which one it means with
  * `?squad=<id>`, and a write that names a squad the caller is not in is
- * refused rather than redirected. Nobody can ever name someone else's.
+ * refused rather than redirected — `/leave` excepted, which is idempotent by
+ * design and says so. Nobody can ever name someone else's.
  */
 
 export interface Caller {

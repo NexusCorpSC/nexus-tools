@@ -13,9 +13,15 @@ import { currentSquadView, requestedSquad, resolveCaller } from "../caller";
  *
  * Answers the view as the caller's next poll would read it: the squad they are
  * still in if there is one — a raid's organiser leaving the Bravo they opened
- * is still in Alpha — and `{ squad: null }` otherwise. Idempotent: leaving when
- * in no squad, or naming one they are not in, changes nothing and answers the
- * same view.
+ * is still in Alpha — and `{ squad: null }` otherwise.
+ *
+ * **Idempotent, on purpose, and the one write that is.** Every other route
+ * refuses a `squad` the caller is not in; this one answers the view instead,
+ * because «not in it» is exactly what leaving asks for, and the id most likely
+ * to be stale here is the one a client is holding of a squad it was just put
+ * out of — a 404 on that would show an error for a wish already granted.
+ * Naming a squad they are not in leaves nothing, rather than some other
+ * squad than the one asked for.
  */
 export async function POST(request: NextRequest) {
   const outcome = await resolveCaller();
