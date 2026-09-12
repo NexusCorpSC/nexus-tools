@@ -23,7 +23,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> },
 ) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
   const { caller, squad, commands } = outcome;
@@ -166,7 +166,7 @@ export async function PATCH(
     );
   }
 
-  return squadResponse(updated);
+  return squadResponse(caller, updated);
 }
 
 /**
@@ -187,10 +187,10 @@ export async function PATCH(
  * answers `{ squad: null }`, since they are in no squad anymore.
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ userId: string }> },
 ) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
   const { caller, squad, commands } = outcome;
@@ -226,5 +226,5 @@ export async function DELETE(
     );
   }
 
-  return squadResponse(updated);
+  return squadResponse(caller, updated);
 }

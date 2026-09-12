@@ -1,42 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSquad, getSquadForUser, setSquadName } from "@/lib/squads";
+import { createSquad, setSquadName } from "@/lib/squads";
 import { SQUAD_NAME_MAX_LENGTH } from "@/types/squad";
 import {
+  currentSquadView,
   readBody,
+  readOptionalName,
   readString,
+  requestedSquad,
   resolveCaller,
   resolveCommand,
   squadResponse,
-  squadView,
 } from "./caller";
 
 /**
  * The caller's squad, as a resource of its own.
  *
- * There is no listing and no squad id anywhere: a user is in one squad at a
- * time, so this route is «mine» and nothing else. Squads are private by
- * construction — the only way in is a code someone hands you.
+ * There is no listing: this route is «mine» and nothing else. Squads are
+ * private by construction — the only way in is a code someone hands you. A
+ * caller in several squads — a raid's organiser who opened them — names the one
+ * they mean with `?squad=<id>`; every route under here takes it.
  */
 
 /**
- * GET /api/squads
+ * GET /api/squads?squad=<id>
  * The squad the caller is in, or `{ squad: null }` when they are in none.
+ *
+ * With `squad`, that one — provided they are still in it; otherwise, or
+ * without, the longest-standing of their memberships, which is the one squad
+ * for everybody who is in one. `memberships` lists them all either way.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const outcome = await resolveCaller();
   if ("refused" in outcome) return outcome.refused;
 
-  const squad = await getSquadForUser(outcome.caller.userId);
-
-  return NextResponse.json(await squadView(squad));
+  return NextResponse.json(
+    await currentSquadView(outcome.caller, requestedSquad(request)),
+  );
 }
 
 /**
  * POST /api/squads
  * Starts a squad, the caller its leader and only member.
  *
- * Body: `{ name? }`. Whatever squad the caller was in is left first — one at a
- * time — which hands over the leadership of that one if it was theirs.
+ * Body: `{ name? }`. Whatever squads the caller was in are left first — this
+ * is starting over, not adding a membership — which hands over the leadership
+ * of each one that was theirs. Opening a squad *alongside* is
+ * `POST /api/squads/raid/squads`.
  */
 export async function POST(request: NextRequest) {
   const outcome = await resolveCaller();
@@ -44,71 +53,14 @@ export async function POST(request: NextRequest) {
 
   const { caller } = outcome;
 
-  /*
-   * An absent body is the normal case: a squad rarely has a name worth typing
-   * while a drop is starting. A present but unusable one is still an error —
-   * which is why the text is read before being parsed. `json()` throws the same
-   * way for both, and answering 201 to a request nobody could read would hide a
-   * client bug behind a squad named after its owner.
-   */
-  const raw = (await request.text()).trim();
-  let body: unknown = null;
+  const read = await readOptionalName(request, SQUAD_NAME_MAX_LENGTH);
+  if ("refused" in read) return read.refused;
 
-  if (raw) {
-    try {
-      body = JSON.parse(raw);
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
-    }
-
-    // `[]`, `"x"` and `null` parse, and none of them is a `{ name? }`. Reading
-    // `.name` off them would answer 201 to a request nobody could honour, which
-    // is a client bug this route would be hiding rather than reporting.
-    if (typeof body !== "object" || body === null || Array.isArray(body)) {
-      return NextResponse.json(
-        { error: "Body must be an object" },
-        { status: 400 },
-      );
-    }
-  }
-
-  const requested = (body as { name?: unknown } | null)?.name;
-
-  if (requested !== undefined && typeof requested !== "string") {
-    return NextResponse.json(
-      { error: "`name` must be a string" },
-      { status: 400 },
-    );
-  }
-
-  if (
-    typeof requested === "string" &&
-    requested.length > SQUAD_NAME_MAX_LENGTH
-  ) {
-    return NextResponse.json(
-      { error: `\`name\` exceeds ${SQUAD_NAME_MAX_LENGTH} characters` },
-      { status: 400 },
-    );
-  }
-
-  const name = requested?.trim() || `Escouade de ${caller.name}`;
+  const name = read.name ?? `Escouade de ${caller.name}`;
 
   const created = await createSquad(caller.userId, name, caller.name);
 
-  // The caller joined something else while this was being handled — two of their
-  // clients racing. Nothing was created, and saying so beats answering 201 with
-  // a squad they are not in.
-  if ("refusal" in created) {
-    return NextResponse.json(
-      { error: "Already in another squad" },
-      { status: 409 },
-    );
-  }
-
-  return squadResponse(created.squad, { status: 201 });
+  return squadResponse(caller, created, { status: 201 });
 }
 
 /**
@@ -123,10 +75,10 @@ export async function POST(request: NextRequest) {
  * read by everyone and typed by the few, like the announcements beside it.
  */
 export async function PATCH(request: NextRequest) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
 
   if (!commands) {
     return NextResponse.json(
@@ -157,5 +109,5 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Squad not found" }, { status: 404 });
   }
 
-  return squadResponse(updated);
+  return squadResponse(caller, updated);
 }

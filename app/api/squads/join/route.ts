@@ -17,9 +17,11 @@ const CODE_MAX_LENGTH = 32;
  * Body: `{ code }`, matched case-insensitively — a code is dictated as often as
  * it is pasted.
  *
- * Whatever squad the caller was in is left first, one at a time. Joining a squad
- * they are already in answers with it rather than an error: a client retrying is
- * not a mistake, and nothing changed.
+ * Whatever squads the caller was in are left first — joining by code is
+ * starting over, not adding a membership; only a raid's organiser opening the
+ * raid's squads ends up in several. Joining a squad they are already in answers
+ * with it rather than an error: a client retrying is not a mistake, and nothing
+ * changed.
  */
 export async function POST(request: NextRequest) {
   const outcome = await resolveCaller();
@@ -43,14 +45,6 @@ export async function POST(request: NextRequest) {
     switch (joined.refusal) {
       case "full":
         return NextResponse.json({ error: "Squad is full" }, { status: 409 });
-      // Two of the caller's clients joining at once: one of them won, and it is
-      // not this one. Refused rather than papered over — they are in a squad,
-      // just not the one this request asked for.
-      case "elsewhere":
-        return NextResponse.json(
-          { error: "Already in another squad" },
-          { status: 409 },
-        );
       default:
         return NextResponse.json(
           { error: "No squad with that code" },
@@ -59,5 +53,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return squadResponse(joined.squad);
+  return squadResponse(outcome.caller, joined.squad);
 }

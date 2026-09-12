@@ -20,10 +20,10 @@ const CODE_MAX_LENGTH = 32;
  * left first.
  */
 export async function POST(request: NextRequest) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
 
   if (!commands) {
     return NextResponse.json(
@@ -58,5 +58,5 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return squadResponse(linked.squad);
+  return squadResponse(caller, linked.squad);
 }

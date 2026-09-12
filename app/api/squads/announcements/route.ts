@@ -19,10 +19,10 @@ import {
  * Everyone else reads it.
  */
 export async function PATCH(request: NextRequest) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
 
   if (!commands) {
     return NextResponse.json(
@@ -53,5 +53,5 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Squad not found" }, { status: 404 });
   }
 
-  return squadResponse(updated);
+  return squadResponse(caller, updated);
 }
