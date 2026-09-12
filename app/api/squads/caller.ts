@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { commandsSquad, getRaidView, getSquadForUser } from "@/lib/squads";
+import {
+  commandsSquad,
+  getRaidView,
+  getSquadsForUser,
+  membershipsOf,
+  pickSquad,
+} from "@/lib/squads";
 import type { RaidView, Squad, SquadView } from "@/types/squad";
 
 /**
@@ -12,8 +18,10 @@ import type { RaidView, Squad, SquadView } from "@/types/squad";
  * builds the refusal to send back — a concern of the request layer, not of
  * `lib/squads.ts`, which knows nothing about HTTP.
  *
- * A user belongs to one squad at a time, so no route takes a squad id: there is
- * only ever «mine», and nobody can name someone else's.
+ * A user is in one squad nearly always, and then there is only «mine». A raid's
+ * organiser may be in several; a request then says which one it means with
+ * `?squad=<id>`, and a write that names a squad the caller is not in is
+ * refused rather than redirected. Nobody can ever name someone else's.
  */
 
 export interface Caller {
@@ -42,16 +50,30 @@ export async function resolveCaller(): Promise<
   };
 }
 
-export async function resolveSquad(): Promise<
+/** The squad a request names, or `null` when it leaves the choice to us. */
+export function requestedSquad(request: Request): string | null {
+  return new URL(request.url).searchParams.get("squad")?.trim() || null;
+}
+
+export async function resolveSquad(request: Request): Promise<
   { refused: NextResponse } | { caller: Caller; squad: Squad }
 > {
   const outcome = await resolveCaller();
   if ("refused" in outcome) return outcome;
 
-  const squad = await getSquadForUser(outcome.caller.userId);
-  if (!squad) return refuse("Not in a squad", 404);
+  const squads = await getSquadsForUser(outcome.caller.userId);
+  if (squads.length === 0) return refuse("Not in a squad", 404);
 
-  return { caller: outcome.caller, squad };
+  const named = requestedSquad(request);
+
+  if (named) {
+    const squad = squads.find((candidate) => candidate.id === named);
+    if (!squad) return refuse("Not in that squad", 404);
+
+    return { caller: outcome.caller, squad };
+  }
+
+  return { caller: outcome.caller, squad: squads[0] };
 }
 
 /**
@@ -61,11 +83,11 @@ export async function resolveSquad(): Promise<
  * and the lieutenants they appointed are indistinguishable past this point,
  * which is the whole point of the rank.
  */
-export async function resolveCommand(): Promise<
+export async function resolveCommand(request: Request): Promise<
   | { refused: NextResponse }
   | { caller: Caller; squad: Squad; commands: boolean }
 > {
-  const outcome = await resolveSquad();
+  const outcome = await resolveSquad(request);
   if ("refused" in outcome) return outcome;
 
   return {
@@ -102,6 +124,51 @@ export async function readBody(
   }
 }
 
+/**
+ * Reads an optional `{ name? }` body, the shape every «start one» route takes.
+ *
+ * An absent body is the normal case: a squad rarely has a name worth typing
+ * while a drop is starting. A present but unusable one is still an error —
+ * which is why the text is read before being parsed. `json()` throws the same
+ * way for both, and answering 201 to a request nobody could read would hide a
+ * client bug behind a squad named after its owner.
+ *
+ * `[]`, `"x"` and `null` parse, and none of them is a `{ name? }`. Reading
+ * `.name` off them would answer 201 to a request nobody could honour.
+ */
+export async function readOptionalName(
+  request: Request,
+  maxLength: number,
+): Promise<{ name: string | undefined } | { refused: NextResponse }> {
+  const raw = (await request.text()).trim();
+  if (!raw) return { name: undefined };
+
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return refuse("Invalid JSON body", 400);
+  }
+
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return refuse("Body must be an object", 400);
+  }
+
+  const requested = (body as { name?: unknown }).name;
+
+  if (requested === undefined) return { name: undefined };
+
+  if (typeof requested !== "string") {
+    return refuse("`name` must be a string", 400);
+  }
+
+  if (requested.length > maxLength) {
+    return refuse(`\`name\` exceeds ${maxLength} characters`, 400);
+  }
+
+  return { name: requested.trim() || undefined };
+}
+
 /* ------------------------------------------------------------------ */
 /* Answering                                                           */
 /* ------------------------------------------------------------------ */
@@ -111,19 +178,55 @@ export async function readBody(
  *
  * The raid is resolved on the way out rather than asked for separately, so the
  * overlay draws every sub-squad from the one poll it already makes. It costs a
- * second query only for the squads that are actually in a raid.
+ * second query only for the squads that are actually in a raid — and a read of
+ * the caller's memberships, which is the same indexed query the poll starts
+ * with.
+ *
+ * `squad` is taken as the route left it rather than re-read, so the answer
+ * reflects the write that was just made; the memberships are re-read so that a
+ * squad just opened, or just left, shows up in the list at once.
  */
-export async function squadView(squad: Squad | null): Promise<SquadView> {
-  if (!squad?.raidId) return { squad, raid: null };
+export async function squadView(
+  caller: Caller,
+  squad: Squad | null,
+): Promise<SquadView> {
+  const memberships = membershipsOf(await getSquadsForUser(caller.userId));
 
-  return { squad, raid: await getRaidView(squad.raidId) };
+  if (!squad) return { squad: null, raid: null, memberships };
+
+  return {
+    squad,
+    raid: squad.raidId ? await getRaidView(squad.raidId) : null,
+    memberships,
+  };
+}
+
+/**
+ * The view as the caller's poll would read it: the squad named if they are
+ * still in it, and otherwise the longest-standing one they are in. For the
+ * read, and for the one write that may have taken them out of the squad they
+ * named.
+ */
+export async function currentSquadView(
+  caller: Caller,
+  squadId: string | null,
+): Promise<SquadView> {
+  const squads = await getSquadsForUser(caller.userId);
+  const squad = pickSquad(squads, squadId);
+
+  return {
+    squad,
+    raid: squad?.raidId ? await getRaidView(squad.raidId) : null,
+    memberships: membershipsOf(squads),
+  };
 }
 
 export async function squadResponse(
+  caller: Caller,
   squad: Squad | null,
   init?: ResponseInit,
 ): Promise<NextResponse> {
-  return NextResponse.json(await squadView(squad), init);
+  return NextResponse.json(await squadView(caller, squad), init);
 }
 
 /**
@@ -135,7 +238,7 @@ export async function squadResponse(
  * the raid. A raid has no members of its own, so there is nothing else it could
  * be: whoever the squads trust with their own squad is who speaks for them.
  */
-export async function resolveRaid(): Promise<
+export async function resolveRaid(request: Request): Promise<
   | { refused: NextResponse }
   | {
       caller: Caller;
@@ -145,7 +248,7 @@ export async function resolveRaid(): Promise<
       leads: boolean;
     }
 > {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome;
 
   const { caller, squad, commands } = outcome;

@@ -29,10 +29,10 @@ import { readBody, readString, resolveCommand, squadResponse } from "../caller";
  * client at once.
  */
 export async function POST(request: NextRequest) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
 
   if (!commands) {
     return NextResponse.json(
@@ -79,5 +79,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Squad not found" }, { status: 404 });
   }
 
-  return squadResponse(updated, { status: 201 });
+  return squadResponse(caller, updated, { status: 201 });
 }

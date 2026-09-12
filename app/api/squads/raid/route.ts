@@ -7,6 +7,7 @@ import {
 } from "@/types/squad";
 import {
   readBody,
+  readOptionalName,
   readString,
   resolveCommand,
   resolveRaid,
@@ -18,9 +19,9 @@ import {
  *
  * A raid is several squads under one announcement, and nothing more: it holds
  * no roster of its own — its squads are whichever ones point at it — and each
- * of them keeps its code, its leader and its roles. There is no squad id and no
- * raid id in any of these routes: «my squad» comes from the session, and the
- * raid comes from my squad.
+ * of them keeps its code, its leader and its roles. There is no raid id in any
+ * of these routes: «my squad» comes from the session (or from `?squad=<id>`,
+ * for the organiser who is in several), and the raid comes from my squad.
  *
  * **Two ranks.** Commanding your own squad is enough to take it into a raid or
  * out of one. Renaming the raid, writing its announcement and unlinking
@@ -41,10 +42,10 @@ import {
  * time, the same rule a player is held to for squads.
  */
 export async function POST(request: NextRequest) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
 
   if (!commands) {
     return NextResponse.json(
@@ -53,42 +54,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const raw = (await request.text()).trim();
-  let requested: unknown;
+  const read = await readOptionalName(request, RAID_NAME_MAX_LENGTH);
+  if ("refused" in read) return read.refused;
 
-  if (raw) {
-    let body: unknown;
-    try {
-      body = JSON.parse(raw);
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
-
-    if (typeof body !== "object" || body === null || Array.isArray(body)) {
-      return NextResponse.json(
-        { error: "Body must be an object" },
-        { status: 400 },
-      );
-    }
-
-    requested = (body as { name?: unknown }).name;
-  }
-
-  if (requested !== undefined && typeof requested !== "string") {
-    return NextResponse.json(
-      { error: "`name` must be a string" },
-      { status: 400 },
-    );
-  }
-
-  if (typeof requested === "string" && requested.length > RAID_NAME_MAX_LENGTH) {
-    return NextResponse.json(
-      { error: `\`name\` exceeds ${RAID_NAME_MAX_LENGTH} characters` },
-      { status: 400 },
-    );
-  }
-
-  const name = requested?.trim() || `Raid de ${squad.name}`;
+  const name = read.name ?? `Raid de ${squad.name}`;
 
   const raid = await createRaid(name, squad.id);
   const linked = await linkSquadToRaid(squad, raid.id);
@@ -103,7 +72,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return squadResponse(linked.squad, { status: 201 });
+  return squadResponse(caller, linked.squad, { status: 201 });
 }
 
 /**
@@ -117,10 +86,10 @@ export async function POST(request: NextRequest) {
  * one message, read in the overlay of every player in every sub-squad.
  */
 export async function PATCH(request: NextRequest) {
-  const outcome = await resolveRaid();
+  const outcome = await resolveRaid(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, raid, leads } = outcome;
+  const { caller, squad, raid, leads } = outcome;
 
   if (!raid) {
     return NextResponse.json({ error: "Not in a raid" }, { status: 404 });
@@ -181,7 +150,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Raid not found" }, { status: 404 });
   }
 
-  return squadResponse(squad);
+  return squadResponse(caller, squad);
 }
 
 /**
@@ -195,11 +164,11 @@ export async function PATCH(request: NextRequest) {
  *
  * Idempotent: a squad in no raid answers the same view it would have anyway.
  */
-export async function DELETE() {
-  const outcome = await resolveCommand();
+export async function DELETE(request: NextRequest) {
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
 
   if (!commands) {
     return NextResponse.json(
@@ -212,5 +181,5 @@ export async function DELETE() {
 
   const updated = await unlinkSquadFromRaid(squad);
 
-  return squadResponse(updated ?? squad);
+  return squadResponse(caller, updated ?? squad);
 }

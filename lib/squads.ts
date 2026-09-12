@@ -21,6 +21,7 @@ import {
   type Squad,
   type SquadMember,
   type SquadMemberPatch,
+  type SquadMembership,
   type SquadRole,
 } from "@/types/squad";
 
@@ -100,6 +101,31 @@ function toSquad(doc: DbSquad): Squad {
 
 let indexesPromise: Promise<unknown> | null = null;
 
+/** Every poll of every member goes through this one. */
+const MEMBER_INDEX = { "members.userId": 1 } as const;
+
+/**
+ * The member index, and the migration it carries.
+ *
+ * It used to be unique — that was what made «one squad at a time» a fact rather
+ * than a convention. A raid's organiser may now open several squads and lead
+ * each until somebody takes it over, so the same user is legitimately listed
+ * in more than one document. Mongo refuses to *change* an index's options in
+ * place (`IndexOptionsConflict`, code 85): a database written by the earlier
+ * version still holds the unique one, which is dropped and rebuilt without the
+ * option the first time this process touches the collection.
+ */
+async function ensureMemberIndex() {
+  try {
+    await collection().createIndex(MEMBER_INDEX);
+  } catch (error) {
+    if ((error as { code?: number } | null)?.code !== 85) throw error;
+
+    await collection().dropIndex("members.userId_1");
+    await collection().createIndex(MEMBER_INDEX);
+  }
+}
+
 /**
  * Runs once per process. A failure here is not fatal but it does lower the
  * guarantees: without the indexes, the writes below stop being refused and
@@ -109,18 +135,7 @@ export async function ensureSquadIndexes() {
   if (!indexesPromise) {
     indexesPromise = Promise.all([
       collection().createIndex({ code: 1 }, { unique: true }),
-      /*
-       * Every poll of every member goes through this one — and it is unique,
-       * which is not about speed: it is what makes «one squad at a time» a fact
-       * rather than a convention the code hopes to keep. Two requests for the
-       * same user racing each other would otherwise leave them a member of two
-       * squads with no way back, since `leaveSquad` only ever finds one of them.
-       *
-       * Unique *and* multikey is fine: MongoDB de-duplicates index keys within
-       * a document, so a squad may list a member once and no other squad may
-       * list them at all.
-       */
-      collection().createIndex({ "members.userId": 1 }, { unique: true }),
+      ensureMemberIndex(),
     ]).catch((error) => {
       indexesPromise = null;
       console.warn({ error, message: "Could not create squads indexes" });
@@ -129,9 +144,6 @@ export async function ensureSquadIndexes() {
 
   return indexesPromise;
 }
-
-/** Answered when a user turns out to have joined something else in between. */
-export type Elsewhere = { refusal: "elsewhere" };
 
 function newMember(
   userId: string,
@@ -167,31 +179,81 @@ export function commandsSquad(squad: Squad, userId: string): boolean {
   );
 }
 
-export async function getSquadForUser(userId: string): Promise<Squad | null> {
-  // Ensured on the read path too, not only on writes: unlike a uniqueness
-  // constraint, `members.userId` exists for this very query, which every member
-  // runs every couple of seconds.
-  await ensureSquadIndexes();
-
-  const doc = await collection().findOne({ "members.userId": userId });
-  return doc ? toSquad(doc) : null;
+/** When this user joined a squad — the order their memberships are listed in. */
+function joinedAtOf(doc: DbSquad, userId: string): string {
+  return doc.members.find((member) => member.userId === userId)?.joinedAt ?? "";
 }
 
 /**
- * Starts a squad with its creator as leader and only member.
+ * Every squad the caller is in, longest-standing membership first.
  *
- * A user belongs to one squad at a time, so whatever they were in is left
- * first — including the squad they were leading, which is handed over on the
- * way out.
+ * One member for almost everyone, so the sort is nearly always a no-op; a
+ * raid's organiser who opened the raid's squads is the reason it exists at all.
  */
-export async function createSquad(
+export async function getSquadsForUser(userId: string): Promise<Squad[]> {
+  // Ensured on the read path too, not only on writes: `members.userId` exists
+  // for this very query, which every member runs every couple of seconds.
+  await ensureSquadIndexes();
+
+  const docs = await collection().find({ "members.userId": userId }).toArray();
+
+  return docs
+    .sort((a, b) =>
+      joinedAtOf(a, userId).localeCompare(joinedAtOf(b, userId)),
+    )
+    .map(toSquad);
+}
+
+/** What a switcher needs to know about each of them, and nothing more. */
+export function membershipsOf(squads: Squad[]): SquadMembership[] {
+  return squads.map((squad) => ({
+    id: squad.id,
+    name: squad.name,
+    code: squad.code,
+    raidId: squad.raidId,
+  }));
+}
+
+/**
+ * The squad a request means: the one it named, if the caller is in it, and
+ * otherwise the longest-standing of their memberships.
+ *
+ * The fallback is for reading. The id most likely to go stale is the one a
+ * client remembered across a poll — of a squad it has just left, or been put
+ * out of — and answering with the squad they are still in is what lets that
+ * client recover without a special case. A *write* naming a squad the caller
+ * is not in is refused by the route instead: acting on some other squad than
+ * the one asked for is not a recovery.
+ */
+export function pickSquad(squads: Squad[], squadId?: string | null): Squad | null {
+  if (squadId) {
+    const named = squads.find((squad) => squad.id === squadId);
+    if (named) return named;
+  }
+
+  return squads[0] ?? null;
+}
+
+export async function getSquadForUser(
+  userId: string,
+  squadId?: string | null,
+): Promise<Squad | null> {
+  return pickSquad(await getSquadsForUser(userId), squadId);
+}
+
+/**
+ * Writes a fresh squad document, drawing codes until one is free.
+ *
+ * The one place a squad is born, whether on its own or inside a raid: the two
+ * differ by a pointer, and everything else about a new squad — one member who
+ * leads it, the seven base roles — is the same.
+ */
+async function insertSquad(
   userId: string,
   name: string,
   memberName: string,
-): Promise<{ squad: Squad } | Elsewhere> {
-  await ensureSquadIndexes();
-  await leaveSquad(userId);
-
+  raidId: string | null,
+): Promise<Squad> {
   const now = new Date().toISOString();
 
   for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt += 1) {
@@ -203,7 +265,7 @@ export async function createSquad(
       announcements: "",
       members: [newMember(userId, memberName, now)],
       roles: BASE_SQUAD_ROLES.map((role) => ({ ...role })),
-      raidId: null,
+      raidId,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -211,26 +273,70 @@ export async function createSquad(
 
     try {
       await collection().insertOne(doc);
-      return { squad: toSquad(doc) };
+      return toSquad(doc);
     } catch (error) {
-      const duplicate = duplicateOf(error);
-      if (duplicate === null) throw error;
-
-      // Not the code: another request put this user in a squad between the
-      // `leaveSquad` above and this insert. A retry would collide again — they
-      // are somewhere else now, and only they can decide to leave it.
-      if (duplicate === "member") return { refusal: "elsewhere" };
+      // Only the code can collide now that the member index is not unique;
+      // anything else is a real failure.
+      if (duplicateOf(error) !== "code") throw error;
     }
   }
 
   throw new Error("could not allocate a free squad code");
 }
 
+/**
+ * Starts a squad with its creator as leader and only member.
+ *
+ * Starting fresh means leaving whatever they were in first — every squad,
+ * including the ones they were leading, which are handed over on the way out.
+ * Opening a squad *without* leaving is `createSquadInRaid`, which is the only
+ * way a user ends up in more than one.
+ */
+export async function createSquad(
+  userId: string,
+  name: string,
+  memberName: string,
+): Promise<Squad> {
+  await ensureSquadIndexes();
+  await leaveAllSquads(userId);
+
+  return insertSquad(userId, name, memberName, null);
+}
+
+export type CreateInRaidOutcome = { squad: Squad } | { refusal: "full" };
+
+/**
+ * Opens another squad of a raid, the caller leading it — and staying in the
+ * squad they came from.
+ *
+ * This is how a raid gets its Bravo and its Charlie before anyone is in them:
+ * the organiser opens each, hands its code out, and passes the lead on once
+ * the right person has joined. An empty squad cannot exist (the last member
+ * out deletes it), so the creator has to be its first member, which is what
+ * makes multiple memberships a thing at all.
+ *
+ * The cap is checked the same way `linkSquadToRaid` checks it: read, then
+ * written without a guard. Two organisers opening squads in the same instant
+ * can overshoot by one, which costs a scroll.
+ */
+export async function createSquadInRaid(
+  userId: string,
+  name: string,
+  memberName: string,
+  raidId: string,
+): Promise<CreateInRaidOutcome> {
+  await ensureSquadIndexes();
+
+  const current = await getSquadsOfRaid(raidId);
+  if (current.length >= RAID_MAX_SQUADS) return { refusal: "full" };
+
+  return { squad: await insertSquad(userId, name, memberName, raidId) };
+}
+
 export type JoinOutcome =
   | { squad: Squad }
   | { refusal: "not-found" }
-  | { refusal: "full" }
-  | Elsewhere;
+  | { refusal: "full" };
 
 /** Adds the caller to the squad holding `code`, leaving whatever they were in. */
 export async function joinSquad(
@@ -251,51 +357,39 @@ export async function joinSquad(
 
   if (squad.members.length >= SQUAD_MAX_MEMBERS) return { refusal: "full" };
 
-  await leaveSquad(userId);
+  await leaveAllSquads(userId);
 
   const now = new Date().toISOString();
 
-  let updated;
-  try {
-    updated = await collection().findOneAndUpdate(
-      {
-        _id: squad._id,
-        /*
-         * Everything the three reads above established, re-established inside
-         * the write, because each of them is a moment old:
-         *
-         * - not a member yet. The unique index does not help here: MongoDB
-         *   de-duplicates keys within a document, so nothing but this guard
-         *   stops two requests for the same user from pushing two rows into the
-         *   same squad;
-         * - not full. Two people can accept the same invitation at once;
-         * - not empty. A squad with no members is one the last leaver is in the
-         *   middle of removing; joining it would produce a squad whose leader is
-         *   somebody who is gone, which nothing can put right.
-         */
-        "members.userId": { $ne: userId },
-        $expr: {
-          $and: [
-            { $lt: [{ $size: "$members" }, SQUAD_MAX_MEMBERS] },
-            { $gt: [{ $size: "$members" }, 0] },
-          ],
-        },
+  const updated = await collection().findOneAndUpdate(
+    {
+      _id: squad._id,
+      /*
+       * Everything the three reads above established, re-established inside
+       * the write, because each of them is a moment old:
+       *
+       * - not a member yet. Nothing but this guard stops two requests for the
+       *   same user from pushing two rows into the same squad;
+       * - not full. Two people can accept the same invitation at once;
+       * - not empty. A squad with no members is one the last leaver is in the
+       *   middle of removing; joining it would produce a squad whose leader is
+       *   somebody who is gone, which nothing can put right.
+       */
+      "members.userId": { $ne: userId },
+      $expr: {
+        $and: [
+          { $lt: [{ $size: "$members" }, SQUAD_MAX_MEMBERS] },
+          { $gt: [{ $size: "$members" }, 0] },
+        ],
       },
-      {
-        $push: { members: newMember(userId, memberName, now) },
-        $set: { updatedAt: now },
-        $inc: { version: 1 },
-      },
-      { returnDocument: "after" },
-    );
-  } catch (error) {
-    if (duplicateOf(error) !== "member") throw error;
-
-    // The unique index caught a second request for this user landing between
-    // the leave above and this push. Refused rather than papered over: they are
-    // in a squad, just not this one.
-    return { refusal: "elsewhere" };
-  }
+    },
+    {
+      $push: { members: newMember(userId, memberName, now) },
+      $set: { updatedAt: now },
+      $inc: { version: 1 },
+    },
+    { returnDocument: "after" },
+  );
 
   if (updated) return { squad: toSquad(updated) };
 
@@ -317,15 +411,41 @@ export async function joinSquad(
 }
 
 /**
- * Takes the caller out of their squad.
+ * Takes the caller out of every squad they are in — what starting or joining
+ * a squad afresh means.
+ *
+ * One at a time rather than one query: each departure arranges its own
+ * succession, and the raid each squad is in has its own to arrange.
+ */
+export async function leaveAllSquads(userId: string): Promise<void> {
+  const docs = await collection()
+    .find({ "members.userId": userId })
+    .project<{ _id: ObjectId }>({ _id: 1 })
+    .toArray();
+
+  for (const doc of docs) {
+    await leaveSquad(userId, doc._id.toString());
+  }
+}
+
+/**
+ * Takes the caller out of one squad.
  *
  * The squad outlives its founder: when the leader is the one leaving, the role
  * passes to the longest-standing member left — a leader whose game crashed
  * should not take the squad down with them. The document is only deleted when
  * the last member walks out.
+ *
+ * Idempotent: a squad the caller is not in, or that does not exist, is left
+ * alone.
  */
-export async function leaveSquad(userId: string): Promise<void> {
-  const squad = await collection().findOne({ "members.userId": userId });
+export async function leaveSquad(userId: string, squadId: string): Promise<void> {
+  if (!ObjectId.isValid(squadId)) return;
+
+  const squad = await collection().findOne({
+    _id: new ObjectId(squadId),
+    "members.userId": userId,
+  });
   if (!squad) return;
 
   if (squad.members.length === 1) {

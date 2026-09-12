@@ -2,9 +2,12 @@
  * A squad: one team in the middle of an operation, shared between its members
  * and read by the desktop overlay several times a minute.
  *
- * A user belongs to at most one squad, which is what lets the API leave every
- * identifier implicit — «my squad» is resolved from the session, so no request
- * ever names a squad it has no business touching.
+ * A user is normally in one squad, and «my squad» is resolved from the session:
+ * no request names a squad it has no business touching. They may be in several
+ * — a raid's organiser opens the extra squads of the raid and leads each until
+ * somebody takes it over — in which case a request says which one it means
+ * with `?squad=<id>`, and the longest-standing membership stands in when it
+ * does not. Every route still refuses a squad the caller is not a member of.
  *
  * Squads group into a **raid**: several squads under one announcement, each
  * keeping its own code, leader and roles. A squad belongs to at most one raid,
@@ -214,14 +217,32 @@ export interface RaidView extends Raid {
 }
 
 /**
+ * One of the squads the caller is in, as much of it as a switcher needs.
+ *
+ * Not the whole squad: a raid's organiser may be in half a dozen, and every
+ * member polls this view every couple of seconds. The raid's own `squads`
+ * already carry the full rows of the ones that matter on screen.
+ */
+export interface SquadMembership {
+  id: string;
+  name: string;
+  code: string;
+  raidId: string | null;
+}
+
+/**
  * What every squad route answers: where the caller stands, in one object.
  *
- * `raid` is present whenever the caller's squad is linked into one, and carries
- * every sub-squad — the overlay draws the whole raid from a single poll.
+ * `squad` is the one the request named — or, when it named none, the caller's
+ * longest-standing membership. `raid` is present whenever that squad is linked
+ * into one, and carries every sub-squad — the overlay draws the whole raid from
+ * a single poll. `memberships` lists every squad the caller is in, longest-
+ * standing first, so a client can offer to switch between them.
  */
 export interface SquadView {
   squad: Squad | null;
   raid: RaidView | null;
+  memberships: SquadMembership[];
 }
 
 /**

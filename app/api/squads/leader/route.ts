@@ -20,10 +20,10 @@ import { readBody, resolveCommand, squadResponse } from "../caller";
  * `transferLeadership`.
  */
 export async function PATCH(request: NextRequest) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
 
   if (!commands) {
     return NextResponse.json(
@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest) {
   // Already in charge: nothing to do, and answering the squad rather than an
   // error keeps a double click from looking like a failure.
   if (userId === squad.leaderId) {
-    return squadResponse(squad);
+    return squadResponse(caller, squad);
   }
 
   if (!squad.members.some((member) => member.userId === userId)) {
@@ -72,5 +72,5 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  return squadResponse(updated);
+  return squadResponse(caller, updated);
 }

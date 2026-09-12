@@ -31,10 +31,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ roleId: string }> },
 ) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
   const { roleId } = await params;
 
   if (!commands) {
@@ -94,7 +94,7 @@ export async function PATCH(
     );
   }
 
-  return squadResponse(updated);
+  return squadResponse(caller, updated);
 }
 
 /**
@@ -107,13 +107,13 @@ export async function PATCH(
  * nothing to leave alone.
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ roleId: string }> },
 ) {
-  const outcome = await resolveCommand();
+  const outcome = await resolveCommand(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { squad, commands } = outcome;
+  const { caller, squad, commands } = outcome;
   const { roleId } = await params;
 
   if (!commands) {
@@ -150,5 +150,5 @@ export async function DELETE(
     );
   }
 
-  return squadResponse(updated);
+  return squadResponse(caller, updated);
 }
