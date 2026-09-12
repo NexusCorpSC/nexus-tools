@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { MarkdownContent } from "@/components/markdown-content";
 import { cn } from "@/lib/utils";
+import { useEventStream } from "@/lib/use-event-stream";
 import { saveNoteAction } from "@/app/notes/actions";
 import { Note, NOTE_CONTENT_MAX_LENGTH } from "@/types/notes";
 
@@ -124,11 +125,32 @@ export function NoteEditor({
   // Keep the latest values around so pending saves always flush current content
   const contentRef = useRef(content);
   const isDirtyRef = useRef(isDirty);
+  const statusRef = useRef(status);
 
   useEffect(() => {
     contentRef.current = content;
     isDirtyRef.current = isDirty;
-  }, [content, isDirty]);
+    statusRef.current = status;
+  }, [content, isDirty, status]);
+
+  // The note as written elsewhere — the desktop app, another tab — arrives
+  // over the event stream. Adopted, but never over edits that are unsaved or
+  // still being written: those would vanish under the user without a trace.
+  // Our own save comes back this way too, identical to what `save` already
+  // set, and changes nothing.
+  const onNoteEvent = useCallback((_topic: unknown, data: unknown) => {
+    const next = data as Note;
+    if (isDirtyRef.current || statusRef.current === "saving") return;
+
+    setNote((shown) =>
+      shown.content === next.content && shown.updatedAt === next.updatedAt
+        ? shown
+        : next,
+    );
+    setContent((shown) => (shown === next.content ? shown : next.content));
+  }, []);
+
+  useEventStream({ topics: ["note"], onEvent: onNoteEvent });
 
   useEffect(() => {
     if (!isDirty) {
