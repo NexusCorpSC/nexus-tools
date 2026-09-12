@@ -103,6 +103,14 @@ const CHANGE_STREAM_NEEDS_REPLICA_SET = 40573;
 /** The oplog no longer holds the resume point: start over from now. */
 const CHANGE_STREAM_HISTORY_LOST = 286;
 
+/**
+ * How many times in a row a change stream may fail to open before the hub
+ * gives up on it for the process. A cluster that refuses them for a reason
+ * other than «not a replica set» — a tier, a role — would otherwise be
+ * retried forever while every stream on this instance goes quiet.
+ */
+const CHANGE_STREAM_MAX_FAILURES = 3;
+
 const HUB_KEY = Symbol.for("nexus.events.hub");
 
 function newHub(): Hub {
@@ -230,7 +238,12 @@ export function subscribe(request: SubscriptionRequest): () => void {
 
   let entry = state.users.get(sub.userId);
   if (!entry) {
-    entry = { subs: new Set(), dirty: new Set(), timer: null, refreshing: false };
+    entry = {
+      subs: new Set(),
+      dirty: new Set(),
+      timer: null,
+      refreshing: false,
+    };
     state.users.set(sub.userId, entry);
   }
   entry.subs.add(sub);
@@ -321,7 +334,11 @@ async function refresh(state: Hub, userId: string) {
               sub.send(topic, snapshot);
             }
           } catch (error) {
-            console.warn({ error, topic, message: "Event feed: could not re-read a view" });
+            console.warn({
+              error,
+              topic,
+              message: "Event feed: could not re-read a view",
+            });
           }
         }
       }
@@ -351,9 +368,8 @@ function dispatch(state: Hub, change: ProjectedChange) {
 }
 
 function openWatcher(state: Hub) {
-  state.watcher = state.changeStreamsUnavailable
-    ? openTicker(state)
-    : openChangeStream(state);
+  if (state.changeStreamsUnavailable) openTicker(state);
+  else openChangeStream(state);
 }
 
 function closeWatcher(state: Hub) {
@@ -381,7 +397,8 @@ function sleep(ms: number): Promise<void> {
 function changePipeline(): Document[] {
   const collections = new Set<string>();
   for (const topic of topicNames()) {
-    for (const collection of TOPICS[topic].collections) collections.add(collection);
+    for (const collection of TOPICS[topic].collections)
+      collections.add(collection);
   }
 
   return [
@@ -409,7 +426,16 @@ function project(event: Document): ProjectedChange | null {
   };
 }
 
-function openChangeStream(state: Hub): Watcher {
+/**
+ * Opens the change stream and makes it the hub's watcher.
+ *
+ * The watcher is put on the hub *here*, before the loop starts, and not by
+ * the caller once this returns: the loop checks that it is still the one on
+ * record before every attempt, and its first check runs synchronously — an
+ * assignment made after the return would come too late, and the loop would
+ * quit before opening anything, without a word.
+ */
+function openChangeStream(state: Hub) {
   let closed = false;
   let stream: ChangeStream | null = null;
 
@@ -420,20 +446,26 @@ function openChangeStream(state: Hub): Watcher {
     },
   };
 
+  state.watcher = watcher;
+
   void (async () => {
     let resumeAfter: ResumeToken | undefined;
     let delay = 1_000;
+    let failures = 0;
 
     while (!closed && state.watcher === watcher) {
-      stream = db.db().watch(changePipeline(), {
-        fullDocument: "updateLookup",
-        ...(resumeAfter ? { resumeAfter } : {}),
-      });
-
       try {
+        // Inside the `try`: a cursor that cannot even be built is a failure
+        // like any other, counted and logged, not an unhandled rejection.
+        stream = db.db().watch(changePipeline(), {
+          fullDocument: "updateLookup",
+          ...(resumeAfter ? { resumeAfter } : {}),
+        });
+
         for await (const event of stream) {
           resumeAfter = stream.resumeToken;
           delay = 1_000;
+          failures = 0;
 
           const change = project(event as Document);
           if (change) dispatch(state, change);
@@ -441,35 +473,60 @@ function openChangeStream(state: Hub): Watcher {
       } catch (error) {
         if (closed || state.watcher !== watcher) break;
 
-        if (needsReplicaSet(error)) {
-          console.warn(
-            "Event feed: change streams need a replica set; reading the database every second instead",
-          );
-          state.changeStreamsUnavailable = true;
-          state.watcher = openTicker(state);
-          break;
-        }
-
         if (mongoCode(error) === CHANGE_STREAM_HISTORY_LOST) {
           resumeAfter = undefined;
           markAllDirty(state);
-        } else {
-          console.warn({ error, message: "Event feed: change stream failed, reopening" });
+          continue;
         }
+
+        failures += 1;
+
+        if (needsReplicaSet(error) || failures >= CHANGE_STREAM_MAX_FAILURES) {
+          console.warn({
+            code: mongoCode(error),
+            message: `Event feed: change streams unavailable (${
+              (error as { message?: string } | null)?.message ?? "unknown error"
+            }); reading the database every second instead`,
+          });
+          state.changeStreamsUnavailable = true;
+          openTicker(state);
+          markAllDirty(state);
+          break;
+        }
+
+        console.warn({
+          code: mongoCode(error),
+          message: `Event feed: change stream failed (${
+            (error as { message?: string } | null)?.message ?? "unknown error"
+          }), reopening`,
+        });
 
         await sleep(delay);
         delay = Math.min(delay * 2, 10_000);
       } finally {
-        await stream.close().catch(() => undefined);
+        await stream?.close().catch(() => undefined);
         stream = null;
       }
     }
-  })();
-
-  return watcher;
+  })().catch((error: unknown) => {
+    // The loop itself failed, outside what it retries — a throw from the
+    // fallback path, say. Silence is the one outcome that must not happen:
+    // log it, and hand over to the ticker if this watcher is still the hub's.
+    console.error({
+      code: mongoCode(error),
+      message: `Event feed: change stream loop crashed (${
+        (error as { message?: string } | null)?.message ?? "unknown error"
+      }); reading the database every second instead`,
+    });
+    if (closed || state.watcher !== watcher) return;
+    state.changeStreamsUnavailable = true;
+    openTicker(state);
+    markAllDirty(state);
+  });
 }
 
-function openTicker(state: Hub): Watcher {
+/** Opens the ticker and makes it the hub's watcher. */
+function openTicker(state: Hub) {
   let ticking = false;
 
   const timer = setInterval(() => {
@@ -493,7 +550,7 @@ function openTicker(state: Hub): Watcher {
     });
   }, TICK_MS);
 
-  return {
+  state.watcher = {
     close() {
       clearInterval(timer);
     },

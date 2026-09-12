@@ -167,7 +167,10 @@ Un change stream demande un replica set. Quand la base n'en est pas un (le
 disant, et le concentrateur se rabat pour la durée du processus sur un
 **ticker** : une lecture projetée par sujet et par seconde pour les utilisateurs
 connectés, comparée à la précédente. Plus lent d'une seconde, mais toujours une
-requête par sujet par seconde quel que soit le nombre de connectés.
+requête par sujet par seconde quel que soit le nombre de connectés. Un curseur
+qui échoue trois fois de suite pour une autre raison — un palier, un rôle —
+mène au même repli, avec le code et le message de l'erreur dans les journaux,
+plutôt qu'à des réessais sans fin pendant lesquels rien ne serait poussé.
 
 Le concentrateur s'ouvre avec le premier abonné et se ferme cinq secondes après
 le dernier : une instance qui ne sert que des écritures n'ouvre jamais de
