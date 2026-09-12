@@ -238,7 +238,12 @@ export function subscribe(request: SubscriptionRequest): () => void {
 
   let entry = state.users.get(sub.userId);
   if (!entry) {
-    entry = { subs: new Set(), dirty: new Set(), timer: null, refreshing: false };
+    entry = {
+      subs: new Set(),
+      dirty: new Set(),
+      timer: null,
+      refreshing: false,
+    };
     state.users.set(sub.userId, entry);
   }
   entry.subs.add(sub);
@@ -329,7 +334,11 @@ async function refresh(state: Hub, userId: string) {
               sub.send(topic, snapshot);
             }
           } catch (error) {
-            console.warn({ error, topic, message: "Event feed: could not re-read a view" });
+            console.warn({
+              error,
+              topic,
+              message: "Event feed: could not re-read a view",
+            });
           }
         }
       }
@@ -388,7 +397,8 @@ function sleep(ms: number): Promise<void> {
 function changePipeline(): Document[] {
   const collections = new Set<string>();
   for (const topic of topicNames()) {
-    for (const collection of TOPICS[topic].collections) collections.add(collection);
+    for (const collection of TOPICS[topic].collections)
+      collections.add(collection);
   }
 
   return [
@@ -444,12 +454,14 @@ function openChangeStream(state: Hub) {
     let failures = 0;
 
     while (!closed && state.watcher === watcher) {
-      stream = db.db().watch(changePipeline(), {
-        fullDocument: "updateLookup",
-        ...(resumeAfter ? { resumeAfter } : {}),
-      });
-
       try {
+        // Inside the `try`: a cursor that cannot even be built is a failure
+        // like any other, counted and logged, not an unhandled rejection.
+        stream = db.db().watch(changePipeline(), {
+          fullDocument: "updateLookup",
+          ...(resumeAfter ? { resumeAfter } : {}),
+        });
+
         for await (const event of stream) {
           resumeAfter = stream.resumeToken;
           delay = 1_000;
@@ -492,11 +504,25 @@ function openChangeStream(state: Hub) {
         await sleep(delay);
         delay = Math.min(delay * 2, 10_000);
       } finally {
-        await stream.close().catch(() => undefined);
+        await stream?.close().catch(() => undefined);
         stream = null;
       }
     }
-  })();
+  })().catch((error: unknown) => {
+    // The loop itself failed, outside what it retries — a throw from the
+    // fallback path, say. Silence is the one outcome that must not happen:
+    // log it, and hand over to the ticker if this watcher is still the hub's.
+    console.error({
+      code: mongoCode(error),
+      message: `Event feed: change stream loop crashed (${
+        (error as { message?: string } | null)?.message ?? "unknown error"
+      }); reading the database every second instead`,
+    });
+    if (closed || state.watcher !== watcher) return;
+    state.changeStreamsUnavailable = true;
+    openTicker(state);
+    markAllDirty(state);
+  });
 }
 
 /** Opens the ticker and makes it the hub's watcher. */
