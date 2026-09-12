@@ -6,6 +6,7 @@ import {
   Check,
   ChevronsUpDown,
   Flag,
+  ListChecks,
   Loader2,
   LogOut,
   Megaphone,
@@ -67,7 +68,7 @@ export function SquadBoard({
 
   /** The squad the page looks at, `null` for the one the API picks. */
   const [current, setCurrent] = useState<string | null>(null);
-  const { view, run, busy, offline } = useSquadView(initialView, current);
+  const { view, run, busy, offline } = useSquadView(initialView, current, userId);
 
   /** `null` is «whatever fits»: a squad in a raid opens on the raid. */
   const [pinned, setPinned] = useState<"squad" | "raid" | null>(null);
@@ -177,6 +178,18 @@ export function SquadBoard({
           <RaidBoard raid={raid} userId={userId} actionsFor={actionsFor} />
 
           <Footer counts={tally(raid.squads)}>
+            {leads ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                onClick={() => void run(() => squadApi.raidReadyCheck(squad.id))}
+              >
+                <ListChecks />
+                {t("raidReadyCheck")}
+              </Button>
+            ) : null}
+
             <Button variant="secondary" size="sm" onClick={() => setSheet({ kind: "raid" })}>
               <Flag />
               {t("manageRaid")}
@@ -212,6 +225,18 @@ export function SquadBoard({
           />
 
           <Footer counts={tally([squad])}>
+            {commands ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                onClick={() => void run(() => squadApi.readyCheck(squad.id))}
+              >
+                <ListChecks />
+                {t("readyCheck")}
+              </Button>
+            ) : null}
+
             <Button variant="secondary" size="sm" onClick={() => setSheet({ kind: "raid" })}>
               <Flag />
               {raid ? t("manageRaid") : t("createRaid")}

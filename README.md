@@ -92,6 +92,18 @@ toutes celles dont il est membre se manipulent. Côté API, chaque route accepte
 `?squad=<id>` pour dire laquelle elle vise ; sans lui, la plus ancienne des
 appartenances.
 
+**Ready check.** Le chef d'une escouade ou un de ses lieutenants demande à
+l'escouade de se déclarer prête (`POST /api/squads/ready-check`) ; celui qui
+commande l'escouade meneuse le demande à tout le raid
+(`POST /api/squads/raid/ready-check`). Dans les deux cas, chaque membre
+concerné repasse « non prêt » dans la même écriture que celle qui pose le
+marqueur (`readyCheck` : un identifiant frais, l'heure, et qui l'a demandé)
+sur l'escouade ou sur le raid. Rien d'autre n'est stocké : qui a répondu, c'est
+la liste elle-même. Le flux d'événements porte la vue mise à jour à chacun ;
+un client qui y voit un `readyCheck` qu'il ne connaissait pas affiche une
+notification avec un bouton « Prêt », qui n'est rien d'autre que le `PATCH` de
+sa propre ligne.
+
 ## Flux d'événements
 
 `GET /api/events` tient **une connexion par client** (Server-Sent Events) et y

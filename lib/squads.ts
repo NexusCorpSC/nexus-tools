@@ -7,12 +7,18 @@ import {
   newCode,
   normalizeCode,
 } from "@/lib/join-codes";
-import { deleteRaid, getRaid, setRaidLeadSquad } from "@/lib/raids";
+import {
+  deleteRaid,
+  getRaid,
+  setRaidLeadSquad,
+  setRaidReadyCheck,
+} from "@/lib/raids";
 import {
   BASE_SQUAD_ROLES,
   RAID_MAX_SQUADS,
   SQUAD_MAX_MEMBERS,
   type RaidView,
+  type ReadyCheck,
   type Squad,
   type SquadMember,
   type SquadMemberPatch,
@@ -52,6 +58,8 @@ export interface DbSquad {
   roles?: SquadRole[];
   /** Absent or `null` both mean the same: this squad runs alone. */
   raidId?: string | null;
+  /** Absent on every squad created before ready checks existed. */
+  readyCheck?: ReadyCheck | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -94,9 +102,80 @@ function toSquad(doc: DbSquad): Squad {
     })),
     roles: doc.roles ?? BASE_SQUAD_ROLES.map((role) => ({ ...role })),
     raidId: doc.raidId ?? null,
+    readyCheck: doc.readyCheck ?? null,
     version: doc.version,
     updatedAt: doc.updatedAt,
   };
+}
+
+/** A fresh check, stamped now and signed by whoever asked. */
+function newReadyCheck(requestedBy: string): ReadyCheck {
+  return {
+    id: new ObjectId().toString(),
+    requestedAt: new Date().toISOString(),
+    requestedBy,
+  };
+}
+
+/**
+ * «Everybody, say you are ready», to one squad.
+ *
+ * Every member's `ready` drops in the same write that stamps the check, so no
+ * read can see the check without the reset — a member marked ready from before
+ * would look like an answer to a question they never heard.
+ */
+export async function requestSquadReadyCheck(
+  squadId: string,
+  requestedBy: string,
+): Promise<Squad | null> {
+  if (!ObjectId.isValid(squadId)) return null;
+
+  const readyCheck = newReadyCheck(requestedBy);
+
+  const updated = await collection().findOneAndUpdate(
+    { _id: new ObjectId(squadId) },
+    {
+      $set: {
+        "members.$[].ready": false,
+        readyCheck,
+        updatedAt: readyCheck.requestedAt,
+      },
+      $inc: { version: 1 },
+    },
+    { returnDocument: "after" },
+  );
+
+  return updated ? toSquad(updated) : null;
+}
+
+/**
+ * The same, to every squad of a raid at once.
+ *
+ * The check is stamped on the raid, not on each squad: the squads' own
+ * `readyCheck` stays what it was, so a client tells a raid check from a squad
+ * one by where the new id sits. Every squad's version is bumped all the same,
+ * which is what carries the reset to every member's stream.
+ */
+export async function requestRaidReadyCheck(
+  raidId: string,
+  requestedBy: string,
+): Promise<RaidView | null> {
+  if (!ObjectId.isValid(raidId)) return null;
+
+  const readyCheck = newReadyCheck(requestedBy);
+
+  await collection().updateMany(
+    { raidId },
+    {
+      $set: { "members.$[].ready": false, updatedAt: readyCheck.requestedAt },
+      $inc: { version: 1 },
+    },
+  );
+
+  const raid = await setRaidReadyCheck(raidId, readyCheck);
+  if (!raid) return null;
+
+  return { ...raid, squads: await getSquadsOfRaid(raidId) };
 }
 
 function newMember(

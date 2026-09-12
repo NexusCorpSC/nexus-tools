@@ -234,6 +234,22 @@ export interface SquadMember {
   lieutenant: boolean;
 }
 
+/**
+ * «Everybody, say you are ready»: the last one asked, so a client can tell a
+ * new one from what it already showed.
+ *
+ * Asking resets every member's `ready` and stamps this; a member answers by
+ * setting their own `ready` back. Nothing else is stored — who has answered
+ * is the roster itself, which the overlay already draws.
+ */
+export interface ReadyCheck {
+  /** Fresh on every request: two checks a second apart are two checks. */
+  id: string;
+  requestedAt: string;
+  /** Who asked, by name — the member row carries it, and that is what a toast says. */
+  requestedBy: string;
+}
+
 export interface Squad {
   id: string;
   name: string;
@@ -245,6 +261,8 @@ export interface Squad {
   roles: SquadRole[];
   /** The raid this squad was linked into, or `null` when it runs alone. */
   raidId: string | null;
+  /** The last ready check asked of this squad alone, `null` when none ever was. */
+  readyCheck: ReadyCheck | null;
   /**
    * Bumped on every write. Clients use it to order what the event stream
    * pushes against what their own writes answer: a view carrying a smaller
@@ -276,6 +294,8 @@ export interface Raid {
    * off, exactly as a squad survives its leader.
    */
   leadSquadId: string;
+  /** The last ready check asked of the whole raid, `null` when none ever was. */
+  readyCheck: ReadyCheck | null;
   updatedAt: string;
 }
 

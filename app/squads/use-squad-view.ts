@@ -1,11 +1,20 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import type { Squad, SquadView } from "@/types/squad";
 import { useEventStream } from "@/lib/use-event-stream";
+import { squadApi } from "./api";
+
+/** A ready check waits for an answer: long enough to notice, not forever. */
+const READY_CHECK_TOAST_MS = 60_000;
+
+type Run = (
+  write: () => Promise<SquadView>,
+  options?: { then?: (view: SquadView) => void },
+) => Promise<boolean>;
 
 /**
  * The squad, kept fresh by the event stream, and the one way to change it.
@@ -28,12 +37,32 @@ import { useEventStream } from "@/lib/use-event-stream";
  * toggling a row of the Bravo they opened — and answer with Bravo as `squad`;
  * the view is then re-centred on the squad the page was showing rather than
  * switched under the reader's thumb.
+ *
+ * `userId` is the reader: a ready check pushed for the squad or the raid on
+ * screen becomes a toast whose «Prêt» button writes their own row.
  */
-export function useSquadView(initial: SquadView, current: string | null) {
+export function useSquadView(
+  initial: SquadView,
+  current: string | null,
+  userId: string,
+) {
   const t = useTranslations("Squads");
   const [view, setView] = useState<SquadView>(initial);
   const [writing, setWriting] = useState(0);
   const writingRef = useRef(0);
+
+  // What is on screen, readable outside a render: a push is compared with it
+  // before it replaces it, and a toast is raised from that comparison — which
+  // is a side effect, and has no place inside a state updater.
+  const viewRef = useRef(view);
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+
+  const commit = useCallback((next: SquadView) => {
+    viewRef.current = next;
+    setView(next);
+  }, []);
 
   const recentre = useCallback(
     (next: SquadView, shown: Squad | null): SquadView => {
@@ -66,41 +95,82 @@ export function useSquadView(initial: SquadView, current: string | null) {
   /** The last push that arrived while a write was in flight. */
   const held = useRef<SquadView | null>(null);
 
-  const onEvent = useCallback(
-    (_topic: unknown, data: unknown) => {
-      const next = data as SquadView;
+  // `run` answers a ready check, and a ready check is noticed by applying a
+  // push, which `run` also does once a write settles: the two reach each
+  // other through refs rather than through each other's definitions.
+  const runRef = useRef<Run | null>(null);
+  const applyRef = useRef<(next: SquadView) => void>(() => undefined);
 
-      if (writingRef.current > 0) {
-        held.current = next;
-        return;
+  /**
+   * A ready check the push carries and the screen did not: a toast, with the
+   * one answer it asks for. The squad's own, or the raid's — told apart by
+   * where the new id sits. Our own request lands through `run` first, so the
+   * push that echoes it finds the id already known.
+   */
+  const noticeReadyCheck = useCallback(
+    (shown: SquadView, next: SquadView) => {
+      const squad = next.squad;
+      if (!squad || shown.squad?.id !== squad.id) return;
+
+      const answer = () =>
+        void runRef.current?.(() =>
+          squadApi.patchMember(squad.id, userId, { ready: true }),
+        );
+
+      const squadCheck = squad.readyCheck;
+      if (squadCheck && squadCheck.id !== shown.squad?.readyCheck?.id) {
+        toast(t("readyCheckTitle", { name: squad.name }), {
+          description: t("readyCheckBody", { by: squadCheck.requestedBy }),
+          duration: READY_CHECK_TOAST_MS,
+          action: { label: t("ready"), onClick: answer },
+        });
       }
 
-      setView((shown) => merge(next, shown));
+      const raidCheck = next.raid?.readyCheck;
+      if (
+        next.raid &&
+        raidCheck &&
+        shown.raid?.id === next.raid.id &&
+        raidCheck.id !== shown.raid.readyCheck?.id
+      ) {
+        toast(t("readyCheckTitle", { name: next.raid.name }), {
+          description: t("readyCheckBody", { by: raidCheck.requestedBy }),
+          duration: READY_CHECK_TOAST_MS,
+          action: { label: t("ready"), onClick: answer },
+        });
+      }
     },
-    [merge],
+    [t, userId],
   );
 
-  const { offline } = useEventStream({
-    topics: ["squad"],
-    squad: current,
-    onEvent,
-  });
+  /**
+   * What the stream delivered, applied — and read for what it announces.
+   * Read as merged, not as pushed: a view re-centred on the squad on screen is
+   * still a new view, and what it announces is what the screen now shows.
+   */
+  const apply = useCallback(
+    (next: SquadView) => {
+      const shown = viewRef.current;
+      const merged = merge(next, shown);
+      if (merged !== shown) noticeReadyCheck(shown, merged);
+      commit(merged);
+    },
+    [commit, merge, noticeReadyCheck],
+  );
+  applyRef.current = apply;
 
   /**
    * One write. Errors are shown and swallowed: the row keeps its shape, and
    * the next push says what the server thinks.
    */
-  const run = useCallback(
-    async (
-      write: () => Promise<SquadView>,
-      options?: { then?: (view: SquadView) => void },
-    ): Promise<boolean> => {
+  const run = useCallback<Run>(
+    async (write, options) => {
       writingRef.current += 1;
       setWriting((count) => count + 1);
 
       try {
         const next = await write();
-        setView((shown) => merge(next, shown));
+        commit(merge(next, viewRef.current));
         options?.then?.(next);
         return true;
       } catch (error) {
@@ -115,12 +185,33 @@ export function useSquadView(initial: SquadView, current: string | null) {
         if (writingRef.current === 0 && held.current) {
           const pushed = held.current;
           held.current = null;
-          setView((shown) => merge(pushed, shown));
+          applyRef.current(pushed);
         }
       }
     },
-    [merge, t],
+    [commit, merge, t],
   );
+  runRef.current = run;
+
+  const onEvent = useCallback(
+    (_topic: unknown, data: unknown) => {
+      const next = data as SquadView;
+
+      if (writingRef.current > 0) {
+        held.current = next;
+        return;
+      }
+
+      apply(next);
+    },
+    [apply],
+  );
+
+  const { offline } = useEventStream({
+    topics: ["squad"],
+    squad: current,
+    onEvent,
+  });
 
   return { view, run, busy: writing > 0, offline };
 }

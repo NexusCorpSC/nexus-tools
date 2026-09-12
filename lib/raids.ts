@@ -2,7 +2,7 @@ import "server-only";
 import { ObjectId } from "mongodb";
 import db from "@/lib/db";
 import { CODE_ATTEMPTS, duplicateOf, newCode, normalizeCode } from "@/lib/join-codes";
-import { RAID_NAME_MAX_LENGTH, type Raid } from "@/types/squad";
+import { RAID_NAME_MAX_LENGTH, type Raid, type ReadyCheck } from "@/types/squad";
 
 /**
  * Raids, stored one document per raid — and nothing else.
@@ -21,6 +21,8 @@ export interface DbRaid {
   code: string;
   announcement: string;
   leadSquadId: string;
+  /** Absent on every raid created before ready checks existed. */
+  readyCheck?: ReadyCheck | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +39,7 @@ function toRaid(doc: DbRaid): Raid {
     code: doc.code,
     announcement: doc.announcement,
     leadSquadId: doc.leadSquadId,
+    readyCheck: doc.readyCheck ?? null,
     updatedAt: doc.updatedAt,
   };
 }
@@ -105,6 +108,25 @@ export async function updateRaid(
   const updated = await collection().findOneAndUpdate(
     { _id: new ObjectId(raidId) },
     { $set: set },
+    { returnDocument: "after" },
+  );
+
+  return updated ? toRaid(updated) : null;
+}
+
+/**
+ * Stamps the raid with a ready check. Resetting the members is the squads'
+ * business (`lib/squads.ts`, which calls this): a raid has no roster.
+ */
+export async function setRaidReadyCheck(
+  raidId: string,
+  readyCheck: ReadyCheck,
+): Promise<Raid | null> {
+  if (!ObjectId.isValid(raidId)) return null;
+
+  const updated = await collection().findOneAndUpdate(
+    { _id: new ObjectId(raidId) },
+    { $set: { readyCheck, updatedAt: readyCheck.requestedAt } },
     { returnDocument: "after" },
   );
 
