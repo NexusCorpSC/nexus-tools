@@ -10,7 +10,8 @@ import { NOTE_CONTENT_MAX_LENGTH } from "@/types/notes";
  * GET /api/notes
  * Returns the scratch pad of the authenticated user.
  * Mirrors `getNoteAction`, which server components use, so API clients
- * (desktop app) can read the same note.
+ * (desktop app) can read the same note. Every later revision is pushed by
+ * `GET /api/events` (topic `note`).
  */
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });

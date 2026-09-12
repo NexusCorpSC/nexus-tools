@@ -1,22 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import type { Squad, SquadView } from "@/types/squad";
-import { squadApi } from "./api";
-
-/** How often the view is re-read while the page is on screen. */
-const POLL_INTERVAL = 2_000;
+import { useEventStream } from "@/lib/use-event-stream";
 
 /**
- * The squad, kept as fresh as polling allows, and the one way to change it.
+ * The squad, kept fresh by the event stream, and the one way to change it.
  *
- * Polled only while the tab is visible — a phone in a pocket has no business
- * asking every two seconds — and never while a write is in flight, so an
- * answer sent before a tap cannot land after it. Every write answers the
- * whole view, which then replaces what was on screen.
+ * The view arrives over `/api/events`: a snapshot when the stream opens, then
+ * one every time a squad or raid the reader depends on is written. Every write
+ * answers the whole view too, which then replaces what was on screen.
+ *
+ * Two orderings have to hold between the two sources:
+ *
+ * - a push is never applied while a write is in flight — it is *held*, and the
+ *   last one held is applied once the write's own answer has landed — so an
+ *   answer sent before a tap cannot land after it;
+ * - a push older than what is on screen is dropped: the squad's `version`
+ *   grows with every write, and a view that carries a smaller one for the same
+ *   squad was read before something the screen already shows.
  *
  * `current` is the squad the page chose to look at, `null` for the one the
  * API picks. A write may act on *another* squad of the raid — an organiser
@@ -29,7 +34,6 @@ export function useSquadView(initial: SquadView, current: string | null) {
   const [view, setView] = useState<SquadView>(initial);
   const [writing, setWriting] = useState(0);
   const writingRef = useRef(0);
-  const [offline, setOffline] = useState(false);
 
   const recentre = useCallback(
     (next: SquadView, shown: Squad | null): SquadView => {
@@ -42,72 +46,49 @@ export function useSquadView(initial: SquadView, current: string | null) {
     [current],
   );
 
-  // The poll, with the answer for a squad no longer chosen thrown away: the
-  // reader switched while it was on the wire.
-  useEffect(() => {
-    let gone = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    async function poll() {
-      if (gone) return;
-
-      if (document.visibilityState === "visible" && writingRef.current === 0) {
-        try {
-          const next = await squadApi.read(current);
-          if (!gone) {
-            setView((shown) => recentre(next, shown.squad));
-            setOffline(false);
-          }
-        } catch {
-          if (!gone) setOffline(true);
-        }
+  /** What replaces the screen, unless it is older than the screen. */
+  const merge = useCallback(
+    (next: SquadView, shown: SquadView): SquadView => {
+      if (
+        next.squad &&
+        shown.squad &&
+        next.squad.id === shown.squad.id &&
+        next.squad.version < shown.squad.version
+      ) {
+        return shown;
       }
 
-      if (!gone) timer = setTimeout(poll, POLL_INTERVAL);
-    }
+      return recentre(next, shown.squad);
+    },
+    [recentre],
+  );
 
-    timer = setTimeout(poll, POLL_INTERVAL);
+  /** The last push that arrived while a write was in flight. */
+  const held = useRef<SquadView | null>(null);
 
-    // Coming back to the tab reads at once rather than up to two seconds later.
-    function onVisible() {
-      if (document.visibilityState !== "visible") return;
-      if (timer) clearTimeout(timer);
-      void poll();
-    }
+  const onEvent = useCallback(
+    (_topic: unknown, data: unknown) => {
+      const next = data as SquadView;
 
-    document.addEventListener("visibilitychange", onVisible);
+      if (writingRef.current > 0) {
+        held.current = next;
+        return;
+      }
 
-    return () => {
-      gone = true;
-      if (timer) clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [current, recentre]);
+      setView((shown) => merge(next, shown));
+    },
+    [merge],
+  );
 
-  // Switching squads reads the new one straight away.
-  const first = useRef(true);
-  useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-
-    let gone = false;
-    void squadApi
-      .read(current)
-      .then((next) => {
-        if (!gone) setView(next);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      gone = true;
-    };
-  }, [current]);
+  const { offline } = useEventStream({
+    topics: ["squad"],
+    squad: current,
+    onEvent,
+  });
 
   /**
    * One write. Errors are shown and swallowed: the row keeps its shape, and
-   * the next poll says what the server thinks.
+   * the next push says what the server thinks.
    */
   const run = useCallback(
     async (
@@ -119,8 +100,7 @@ export function useSquadView(initial: SquadView, current: string | null) {
 
       try {
         const next = await write();
-        setView((shown) => recentre(next, shown.squad));
-        setOffline(false);
+        setView((shown) => merge(next, shown));
         options?.then?.(next);
         return true;
       } catch (error) {
@@ -131,9 +111,15 @@ export function useSquadView(initial: SquadView, current: string | null) {
       } finally {
         writingRef.current -= 1;
         setWriting((count) => count - 1);
+
+        if (writingRef.current === 0 && held.current) {
+          const pushed = held.current;
+          held.current = null;
+          setView((shown) => merge(pushed, shown));
+        }
       }
     },
-    [recentre, t],
+    [merge, t],
   );
 
   return { view, run, busy: writing > 0, offline };

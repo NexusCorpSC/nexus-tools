@@ -246,8 +246,9 @@ export interface Squad {
   /** The raid this squad was linked into, or `null` when it runs alone. */
   raidId: string | null;
   /**
-   * Bumped on every write. Nothing reads it yet — it is what would let a client
-   * ask «anything new since N?» without the server having to diff.
+   * Bumped on every write. Clients use it to order what the event stream
+   * pushes against what their own writes answer: a view carrying a smaller
+   * version for the same squad was read before something already on screen.
    */
   version: number;
   updatedAt: string;

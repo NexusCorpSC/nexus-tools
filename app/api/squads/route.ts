@@ -19,6 +19,10 @@ import {
  * private by construction — the only way in is a code someone hands you. A
  * caller in several squads — a raid's organiser who opened them — names the one
  * they mean with `?squad=<id>`; every route under here takes it.
+ *
+ * The same view is pushed on every change by `GET /api/events` (topic
+ * `squad`), which is how the site and the desktop overlay follow it; this
+ * `GET` is the one-shot read.
  */
 
 /**
