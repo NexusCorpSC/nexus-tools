@@ -49,6 +49,28 @@ npm run build
 
 > Dev server doesn't run full analysis and type cheking. Run build to detect build issues.
 
+## Escouades
+
+`/squads` tient l'état d'une escouade en temps réel — qui est prêt, qui est à
+terre, qui tient quel rôle, l'annonce du chef — et le raid qui en regroupe
+plusieurs. C'est la même escouade que Nexus App affiche par-dessus le jeu :
+la page et la superposition parlent aux mêmes routes, `/api/squads` et ses
+sous-routes, que la page interroge toutes les deux secondes tant que l'onglet
+est visible.
+
+La page est pensée pour un téléphone d'abord : une seule colonne, les deux
+états d'une ligne (prêt, à terre) en boutons pleine hauteur, le reste derrière
+le menu de la ligne, et les feuilles de gestion (rôles, raid) qui montent du
+bas de l'écran. Plus large, la vue de raid passe sur deux colonnes et rien
+d'autre ne bouge.
+
+Un joueur est dans une escouade, sauf l'organisateur d'un raid, qui en ouvre
+d'autres depuis « Gérer le raid » et les mène jusqu'à passer la main : la page
+en regarde une à la fois (un sélecteur à côté du titre), et sur la vue de raid
+toutes celles dont il est membre se manipulent. Côté API, chaque route accepte
+`?squad=<id>` pour dire laquelle elle vise ; sans lui, la plus ancienne des
+appartenances.
+
 ## Import du catalogue d'objets
 
 Les objets, armes, véhicules et ressources de `/items` peuvent être importés

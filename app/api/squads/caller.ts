@@ -6,8 +6,8 @@ import {
   getRaidView,
   getSquadsForUser,
   membershipsOf,
-  pickSquad,
 } from "@/lib/squads";
+import { currentSquadView as readCurrentSquadView } from "@/lib/squad-view";
 import type { RaidView, Squad, SquadView } from "@/types/squad";
 
 /**
@@ -212,14 +212,7 @@ export async function currentSquadView(
   caller: Caller,
   squadId: string | null,
 ): Promise<SquadView> {
-  const squads = await getSquadsForUser(caller.userId);
-  const squad = pickSquad(squads, squadId);
-
-  return {
-    squad,
-    raid: squad?.raidId ? await getRaidView(squad.raidId) : null,
-    memberships: membershipsOf(squads),
-  };
+  return readCurrentSquadView(caller.userId, squadId);
 }
 
 export async function squadResponse(
