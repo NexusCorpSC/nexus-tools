@@ -58,12 +58,16 @@ export function useEventStream({
   const topicsKey = topics.join(",");
 
   useEffect(() => {
-    if (!enabled) {
+    // Nothing to follow is not a stream to open: `topics=` with nothing after
+    // it is a request the server refuses, and a listener for no event.
+    const wanted = topicsKey ? (topicsKey.split(",") as EventTopic[]) : [];
+
+    if (!enabled || wanted.length === 0) {
       setOffline(false);
       return;
     }
 
-    const url = urlFor(topicsKey.split(",") as EventTopic[], squad);
+    const url = urlFor(wanted, squad);
 
     let source: EventSource | null = null;
     let retry: ReturnType<typeof setTimeout> | null = null;

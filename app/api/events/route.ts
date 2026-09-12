@@ -52,18 +52,27 @@ function topicEvent(topic: EventTopic, snapshot: Snapshot): string {
   return event(EVENT_NAMES[topic], snapshot.id, snapshot.view);
 }
 
-/** `topics=` parsed, or the reason it could not be. */
+/**
+ * `topics=` parsed, or the reason it could not be.
+ *
+ * Only an *absent* parameter means every topic, as the protocol says. An
+ * empty one is a request for nothing, which is a mistake on the caller's side
+ * — and answering it with everything would hide that mistake behind a stream
+ * the caller never meant to hold.
+ */
 function readTopics(
   request: NextRequest,
 ): { topics: EventTopic[] } | { error: string } {
   const raw = request.nextUrl.searchParams.get("topics");
-  if (raw === null || raw.trim() === "") return { topics: [...EVENT_TOPICS] };
+  if (raw === null) return { topics: [...EVENT_TOPICS] };
 
   const topics: EventTopic[] = [];
   for (const name of raw.split(",").map((part) => part.trim())) {
     if (!isEventTopic(name)) return { error: `Unknown topic \`${name}\`` };
     if (!topics.includes(name)) topics.push(name);
   }
+
+  if (topics.length === 0) return { error: "`topics` must name at least one topic" };
 
   return { topics };
 }
