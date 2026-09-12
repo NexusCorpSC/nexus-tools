@@ -96,6 +96,11 @@ export const squadApi = {
       method: "DELETE",
     }),
 
+  readyCheck: (squadId: string) =>
+    call(at("/api/squads/ready-check", squadId), { method: "POST" }),
+  raidReadyCheck: (squadId: string) =>
+    call(at("/api/squads/raid/ready-check", squadId), { method: "POST" }),
+
   createRaid: (squadId: string, name?: string) =>
     call(at("/api/squads/raid", squadId), { method: "POST", body: { name } }),
   joinRaid: (squadId: string, code: string) =>
