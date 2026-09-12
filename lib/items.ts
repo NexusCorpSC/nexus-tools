@@ -49,46 +49,14 @@ const BLUEPRINTS_COLLECTION = "blueprints";
 
 type ItemDbModel = Item;
 
-function collection() {
-  return db.db().collection<ItemDbModel>(COLLECTION);
-}
-
-let indexesReady: Promise<unknown> | null = null;
-
 /**
  * The slug is what every page and every link targets, so its uniqueness is
- * enforced by the database rather than by a read-then-write check that two
+ * enforced by the database — the indexes `scripts/ensure-indexes.ts` creates,
+ * the source one included — rather than by a read-then-write check that two
  * concurrent creates could both pass.
  */
-function ensureIndexes() {
-  indexesReady ??= Promise.all([
-    collection().createIndex(
-      { slug: 1 },
-      { unique: true, name: "gameItems_slug_unique" },
-    ),
-    collection().createIndex({ id: 1 }, { name: "gameItems_id" }),
-    collection().createIndex(
-      { variantGroup: 1 },
-      { name: "gameItems_variant" },
-    ),
-    collection().createIndex({ setId: 1 }, { name: "gameItems_set" }),
-    // Unique, so two imports running at once cannot both create the same
-    // object; partial, so hand-entered objects (no source) stay unconstrained.
-    collection().createIndex(
-      { "source.name": 1, "source.id": 1 },
-      {
-        unique: true,
-        name: "gameItems_source_unique",
-        partialFilterExpression: { "source.id": { $exists: true } },
-      },
-    ),
-  ]).catch((error) => {
-    // Let the next call retry instead of caching a transient failure.
-    indexesReady = null;
-    throw error;
-  });
-
-  return indexesReady;
+function collection() {
+  return db.db().collection<ItemDbModel>(COLLECTION);
 }
 
 function isDuplicateKeyError(error: unknown): boolean {
@@ -849,8 +817,6 @@ function slotsAt(doc: Document, path: string): ItemSlot[] | undefined {
  * the link it brought.
  */
 export async function linkSlotsByName(): Promise<SlotLinkReport> {
-  await ensureIndexes();
-
   // `$in: [null]` also matches a missing key: the admin form and the import
   // both drop an empty slug, but older documents may carry it as `null`.
   const unlinked = {
@@ -1209,7 +1175,6 @@ function withoutUndefined<T>(value: T): T {
 
 export async function createItem(input: ItemInput): Promise<Item> {
   const normalized = normalizeItemInput(input);
-  await ensureIndexes();
 
   const { nanoid } = await import("nanoid");
   const now = new Date().toISOString();
@@ -1245,7 +1210,6 @@ export async function updateItem(
   input: ItemInput,
 ): Promise<Item> {
   const normalized = normalizeItemInput(input);
-  await ensureIndexes();
 
   const entries = Object.entries(normalized) as [
     keyof NormalizedItem,

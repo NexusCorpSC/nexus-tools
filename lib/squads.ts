@@ -7,12 +7,7 @@ import {
   newCode,
   normalizeCode,
 } from "@/lib/join-codes";
-import {
-  deleteRaid,
-  ensureRaidIndexes,
-  getRaid,
-  setRaidLeadSquad,
-} from "@/lib/raids";
+import { deleteRaid, getRaid, setRaidLeadSquad } from "@/lib/raids";
 import {
   BASE_SQUAD_ROLES,
   RAID_MAX_SQUADS,
@@ -73,6 +68,11 @@ const STORED_ROLES = {
   $ifNull: ["$roles", { $literal: BASE_SQUAD_ROLES }],
 };
 
+/**
+ * The indexes this relies on — `code` unique, `members.userId` for every read
+ * of every member — are created by `scripts/ensure-indexes.ts`, which also
+ * carries the migration of the member index from unique to plain.
+ */
 function collection() {
   return db.db().collection<DbSquad>("squads");
 }
@@ -97,83 +97,6 @@ function toSquad(doc: DbSquad): Squad {
     version: doc.version,
     updatedAt: doc.updatedAt,
   };
-}
-
-let indexesPromise: Promise<unknown> | null = null;
-
-/** Every poll of every member goes through this one. */
-const MEMBER_INDEX = { "members.userId": 1 } as const;
-
-/** Mongo's error codes, by name: the driver only hands out the numbers. */
-const INDEX_OPTIONS_CONFLICT = 85;
-const INDEX_NOT_FOUND = 27;
-
-function mongoCode(error: unknown): number | undefined {
-  return (error as { code?: number } | null)?.code;
-}
-
-/**
- * The member index, and the migration it carries.
- *
- * It used to be unique — that was what made «one squad at a time» a fact rather
- * than a convention. A raid's organiser may now open several squads and lead
- * each until somebody takes it over, so the same user is legitimately listed
- * in more than one document. Mongo refuses to *change* an index's options in
- * place (`IndexOptionsConflict`): a database written by the earlier version
- * still holds the unique one, which is dropped and rebuilt without the option
- * the first time this process touches the collection.
- *
- * Dropped by its key rather than by the name the earlier version let Mongo
- * pick, and an index already gone is not a failure: several instances start
- * at once on a deploy, and the second to reach this finds the first one's work
- * done. What matters is that the unique index is gone when this returns —
- * with it still in place, opening a raid's second squad would fail on a
- * duplicate key that `insertSquad` no longer expects.
- */
-async function ensureMemberIndex() {
-  try {
-    await collection().createIndex(MEMBER_INDEX);
-    return;
-  } catch (error) {
-    if (mongoCode(error) !== INDEX_OPTIONS_CONFLICT) throw error;
-  }
-
-  // Found by its key, whatever the earlier version let Mongo name it.
-  const legacy = (await collection().indexes()).find(
-    (index) =>
-      index.key &&
-      Object.keys(index.key).length === 1 &&
-      index.key["members.userId"] === 1,
-  );
-
-  if (legacy?.name) {
-    try {
-      await collection().dropIndex(legacy.name);
-    } catch (error) {
-      if (mongoCode(error) !== INDEX_NOT_FOUND) throw error;
-    }
-  }
-
-  await collection().createIndex(MEMBER_INDEX);
-}
-
-/**
- * Runs once per process. A failure here is not fatal but it does lower the
- * guarantees: without the indexes, the writes below stop being refused and
- * start being merely unlikely to collide.
- */
-export async function ensureSquadIndexes() {
-  if (!indexesPromise) {
-    indexesPromise = Promise.all([
-      collection().createIndex({ code: 1 }, { unique: true }),
-      ensureMemberIndex(),
-    ]).catch((error) => {
-      indexesPromise = null;
-      console.warn({ error, message: "Could not create squads indexes" });
-    });
-  }
-
-  return indexesPromise;
 }
 
 function newMember(
@@ -222,10 +145,6 @@ function joinedAtOf(doc: DbSquad, userId: string): string {
  * raid's organiser who opened the raid's squads is the reason it exists at all.
  */
 export async function getSquadsForUser(userId: string): Promise<Squad[]> {
-  // Ensured on the read path too, not only on writes: `members.userId` exists
-  // for this very query, which every member runs every couple of seconds.
-  await ensureSquadIndexes();
-
   const docs = await collection().find({ "members.userId": userId }).toArray();
 
   return docs
@@ -328,7 +247,6 @@ export async function createSquad(
   name: string,
   memberName: string,
 ): Promise<Squad> {
-  await ensureSquadIndexes();
   await leaveAllSquads(userId);
 
   return insertSquad(userId, name, memberName, null);
@@ -356,8 +274,6 @@ export async function createSquadInRaid(
   memberName: string,
   raidId: string,
 ): Promise<CreateInRaidOutcome> {
-  await ensureSquadIndexes();
-
   const current = await getSquadsOfRaid(raidId);
   if (current.length >= RAID_MAX_SQUADS) return { refusal: "full" };
 
@@ -375,8 +291,6 @@ export async function joinSquad(
   memberName: string,
   code: string,
 ): Promise<JoinOutcome> {
-  await ensureSquadIndexes();
-
   const squad = await collection().findOne({ code: normalizeCode(code) });
   if (!squad) return { refusal: "not-found" };
 
@@ -1048,8 +962,6 @@ export async function linkSquadToRaid(
   squad: Squad,
   raidId: string,
 ): Promise<LinkOutcome> {
-  await ensureRaidIndexes();
-
   if (squad.raidId === raidId) return { squad };
 
   const current = await getSquadsOfRaid(raidId);

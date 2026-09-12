@@ -39,6 +39,20 @@ DISCORD_CLIENT_SECRET=""
 
 ## Run
 
+- Create the indexes (once per database, and again after a deployment that adds one)
+
+```bash
+npm run ensure:indexes
+```
+
+> Tous les index de la base sont déclarés dans `scripts/ensure-indexes.ts`,
+> et nulle part ailleurs : le code de l'application ne crée aucun index au
+> démarrage. Un `createIndex` par premier appel d'un processus, c'est une
+> commande de plus par instance démarrée — et sur Vercel, autant d'instances
+> que de réveils. Le script est idempotent, et porte la migration de l'index
+> des membres d'escouade (unique → simple) pour les bases écrites par une
+> version antérieure.
+
 - Start dev server
 
 ```bash
