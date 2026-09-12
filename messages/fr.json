@@ -92,6 +92,11 @@
           "description": "Prenez vos notes en Markdown, retrouvez-les sur tous vos appareils et rouvrez-les sans quitter la page avec Alt + N.",
           "tag": "Compte"
         },
+        "squads": {
+          "title": "Escouade & raid",
+          "description": "Tenez l'état de votre escouade en direct — prêt, à terre, rôles, annonces — et regroupez plusieurs escouades en raid. Depuis le site, le téléphone, ou par-dessus le jeu avec Nexus App.",
+          "tag": "Compte"
+        },
         "orders": {
           "title": "Commandes & devis",
           "description": "Passez commande auprès d'une boutique, recevez un devis, acceptez ou refusez : tout l'échange reste au même endroit.",

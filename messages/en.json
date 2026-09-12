@@ -98,6 +98,11 @@
           "description": "Write your notes in Markdown, find them back on every device and reopen them without leaving the page with Alt + N.",
           "tag": "Account"
         },
+        "squads": {
+          "title": "Squad & raid",
+          "description": "Keep your squad's state live — ready, down, roles, announcements — and group several squads into a raid. From the site, a phone, or over the game with Nexus App.",
+          "tag": "Account"
+        },
         "orders": {
           "title": "Orders & quotes",
           "description": "Order from a shop, get a quote, accept or decline: the whole exchange stays in one place.",
