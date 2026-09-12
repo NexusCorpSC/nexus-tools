@@ -25,6 +25,7 @@ export interface DbRaid {
   updatedAt: string;
 }
 
+/** The unique index on `code` this relies on is created by `scripts/ensure-indexes.ts`. */
 function collection() {
   return db.db().collection<DbRaid>("raids");
 }
@@ -38,22 +39,6 @@ function toRaid(doc: DbRaid): Raid {
     leadSquadId: doc.leadSquadId,
     updatedAt: doc.updatedAt,
   };
-}
-
-let indexesPromise: Promise<unknown> | null = null;
-
-/** Runs once per process. Same bargain as `ensureSquadIndexes`. */
-export async function ensureRaidIndexes() {
-  if (!indexesPromise) {
-    indexesPromise = collection()
-      .createIndex({ code: 1 }, { unique: true })
-      .catch((error) => {
-        indexesPromise = null;
-        console.warn({ error, message: "Could not create raids indexes" });
-      });
-  }
-
-  return indexesPromise;
 }
 
 export async function getRaid(raidId: string): Promise<Raid | null> {
@@ -80,8 +65,6 @@ export async function createRaid(
   name: string,
   leadSquadId: string,
 ): Promise<Raid> {
-  await ensureRaidIndexes();
-
   const now = new Date().toISOString();
 
   for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt += 1) {

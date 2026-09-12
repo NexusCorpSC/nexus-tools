@@ -25,26 +25,13 @@ export interface CargoShipInput {
   capacity: number;
 }
 
-function collection() {
-  return db.db().collection<CargoShipDbModel>(COLLECTION);
-}
-
-let indexesReady: Promise<unknown> | null = null;
-
 /**
  * Ids are the key every other operation targets, so uniqueness is enforced by
- * the database rather than by a read-then-write check.
+ * the database — the unique index `scripts/ensure-indexes.ts` creates — rather
+ * than by a read-then-write check.
  */
-function ensureIndexes() {
-  indexesReady ??= collection()
-    .createIndex({ id: 1 }, { unique: true, name: "cargoShips_id_unique" })
-    .catch((error) => {
-      // Let the next call retry instead of caching a transient failure.
-      indexesReady = null;
-      throw error;
-    });
-
-  return indexesReady;
+function collection() {
+  return db.db().collection<CargoShipDbModel>(COLLECTION);
 }
 
 function isDuplicateKeyError(error: unknown): boolean {
@@ -114,7 +101,6 @@ export async function createCargoShip(
   input: CargoShipInput,
 ): Promise<CargoShip> {
   const { name, capacity } = normalizeShipInput(input);
-  await ensureIndexes();
 
   const base = toShipId(name);
   const now = new Date().toISOString();
@@ -171,8 +157,6 @@ export async function deleteCargoShip(id: string): Promise<void> {
  * from the known list instead of retyping it. Existing ships are left alone.
  */
 export async function seedDefaultCargoShips(): Promise<number> {
-  await ensureIndexes();
-
   const existing = await collection()
     .find({}, { projection: { id: 1, _id: 0 } })
     .toArray();
