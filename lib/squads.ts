@@ -160,6 +160,8 @@ export async function requestRaidReadyCheck(
   raidId: string,
   requestedBy: string,
 ): Promise<RaidView | null> {
+  if (!ObjectId.isValid(raidId)) return null;
+
   const readyCheck = newReadyCheck(requestedBy);
 
   await collection().updateMany(

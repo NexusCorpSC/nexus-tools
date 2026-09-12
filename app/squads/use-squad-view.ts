@@ -143,12 +143,16 @@ export function useSquadView(
     [t, userId],
   );
 
-  /** What the stream delivered, applied — and read for what it announces. */
+  /**
+   * What the stream delivered, applied — and read for what it announces.
+   * Read as merged, not as pushed: a view re-centred on the squad on screen is
+   * still a new view, and what it announces is what the screen now shows.
+   */
   const apply = useCallback(
     (next: SquadView) => {
       const shown = viewRef.current;
       const merged = merge(next, shown);
-      if (merged === next) noticeReadyCheck(shown, next);
+      if (merged !== shown) noticeReadyCheck(shown, merged);
       commit(merged);
     },
     [commit, merge, noticeReadyCheck],
