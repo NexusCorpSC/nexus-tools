@@ -20,11 +20,6 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { ImageCover } from "@/components/image-cover";
 import { KIND_ACCENT } from "@/lib/item-accents";
 import { cn } from "@/lib/utils";
@@ -36,6 +31,7 @@ import {
   type ItemComparison,
   type ItemSummary,
 } from "@/types/items";
+import { PickerShell } from "../picker-shell";
 import { useItemSearch } from "../use-item-search";
 
 /** Largeur d'une colonne d'objet : la même partout, sinon rien ne s'aligne. */
@@ -70,8 +66,8 @@ function ItemSearch({
   const candidates = results.filter((item) => !excluded.includes(item.slug));
 
   return (
-    <div className="space-y-2">
-      <div className="relative">
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="relative shrink-0">
         <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
@@ -79,17 +75,18 @@ function ItemSearch({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t("searchPlaceholder")}
-          className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-xs transition-[color,box-shadow] placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
+          className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-xs transition-[color,box-shadow] placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none max-sm:h-11 max-sm:text-base"
         />
       </div>
 
-      <div className="max-h-64 space-y-1.5 overflow-y-auto">
+      {/* La seule chose qui défile : la liste, jamais le contenant. */}
+      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
         {candidates.map((item) => (
           <button
             key={item.slug}
             type="button"
             onClick={() => onPick(item)}
-            className="flex w-full items-center gap-2.5 rounded-lg border border-[#9ED0FF]/15 bg-white/[0.02] p-2 text-left transition-colors hover:border-primary/40 hover:bg-white/[0.06]"
+            className="flex w-full items-center gap-2.5 rounded-lg border border-[#9ED0FF]/15 bg-white/[0.02] p-2 text-left transition-colors hover:border-primary/40 hover:bg-white/[0.06] max-sm:min-h-14"
           >
             <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white/5">
               <ImageCover
@@ -119,7 +116,9 @@ function ItemSearch({
         )}
       </div>
 
-      <p className="text-xs leading-relaxed text-nexus/55">{emptyQueryHint}</p>
+      <p className="shrink-0 text-xs leading-relaxed text-nexus/55">
+        {emptyQueryHint}
+      </p>
     </div>
   );
 }
@@ -452,8 +451,13 @@ export function ComparisonBoard({
               })}
 
               <div className="w-44 shrink-0 px-1.5">
-                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-                  <PopoverTrigger asChild>
+                <PickerShell
+                  open={pickerOpen}
+                  onOpenChange={setPickerOpen}
+                  title={t("addColumn")}
+                  align="end"
+                  className="w-88"
+                  trigger={
                     <button
                       type="button"
                       disabled={isFull}
@@ -469,22 +473,21 @@ export function ComparisonBoard({
                         {isFull ? t("limitReached") : t("addColumn")}
                       </span>
                     </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-88 p-3">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-nexus-primary">
-                      {t("addColumn")}
-                    </p>
-                    <ItemSearch
-                      kind={comparison.kind}
-                      category={comparison.category}
-                      excluded={slugs}
-                      onPick={addColumn}
-                      emptyQueryHint={t("sameKindOnly", {
-                        kind: tItems(`kinds.${comparison.kind}`),
-                      })}
-                    />
-                  </PopoverContent>
-                </Popover>
+                  }
+                >
+                  <p className="mb-2 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-nexus-primary">
+                    {t("addColumn")}
+                  </p>
+                  <ItemSearch
+                    kind={comparison.kind}
+                    category={comparison.category}
+                    excluded={slugs}
+                    onPick={addColumn}
+                    emptyQueryHint={t("sameKindOnly", {
+                      kind: tItems(`kinds.${comparison.kind}`),
+                    })}
+                  />
+                </PickerShell>
               </div>
             </div>
 
