@@ -23,11 +23,12 @@ export function CodeChip({ code, tone }: { code: string; tone?: "raid" }) {
       type="button"
       title={copied ? t("copied") : t("copyCode")}
       onClick={() => {
+        // The code is written right there and selectable, so a clipboard
+        // that is refused — or absent, outside a secure context — costs
+        // nothing worth reporting.
         void navigator.clipboard
-          .writeText(code)
+          ?.writeText(code)
           .then(() => setCopied(true))
-          // The code is written right there and selectable, so a refused
-          // clipboard costs nothing worth reporting.
           .catch(() => undefined);
       }}
       className={cn(
@@ -55,8 +56,9 @@ export function ConfirmButton({
   onConfirm,
   children,
   ...props
-}: React.ComponentProps<typeof Button> & {
+}: Omit<React.ComponentProps<typeof Button>, "onClick"> & {
   confirmLabel: string;
+  /** The click that counts — the second one. There is no `onClick`. */
   onConfirm: () => void;
 }) {
   const [armed, setArmed] = useState(false);
