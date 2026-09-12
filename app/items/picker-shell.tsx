@@ -58,6 +58,9 @@ export function PickerShell({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent
+          // L'en-tête du contenu tient lieu de description ; sans ceci Radix
+          // réclame une description séparée à chaque ouverture.
+          aria-describedby={undefined}
           className={cn(
             "top-auto bottom-0 flex max-h-[85dvh] w-full max-w-none translate-y-0 flex-col gap-0 rounded-t-2xl rounded-b-none border-[#9ED0FF]/20 bg-[#0B3A5A] p-3 pt-4",
             "data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100 data-[state=open]:slide-in-from-left-0 data-[state=closed]:slide-out-to-left-0 data-[state=open]:slide-in-from-top-0 data-[state=closed]:slide-out-to-top-0",
