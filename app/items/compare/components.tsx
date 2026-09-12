@@ -334,13 +334,25 @@ export function ComparisonBoard({
     rows: group.rows.map((row) => ({ row, cells: cellsOf(row) })),
   }));
 
-  // Sur téléphone, le tableau à colonnes cède la place à une grille par
-  // caractéristique : le libellé au-dessus, une cellule égale par objet.
+  /*
+   * Sur téléphone, le tableau à colonnes cède la place à une grille par
+   * caractéristique. Les deux sont rendues et c'est la feuille de style qui
+   * choisit (`sm:hidden` / `hidden sm:block`), pour que le premier rendu —
+   * celui du serveur — soit déjà le bon : un tableau qui déborde le temps de
+   * l'hydratation, puis saute, serait exactement le défaut qu'on corrige.
+   *
+   * Le sélecteur, lui, est porté par les deux mises en page ; seule celle qui
+   * est affichée peut l'ouvrir, sans quoi les deux s'ouvriraient ensemble.
+   */
   const phone = useMediaQuery(PHONE_QUERY);
 
-  const picker = (trigger: React.ReactNode, className: string) => (
+  const picker = (
+    trigger: React.ReactNode,
+    className: string,
+    layout: "phone" | "desktop",
+  ) => (
     <PickerShell
-      open={pickerOpen}
+      open={pickerOpen && (layout === "phone") === phone}
       onOpenChange={setPickerOpen}
       title={t("addColumn")}
       align="end"
@@ -432,7 +444,7 @@ export function ComparisonBoard({
         </div>
       </div>
 
-      {phone ? (
+      <div className="sm:hidden">
         <PhoneBoard
           columns={columns}
           referenceSlug={referenceColumn?.slug}
@@ -458,10 +470,12 @@ export function ComparisonBoard({
               {isFull ? t("limitReached") : t("addColumn")}
             </button>,
             "w-88",
+            "phone",
           )}
         />
-      ) : (
-      <div className="rounded-xl border border-[#9ED0FF]/15 bg-[#0B3856]">
+      </div>
+
+      <div className="hidden rounded-xl border border-[#9ED0FF]/15 bg-[#0B3856] sm:block">
         <div className="overflow-x-auto p-4">
           <div className="min-w-full" style={{ width: "max-content" }}>
             {/* En-têtes de colonnes */}
@@ -582,6 +596,7 @@ export function ComparisonBoard({
                     </span>
                   </button>,
                   "w-88",
+                  "desktop",
                 )}
               </div>
             </div>
@@ -689,7 +704,6 @@ export function ComparisonBoard({
           </div>
         </div>
       </div>
-      )}
 
       <p className="flex items-center gap-1.5 text-xs text-nexus/55">
         <ArrowsRightLeftIcon className="size-3.5 shrink-0" />

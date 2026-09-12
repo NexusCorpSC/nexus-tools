@@ -5,9 +5,13 @@ import { useSyncExternalStore } from "react";
 /**
  * Whether a media query matches, kept in step with the viewport.
  *
- * `false` on the server and during hydration: nothing here decides the first
- * paint of anything the visitor sees before touching it, so a mismatch costs
- * one re-render and never a hydration error.
+ * `false` on the server and during hydration, whatever the screen: the server
+ * cannot know it, and answering the same thing on both sides is what keeps
+ * hydration from failing. So this is for what happens *after* a tap — which
+ * container a picker opens in, which of two layouts may open it — never for
+ * a layout the visitor sees on first paint. That one is decided by the
+ * stylesheet's breakpoints (`sm:hidden`, `hidden sm:block`), which the server
+ * renders correctly without knowing the screen.
  */
 export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
