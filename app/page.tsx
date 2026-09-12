@@ -14,6 +14,7 @@ import {
   StarIcon,
   TruckIcon,
   UserGroupIcon,
+  UsersIcon,
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/outline";
 
@@ -29,7 +30,7 @@ import ImgShopping from "./img-shopping.png";
 export const metadata: Metadata = {
   title: "Accueil",
   description:
-    "Nexus Tools — la boîte à outils communautaire pour Star Citizen. Marketplace, artisanat, inventaire, cargo, raffinage, missions, réputations, organisations, bloc-notes et application de bureau.",
+    "Nexus Tools — la boîte à outils communautaire pour Star Citizen. Marketplace, artisanat, inventaire, cargo, raffinage, missions, réputations, organisations, escouades, bloc-notes et application de bureau.",
   openGraph: {
     title: "Nexus Tools — Star Citizen Community Tools",
     description:
@@ -46,6 +47,7 @@ const tools = [
   { key: "missions", href: "/missions", icon: FlagIcon },
   { key: "organizations", href: "/orgs", icon: UserGroupIcon },
   { key: "notes", href: "/notes", icon: PencilSquareIcon },
+  { key: "squads", href: "/squads", icon: UsersIcon },
   { key: "orders", href: "/shopping/my-orders", icon: ChatBubbleLeftRightIcon },
   { key: "mcp", href: "/developers", icon: CpuChipIcon },
 ] as const;

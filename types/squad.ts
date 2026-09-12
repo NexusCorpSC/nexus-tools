@@ -94,6 +94,73 @@ export const SQUAD_ROLE_ICONS = [
 
 export type SquadRoleIcon = (typeof SQUAD_ROLE_ICONS)[number];
 
+/**
+ * The same glyphs, in the groups a picker shows them in. The ids are what a
+ * client translates; the icons are drawn from `SQUAD_ROLE_ICONS` above, so a
+ * name here is always one the API accepts.
+ */
+export const SQUAD_ROLE_ICON_GROUPS = [
+  {
+    id: "combat",
+    icons: [
+      "crosshair",
+      "target",
+      "sword",
+      "shield",
+      "shield-half",
+      "bomb",
+      "flame",
+      "zap",
+      "skull",
+    ],
+  },
+  {
+    id: "flight",
+    icons: [
+      "navigation",
+      "rocket",
+      "plane",
+      "compass",
+      "anchor",
+      "fuel",
+      "gauge",
+      "orbit",
+    ],
+  },
+  {
+    id: "support",
+    icons: [
+      "cross",
+      "heart-pulse",
+      "pill",
+      "life-buoy",
+      "battery",
+      "users",
+      "bell",
+      "radio",
+    ],
+  },
+  {
+    id: "trade",
+    icons: ["wrench", "hammer", "cog", "box", "truck", "hard-hat", "coins", "key"],
+  },
+  {
+    id: "marks",
+    icons: [
+      "eye",
+      "search",
+      "map",
+      "map-pin",
+      "flag",
+      "star",
+      "hexagon",
+      "triangle",
+      "diamond",
+      "ghost",
+    ],
+  },
+] as const satisfies readonly { id: string; icons: readonly SquadRoleIcon[] }[];
+
 export function isSquadRoleIcon(value: unknown): value is SquadRoleIcon {
   return (
     typeof value === "string" &&

@@ -33,6 +33,7 @@ const navigation = [
   { name: "industry", href: "/industry" },
   { name: "missions", href: "/missions" },
   { name: "notes", href: "/notes" },
+  { name: "squads", href: "/squads" },
   { name: "organizations", href: "/orgs" },
 ];
 const userNavigation = [

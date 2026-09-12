@@ -99,6 +99,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      url: "https://tools.services.nexus/squads",
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
       url: "https://tools.services.nexus/orgs",
       lastModified: new Date(),
       changeFrequency: "monthly",
