@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import {
   Check,
@@ -34,7 +35,10 @@ import {
   type SquadMembership,
   type SquadView,
 } from "@/types/squad";
+import type { PlanSummary } from "@/types/plan";
 import { squadApi } from "./api";
+import { planApi } from "./plans/api";
+import { PlanCard } from "./plan-card";
 import { commandsSquad, MemberList, tally, type MemberActions } from "./members";
 import { RaidBoard } from "./raid";
 import { RaidSheet, RolesSheet } from "./sheets";
@@ -59,16 +63,23 @@ type Sheet = { kind: "roles"; squadId: string } | { kind: "raid" } | null;
 
 export function SquadBoard({
   initialView,
+  initialPlans,
   userId,
 }: {
   initialView: SquadView;
+  initialPlans: PlanSummary[];
   userId: string;
 }) {
   const t = useTranslations("Squads");
 
   /** The squad the page looks at, `null` for the one the API picks. */
   const [current, setCurrent] = useState<string | null>(null);
-  const { view, run, busy, offline } = useSquadView(initialView, current, userId);
+  const { view, plans, run, busy, offline } = useSquadView(
+    initialView,
+    initialPlans,
+    current,
+    userId,
+  );
 
   /** `null` is «whatever fits»: a squad in a raid opens on the raid. */
   const [pinned, setPinned] = useState<"squad" | "raid" | null>(null);
@@ -175,6 +186,24 @@ export function SquadBoard({
             }
           />
 
+          <PlanCard
+            plans={plans}
+            squadId={squad.id}
+            governs={leads}
+            onCreate={async () => {
+              try {
+                await planApi.create(squad.id, {});
+                return true;
+              } catch (error) {
+                toast.error(t("errorTitle"), {
+                  description:
+                    error instanceof Error ? error.message : undefined,
+                });
+                return false;
+              }
+            }}
+          />
+
           <RaidBoard raid={raid} userId={userId} actionsFor={actionsFor} />
 
           <Footer counts={tally(raid.squads)}>
@@ -215,6 +244,24 @@ export function SquadBoard({
             onSave={(announcements) =>
               run(() => squadApi.announce(squad.id, announcements))
             }
+          />
+
+          <PlanCard
+            plans={plans}
+            squadId={squad.id}
+            governs={commands}
+            onCreate={async () => {
+              try {
+                await planApi.create(squad.id, {});
+                return true;
+              } catch (error) {
+                toast.error(t("errorTitle"), {
+                  description:
+                    error instanceof Error ? error.message : undefined,
+                });
+                return false;
+              }
+            }}
           />
 
           <MemberList
