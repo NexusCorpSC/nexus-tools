@@ -979,6 +979,28 @@ export async function clearPhase(
 }
 
 /**
+ * Who drew one trace, or `null` when there is no such trace at all.
+ *
+ * The eraser only takes your own, and «your own» is read here rather than
+ * trusted from the client — a projection of one field, since that is the whole
+ * question.
+ */
+export async function strokeAuthor(
+  planId: string,
+  phaseId: string,
+  strokeId: string,
+): Promise<string | null> {
+  if (!ObjectId.isValid(strokeId)) return null;
+
+  const doc = await strokes().findOne(
+    { _id: new ObjectId(strokeId), planId, phaseId },
+    { projection: { authorId: 1 } },
+  );
+
+  return doc?.authorId ?? null;
+}
+
+/**
  * Everything drawn above a revision.
  *
  * Tombstones ride along only when the caller already holds something: a client

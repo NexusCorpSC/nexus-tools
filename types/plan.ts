@@ -88,6 +88,9 @@ export const PLAN_GRID = 10_000;
 /** Longest a phase may be given, in seconds — four hours is already absurd. */
 export const PHASE_MAX_DURATION_SEC = 14_400;
 
+/** The same ceiling the item and blueprint images answer to. */
+export const PLAN_BACKGROUND_MAX_BYTES = 8_000_000;
+
 /* ------------------------------------------------------------------ */
 /* Closed sets                                                         */
 /* ------------------------------------------------------------------ */
