@@ -106,23 +106,30 @@ export function useSquadView(
    * one answer it asks for. The squad's own, or the raid's — told apart by
    * where the new id sits. Our own request lands through `run` first, so the
    * push that echoes it finds the id already known.
+   *
+   * The two answers are not the same write. A squad check asks one squad, and
+   * is answered on that row. A raid check asks the raid, and a reader in two of
+   * its squads owes an answer in both — so it goes to the route that fills
+   * every row they hold in the raid, rather than the one the screen happens to
+   * be showing.
    */
   const noticeReadyCheck = useCallback(
     (shown: SquadView, next: SquadView) => {
       const squad = next.squad;
       if (!squad || shown.squad?.id !== squad.id) return;
 
-      const answer = () =>
-        void runRef.current?.(() =>
-          squadApi.patchMember(squad.id, userId, { ready: true }),
-        );
-
       const squadCheck = squad.readyCheck;
       if (squadCheck && squadCheck.id !== shown.squad?.readyCheck?.id) {
         toast(t("readyCheckTitle", { name: squad.name }), {
           description: t("readyCheckBody", { by: squadCheck.requestedBy }),
           duration: READY_CHECK_TOAST_MS,
-          action: { label: t("ready"), onClick: answer },
+          action: {
+            label: t("ready"),
+            onClick: () =>
+              void runRef.current?.(() =>
+                squadApi.patchMember(squad.id, userId, { ready: true }),
+              ),
+          },
         });
       }
 
@@ -136,7 +143,11 @@ export function useSquadView(
         toast(t("readyCheckTitle", { name: next.raid.name }), {
           description: t("readyCheckBody", { by: raidCheck.requestedBy }),
           duration: READY_CHECK_TOAST_MS,
-          action: { label: t("ready"), onClick: answer },
+          action: {
+            label: t("ready"),
+            onClick: () =>
+              void runRef.current?.(() => squadApi.answerRaidReady(squad.id)),
+          },
         });
       }
     },

@@ -178,6 +178,46 @@ export async function requestRaidReadyCheck(
   return { ...raid, squads: await getSquadsOfRaid(raidId) };
 }
 
+/**
+ * «Je suis prêt», answered once for the whole raid.
+ *
+ * A player can hold a row in several squads of the same raid: the organiser who
+ * runs one and fights in another, a pilot lent to a second wing. The check was
+ * asked of the raid, so the answer is owed to the raid — writing only the squad
+ * the client happened to be showing leaves the others counting them as silent,
+ * and the lead squad reading «12/14 prêts» for someone who pressed the button.
+ *
+ * Positional on the answering member's row, squad by squad, for the reason
+ * every other member write is: two members answering the same check at the same
+ * moment must not overwrite each other's row. Squads of the raid the caller is
+ * not in are left out by the filter rather than by a read.
+ *
+ * Returns how many squads answered, which is how a caller tells «not in this
+ * raid» from «done» without re-reading.
+ */
+export async function markRaidMemberReady(
+  raidId: string,
+  userId: string,
+  name: string,
+): Promise<number> {
+  const updated = await collection().updateMany(
+    { raidId, "members.userId": userId },
+    {
+      $set: {
+        "members.$[mine].ready": true,
+        // Their own row, so the name copied when they joined is refreshed —
+        // the same rule as any other write a member makes about themselves.
+        "members.$[mine].name": name,
+        updatedAt: new Date().toISOString(),
+      },
+      $inc: { version: 1 },
+    },
+    { arrayFilters: [{ "mine.userId": userId }] },
+  );
+
+  return updated.matchedCount;
+}
+
 function newMember(
   userId: string,
   name: string,

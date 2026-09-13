@@ -100,6 +100,12 @@ export const squadApi = {
     call(at("/api/squads/ready-check", squadId), { method: "POST" }),
   raidReadyCheck: (squadId: string) =>
     call(at("/api/squads/raid/ready-check", squadId), { method: "POST" }),
+  /**
+   * The answer to a raid check: ready in every squad of the raid the reader is
+   * in. A squad check is answered by `patchMember` on the one row it asked for.
+   */
+  answerRaidReady: (squadId: string) =>
+    call(at("/api/squads/raid/ready", squadId), { method: "POST" }),
 
   createRaid: (squadId: string, name?: string) =>
     call(at("/api/squads/raid", squadId), { method: "POST", body: { name } }),
