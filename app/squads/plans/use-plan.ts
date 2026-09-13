@@ -5,7 +5,14 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { useEventStream } from "@/lib/use-event-stream";
-import type { PlanStroke, PlanView, StrokeDelta } from "@/types/plan";
+import type {
+  Plan,
+  PlanPhase,
+  PlanStroke,
+  PlanSummary,
+  PlanView,
+  StrokeDelta,
+} from "@/types/plan";
 import type { SquadView } from "@/types/squad";
 import { PhaseClearedError, planApi } from "./api";
 
@@ -80,6 +87,37 @@ function applyDelta(layer: PhaseLayer, delta: StrokeDelta): PhaseLayer {
     strokes: [...byId.values()].sort((a, b) => a.rev - b.rev),
     loading: false,
   };
+}
+
+/**
+ * The plan on screen, brought up to what the feed says.
+ *
+ * The feed carries no texts, so the loaded plan keeps its own — but it **must**
+ * take the summary's live fields, `rev` and `epoch` above all. Keeping the
+ * loaded phases wholesale is the one mistake that breaks everything quietly:
+ * the revisions never move, the pump never notices anybody drew, and the
+ * drawing stops arriving after the first load with nothing in any log.
+ *
+ * A phase the summary names and the loaded plan does not is one somebody just
+ * added: it appears at once, without its texts, and `onGained` is told so they
+ * can be fetched. A phase the summary has dropped is gone.
+ */
+function livePhases(loaded: Plan, summary: PlanSummary): PlanPhase[] {
+  const known = new Map(loaded.phases.map((phase) => [phase.id, phase]));
+
+  return summary.phases.map((live) => {
+    const held = known.get(live.id);
+
+    return held
+      ? { ...held, ...live }
+      : {
+          ...live,
+          objective: "",
+          points: [],
+          abort: "",
+          assignments: [],
+        };
+  });
 }
 
 type Run = (write: () => Promise<PlanView>) => Promise<boolean>;
@@ -171,9 +209,31 @@ export function usePlan(
         feed,
         plan:
           shown.plan && summary
-            ? { ...shown.plan, ...summary, phases: shown.plan.phases }
+            ? {
+                ...shown.plan,
+                ...summary,
+                phases: livePhases(shown.plan, summary),
+              }
             : shown.plan,
       };
+
+      // A phase nobody has read yet came with the push: its texts are the one
+      // thing the feed cannot carry, so they are fetched once, in the
+      // background, rather than left blank until the page is reloaded.
+      if (
+        shown.plan &&
+        summary &&
+        summary.phases.some(
+          (live) => !shown.plan!.phases.some((held) => held.id === live.id),
+        )
+      ) {
+        void planApi
+          .read(shown.plan.id, squadId)
+          .then((full) => {
+            if (full.plan) commit({ feed: full.feed, plan: full.plan });
+          })
+          .catch(() => undefined);
+      }
 
       if (writingRef.current > 0) {
         held.current = next;
@@ -182,7 +242,7 @@ export function usePlan(
 
       commit(merge(next, shown));
     },
-    [commit, merge],
+    [commit, merge, squadId],
   );
 
   const { offline } = useEventStream({
