@@ -99,6 +99,12 @@ export async function GET(request: NextRequest): Promise<Response> {
       case "note":
         selection.note = {};
         break;
+      case "plan":
+        // The same parameter as the squad topic, and for the same reason: which
+        // squad a reader is looking at decides whether the plans they see are
+        // their squad's or their raid's.
+        selection.plan = { squadId: requestedSquad(request) };
+        break;
     }
   }
 

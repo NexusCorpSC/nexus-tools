@@ -92,6 +92,46 @@ async function ensureNotes(database: Db) {
     .createIndex({ userId: 1 }, { unique: true });
 }
 
+// ─── Plans de vol ─────────────────────────────────────────────────────────────
+
+/**
+ * Les plans d'une escouade ou d'un raid.
+ *
+ * `ownerId` est ce que toute lecture vise, et `archivedAt` distingue les plans
+ * vivants — ceux que le flux d'événements porte — des plans rangés. Les deux
+ * dans le même index : c'est la requête que le topic `plan` relit une fois par
+ * membre connecté à chaque trait tracé, donc la seule qui doive être rapide.
+ */
+async function ensurePlans(database: Db) {
+  await database
+    .collection("plans")
+    .createIndex({ ownerId: 1, archivedAt: 1 }, { name: "plans_owner" });
+}
+
+/**
+ * Les traits, et les deux règles qu'ils tiennent.
+ *
+ * Le premier index sert la requête de delta — « tout ce qui dépasse telle
+ * révision, dans telle époque » — et sert aussi le vidage d'une phase, qui
+ * frappe le même préfixe.
+ *
+ * Le second empêche un POST rejoué après un timeout de dessiner le trait deux
+ * fois : le client frappe son propre `clientId` avant d'envoyer, et le doublon
+ * est renvoyé tel quel plutôt que redessiné.
+ */
+async function ensurePlanStrokes(database: Db) {
+  const strokes = database.collection("planStrokes");
+
+  await strokes.createIndex(
+    { planId: 1, phaseId: 1, epoch: 1, rev: 1 },
+    { name: "planStrokes_delta" },
+  );
+  await strokes.createIndex(
+    { planId: 1, clientId: 1 },
+    { unique: true, name: "planStrokes_client_unique" },
+  );
+}
+
 // ─── Objets du jeu ────────────────────────────────────────────────────────────
 
 /**
@@ -137,6 +177,8 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
   ["notes", ensureNotes],
+  ["plans", ensurePlans],
+  ["planStrokes", ensurePlanStrokes],
   ["gameItems", ensureGameItems],
   ["cargoShips", ensureCargoShips],
 ];
