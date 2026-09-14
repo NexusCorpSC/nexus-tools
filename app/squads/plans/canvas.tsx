@@ -607,15 +607,18 @@ export const Trace = memo(function Trace({
           // somebody asked for, not a trace they meant to lose.
           if (event.button !== 0) return;
 
-          event.stopPropagation();
+          // **The event is let through on purpose.** It is what puts the
+          // canvas into rubbing mode, and stopping it here would mean a sweep
+          // that *started* on a trace rubbed that one out and then nothing
+          // else. The `<svg>` only ever arms the gomme while it is out, so
+          // there is nothing underneath worth shielding the trace from.
           onErase(stroke.id);
         },
         // The gomme rubs where it is dragged, not only where it is clicked.
         // Reached because nothing captured the pointer — see `rubbing`.
-        onPointerEnter: (event: React.PointerEvent) => {
+        onPointerEnter: () => {
           if (!held?.()) return;
 
-          event.stopPropagation();
           onErase(stroke.id);
         },
         style: { cursor: "pointer" as const },
