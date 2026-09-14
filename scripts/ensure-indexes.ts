@@ -162,6 +162,53 @@ async function ensureGameItems(database: Db) {
   );
 }
 
+// ─── Lieux du 'verse ──────────────────────────────────────────────────────────
+
+/**
+ * Le catalogue des lieux, à ne pas confondre avec `locations`, qui garde les
+ * emplacements de rangement que chaque joueur nomme lui-même.
+ */
+async function ensureGameLocations(database: Db) {
+  const places = database.collection("gameLocations");
+
+  await places.createIndex(
+    { slug: 1 },
+    { unique: true, name: "gameLocations_slug_unique" },
+  );
+  await places.createIndex({ id: 1 }, { name: "gameLocations_id" });
+  // Les lieux contenus par un lieu, déjà triés : la requête que relance chaque
+  // dépliage de l'arbre, et celle que suit le recalcul des champs dérivés.
+  await places.createIndex(
+    { parentSlug: 1, name: 1 },
+    { name: "gameLocations_parent" },
+  );
+  // Tout un sous-arbre en une passe : les magasins d'une ville, qui se
+  // tiennent dans ses quartiers et non directement sous elle.
+  await places.createIndex(
+    { ancestorSlugs: 1 },
+    { name: "gameLocations_ancestors" },
+  );
+  // Trier sur le chemin rend l'arbre dans l'ordre de parcours. Non unique à
+  // dessein : un recalcul à mi-course fait transitoirement collisionner deux
+  // chemins, et un index unique avorterait l'écriture groupée.
+  await places.createIndex({ path: 1 }, { name: "gameLocations_path" });
+  await places.createIndex(
+    { systemSlug: 1, type: 1, name: 1 },
+    { name: "gameLocations_browse" },
+  );
+  await places.createIndex({ services: 1 }, { name: "gameLocations_services" });
+  // Unique, pour que deux imports lancés en même temps ne créent pas deux fois
+  // le même lieu ; partiel, pour que les lieux saisis à la main restent libres.
+  await places.createIndex(
+    { "source.name": 1, "source.id": 1 },
+    {
+      unique: true,
+      name: "gameLocations_source_unique",
+      partialFilterExpression: { "source.id": { $exists: true } },
+    },
+  );
+}
+
 // ─── Vaisseaux de cargo ───────────────────────────────────────────────────────
 
 /** L'id est la clé que toute autre opération vise. */
@@ -180,6 +227,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["plans", ensurePlans],
   ["planStrokes", ensurePlanStrokes],
   ["gameItems", ensureGameItems],
+  ["gameLocations", ensureGameLocations],
   ["cargoShips", ensureCargoShips],
 ];
 
