@@ -269,6 +269,9 @@ export const VEHICLE_KEYS = [
   "height",
 ];
 
+/** Les plans du véhicule, saisis comme des urls. */
+export const VEHICLE_PLAN_KEYS = ["top", "side", "front", "holo"];
+
 export const WEAPON_KEYS = [
   "damageType",
   "caliber",
@@ -316,6 +319,8 @@ export const REFINING_KEYS = [
 export function VehicleFields({
   scalars,
   onScalars,
+  plans,
+  onPlans,
   hardpoints,
   onHardpoints,
   components,
@@ -323,6 +328,8 @@ export function VehicleFields({
 }: {
   scalars: EditorRow;
   onScalars: (values: EditorRow) => void;
+  plans: EditorRow;
+  onPlans: (values: EditorRow) => void;
   hardpoints: EditorRow[];
   onHardpoints: (rows: EditorRow[]) => void;
   components: EditorRow[];
@@ -373,6 +380,21 @@ export function VehicleFields({
           },
         ]}
       />
+
+      <div>
+        <p className="mb-2 text-xs text-nexus">{t("vehiclePlansHint")}</p>
+        <FieldGrid
+          columns={2}
+          values={plans}
+          onChange={onPlans}
+          fields={[
+            { key: "top", label: t("vehiclePlanTop") },
+            { key: "side", label: t("vehiclePlanSide") },
+            { key: "front", label: t("vehiclePlanFront") },
+            { key: "holo", label: t("vehiclePlanHolo") },
+          ]}
+        />
+      </div>
 
       <RowsEditor
         label={t("hardpoints")}
@@ -756,6 +778,7 @@ export function buildKindPayload(
   kind: Item["kind"],
   state: {
     vehicle: EditorRow;
+    vehiclePlans: EditorRow;
     hardpoints: EditorRow[];
     components: EditorRow[];
     weapon: EditorRow;
@@ -779,6 +802,7 @@ export function buildKindPayload(
           ...state.vehicle,
           hardpoints: state.hardpoints,
           components: state.components,
+          plans: state.vehiclePlans,
         },
       };
     case "weapon":

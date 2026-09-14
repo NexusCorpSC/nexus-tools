@@ -39,6 +39,7 @@ import {
   SPREAD_KEYS,
   ResourceFields,
   VEHICLE_KEYS,
+  VEHICLE_PLAN_KEYS,
   VehicleFields,
   WEAPON_KEYS,
   WeaponFields,
@@ -146,6 +147,9 @@ export function ItemForm({
   const [vehicle, setVehicle] = useState<EditorRow>(() =>
     scalarsToRow(item?.vehicle, VEHICLE_KEYS),
   );
+  const [vehiclePlans, setVehiclePlans] = useState<EditorRow>(() =>
+    scalarsToRow(item?.vehicle?.plans, VEHICLE_PLAN_KEYS),
+  );
   const [hardpoints, setHardpoints] = useState<EditorRow[]>(() =>
     slotsToRows(item?.vehicle?.hardpoints),
   );
@@ -233,6 +237,7 @@ export function ItemForm({
       setName: setLabel,
       ...buildKindPayload(kind, {
         vehicle,
+        vehiclePlans,
         hardpoints,
         components,
         weapon,
@@ -402,6 +407,8 @@ export function ItemForm({
         <VehicleFields
           scalars={vehicle}
           onScalars={setVehicle}
+          plans={vehiclePlans}
+          onPlans={setVehiclePlans}
           hardpoints={hardpoints}
           onHardpoints={setHardpoints}
           components={components}

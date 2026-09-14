@@ -46,3 +46,6 @@ next-env.d.ts
 # Assets
 assets/blueprints-full.json
 assets/blueprints.json
+
+# Décodeur Draco recopié depuis three par `npm run postinstall`
+/public/draco

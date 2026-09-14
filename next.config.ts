@@ -28,6 +28,19 @@ const nextConfig: NextConfig = {
         hostname: "media.starcitizen.tools",
         port: "",
       },
+      // Plans des véhicules (vues orthographiques de Fleetyards) quand ils ne
+      // sont pas recopiés dans le blob storage. L'url publiée est une
+      // redirection vers le stockage, que l'optimiseur suit.
+      {
+        protocol: "https",
+        hostname: "api.fleetyards.net",
+        port: "",
+      },
+      {
+        protocol: "https",
+        hostname: "storage.fltyrd.net",
+        port: "",
+      },
     ],
   },
   experimental: {
