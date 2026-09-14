@@ -61,23 +61,16 @@ export async function PATCH(
     );
   }
 
-  // Whose trace it is decides here exactly as it does for the gomme below, and
-  // for the same reason: read from the database, never trusted from the client.
-  // Without it any member could drag away, rename or resurrect anybody's trace.
-  if (!governs) {
-    const author = await strokeAuthor(planId, phaseId, strokeId);
+  const refused = await refuseStroke(
+    planId,
+    phaseId,
+    strokeId,
+    caller.userId,
+    governs,
+    "A trace is only its author's to change",
+  );
 
-    if (author === null) {
-      return NextResponse.json({ error: "Stroke not found" }, { status: 404 });
-    }
-
-    if (author !== caller.userId) {
-      return NextResponse.json(
-        { error: "A trace is only its author's to change" },
-        { status: 403 },
-      );
-    }
-  }
+  if (refused) return refused;
 
   const parsed = await readBody(request);
   if ("refused" in parsed) return parsed.refused;
@@ -175,28 +168,57 @@ export async function DELETE(
     );
   }
 
-  // Whose trace it is decides, and only whoever runs the plan is excused from
-  // the question. Read before the write rather than trusted from the client.
-  if (!governs) {
-    const author = await strokeAuthor(planId, phaseId, strokeId);
+  const refused = await refuseStroke(
+    planId,
+    phaseId,
+    strokeId,
+    caller.userId,
+    governs,
+    "The eraser only takes your own strokes",
+  );
 
-    if (author === null) {
-      return NextResponse.json({ error: "Stroke not found" }, { status: 404 });
-    }
-
-    if (author !== caller.userId) {
-      return NextResponse.json(
-        { error: "The eraser only takes your own strokes" },
-        { status: 403 },
-      );
-    }
-  }
+  if (refused) return refused;
 
   const erased = await eraseStroke(planId, strokeId);
 
   if ("refusal" in erased) return refusal(erased.refusal);
 
   return NextResponse.json({ stroke: erased.stroke });
+}
+
+/**
+ * Whether this caller may touch this trace — `null` when they may.
+ *
+ * Two questions, and only the second one rank answers. **Which** trace is being
+ * talked about is settled first and unconditionally: the record has to be the
+ * one the URL names, in this plan *and* in this phase. The writes below look a
+ * stroke up by `{planId, strokeId}` alone, so skipping this for whoever runs
+ * the plan would let a wrong `phaseId` act on a trace in another phase and
+ * quietly swallow the client bug that sent it.
+ *
+ * **Whose** it is comes second, and that is the one `governs` excuses: the
+ * eraser takes your own, and whoever runs the plan takes anyone's. Read from
+ * the database rather than trusted from the client, as everywhere else.
+ */
+async function refuseStroke(
+  planId: string,
+  phaseId: string,
+  strokeId: string,
+  userId: string,
+  governs: boolean,
+  mine: string,
+): Promise<NextResponse | null> {
+  const author = await strokeAuthor(planId, phaseId, strokeId);
+
+  if (author === null) {
+    return NextResponse.json({ error: "Stroke not found" }, { status: 404 });
+  }
+
+  if (!governs && author !== userId) {
+    return NextResponse.json({ error: mine }, { status: 403 });
+  }
+
+  return null;
 }
 
 function refusal(kind: StrokeRefusal): NextResponse {

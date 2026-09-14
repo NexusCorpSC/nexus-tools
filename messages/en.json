@@ -1432,6 +1432,6 @@
     "undo": "Undo your last move",
     "undoShortcut": "Ctrl+Z",
     "redo": "Redo",
-    "redoShortcut": "Ctrl+Shift+Z"
+    "redoShortcut": "Ctrl+Shift+Z or Ctrl+Y"
   }
 }
