@@ -450,7 +450,7 @@ type PoolEntry = {
  * points de saut de Nyx. On les admet, en confiant à `DESTINATION_JUNK` le
  * tri de ce qui reste : ces entrées désignent aussi des pièces intérieures.
  */
-const KEPT_TYPES: Record<string, PlaceType> = {
+const KEPT_TYPES: Partial<Record<string, PlaceType>> = {
   Star: "star",
   Planet: "planet",
   Moon: "moon",
@@ -681,9 +681,15 @@ async function importMissions(options: Options, report: Report): Promise<void> {
     if (CURATED.some((entry) => entry.slug === slug)) continue;
     // Deux entrées peuvent porter le même nom sous des clés différentes — le
     // dump en compte 262. Le slug étant unique en base, la seconde ferait
-    // échouer l'écriture ; la première rencontrée, la mieux typée puisque la
-    // liste est triée par `TYPE_ORDER`, l'emporte.
-    if (taken.has(slug)) continue;
+    // échouer l'écriture. C'est la première *retenue* qui le prend, pas la
+    // première rencontrée : `taken` ne se remplit qu'en fin de boucle, pour
+    // qu'une entrée sortie faute de parent laisse sa place à son homonyme
+    // mieux rattaché. À rattachement égal, l'ordre de `TYPE_ORDER` tranche.
+    if (taken.has(slug)) {
+      report.skipped++;
+      console.log(`  = ${candidate.name} (nom déjà pris)`);
+      continue;
+    }
 
     const { slug: parentSlug, missing } = parentOf(candidate, index);
     if (missing) {
