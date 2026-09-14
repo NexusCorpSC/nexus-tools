@@ -197,6 +197,12 @@ async function ensureGameLocations(database: Db) {
     { name: "gameLocations_browse" },
   );
   await places.createIndex({ services: 1 }, { name: "gameLocations_services" });
+  // Qui emprunte un plan à ce lieu ? La question est posée avant chaque
+  // suppression et chaque enregistrement de plans, pas seulement à l'affichage.
+  await places.createIndex(
+    { "plans.sourceSlug": 1 },
+    { name: "gameLocations_plan_sources" },
+  );
   // Unique, pour que deux imports lancés en même temps ne créent pas deux fois
   // le même lieu ; partiel, pour que les lieux saisis à la main restent libres.
   await places.createIndex(
