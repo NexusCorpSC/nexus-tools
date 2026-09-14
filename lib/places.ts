@@ -974,6 +974,25 @@ export async function deletePlace(slug: string): Promise<boolean> {
   return true;
 }
 
+/**
+ * Pose la vignette d'un lieu, et rien d'autre. Passer par `updatePlace`
+ * obligerait à lui repasser toute la fiche, et un champ oublié en chemin
+ * serait effacé — l'import d'images n'a pas à connaître le reste.
+ */
+export async function setPlaceImage(
+  slug: string,
+  imageUrl: string,
+): Promise<boolean> {
+  const url = optionalUrl(imageUrl);
+  if (!url) return false;
+
+  const { matchedCount } = await collection().updateOne(
+    { slug },
+    { $set: { imageUrl: url, updatedAt: new Date().toISOString() } },
+  );
+  return matchedCount > 0;
+}
+
 /** Les plans sont remplacés en bloc : l'éditeur envoie toujours l'état complet. */
 export async function savePlacePlans(
   slug: string,
