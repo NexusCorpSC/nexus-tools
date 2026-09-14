@@ -149,9 +149,10 @@ export function PlanBoard({
       const stored = forStorage(points, kind === "pen");
       const clientId = crypto.randomUUID().replaceAll("-", "");
 
-      // On screen before the round trip. The commit answers with the stored
-      // stroke and the delta brings it again; both land on the same id, so the
-      // optimistic one is replaced rather than doubled.
+      // On screen before the round trip, under an id of its own — the server
+      // mints the real one. So the commit's answer is what replaces it: the
+      // delta then brings that same id and lands on top of itself rather than
+      // beside a twin nobody can rub out.
       const optimistic: PlanStroke = {
         id: `local-${clientId}`,
         phaseId: current.id,
@@ -175,7 +176,7 @@ export function PlanBoard({
       draw(current.id, optimistic);
 
       try {
-        await planApi.commit(plan.id, current.id, squadId, {
+        const { stroke } = await planApi.commit(plan.id, current.id, squadId, {
           clientId,
           kind,
           ink,
@@ -183,6 +184,9 @@ export function PlanBoard({
           points: stored,
           text,
         });
+
+        rub(current.id, optimistic.id);
+        draw(current.id, stroke);
       } catch (error) {
         rub(current.id, optimistic.id);
         toast.error(t("errorTitle"), {
@@ -328,6 +332,7 @@ export function PlanBoard({
             ink={ink}
             width={width}
             hues={hues}
+            mySquadId={mySquad?.id ?? ""}
             editable={editable}
             onDraw={onDraw}
             onErase={onErase}

@@ -1422,6 +1422,7 @@
     "backgroundHint": "Import an image, or paste a screenshot with Ctrl+V",
     "backgroundTooBig": "Image too large: 8 MB at most.",
     "print": "Print",
-    "printHint": "One phase per page. Use “Save as PDF” from the print dialog."
+    "printHint": "One phase per page. Use “Save as PDF” from the print dialog.",
+    "labelField": "Text to place on the plan"
   }
 }

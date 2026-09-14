@@ -1456,6 +1456,7 @@
     "backgroundHint": "Importez une image, ou collez une capture avec Ctrl+V",
     "backgroundTooBig": "Image trop lourde : 8 Mo au maximum.",
     "print": "Imprimer",
-    "printHint": "Une phase par page. « Enregistrer en PDF » depuis la fenêtre d'impression."
+    "printHint": "Une phase par page. « Enregistrer en PDF » depuis la fenêtre d'impression.",
+    "labelField": "Texte à poser sur le plan"
   }
 }

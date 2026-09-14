@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import { PLAN_GRID, type PlanInk, type PlanStroke, type StrokeKind } from "@/types/plan";
@@ -58,6 +59,12 @@ export interface CanvasProps {
   ink: PlanInk;
   width: number;
   hues: Map<string, string>;
+  /**
+   * The drawer's own squad, so the trace under their pen is already the colour
+   * it will be once committed — `squad` ink resolved against nothing falls back
+   * to the default hue, which in a raid is somebody else's.
+   */
+  mySquadId: string;
   /** `false` on a frozen phase, or for a reader the plan is closed to. */
   editable: boolean;
   /** A finished trace, in grid coordinates. */
@@ -75,6 +82,7 @@ export function PlanCanvas({
   ink,
   width,
   hues,
+  mySquadId,
   editable,
   onDraw,
   onErase,
@@ -351,7 +359,7 @@ export function PlanCanvas({
         <path
           ref={live}
           fill="none"
-          stroke={inkColor(ink, "", hues)}
+          stroke={inkColor(ink, mySquadId, hues)}
           strokeWidth={width * WIDTH_SCALE}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -399,6 +407,10 @@ export const Trace = memo(function Trace({
   const erase = onErase
     ? {
         onPointerDown: (event: React.PointerEvent) => {
+          // The primary button only, as the pen is: a right-click is a menu
+          // somebody asked for, not a trace they meant to lose.
+          if (event.button !== 0) return;
+
           event.stopPropagation();
           onErase(stroke.id);
         },
@@ -523,10 +535,13 @@ function LabelField({
   onChange: (value: string) => void;
   onDone: (value: string) => void;
 }) {
+  const t = useTranslations("Plans");
+
   return (
     <div className="absolute inset-x-4 bottom-4 flex items-center gap-2 rounded-lg border border-[#9ED0FF]/25 bg-[#0B3A5A]/95 p-2 sm:inset-x-auto sm:left-1/2 sm:w-96 sm:-translate-x-1/2">
       <input
         autoFocus
+        aria-label={t("labelField")}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {

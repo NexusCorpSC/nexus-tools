@@ -806,6 +806,25 @@ async function refusalFor(
   return "full";
 }
 
+/**
+ * Give a phase one of its slots back.
+ *
+ * Guarded on the count being above zero rather than fired blind: a clear that
+ * lands between the allocation and this call has already reset the counter, and
+ * an unguarded `$inc: -1` would take it negative — which the write filter then
+ * reads as room for ever.
+ */
+async function releaseSlot(planId: string, phaseId: string): Promise<void> {
+  await plans().updateOne(
+    {
+      _id: new ObjectId(planId),
+      phases: { $elemMatch: { id: phaseId, strokes: { $gt: 0 } } },
+    },
+    { $inc: { "phases.$[p].strokes": -1 } },
+    { arrayFilters: [{ "p.id": phaseId }] },
+  );
+}
+
 export async function commitStroke(
   planId: string,
   phaseId: string,
@@ -844,10 +863,7 @@ export async function commitStroke(
 
     // A retried commit. Hand back the trace they already have, and give the
     // phase its slot back — the revision stays spent, which costs nothing.
-    await plans().updateOne(
-      { _id: new ObjectId(planId), "phases.id": phaseId },
-      { $inc: { "phases.$.strokes": -1 } },
-    );
+    await releaseSlot(planId, phaseId);
 
     const existing = await strokes().findOne({
       planId,
@@ -896,12 +912,7 @@ export async function eraseStroke(
     { returnDocument: "after" },
   );
 
-  if (gone) {
-    await plans().updateOne(
-      { _id: new ObjectId(planId), "phases.id": existing.phaseId },
-      { $inc: { "phases.$.strokes": -1 } },
-    );
-  }
+  if (gone) await releaseSlot(planId, existing.phaseId);
 
   return gone ? { stroke: toStroke(gone) } : { refusal: "gone" };
 }
