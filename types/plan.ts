@@ -23,8 +23,8 @@
  * cost twenty full reads of itself on every pen-up.
  *
  * Mirrored by hand in `nexus-app/src/types/nexus.ts`, as `types/squad.ts` is:
- * adding a stroke kind or an ink means adding it there too, or the overlay
- * draws a hole where the trace should be.
+ * adding a stroke kind, an ink or a dash means adding it there too, or the
+ * overlay draws a hole where the trace should be.
  */
 
 /* ------------------------------------------------------------------ */
@@ -144,6 +144,23 @@ export type PlanInk = (typeof PLAN_INKS)[number];
 export const STROKE_WIDTHS = [3, 6, 12] as const;
 export type StrokeWidth = (typeof STROKE_WIDTHS)[number];
 
+/**
+ * How the line of a shape is broken up.
+ *
+ * A briefing draws two things that look alike and mean the opposite: where the
+ * squad *will* be, and where it must *not* go. A dashed rectangle says
+ * «planned, not yet» without needing a legend, which is why this is worth a
+ * field rather than a second ink.
+ *
+ * It applies to the five geometric kinds only. A token in dots would say
+ * nothing, and the head of an arrow stays solid whatever its shaft does.
+ */
+export const STROKE_DASHES = ["solid", "dashed", "dotted"] as const;
+export type StrokeDash = (typeof STROKE_DASHES)[number];
+
+/** The kinds a dash is drawn on. A label or a token in dots reads as a bug. */
+export const DASHED_KINDS = ["pen", "line", "arrow", "rect", "ellipse"] as const;
+
 export function isPlanScope(value: unknown): value is PlanScope {
   return (PLAN_SCOPES as readonly unknown[]).includes(value);
 }
@@ -162,6 +179,20 @@ export function isPlanInk(value: unknown): value is PlanInk {
 
 export function isStrokeWidth(value: unknown): value is StrokeWidth {
   return (STROKE_WIDTHS as readonly unknown[]).includes(value);
+}
+
+export function isStrokeDash(value: unknown): value is StrokeDash {
+  return (STROKE_DASHES as readonly unknown[]).includes(value);
+}
+
+/**
+ * Whether a kind wears a dash at all.
+ *
+ * Takes `unknown` so the toolbar can ask it about a *tool* — `pan` and
+ * `eraser` are not stroke kinds and must answer no without a cast.
+ */
+export function wearsDash(kind: unknown): boolean {
+  return (DASHED_KINDS as readonly unknown[]).includes(kind);
 }
 
 /* ------------------------------------------------------------------ */
@@ -318,6 +349,13 @@ export interface PlanStroke {
   kind: StrokeKind;
   ink: PlanInk;
   width: number;
+  /**
+   * Solid unless somebody said otherwise.
+   *
+   * Added after the first plans were drawn, so a stroke stored without it reads
+   * back as `"solid"` — the mapper absorbs that, not the callers.
+   */
+  dash: StrokeDash;
   /** Flat `[x0, y0, x1, y1, …]`, integers in `0…PLAN_GRID`. */
   points: number[];
   /** The label, for `text` and `pin`; empty otherwise. */

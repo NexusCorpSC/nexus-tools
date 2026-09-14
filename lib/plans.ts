@@ -20,6 +20,7 @@ import {
   type PlanScope,
   type PlanStroke,
   type PlanSummary,
+  type StrokeDash,
   type StrokeKind,
 } from "@/types/plan";
 
@@ -97,6 +98,8 @@ export interface DbPlanStroke {
   kind: StrokeKind;
   ink: PlanInk;
   width: number;
+  /** Absent on everything drawn before dashes existed; reads back as solid. */
+  dash?: StrokeDash;
   points: number[];
   text?: string;
   tokenUserId?: string;
@@ -196,6 +199,7 @@ export function toStroke(doc: DbPlanStroke): PlanStroke {
     kind: doc.kind,
     ink: doc.ink,
     width: doc.width,
+    dash: doc.dash ?? "solid",
     points: doc.points ?? [],
     text: doc.text ?? "",
     tokenUserId: doc.tokenUserId ?? "",
@@ -784,6 +788,7 @@ export interface StrokeDraft {
   kind: StrokeKind;
   ink: PlanInk;
   width: number;
+  dash: StrokeDash;
   points: number[];
   text: string;
   tokenUserId: string;
@@ -849,6 +854,7 @@ export async function commitStroke(
     kind: draft.kind,
     ink: draft.ink,
     width: draft.width,
+    dash: draft.dash,
     points: draft.points,
     text: draft.text,
     tokenUserId: draft.tokenUserId,
@@ -950,6 +956,105 @@ export async function moveStroke(
   );
 
   return moved ? { stroke: toStroke(moved) } : { refusal: "gone" };
+}
+
+/**
+ * Rename a marker.
+ *
+ * A pin is dropped where it is wanted and named afterwards — the click and the
+ * label are two gestures, and holding the marker hostage until the second one
+ * lands is what made the tool feel broken. Same shape as a move: superseded in
+ * place under a fresh revision.
+ */
+export async function relabelStroke(
+  planId: string,
+  strokeId: string,
+  text: string,
+): Promise<{ stroke: PlanStroke } | { refusal: StrokeRefusal }> {
+  if (!ObjectId.isValid(strokeId)) return { refusal: "gone" };
+
+  const existing = await strokes().findOne({
+    _id: new ObjectId(strokeId),
+    planId,
+    deletedAt: { $in: [null, undefined] },
+  });
+
+  if (!existing) return { refusal: "gone" };
+
+  const updated = await allocateRev(planId, existing.phaseId, false);
+  if (!updated) return { refusal: await refusalFor(planId, existing.phaseId) };
+
+  const phase = phaseOf(updated, existing.phaseId);
+  if (!phase) return { refusal: "gone" };
+
+  const named = await strokes().findOneAndUpdate(
+    { _id: existing._id },
+    { $set: { text, rev: phase.rev } },
+    { returnDocument: "after" },
+  );
+
+  return named ? { stroke: toStroke(named) } : { refusal: "gone" };
+}
+
+/**
+ * Put a rubbed-out trace back.
+ *
+ * This is what makes «annuler» cheap. The alternative — posting the geometry
+ * again under a new `clientId` — would mint a second identity for the same
+ * trace, so an undo stack would have to rewrite itself at every step and a
+ * drawing undone and redone ten times would eat ten of the phase's four
+ * hundred slots. Raising the tombstone keeps the id, and a resurrection travels
+ * to the other members as what it is: the same stroke, a fresh revision, no
+ * longer dead. Both clients' `apply()` already put such a stroke back on the
+ * map; nothing about the protocol had to learn anything.
+ *
+ * It takes a slot back, so it answers `full` on a phase that filled up while
+ * the trace was gone — and `locked` on one that was frozen meanwhile. Undo is
+ * not a licence to write on a validated phase.
+ */
+export async function restoreStroke(
+  planId: string,
+  strokeId: string,
+): Promise<{ stroke: PlanStroke } | { refusal: StrokeRefusal }> {
+  if (!ObjectId.isValid(strokeId)) return { refusal: "gone" };
+
+  const existing = await strokes().findOne({
+    _id: new ObjectId(strokeId),
+    planId,
+  });
+
+  if (!existing) return { refusal: "gone" };
+  if (!existing.deletedAt) return { stroke: toStroke(existing) };
+
+  const updated = await allocateRev(planId, existing.phaseId, true);
+  if (!updated) return { refusal: await refusalFor(planId, existing.phaseId) };
+
+  const phase = phaseOf(updated, existing.phaseId);
+  if (!phase) return { refusal: "gone" };
+
+  // Drawn in an epoch the phase has left behind: the clear that moved the epoch
+  // meant to take this with it, so it stays gone rather than reappearing in a
+  // drawing it was never part of.
+  if (existing.epoch !== phase.epoch) {
+    await releaseSlot(planId, existing.phaseId);
+    return { refusal: "gone" };
+  }
+
+  const back = await strokes().findOneAndUpdate(
+    // `$ne: null` does not match a missing field either, so this matches
+    // tombstones and nothing else: two tabs undoing at once cannot both spend
+    // a slot on the same trace.
+    { _id: existing._id, deletedAt: { $ne: null } },
+    { $set: { deletedAt: null, rev: phase.rev } },
+    { returnDocument: "after" },
+  );
+
+  if (!back) {
+    await releaseSlot(planId, existing.phaseId);
+    return { refusal: "gone" };
+  }
+
+  return { stroke: toStroke(back) };
 }
 
 /**

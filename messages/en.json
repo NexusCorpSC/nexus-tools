@@ -1423,6 +1423,15 @@
     "backgroundTooBig": "Image too large: 8 MB at most.",
     "print": "Print",
     "printHint": "One phase per page. Use “Save as PDF” from the print dialog.",
-    "labelField": "Text to place on the plan"
+    "labelField": "Text to place on the plan",
+    "labelPlace": "Place",
+    "labelCancel": "Cancel",
+    "dash_solid": "Solid line",
+    "dash_dashed": "Dashed",
+    "dash_dotted": "Dotted",
+    "undo": "Undo your last move",
+    "undoShortcut": "Ctrl+Z",
+    "redo": "Redo",
+    "redoShortcut": "Ctrl+Shift+Z or Ctrl+Y"
   }
 }

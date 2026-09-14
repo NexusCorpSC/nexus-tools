@@ -1457,6 +1457,15 @@
     "backgroundTooBig": "Image trop lourde : 8 Mo au maximum.",
     "print": "Imprimer",
     "printHint": "Une phase par page. « Enregistrer en PDF » depuis la fenêtre d'impression.",
-    "labelField": "Texte à poser sur le plan"
+    "labelField": "Texte à poser sur le plan",
+    "labelPlace": "Poser",
+    "labelCancel": "Annuler",
+    "dash_solid": "Trait plein",
+    "dash_dashed": "Tirets",
+    "dash_dotted": "Pointillés",
+    "undo": "Annuler le dernier geste",
+    "undoShortcut": "Ctrl+Z",
+    "redo": "Rétablir",
+    "redoShortcut": "Ctrl+Maj+Z ou Ctrl+Y"
   }
 }

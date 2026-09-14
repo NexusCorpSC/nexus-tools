@@ -3,6 +3,7 @@ import type {
   PlanAssignment,
   PlanStroke,
   PlanView,
+  StrokeDash,
   StrokeDelta,
   StrokeKind,
   PlanInk,
@@ -45,7 +46,7 @@ async function json<T>(
     | null;
 
   if (!response.ok) {
-    throw new Error(answer?.error ?? `HTTP ${response.status}`);
+    throw new PlanHttpError(response.status, answer?.error ?? `HTTP ${response.status}`);
   }
 
   return answer as T;
@@ -61,6 +62,26 @@ async function call(
     feed: answer.feed ?? { scope: "squad", ownerId: null, plans: [] },
     plan: answer.plan ?? null,
   };
+}
+
+/**
+ * A refusal, with the status that says what kind it was.
+ *
+ * Undo is the caller that needs the difference: a restore answering **404** is
+ * a trace that is genuinely gone — a leader rubbed it out, the phase was
+ * emptied — and the step is simply dropped, where a **409** or a dead
+ * connection is worth keeping the step and saying so. It still extends `Error`,
+ * so every `error instanceof Error ? error.message : undefined` already written
+ * keeps working untouched.
+ */
+export class PlanHttpError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "PlanHttpError";
+    this.status = status;
+  }
 }
 
 /** Raised by a delta whose epoch no longer matches: start again from zero. */
@@ -214,6 +235,8 @@ export const planApi = {
       kind: StrokeKind;
       ink: PlanInk;
       width: number;
+      /** Absent is legal, and means solid: the overlay states none. */
+      dash?: StrokeDash;
       points: number[];
       text?: string;
       tokenUserId?: string;
@@ -245,5 +268,33 @@ export const planApi = {
     json<{ stroke: PlanStroke }>(
       at(`${PLANS}/${planId}/phases/${phaseId}/strokes/${strokeId}`, squadId),
       { method: "PATCH", body: { points } },
+    ),
+
+  /** Names a marker that was dropped before anybody had typed. */
+  relabel: (
+    planId: string,
+    phaseId: string,
+    strokeId: string,
+    squadId: string | null,
+    text: string,
+  ) =>
+    json<{ stroke: PlanStroke }>(
+      at(`${PLANS}/${planId}/phases/${phaseId}/strokes/${strokeId}`, squadId),
+      { method: "PATCH", body: { text } },
+    ),
+
+  /**
+   * Raises the tombstone: the trace comes back under a fresh revision, with the
+   * id it always had. This is what «annuler» is built on.
+   */
+  restore: (
+    planId: string,
+    phaseId: string,
+    strokeId: string,
+    squadId: string | null,
+  ) =>
+    json<{ stroke: PlanStroke }>(
+      at(`${PLANS}/${planId}/phases/${phaseId}/strokes/${strokeId}`, squadId),
+      { method: "PATCH", body: { restore: true } },
     ),
 };
