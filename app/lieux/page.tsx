@@ -66,6 +66,18 @@ export default async function PlacesPage() {
       </Suspense>
 
       <p className="text-xs text-nexus">{t("footnote")}</p>
+
+      <p className="text-xs text-nexus">
+        Images retrieved from various incredible tools such as{" "}
+        <Link
+          href="https://starcitizen.tools/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Star Citizen Tools
+        </Link>
+        .
+      </p>
     </div>
   );
 }
