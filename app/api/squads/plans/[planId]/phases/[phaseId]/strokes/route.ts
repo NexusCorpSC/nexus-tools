@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { clearPhase, commitStroke, strokesSince, type StrokeDraft } from "@/lib/plans";
 import {
   isPlanInk,
+  isStrokeDash,
   isStrokeKind,
   isStrokeWidth,
+  wearsDash,
   PHASE_MAX_STROKES,
   PLAN_GRID,
   STROKE_MAX_POINTS,
@@ -240,6 +242,13 @@ function readDraft(
     return { error: "`width` must be one of the known widths" };
   }
 
+  // Older clients — the overlay among them — do not state it at all, and a
+  // plan drawn before dashes existed is a plan of solid lines.
+  const dash = fields?.dash;
+  if (dash !== undefined && !isStrokeDash(dash)) {
+    return { error: "`dash` must be one of the known dashes" };
+  }
+
   if (!Array.isArray(points) || points.length < 2 || points.length % 2 !== 0) {
     return { error: "`points` must be an even-length array of at least one pair" };
   }
@@ -273,8 +282,10 @@ function readDraft(
     return { error: "`tokenUserId` must be a string" };
   }
 
-  // A text with nothing in it draws nothing and cannot be selected to fix.
-  if ((kind === "text" || kind === "pin") && !(text as string | undefined)?.trim()) {
+  // A text with nothing in it draws nothing and cannot be selected to fix. A
+  // pin is a different matter: it is dropped where it is wanted and named
+  // afterwards, and it draws its author's initials until it is.
+  if (kind === "text" && !(text as string | undefined)?.trim()) {
     return { error: "`text` must not be empty for this kind" };
   }
 
@@ -287,6 +298,9 @@ function readDraft(
       kind,
       ink,
       width,
+      // A label, a token or a marker wears none: a client that states one is
+      // not believed rather than refused — it gets the trace it asked for.
+      dash: wearsDash(kind) && isStrokeDash(dash) ? dash : "solid",
       points: points as number[],
       text: typeof text === "string" ? text.trim() : "",
       tokenUserId: typeof tokenUserId === "string" ? tokenUserId : "",

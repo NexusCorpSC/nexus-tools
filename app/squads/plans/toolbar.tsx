@@ -9,13 +9,20 @@ import {
   MapPin,
   Minus,
   Pencil,
+  Redo2,
   Square,
   Type,
+  Undo2,
   Users,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { STROKE_WIDTHS, type PlanInk } from "@/types/plan";
+import {
+  STROKE_DASHES,
+  STROKE_WIDTHS,
+  type PlanInk,
+  type StrokeDash,
+} from "@/types/plan";
 import type { Tool } from "./canvas";
 import { inkSwatches } from "./ink";
 
@@ -41,27 +48,50 @@ const TOOLS: { tool: Tool; icon: typeof Pencil; key: string }[] = [
   { tool: "eraser", icon: Eraser, key: "toolEraser" },
 ];
 
+/** The tools that place a glyph: a dotted disc reads as a rendering fault. */
+const GLYPH: Record<string, boolean> = { text: true, token: true, pin: true };
+
+/** The same ratios `dashFor` uses, at a thickness of 2.5: the button is its own
+ *  preview rather than an icon that has to be learned. */
+const PREVIEW: Record<StrokeDash, string | undefined> = {
+  solid: undefined,
+  dashed: "5 7.5",
+  dotted: "0 5",
+};
+
 export function Toolbar({
   tool,
   ink,
   width,
+  dash,
   hues,
   mySquadId,
   editable,
+  canUndo,
+  canRedo,
   onTool,
   onInk,
   onWidth,
+  onDash,
+  onUndo,
+  onRedo,
   className,
 }: {
   tool: Tool;
   ink: PlanInk;
   width: number;
+  dash: StrokeDash;
   hues: Map<string, string>;
   mySquadId: string;
   editable: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   onTool: (tool: Tool) => void;
   onInk: (ink: PlanInk) => void;
   onWidth: (width: number) => void;
+  onDash: (dash: StrokeDash) => void;
+  onUndo: () => void;
+  onRedo: () => void;
   className?: string;
 }) {
   const t = useTranslations("Plans");
@@ -75,6 +105,33 @@ export function Toolbar({
         className,
       )}
     >
+      {/* Actions, not modes: no `aria-pressed`, and the first thing a hand
+          reaches for after a slip. */}
+      {(
+        [
+          { key: "undo", icon: Undo2, run: onUndo, live: canUndo },
+          { key: "redo", icon: Redo2, run: onRedo, live: canRedo },
+        ] as const
+      ).map(({ key, icon: Icon, run, live }) => (
+        <button
+          key={key}
+          type="button"
+          title={`${t(key)} (${t(`${key}Shortcut`)})`}
+          disabled={!live}
+          onClick={run}
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-lg transition md:size-10",
+            "text-[#9ED0FF]/60 hover:bg-[#9ED0FF]/10 hover:text-[#CCE7FF]",
+            !live && "cursor-default opacity-30 hover:bg-transparent",
+          )}
+        >
+          <span className="sr-only">{t(key)}</span>
+          <Icon className="size-5" aria-hidden="true" />
+        </button>
+      ))}
+
+      <span className="mx-1 h-6 w-px shrink-0 bg-[#9ED0FF]/15 md:mx-0 md:my-1 md:h-px md:w-6" />
+
       {TOOLS.map(({ tool: candidate, icon: Icon, key }) => {
         const chosen = candidate === tool;
         // Panning is reading, not drawing: it stays on for everyone.
@@ -157,6 +214,46 @@ export function Toolbar({
           />
         </button>
       ))}
+
+      <span className="mx-1 h-6 w-px shrink-0 bg-[#9ED0FF]/15 md:mx-0 md:my-1 md:h-px md:w-6" />
+
+      {STROKE_DASHES.map((candidate) => {
+        // A label, a token and a marker wear no dash: the group goes quiet
+        // rather than offering a choice the commit would throw away.
+        const usable = editable && !GLYPH[tool];
+
+        return (
+          <button
+            key={candidate}
+            type="button"
+            title={t(`dash_${candidate}`)}
+            disabled={!usable}
+            aria-pressed={candidate === dash}
+            onClick={() => onDash(candidate)}
+            className={cn(
+              "flex size-11 shrink-0 items-center justify-center rounded-lg transition md:size-10",
+              candidate === dash
+                ? "bg-[#9ED0FF]/20 text-[#CCE7FF]"
+                : "text-[#9ED0FF]/60 hover:bg-[#9ED0FF]/10",
+              !usable && "cursor-default opacity-30",
+            )}
+          >
+            <span className="sr-only">{t(`dash_${candidate}`)}</span>
+            <svg viewBox="0 0 24 4" className="w-5" aria-hidden="true">
+              <line
+                x1="1"
+                y1="2"
+                x2="23"
+                y2="2"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={PREVIEW[candidate]}
+              />
+            </svg>
+          </button>
+        );
+      })}
     </nav>
   );
 }

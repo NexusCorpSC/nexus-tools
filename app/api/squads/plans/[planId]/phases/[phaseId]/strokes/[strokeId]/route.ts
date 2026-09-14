@@ -1,27 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eraseStroke, moveStroke, strokeAuthor } from "@/lib/plans";
-import { PLAN_GRID, STROKE_MAX_POINTS } from "@/types/plan";
+import {
+  eraseStroke,
+  moveStroke,
+  relabelStroke,
+  restoreStroke,
+  strokeAuthor,
+  type StrokeRefusal,
+} from "@/lib/plans";
+import {
+  PHASE_MAX_STROKES,
+  PLAN_GRID,
+  STROKE_MAX_POINTS,
+  STROKE_TEXT_MAX_LENGTH,
+} from "@/types/plan";
 import { readBody } from "../../../../../../caller";
 import { resolvePlan } from "../../../../../caller";
 
 /**
- * One trace, rubbed out or moved.
+ * One trace: rubbed out, moved, renamed, or brought back.
  *
- * Both supersede it under a fresh revision rather than mutating it quietly —
- * that is what makes a removal and a move reach everybody the same way a
- * drawing does. Neither answers a `PlanView`: like the commit, they answer the
- * stroke, and the plan's own change rides the event stream.
+ * All four supersede it under a fresh revision rather than mutating it quietly
+ * — that is what makes a removal, a move and a resurrection reach everybody the
+ * same way a drawing does. None answers a `PlanView`: like the commit, they
+ * answer the stroke, and the plan's own change rides the event stream.
  *
- * **The gomme only rubs out your own.** Whoever runs the plan may rub out
- * anyone's, and emptying a whole phase is `DELETE …/strokes`.
+ * **Every one of them only touches your own.** Whoever runs the plan is excused
+ * from that question and no one else is; emptying a whole phase is
+ * `DELETE …/strokes`.
  */
 
 /**
  * PATCH …/strokes/[strokeId]
- * Moves a trace — a token following the squad from one phase to the next,
- * mostly.
+ * Moves a trace, renames it, or brings it back from the dead.
  *
- * Body: `{ points }`, on the same grid as a commit.
+ * Body: `{ points }` to move — a token following the squad from one phase to
+ * the next, mostly; `{ text }` to name a marker dropped before it was named;
+ * `{ restore: true }` to raise the tombstone, which is what «annuler» is built
+ * on. All three ride one verb rather than three routes because they are one
+ * operation seen three ways: supersede one trace under a fresh revision.
  */
 export async function PATCH(
   request: NextRequest,
@@ -31,12 +47,12 @@ export async function PATCH(
     params: Promise<{ planId: string; phaseId: string; strokeId: string }>;
   },
 ) {
-  const { planId, strokeId } = await params;
+  const { planId, phaseId, strokeId } = await params;
 
   const outcome = await resolvePlan(request, planId);
   if ("refused" in outcome) return outcome.refused;
 
-  const { mayDraw } = outcome;
+  const { caller, mayDraw, governs } = outcome;
 
   if (!mayDraw) {
     return NextResponse.json(
@@ -45,10 +61,55 @@ export async function PATCH(
     );
   }
 
+  // Whose trace it is decides here exactly as it does for the gomme below, and
+  // for the same reason: read from the database, never trusted from the client.
+  // Without it any member could drag away, rename or resurrect anybody's trace.
+  if (!governs) {
+    const author = await strokeAuthor(planId, phaseId, strokeId);
+
+    if (author === null) {
+      return NextResponse.json({ error: "Stroke not found" }, { status: 404 });
+    }
+
+    if (author !== caller.userId) {
+      return NextResponse.json(
+        { error: "A trace is only its author's to change" },
+        { status: 403 },
+      );
+    }
+  }
+
   const parsed = await readBody(request);
   if ("refused" in parsed) return parsed.refused;
 
-  const points = (parsed.body as { points?: unknown } | null)?.points;
+  const body = parsed.body as
+    | { points?: unknown; text?: unknown; restore?: unknown }
+    | null;
+
+  if (body?.restore === true) {
+    const back = await restoreStroke(planId, strokeId);
+
+    if ("refusal" in back) return refusal(back.refusal);
+
+    return NextResponse.json({ stroke: back.stroke });
+  }
+
+  if (typeof body?.text === "string") {
+    if (body.text.length > STROKE_TEXT_MAX_LENGTH) {
+      return NextResponse.json(
+        { error: `\`text\` exceeds ${STROKE_TEXT_MAX_LENGTH} characters` },
+        { status: 400 },
+      );
+    }
+
+    const named = await relabelStroke(planId, strokeId, body.text.trim());
+
+    if ("refusal" in named) return refusal(named.refusal);
+
+    return NextResponse.json({ stroke: named.stroke });
+  }
+
+  const points = body?.points;
 
   if (!Array.isArray(points) || points.length < 2 || points.length % 2 !== 0) {
     return NextResponse.json(
@@ -138,9 +199,18 @@ export async function DELETE(
   return NextResponse.json({ stroke: erased.stroke });
 }
 
-function refusal(kind: "locked" | "full" | "gone"): NextResponse {
+function refusal(kind: StrokeRefusal): NextResponse {
   if (kind === "locked") {
     return NextResponse.json({ error: "This phase is frozen" }, { status: 403 });
+  }
+
+  // A restore takes a slot back, so it can meet a phase that filled up while
+  // the trace was gone — and «plein» must not be reported as «introuvable».
+  if (kind === "full") {
+    return NextResponse.json(
+      { error: `A phase holds at most ${PHASE_MAX_STROKES} strokes` },
+      { status: 409 },
+    );
   }
 
   return NextResponse.json({ error: "Stroke not found" }, { status: 404 });

@@ -21,6 +21,7 @@ import {
   type PlanInk,
   type PlanStroke,
   type PlanView,
+  type StrokeDash,
   type StrokeKind,
 } from "@/types/plan";
 import type { SquadView } from "@/types/squad";
@@ -33,6 +34,7 @@ import { PhaseRail } from "./phase-rail";
 import { forStorage } from "./simplify";
 import { Toolbar } from "./toolbar";
 import { usePlan } from "./use-plan";
+import { useUndo } from "./use-undo";
 
 /**
  * The plan de vol, assembled.
@@ -70,6 +72,7 @@ export function PlanBoard({
   const [tool, setTool] = useState<Tool>("pen");
   const [ink, setInk] = useState<PlanInk>("squad");
   const [width, setWidth] = useState(6);
+  const [dash, setDash] = useState<StrokeDash>("solid");
   const [ghosting, setGhosting] = useState(true);
   const [picked, setPicked] = useState<string | null>(null);
   /**
@@ -138,13 +141,33 @@ export function PlanBoard({
   );
   const editable = Boolean(mayDraw && current && !current.locked);
 
+  /**
+   * Called before the early return below, as every hook must be — hence the
+   * empty-string defaults. A board with no phase has nothing to take back
+   * anyway.
+   */
+  const { canUndo, canRedo, remember, settle, undo, redo } = useUndo({
+    planId: plan?.id ?? "",
+    squadId,
+    phaseId: current?.id ?? "",
+    epoch: current?.epoch ?? 0,
+    editable,
+    strokes: layers[current?.id ?? ""]?.strokes ?? [],
+    draw,
+    rub,
+  });
+
   /* ---------------------------------------------------------------- */
   /* Drawing                                                           */
   /* ---------------------------------------------------------------- */
 
   const onDraw = useCallback(
-    async (kind: StrokeKind, points: number[], text: string) => {
-      if (!plan || !current || !mySquad) return;
+    async (
+      kind: StrokeKind,
+      points: number[],
+      text: string,
+    ): Promise<PlanStroke | null> => {
+      if (!plan || !current || !mySquad) return null;
 
       const stored = forStorage(points, kind === "pen");
       const clientId = crypto.randomUUID().replaceAll("-", "");
@@ -166,6 +189,7 @@ export function PlanBoard({
         kind,
         ink,
         width,
+        dash,
         points: stored,
         text,
         tokenUserId: "",
@@ -175,26 +199,84 @@ export function PlanBoard({
 
       draw(current.id, optimistic);
 
+      // On the stack straight away, under the optimistic id: a Ctrl+Z during
+      // the round trip has to be remembered, or the feature is a lie on a
+      // hangar wifi. `settle` swaps the id for the server's — or drops the
+      // step, if the trace never made it.
+      remember({
+        act: "draw",
+        phaseId: current.id,
+        epoch: current.epoch,
+        strokeId: optimistic.id,
+        stroke: optimistic,
+      });
+
       try {
         const { stroke } = await planApi.commit(plan.id, current.id, squadId, {
           clientId,
           kind,
           ink,
           width,
+          dash,
           points: stored,
           text,
         });
 
         rub(current.id, optimistic.id);
         draw(current.id, stroke);
+        settle(current.id, optimistic.id, stroke);
+
+        return stroke;
       } catch (error) {
         rub(current.id, optimistic.id);
+        settle(current.id, optimistic.id, null);
+        toast.error(t("errorTitle"), {
+          description: error instanceof Error ? error.message : undefined,
+        });
+
+        return null;
+      }
+    },
+    [
+      current,
+      dash,
+      draw,
+      ink,
+      mySquad,
+      plan,
+      remember,
+      rub,
+      settle,
+      squadId,
+      t,
+      userId,
+      width,
+    ],
+  );
+
+  /** A marker named after it was dropped. Nothing optimistic: the disc is
+   *  already there, and the name arrives with the answer. */
+  const onRelabel = useCallback(
+    async (strokeId: string, text: string) => {
+      if (!plan || !current) return;
+
+      try {
+        const { stroke } = await planApi.relabel(
+          plan.id,
+          current.id,
+          strokeId,
+          squadId,
+          text,
+        );
+
+        draw(current.id, stroke);
+      } catch (error) {
         toast.error(t("errorTitle"), {
           description: error instanceof Error ? error.message : undefined,
         });
       }
     },
-    [current, draw, ink, mySquad, plan, rub, squadId, t, userId, width],
+    [current, draw, plan, squadId, t],
   );
 
   const onErase = useCallback(
@@ -213,6 +295,19 @@ export function PlanBoard({
 
       try {
         await planApi.erase(plan.id, current.id, strokeId, squadId);
+
+        // Only your own goes on your stack. A leader rubbing out somebody
+        // else's arrow has not made it theirs to bring back — the server would
+        // refuse the restore anyway, and offering the button would be a lie.
+        if (held.authorId === userId) {
+          remember({
+            act: "erase",
+            phaseId: current.id,
+            epoch: current.epoch,
+            strokeId,
+            stroke: held,
+          });
+        }
       } catch (error) {
         draw(current.id, held);
         toast.error(t("errorTitle"), {
@@ -220,7 +315,7 @@ export function PlanBoard({
         });
       }
     },
-    [current, draw, layers, plan, rub, squadId, t],
+    [current, draw, layers, plan, remember, rub, squadId, t, userId],
   );
 
   if (!plan || !current) {
@@ -313,12 +408,18 @@ export function PlanBoard({
           tool={tool}
           ink={ink}
           width={width}
+          dash={dash}
           hues={hues}
           mySquadId={mySquad?.id ?? ""}
           editable={editable}
+          canUndo={canUndo}
+          canRedo={canRedo}
           onTool={setTool}
           onInk={setInk}
           onWidth={setWidth}
+          onDash={setDash}
+          onUndo={undo}
+          onRedo={redo}
           className="order-last md:order-first md:w-14"
         />
 
@@ -331,10 +432,12 @@ export function PlanBoard({
             tool={tool}
             ink={ink}
             width={width}
+            dash={dash}
             hues={hues}
             mySquadId={mySquad?.id ?? ""}
             editable={editable}
             onDraw={onDraw}
+            onRelabel={onRelabel}
             onErase={onErase}
           />
 
