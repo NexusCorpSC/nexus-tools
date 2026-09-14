@@ -431,10 +431,17 @@ export function PlanEditor({
                       )}
                       scale={view.scale}
                       selected={marker.id === selectedId}
-                      editable
-                      onSelect={() => setSelectedId(marker.id)}
+                      editable={!plan.borrowedFrom}
+                      onSelect={() => {
+                        if (!plan.borrowedFrom) setSelectedId(marker.id);
+                      }}
                       onPointerDown={() => {
-                        if (!plan.borrowedFrom) dragging.current = marker.id;
+                        // Sur un plan emprunté, ni sélection ni glisser :
+                        // l'inspecteur proposerait des modifications que
+                        // l'enregistrement effacerait en silence, puisque le
+                        // plan repart en référence.
+                        if (plan.borrowedFrom) return;
+                        dragging.current = marker.id;
                         setSelectedId(marker.id);
                       }}
                     />
@@ -511,7 +518,11 @@ export function PlanEditor({
             {t("Admin.markerTitle")}
           </p>
 
-          {!selected ? (
+          {plan?.borrowedFrom ? (
+            <p className="text-xs text-muted-foreground">
+              {t("Admin.borrowedReadOnly", { name: plan.borrowedFrom.name })}
+            </p>
+          ) : !selected ? (
             <p className="text-xs text-muted-foreground">
               {t("Admin.markerNone")}
             </p>

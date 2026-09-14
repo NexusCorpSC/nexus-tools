@@ -923,7 +923,11 @@ export async function listPlaceGroups(): Promise<PlaceGroup[]> {
   );
 }
 
-export type SharePlanReport = { linked: number; skipped: string[] };
+/**
+ * `linked` porte les slugs, pas un compte : l'appelant s'en sert pour ne
+ * revalider que les pages réellement changées, et le compte s'en déduit.
+ */
+export type SharePlanReport = { linked: string[]; skipped: string[] };
 
 /**
  * Fait afficher un plan par plusieurs lieux d'un coup. C'est l'opération que
@@ -953,7 +957,7 @@ export async function sharePlanToPlaces(
   const wanted = [...new Set(targetSlugs)].filter(
     (slug) => slug !== sourceSlug,
   );
-  if (wanted.length === 0) return { linked: 0, skipped: [] };
+  if (wanted.length === 0) return { linked: [], skipped: [] };
 
   const targets = await collection()
     .find({ slug: { $in: wanted } })
@@ -966,7 +970,7 @@ export async function sharePlanToPlaces(
     .toArray();
 
   const { nanoid } = await import("nanoid");
-  const report: SharePlanReport = { linked: 0, skipped: [] };
+  const report: SharePlanReport = { linked: [], skipped: [] };
   const writes: AnyBulkWriteOperation<PlaceDbModel>[] = [];
 
   for (const target of targets) {
@@ -998,7 +1002,7 @@ export async function sharePlanToPlaces(
         },
       },
     });
-    report.linked++;
+    report.linked.push(target.slug);
   }
 
   const missing = wanted.filter(

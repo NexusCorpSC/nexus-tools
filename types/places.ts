@@ -208,8 +208,19 @@ export function placeGroupKey(name: string): string {
 /** En deçà, un « groupe » n'en est pas un : il n'y a rien à rapprocher. */
 export const MIN_PLACE_GROUP_SIZE = 2;
 
+/**
+ * Un prédicat doit valider tout ce qu'il affirme : dire « c'est un
+ * `PlacePlanRef` » sur la foi du seul `sourceSlug` laisserait passer un objet
+ * incomplet, que la suite du code traiterait ensuite comme une référence
+ * utilisable. Les trois champs sont donc vérifiés.
+ */
 export function isPlacePlanRef(plan: StoredPlacePlan): plan is PlacePlanRef {
-  return typeof (plan as PlacePlanRef).sourceSlug === "string";
+  const ref = plan as PlacePlanRef;
+  return (
+    typeof ref.sourceSlug === "string" &&
+    typeof ref.sourcePlanId === "string" &&
+    typeof ref.id === "string"
+  );
 }
 
 export type Place = {

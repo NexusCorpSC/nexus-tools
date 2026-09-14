@@ -104,7 +104,7 @@ function PlanGroupCard({ group }: { group: PlaceGroup }) {
         // oblige à rouvrir chaque fiche pour le découvrir.
         tone: result.skipped.length > 0 ? "error" : "ok",
         text: [
-          t("sharedLinked", { count: result.linked }),
+          t("sharedLinked", { count: result.linked.length }),
           ...result.skipped,
         ].join(" · "),
       });

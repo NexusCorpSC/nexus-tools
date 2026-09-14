@@ -126,7 +126,10 @@ export async function sharePlanAction(
       targetSlugs,
     );
     revalidatePlace(sourceSlug);
-    for (const slug of targetSlugs) revalidatePath(`/lieux/${slug}`);
+    // Seulement ce qui a bougé : `targetSlugs` arrive tel que le client l'a
+    // envoyé, doublons et lieux déjà emprunteurs compris, et revalider une
+    // page qu'on n'a pas touchée ne fait que du travail de cache.
+    for (const slug of report.linked) revalidatePath(`/lieux/${slug}`);
     return { ok: true, ...report };
   } catch (error) {
     return { ok: false, error: toMessage(error) };
