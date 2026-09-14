@@ -490,6 +490,21 @@ const CURATED: Curated[] = [
 
   ...QV_BREAKERS,
 
+  // Le dump ne la nomme que dans le texte de quatre contrats InterSec, au
+  // singulier et toujours « the old QV Logistics station ». Le wiki n'a pas de
+  // page pour elle ; le contexte vient de celle des QV Services Stations —
+  // Nyx, bâties par QV Planet Services, passées aux mains du Shattered Blade,
+  // et accessibles par les seuls contrats d'InterSec Defense Solutions.
+  {
+    slug: "qv-logistics-station",
+    name: "QV Logistics Station",
+    type: "station",
+    parent: "nyx",
+    late: true,
+    description:
+      "Ancienne station logistique de QV Planet Services, dans Nyx, aujourd'hui tenue par le Shattered Blade qui s'y sert de ses entrepôts pour écouler des pièces vanduul. On n'y entre que par un contrat d'InterSec Defense Solutions : c'est le décor de la chaîne Vanduul-Tech Smugglers, du relevé d'informations jusqu'à la récupération des cryopods.",
+  },
+
   // ── Onyx, rattachée au système faute de mieux ──
   // Le dump ne nomme la facility nulle part : elle n'existe que dans le texte
   // des contrats « Jorrit Dossier », et `locationPools` n'en garde que des
