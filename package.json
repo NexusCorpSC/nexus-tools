@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "node scripts/copy-draco.mjs",
+    "import:places": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-places.ts",
     "import:catalogue": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-catalogue.ts",
     "ensure:indexes": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/ensure-indexes.ts"
   },
