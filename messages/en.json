@@ -996,7 +996,7 @@
       "sharedHeader": "Locations with similar names often share a layout. Pick one location’s plan and have the others display it, without surveying it twice.",
       "sharedEmpty": "No family of locations to group yet.",
       "sharedMembers": "{count, plural, one {# location} other {# locations}}",
-      "sharedNoPlanYet": "No location in this group has a plan to lend yet. Survey one, then come back to share it.",
+      "sharedNoPlanYet": "No location in the catalogue has a plan to lend yet. Survey one, then come back to share it.",
       "sharedSourceLabel": "Plan to share",
       "sharedApply": "{count, plural, =0 {Link the ticked locations} one {Link # location} other {Link # locations}}",
       "sharedSelectAll": "Select all",
@@ -1017,7 +1017,9 @@
       "borrowedFrom": "Borrowed from {name}",
       "borrowedReadOnly": "This plan belongs to {name}: edit it there, or detach it to make a copy of your own.",
       "detachPlan": "Detach",
-      "removeBorrowed": "Remove the borrowing"
+      "removeBorrowed": "Remove the borrowing",
+      "sharedSourceThisGroup": "In this group",
+      "sharedSourceElsewhere": "Elsewhere in the catalogue"
     }
   },
   "Shopping": {

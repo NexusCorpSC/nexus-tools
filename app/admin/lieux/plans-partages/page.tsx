@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { listPlaceGroups } from "@/lib/places";
+import { listLendablePlans, listPlaceGroups } from "@/lib/places";
 import { PlanGroups } from "../components/plan-groups";
 
 export const metadata: Metadata = {
@@ -18,7 +18,10 @@ export const metadata: Metadata = {
  */
 export default async function SharedPlansPage() {
   const t = await getTranslations("Places.Admin");
-  const groups = await listPlaceGroups();
+  const [groups, lendable] = await Promise.all([
+    listPlaceGroups(),
+    listLendablePlans(),
+  ]);
 
   return (
     <div className="flex min-h-screen justify-center px-4 py-12">
@@ -30,7 +33,7 @@ export default async function SharedPlansPage() {
           <p className="mt-1 text-[#9ED0FF]/70">{t("sharedHeader")}</p>
         </div>
 
-        <PlanGroups groups={groups} />
+        <PlanGroups groups={groups} lendable={lendable} />
 
         <div className="flex gap-2 border-t border-[#9ED0FF]/15 pt-4">
           <Button asChild variant="outline">

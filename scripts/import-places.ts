@@ -94,7 +94,67 @@ type Curated = {
   services?: PlaceService[];
   shopCategory?: string;
   description?: string;
+  /**
+   * Ce lieu se rattache à un parent que seul le dump fournit — Nyx, par
+   * exemple, que la table n'écrit pas. Il est donc créé après la passe des
+   * missions, faute de quoi `createPlace` refuserait un parent inexistant.
+   *
+   * La table ne déclare pas Nyx elle-même à dessein : sur une base déjà
+   * peuplée, un lieu du dump repris par la table changerait de provenance, et
+   * l'import en créerait un doublon en « -2 » plutôt que de le reconnaître.
+   */
+  late?: boolean;
 };
+
+/**
+ * Les stations du Keeger Belt, que QV Planet Services a bâties autour des
+ * astéroïdes de Nyx pour les ouvrir au laser — le décor de l'opération Rock
+ * Breaker. `locationPools` ne les nomme pas ; elles n'existent dans le dump
+ * que par les droits miniers vendus pour chacune, d'où cette liste.
+ */
+const QV_BREAKER_DESIGNATIONS = [
+  "BRK-110",
+  "BRK-127",
+  "BRK-184",
+  "BRK-223",
+  "BRK-235",
+  "BRK-267",
+  "BRK-284",
+  "BRK-304",
+  "BRK-320",
+  "BRK-425",
+  "BRK-437",
+  "BRK-521",
+  "BRK-529",
+  "BRK-542",
+  "BRK-546",
+  "BRK-563",
+  "BRK-597",
+  "BRK-608",
+  "BRK-630",
+  "BRK-709",
+  "BRK-711",
+  "BRK-766",
+  "BRK-782",
+  "BRK-864",
+  "BRK-879",
+  "BRK-892",
+  "BRK-913",
+  "BRK-970",
+  "BRK-985",
+];
+
+const QV_BREAKER_DESCRIPTION =
+  "Station d'extraction de QV Planet Services, à l'abandon dans le Keeger Belt de Nyx. Elle enserre un astéroïde qu'un laser devait fendre pour en tirer le minerai ; l'installation est hors tension, et la remettre en marche — quatre condensateurs dans le noyau, un redémarrage depuis la salle des opérations, puis le tir — est tout l'objet de l'opération Rock Breaker. Les veines de sadaryx se minent à la main sur place. Les stations sont bâties sur le même moule, et souvent occupées par des hors-la-loi.";
+
+const QV_BREAKERS: Curated[] = QV_BREAKER_DESIGNATIONS.map((designation) => ({
+  slug: toPlaceSlug(`QV Breaker Station ${designation}`),
+  name: `QV Breaker Station ${designation}`,
+  type: "station" as PlaceType,
+  parent: "nyx",
+  late: true,
+  description: QV_BREAKER_DESCRIPTION,
+}));
 
 /**
  * Déclarée dans l'ordre de l'arborescence : un lieu n'apparaît jamais avant
@@ -428,6 +488,23 @@ const CURATED: Curated[] = [
     services: ["restock", "cargo", "missions", "habitation"],
   },
 
+  ...QV_BREAKERS,
+
+  // Le dump ne la nomme que dans le texte de quatre contrats InterSec, au
+  // singulier et toujours « the old QV Logistics station ». Le wiki n'a pas de
+  // page pour elle ; le contexte vient de celle des QV Services Stations —
+  // Nyx, bâties par QV Planet Services, passées aux mains du Shattered Blade,
+  // et accessibles par les seuls contrats d'InterSec Defense Solutions.
+  {
+    slug: "qv-logistics-station",
+    name: "QV Logistics Station",
+    type: "station",
+    parent: "nyx",
+    late: true,
+    description:
+      "Ancienne station logistique de QV Planet Services, dans Nyx, aujourd'hui tenue par le Shattered Blade qui s'y sert de ses entrepôts pour écouler des pièces vanduul. On n'y entre que par un contrat d'InterSec Defense Solutions : c'est le décor de la chaîne Vanduul-Tech Smugglers, du relevé d'informations jusqu'à la récupération des cryopods.",
+  },
+
   // ── Onyx, rattachée au système faute de mieux ──
   // Le dump ne nomme la facility nulle part : elle n'existe que dans le texte
   // des contrats « Jorrit Dossier », et `locationPools` n'en garde que des
@@ -695,10 +772,26 @@ function select<T>(rows: T[], name: (row: T) => string, options: Options): T[] {
   return options.limit ? filtered.slice(0, options.limit) : filtered;
 }
 
-async function importCurated(options: Options, report: Report): Promise<void> {
-  console.log("\nTable écrite à la main");
-  const selected = select(CURATED, (entry) => entry.name, options);
-  console.log(`  ${selected.length} lieu(x) retenu(s) sur ${CURATED.length}`);
+/**
+ * La table écrite à la main, en deux temps. Les lieux ordinaires d'abord, avant
+ * le dump, pour que la table fasse autorité sur les slugs qu'elle nomme. Ceux
+ * qui pendent à un parent venu du dump ensuite, une fois ce parent créé.
+ */
+async function importCurated(
+  options: Options,
+  report: Report,
+  phase: "early" | "late",
+): Promise<void> {
+  const table = CURATED.filter((entry) => !!entry.late === (phase === "late"));
+  if (table.length === 0) return;
+
+  console.log(
+    phase === "late"
+      ? "\nTable écrite à la main — lieux rattachés au dump"
+      : "\nTable écrite à la main",
+  );
+  const selected = select(table, (entry) => entry.name, options);
+  console.log(`  ${selected.length} lieu(x) retenu(s) sur ${table.length}`);
 
   await persist(
     selected.map((entry) => ({
@@ -789,12 +882,13 @@ async function main() {
     return;
   }
 
-  if (options.source === "curated" || options.source === "all") {
-    await importCurated(options, report);
-  }
+  const wantsCurated = options.source === "curated" || options.source === "all";
+  if (wantsCurated) await importCurated(options, report, "early");
   if (options.source === "missions" || options.source === "all") {
     await importMissions(options, report);
   }
+  // Après le dump : ces lieux-là n'ont de parent qu'une fois celui-ci passé.
+  if (wantsCurated) await importCurated(options, report, "late");
 
   if (options.dryRun) {
     console.log("\nRien écrit : --dry-run.");

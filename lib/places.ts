@@ -832,6 +832,18 @@ export async function getPlacePlans(
 // ─── Partage de plans ─────────────────────────────────────────────────────────
 
 /**
+ * Ce que les écrans de partage ramènent d'un plan : de quoi le nommer, et de
+ * quoi le distinguer d'un emprunt. Ni image ni repères — une liste de choix
+ * n'en a pas l'usage, et douze plans à cent vingt repères par lieu pèsent.
+ *
+ * Le type le dit plutôt que de promettre un `PlacePlan` entier dont la moitié
+ * des champs serait absente : c'est ce qui empêchera quelqu'un d'y lire
+ * `imageUrl` un jour, et de ne le découvrir qu'à l'exécution.
+ */
+type OwnedPlanDigest = Pick<PlacePlan, "id" | "name">;
+type PlanDigest = OwnedPlanDigest | PlacePlanRef;
+
+/**
  * Les familles de lieux qui se ressemblent assez pour partager un plan : les
  * dix Farro Data Center, les six avant-postes abandonnés de Pyro, les Lazarus
  * Complex. Le rapprochement se fait sur le nom, faute de mieux — le dump ne dit
@@ -852,7 +864,7 @@ export async function listPlaceGroups(): Promise<PlaceGroup[]> {
       type: PlaceType;
       systemName?: string;
       parentName?: string;
-      plans?: StoredPlacePlan[];
+      plans?: PlanDigest[];
     }>({
       _id: 0,
       slug: 1,
@@ -860,7 +872,12 @@ export async function listPlaceGroups(): Promise<PlaceGroup[]> {
       type: 1,
       systemName: 1,
       parentName: 1,
-      plans: 1,
+      // Voir `PlanDigest` : l'écran n'affiche que des noms, et `sourcePlanId`
+      // est ce qui permet encore de distinguer un emprunt d'un plan possédé.
+      "plans.id": 1,
+      "plans.name": 1,
+      "plans.sourceSlug": 1,
+      "plans.sourcePlanId": 1,
     })
     .sort({ name: 1 })
     .toArray();
@@ -878,7 +895,7 @@ export async function listPlaceGroups(): Promise<PlaceGroup[]> {
       systemName: place.systemName,
       parentName: place.parentName,
       ownPlans: plans
-        .filter((plan): plan is PlacePlan => !isPlacePlanRef(plan))
+        .filter((plan): plan is OwnedPlanDigest => !isPlacePlanRef(plan))
         .map((plan) => ({ id: plan.id, name: plan.name })),
       borrowed: plans.filter(isPlacePlanRef).map((ref) => ({
         id: ref.id,
@@ -927,6 +944,63 @@ export async function listPlaceGroups(): Promise<PlaceGroup[]> {
  * `linked` porte les slugs, pas un compte : l'appelant s'en sert pour ne
  * revalider que les pages réellement changées, et le compte s'en déduit.
  */
+/** Un lieu qui possède au moins un plan, donc capable d'en prêter un. */
+export type LendablePlace = {
+  slug: string;
+  name: string;
+  systemName?: string;
+  plans: { id: string; name: string }[];
+};
+
+/**
+ * Tous les plans que le catalogue peut prêter, groupes confondus.
+ *
+ * L'écran de liaison proposait d'abord les seuls plans du groupe courant, pour
+ * ne pas noyer le cas courant. Mais deux familles voisines ne partagent pas
+ * forcément un nom : « Lazarus Complex Tithonus » n'a aucun plan à lui, alors
+ * que « Lazarus Complex Phoenix » en a un, et rien ne les rapproche
+ * automatiquement — ce sont deux sites. Le groupe se retrouvait bloqué sans
+ * recours. On expose donc tout, en laissant l'écran mettre le groupe en tête.
+ */
+export async function listLendablePlans(): Promise<LendablePlace[]> {
+  const places = await collection()
+    .find({ "plans.0": { $exists: true } })
+    // On ne ramène pas les repères : douze plans à cent vingt repères par lieu
+    // pèsent lourd pour une liste de choix. `plans.sourcePlanId` est projeté
+    // bien qu'il ne soit jamais lu ici — sans lui `isPlacePlanRef` cesserait de
+    // reconnaître un emprunt, et les plans empruntés seraient proposés au prêt.
+    .project<{
+      slug: string;
+      name: string;
+      systemName?: string;
+      plans?: PlanDigest[];
+    }>({
+      _id: 0,
+      slug: 1,
+      name: 1,
+      systemName: 1,
+      "plans.id": 1,
+      "plans.name": 1,
+      "plans.sourceSlug": 1,
+      "plans.sourcePlanId": 1,
+    })
+    .sort({ name: 1 })
+    .toArray();
+
+  return places
+    .map((place) => ({
+      slug: place.slug,
+      name: place.name,
+      systemName: place.systemName,
+      // Un emprunt ne se prête pas : seuls les plans possédés sont prêtables,
+      // ce qui interdit les chaînes dès la liste des choix.
+      plans: (place.plans ?? [])
+        .filter((plan): plan is OwnedPlanDigest => !isPlacePlanRef(plan))
+        .map((plan) => ({ id: plan.id, name: plan.name })),
+    }))
+    .filter((place) => place.plans.length > 0);
+}
+
 export type SharePlanReport = { linked: string[]; skipped: string[] };
 
 /**

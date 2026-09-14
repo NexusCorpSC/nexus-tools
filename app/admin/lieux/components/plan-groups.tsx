@@ -14,11 +14,14 @@ import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { removeBorrowedPlanAction, sharePlanAction } from "@/app/lieux/actions";
+import type { LendablePlace } from "@/lib/places";
 import type { PlaceGroup, PlaceGroupMember } from "@/types/places";
 
 /** « source|planId » : une seule valeur pour le `Select`, deux à l'usage. */
@@ -28,7 +31,14 @@ function planValue(slug: string, planId: string) {
 
 type Outcome = { tone: "ok" | "error"; text: string };
 
-export function PlanGroups({ groups }: { groups: PlaceGroup[] }) {
+export function PlanGroups({
+  groups,
+  lendable,
+}: {
+  groups: PlaceGroup[];
+  /** Tout ce que le catalogue peut prêter : un groupe sans plan a un recours. */
+  lendable: LendablePlace[];
+}) {
   const t = useTranslations("Places.Admin");
 
   if (groups.length === 0) {
@@ -38,38 +48,60 @@ export function PlanGroups({ groups }: { groups: PlaceGroup[] }) {
   return (
     <div className="space-y-4">
       {groups.map((group) => (
-        <PlanGroupCard key={group.key} group={group} />
+        <PlanGroupCard key={group.key} group={group} lendable={lendable} />
       ))}
     </div>
   );
 }
 
-function PlanGroupCard({ group }: { group: PlaceGroup }) {
+function PlanGroupCard({
+  group,
+  lendable,
+}: {
+  group: PlaceGroup;
+  lendable: LendablePlace[];
+}) {
   const t = useTranslations("Places.Admin");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 
-  // Les plans que ce groupe peut se prêter à lui-même. Proposer ceux du reste
-  // du catalogue noierait le cas courant — un Farro Data Center emprunte à un
-  // autre Farro Data Center, pas à Lorville.
-  const sources = useMemo(
+  // Les plans du groupe d'abord : c'est le cas courant, un Farro Data Center
+  // emprunte à un autre Farro Data Center.
+  const ownSources = useMemo(
     () =>
       group.members.flatMap((member) =>
         member.ownPlans.map((plan) => ({
           value: planValue(member.slug, plan.id),
           label: `${member.name} — ${plan.name}`,
-          ownerSlug: member.slug,
         })),
       ),
     [group.members],
   );
 
+  // Puis le reste du catalogue. Sans lui, « Lazarus Complex Tithonus », qui n'a
+  // aucun plan à lui, n'aurait aucun recours alors que son voisin Phoenix en a
+  // un — et rien ne rapproche automatiquement deux sites aux noms distincts.
+  const otherSources = useMemo(() => {
+    const inGroup = new Set(group.members.map((member) => member.slug));
+    return lendable
+      .filter((place) => !inGroup.has(place.slug))
+      .flatMap((place) =>
+        place.plans.map((plan) => ({
+          value: planValue(place.slug, plan.id),
+          label: `${place.name} — ${plan.name}`,
+        })),
+      );
+  }, [group.members, lendable]);
+
+  const sources = [...ownSources, ...otherSources];
   const [source, setSource] = useState(sources[0]?.value ?? "");
   const [selected, setSelected] = useState<string[]>([]);
 
-  const sourceSlug = source.split("|")[0];
-  const sourcePlanId = source.split("|")[1];
+  const [sourceSlug = "", sourcePlanId = ""] = source.split("|");
+  // Les deux morceaux, pas seulement une valeur non vide : un « slug| » égaré
+  // partirait sinon en requête avec un identifiant de plan absent.
+  const hasSource = !!sourceSlug && !!sourcePlanId;
 
   // Un lieu ne s'emprunte pas à lui-même, et celui qui emprunte déjà ce plan
   // n'a rien à refaire : ni l'un ni l'autre n'est cochable.
@@ -129,8 +161,8 @@ function PlanGroupCard({ group }: { group: PlaceGroup }) {
       </div>
 
       {sources.length === 0 ? (
-        // Un groupe sans plan n'est pas une erreur : c'est juste du travail qui
-        // n'a pas encore été fait. On dit où aller le faire.
+        // Plus aucun plan nulle part, pas seulement dans ce groupe : ce n'est
+        // pas une erreur, c'est du travail qui n'a pas encore été fait.
         <p className="text-sm text-muted-foreground">{t("sharedNoPlanYet")}</p>
       ) : (
         <div className="space-y-3">
@@ -147,18 +179,33 @@ function PlanGroupCard({ group }: { group: PlaceGroup }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {sources.map((entry) => (
-                    <SelectItem key={entry.value} value={entry.value}>
-                      {entry.label}
-                    </SelectItem>
-                  ))}
+                  {ownSources.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>{t("sharedSourceThisGroup")}</SelectLabel>
+                      {ownSources.map((entry) => (
+                        <SelectItem key={entry.value} value={entry.value}>
+                          {entry.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {otherSources.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>{t("sharedSourceElsewhere")}</SelectLabel>
+                      {otherSources.map((entry) => (
+                        <SelectItem key={entry.value} value={entry.value}>
+                          {entry.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
             <Button
               type="button"
-              disabled={isPending || selected.length === 0}
+              disabled={isPending || selected.length === 0 || !hasSource}
               onClick={share}
             >
               <LinkIcon className="size-4" />
