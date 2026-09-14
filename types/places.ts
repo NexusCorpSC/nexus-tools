@@ -213,8 +213,14 @@ export const MIN_PLACE_GROUP_SIZE = 2;
  * `PlacePlanRef` » sur la foi du seul `sourceSlug` laisserait passer un objet
  * incomplet, que la suite du code traiterait ensuite comme une référence
  * utilisable. Les trois champs sont donc vérifiés.
+ *
+ * Le paramètre décrit ce qui est réellement inspecté, pas un plan entier :
+ * certaines lectures ne projettent que de quoi nommer et distinguer, et
+ * exiger `imageUrl` ou `markers` obligerait à mentir sur ce qu'elles ramènent.
  */
-export function isPlacePlanRef(plan: StoredPlacePlan): plan is PlacePlanRef {
+export function isPlacePlanRef(
+  plan: Partial<PlacePlanRef>,
+): plan is PlacePlanRef {
   const ref = plan as PlacePlanRef;
   return (
     typeof ref.sourceSlug === "string" &&

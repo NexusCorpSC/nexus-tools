@@ -98,8 +98,10 @@ function PlanGroupCard({
   const [source, setSource] = useState(sources[0]?.value ?? "");
   const [selected, setSelected] = useState<string[]>([]);
 
-  const sourceSlug = source.split("|")[0];
-  const sourcePlanId = source.split("|")[1];
+  const [sourceSlug = "", sourcePlanId = ""] = source.split("|");
+  // Les deux morceaux, pas seulement une valeur non vide : un « slug| » égaré
+  // partirait sinon en requête avec un identifiant de plan absent.
+  const hasSource = !!sourceSlug && !!sourcePlanId;
 
   // Un lieu ne s'emprunte pas à lui-même, et celui qui emprunte déjà ce plan
   // n'a rien à refaire : ni l'un ni l'autre n'est cochable.
@@ -203,7 +205,7 @@ function PlanGroupCard({
 
             <Button
               type="button"
-              disabled={isPending || selected.length === 0 || !source}
+              disabled={isPending || selected.length === 0 || !hasSource}
               onClick={share}
             >
               <LinkIcon className="size-4" />
