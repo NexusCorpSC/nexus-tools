@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, Square2StackIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { PlacesManager } from "./components/places-manager";
 
@@ -24,12 +24,20 @@ export default async function AdminPlacesPage() {
             </h1>
             <p className="mt-1 text-[#9ED0FF]/70">{t("managerHeader")}</p>
           </div>
-          <Button asChild>
-            <Link href="/admin/lieux/new">
-              <PlusIcon className="size-4" />
-              {t("newPlaceButton")}
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href="/admin/lieux/plans-partages">
+                <Square2StackIcon className="size-4" />
+                {t("sharedPlansButton")}
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/admin/lieux/new">
+                <PlusIcon className="size-4" />
+                {t("newPlaceButton")}
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <PlacesManager />

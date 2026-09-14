@@ -1,6 +1,11 @@
 import "server-only";
 
-import type { Document, Filter, UpdateFilter } from "mongodb";
+import type {
+  AnyBulkWriteOperation,
+  Document,
+  Filter,
+  UpdateFilter,
+} from "mongodb";
 import db from "@/lib/db";
 import {
   isPlaceService,
@@ -19,14 +24,22 @@ import {
   type PlaceAncestor,
   type PlaceDetails,
   type PlaceFacets,
+  type PlaceGroup,
+  type PlaceGroupMember,
   type PlacePlan,
   type PlacePlanMarker,
+  type PlacePlanOrigin,
+  type PlacePlanRef,
   type PlacePlansResponse,
+  isPlacePlanRef,
+  MIN_PLACE_GROUP_SIZE,
+  placeGroupKey,
   type PlaceService,
   type PlaceSourceName,
   type PlaceSummary,
   type PlaceTreeNode,
   type PlaceTreeResponse,
+  type StoredPlacePlan,
   type PlaceType,
 } from "@/types/places";
 
@@ -173,12 +186,38 @@ export function normalizePlaceInput(input: PlaceInput): NormalizedPlace {
  * Borne les repères d'un plan. Un repère sans service ni cible ne veut rien
  * dire : il disparaît plutôt que de rester posé sans rien ouvrir.
  */
-function normalizePlans(value: unknown): PlacePlan[] {
+/**
+ * Met en forme ce que l'éditeur envoie. Un élément est soit un plan possédé,
+ * soit l'adresse d'un plan d'ailleurs ; c'est `sourceSlug` qui les distingue.
+ *
+ * `borrowedFrom` est retiré au passage : c'est un champ de lecture, rempli par
+ * `resolvePlans`. Le laisser entrer figerait dans le document emprunteur une
+ * copie de ce qui doit rester une référence, et le premier aller-retour par
+ * l'éditeur suffirait à détacher un plan sans que personne l'ait demandé.
+ */
+function normalizePlans(value: unknown, ownerSlug?: string): StoredPlacePlan[] {
   if (!Array.isArray(value)) return [];
 
   return value
     .slice(0, MAX_PLACE_PLANS)
-    .map((raw) => {
+    .map((raw): StoredPlacePlan | null => {
+      const candidate = raw as Partial<PlacePlanRef>;
+      if (candidate.sourceSlug !== undefined) {
+        const sourceSlug = toPlaceSlug(
+          text(candidate.sourceSlug, MAX_PLACE_NAME_LENGTH),
+        );
+        const sourcePlanId = text(candidate.sourcePlanId, 40);
+        // Un lieu ne s'emprunte pas à lui-même : il possède déjà le plan.
+        if (!sourceSlug || !sourcePlanId || !candidate.id) return null;
+        if (ownerSlug && sourceSlug === ownerSlug) return null;
+
+        return {
+          id: text(candidate.id, 40),
+          sourceSlug,
+          sourcePlanId,
+        } satisfies PlacePlanRef;
+      }
+
       const plan = raw as Partial<PlacePlan>;
       const imageUrl = optionalUrl(plan.imageUrl);
       const name = text(plan.name, MAX_PLACE_NAME_LENGTH);
@@ -218,7 +257,7 @@ function normalizePlans(value: unknown): PlacePlan[] {
         markers,
       }) as PlacePlan;
     })
-    .filter((plan): plan is PlacePlan => plan !== null);
+    .filter((plan): plan is StoredPlacePlan => plan !== null);
 }
 
 /** Quatre décimales : le dix-millième de la largeur est déjà sous le pixel. */
@@ -647,12 +686,71 @@ async function resolveMarkerTargets(
   return targets as PlaceSummary[];
 }
 
+/**
+ * Remplace chaque emprunt par le plan de sa source, en une requête quel que
+ * soit leur nombre. C'est ici, et nulle part ailleurs, que « le plan de
+ * Phoenix-I » devient un plan affichable sur Phoenix-II — donc une correction
+ * chez la source se voit partout dès la lecture suivante, sans rien recopier.
+ *
+ * Un emprunt dont la source a disparu, ou dont le plan visé n'existe plus,
+ * n'est pas rendu : mieux vaut un plan de moins qu'un plan faux. L'éditeur, lui,
+ * lit la forme brute et peut donc encore montrer l'emprunt cassé pour le retirer.
+ */
+async function resolvePlans(
+  plans: StoredPlacePlan[] | undefined,
+): Promise<PlacePlan[]> {
+  const stored = plans ?? [];
+  const refs = stored.filter(isPlacePlanRef);
+  if (refs.length === 0) return stored as PlacePlan[];
+
+  const sources = await collection()
+    .find({ slug: { $in: [...new Set(refs.map((ref) => ref.sourceSlug))] } })
+    .project<{ slug: string; name: string; plans?: StoredPlacePlan[] }>({
+      _id: 0,
+      slug: 1,
+      name: 1,
+      plans: 1,
+    })
+    .toArray();
+  const bySlug = new Map(sources.map((source) => [source.slug, source]));
+
+  return stored
+    .map((plan): PlacePlan | null => {
+      if (!isPlacePlanRef(plan)) return plan;
+
+      const source = bySlug.get(plan.sourceSlug);
+      // Un emprunt ne vise qu'un plan possédé : chercher parmi eux seulement
+      // suffit à interdire les chaînes, sans avoir à les suivre.
+      const original = source?.plans?.find(
+        (candidate): candidate is PlacePlan =>
+          !isPlacePlanRef(candidate) && candidate.id === plan.sourcePlanId,
+      );
+      if (!source || !original) return null;
+
+      return {
+        ...original,
+        // L'identité locale l'emporte : c'est elle que porte l'ancre `?plan=`.
+        // Le nom, lui, reste celui de la source : un libellé propre à
+        // l'emprunteur serait un champ de plus à tenir à jour le jour où la
+        // source se renomme, pour un gain qu'aucun cas n'a réclamé.
+        id: plan.id,
+        borrowedFrom: {
+          slug: source.slug,
+          name: source.name,
+          planId: original.id,
+        } satisfies PlacePlanOrigin,
+      };
+    })
+    .filter((plan): plan is PlacePlan => plan !== null);
+}
+
 export async function getPlaceDetails(
   slug: string,
 ): Promise<PlaceDetails | null> {
   const place = await getPlaceBySlug(slug);
   if (!place) return null;
 
+  const plans = await resolvePlans(place.plans);
   const [ancestors, children, shops, planTargets] = await Promise.all([
     collection()
       .find({ slug: { $in: place.ancestorSlugs ?? [] } })
@@ -671,7 +769,7 @@ export async function getPlaceDetails(
       )
       .sort({ name: 1 })
       .toArray(),
-    resolveMarkerTargets(place.plans),
+    resolveMarkerTargets(plans),
   ]);
 
   const ordered = (place.ancestorSlugs ?? [])
@@ -680,6 +778,7 @@ export async function getPlaceDetails(
 
   return {
     ...place,
+    plans,
     ancestors: ordered,
     children: children as PlaceSummary[],
     shops: shops as PlaceSummary[],
@@ -706,12 +805,13 @@ export async function getPlacePlans(
   );
   if (!place) return null;
 
+  const plans = await resolvePlans(place.plans);
   const [ancestors, targets] = await Promise.all([
     collection()
       .find({ slug: { $in: place.ancestorSlugs ?? [] } })
       .project<PlaceAncestor>({ _id: 0, slug: 1, name: 1, type: 1 })
       .toArray(),
-    resolveMarkerTargets(place.plans),
+    resolveMarkerTargets(plans),
   ]);
 
   return {
@@ -724,9 +824,211 @@ export async function getPlacePlans(
         ancestors.find((node) => node.slug === ancestorSlug),
       )
       .filter((node): node is PlaceAncestor => !!node),
-    plans: place.plans ?? [],
+    plans,
     targets,
   };
+}
+
+// ─── Partage de plans ─────────────────────────────────────────────────────────
+
+/**
+ * Les familles de lieux qui se ressemblent assez pour partager un plan : les
+ * dix Farro Data Center, les six avant-postes abandonnés de Pyro, les Lazarus
+ * Complex. Le rapprochement se fait sur le nom, faute de mieux — le dump ne dit
+ * nulle part que deux lieux sortent du même moule.
+ *
+ * Les corps célestes sont écartés : « Pyro I », « Pyro IV » et « Pyro V »
+ * forment un groupe parfait pour l'algorithme et parfaitement inutile pour le
+ * produit — une planète ne se relève pas au plan.
+ *
+ * Rien n'est décidé ici : l'écran propose, un humain rapproche.
+ */
+export async function listPlaceGroups(): Promise<PlaceGroup[]> {
+  const places = await collection()
+    .find({ type: { $nin: ["star", "planet", "moon"] } })
+    .project<{
+      slug: string;
+      name: string;
+      type: PlaceType;
+      systemName?: string;
+      parentName?: string;
+      plans?: StoredPlacePlan[];
+    }>({
+      _id: 0,
+      slug: 1,
+      name: 1,
+      type: 1,
+      systemName: 1,
+      parentName: 1,
+      plans: 1,
+    })
+    .sort({ name: 1 })
+    .toArray();
+
+  const byKey = new Map<string, PlaceGroupMember[]>();
+  for (const place of places) {
+    const key = placeGroupKey(place.name);
+    if (!key) continue;
+
+    const plans = place.plans ?? [];
+    const member: PlaceGroupMember = {
+      slug: place.slug,
+      name: place.name,
+      type: place.type,
+      systemName: place.systemName,
+      parentName: place.parentName,
+      ownPlans: plans
+        .filter((plan): plan is PlacePlan => !isPlacePlanRef(plan))
+        .map((plan) => ({ id: plan.id, name: plan.name })),
+      borrowed: plans.filter(isPlacePlanRef).map((ref) => ({
+        id: ref.id,
+        sourceSlug: ref.sourceSlug,
+        sourcePlanId: ref.sourcePlanId,
+      })),
+    };
+    byKey.set(key, [...(byKey.get(key) ?? []), member]);
+  }
+
+  const groups = [...byKey.entries()]
+    .filter(([, members]) => members.length >= MIN_PLACE_GROUP_SIZE)
+    .map(([key, members]) => ({ key, members }));
+
+  // Le nom des sources empruntées, pour que l'écran dise « emprunté à X » sans
+  // que chaque ligne ait à repartir en base.
+  const sourceSlugs = new Set(
+    groups.flatMap((group) =>
+      group.members.flatMap((member) =>
+        member.borrowed.map((ref) => ref.sourceSlug),
+      ),
+    ),
+  );
+  if (sourceSlugs.size > 0) {
+    const sources = await collection()
+      .find({ slug: { $in: [...sourceSlugs] } })
+      .project<{ slug: string; name: string }>({ _id: 0, slug: 1, name: 1 })
+      .toArray();
+    const names = new Map(sources.map((source) => [source.slug, source.name]));
+    for (const group of groups) {
+      for (const member of group.members) {
+        for (const ref of member.borrowed) {
+          ref.sourceName = names.get(ref.sourceSlug);
+        }
+      }
+    }
+  }
+
+  // Les grandes familles d'abord : c'est là que le partage fait gagner le plus.
+  return groups.sort(
+    (a, b) => b.members.length - a.members.length || a.key.localeCompare(b.key),
+  );
+}
+
+/**
+ * `linked` porte les slugs, pas un compte : l'appelant s'en sert pour ne
+ * revalider que les pages réellement changées, et le compte s'en déduit.
+ */
+export type SharePlanReport = { linked: string[]; skipped: string[] };
+
+/**
+ * Fait afficher un plan par plusieurs lieux d'un coup. C'est l'opération que
+ * l'écran de liaison déclenche, et la seule qui écrive des emprunts en masse.
+ *
+ * Idempotente : un lieu qui emprunte déjà ce plan est laissé tel quel plutôt
+ * que d'en accumuler deux exemplaires. Les refus sont nommés un par un — un
+ * rapport qui dit « 7 liés » sans dire lesquels manquent ne sert à rien.
+ */
+export async function sharePlanToPlaces(
+  sourceSlug: string,
+  sourcePlanId: string,
+  targetSlugs: string[],
+): Promise<SharePlanReport> {
+  const source = await getPlaceBySlug(sourceSlug);
+  if (!source) throw new Error("Lieu source introuvable");
+
+  const owned = (source.plans ?? []).some(
+    (plan) => !isPlacePlanRef(plan) && plan.id === sourcePlanId,
+  );
+  if (!owned) {
+    throw new Error(
+      `« ${source.name} » ne possède pas ce plan : on ne peut pas emprunter un emprunt`,
+    );
+  }
+
+  const wanted = [...new Set(targetSlugs)].filter(
+    (slug) => slug !== sourceSlug,
+  );
+  if (wanted.length === 0) return { linked: [], skipped: [] };
+
+  const targets = await collection()
+    .find({ slug: { $in: wanted } })
+    .project<{ slug: string; name: string; plans?: StoredPlacePlan[] }>({
+      _id: 0,
+      slug: 1,
+      name: 1,
+      plans: 1,
+    })
+    .toArray();
+
+  const { nanoid } = await import("nanoid");
+  const report: SharePlanReport = { linked: [], skipped: [] };
+  const writes: AnyBulkWriteOperation<PlaceDbModel>[] = [];
+
+  for (const target of targets) {
+    const plans = target.plans ?? [];
+    const already = plans.some(
+      (plan) =>
+        isPlacePlanRef(plan) &&
+        plan.sourceSlug === sourceSlug &&
+        plan.sourcePlanId === sourcePlanId,
+    );
+    if (already) {
+      report.skipped.push(`${target.name} (emprunte déjà ce plan)`);
+      continue;
+    }
+    if (plans.length >= MAX_PLACE_PLANS) {
+      report.skipped.push(`${target.name} (déjà ${MAX_PLACE_PLANS} plans)`);
+      continue;
+    }
+
+    writes.push({
+      updateOne: {
+        filter: { slug: target.slug },
+        update: {
+          $push: {
+            plans: { id: nanoid(), sourceSlug, sourcePlanId },
+          },
+          $inc: { planCount: 1 },
+          $set: { updatedAt: new Date().toISOString() },
+        },
+      },
+    });
+    report.linked.push(target.slug);
+  }
+
+  const missing = wanted.filter(
+    (slug) => !targets.some((target) => target.slug === slug),
+  );
+  for (const slug of missing) report.skipped.push(`${slug} (introuvable)`);
+
+  if (writes.length > 0) await collection().bulkWrite(writes);
+  return report;
+}
+
+/**
+ * Retire un emprunt. Le lieu cesse simplement d'afficher le plan du voisin ;
+ * la source n'est pas touchée.
+ */
+export async function removeBorrowedPlan(
+  slug: string,
+  planId: string,
+): Promise<Place> {
+  const place = await getPlaceBySlug(slug);
+  if (!place) throw new Error("Lieu introuvable");
+
+  const plans = (place.plans ?? []).filter(
+    (plan) => !(isPlacePlanRef(plan) && plan.id === planId),
+  );
+  return savePlacePlans(slug, plans);
 }
 
 export async function getPlaceFacets(): Promise<PlaceFacets> {
@@ -936,6 +1238,12 @@ export async function updatePlace(
       { $set: { "plans.$[].markers.$[marker].targetSlug": normalized.slug } },
       { arrayFilters: [{ "marker.targetSlug": currentSlug }] },
     );
+    // Et les lieux qui lui empruntent un plan le désignent par son slug.
+    await collection().updateMany(
+      { "plans.sourceSlug": currentSlug },
+      { $set: { "plans.$[plan].sourceSlug": normalized.slug } },
+      { arrayFilters: [{ "plan.sourceSlug": currentSlug }] },
+    );
   }
 
   await recomputeSubtree(normalized.slug);
@@ -959,6 +1267,16 @@ export async function deletePlace(slug: string): Promise<boolean> {
   if (childCount > 0) {
     throw new Error(
       `« ${place.name} » contient ${childCount} lieu${childCount > 1 ? "x" : ""} : videz-le avant de le supprimer`,
+    );
+  }
+
+  // Ses plans sont peut-être affichés ailleurs. Les emporter ferait disparaître
+  // un plan chez des lieux que personne n'a touchés.
+  const borrowers = await borrowersOf(slug);
+  if (borrowers.length > 0) {
+    const names = borrowers.map((borrower) => borrower.name);
+    throw new Error(
+      `${andList(names)} emprunte${names.length > 1 ? "nt" : ""} un plan de « ${place.name} » : détachez-les avant de le supprimer`,
     );
   }
 
@@ -997,12 +1315,101 @@ export async function setPlaceImage(
   return matchedCount > 0;
 }
 
+/** Les lieux qui empruntent un plan à celui-ci, avec les plans qu'ils visent. */
+async function borrowersOf(
+  slug: string,
+): Promise<{ name: string; planIds: string[] }[]> {
+  const borrowers = await collection()
+    .find({ "plans.sourceSlug": slug })
+    .project<{ slug: string; name: string; plans?: StoredPlacePlan[] }>({
+      _id: 0,
+      slug: 1,
+      name: 1,
+      plans: 1,
+    })
+    .toArray();
+
+  return borrowers
+    .filter((borrower) => borrower.slug !== slug)
+    .map((borrower) => ({
+      name: borrower.name,
+      planIds: (borrower.plans ?? [])
+        .filter(isPlacePlanRef)
+        .filter((ref) => ref.sourceSlug === slug)
+        .map((ref) => ref.sourcePlanId),
+    }));
+}
+
+function andList(names: string[]): string {
+  return names.length > 2
+    ? `${names.slice(0, 2).join(", ")} et ${names.length - 2} autre${names.length > 3 ? "s" : ""}`
+    : names.join(" et ");
+}
+
+/**
+ * Deux vérifications qu'on ne peut pas faire dans un normaliseur pur, parce
+ * qu'elles regardent les autres lieux.
+ *
+ * Un emprunt doit viser un plan qui existe et qui est possédé : on refuse
+ * plutôt que d'écrire une référence morte, qui ne se verrait qu'à l'affichage,
+ * sous la forme d'un plan manquant sans explication.
+ *
+ * Et une source ne retire pas un plan que d'autres affichent. C'est le prix de
+ * la référence : sans ce garde-fou, corriger ses propres plans ferait
+ * silencieusement disparaître celui de dix voisins.
+ */
+async function assertPlansAreSafe(
+  slug: string,
+  plans: StoredPlacePlan[],
+): Promise<void> {
+  const refs = plans.filter(isPlacePlanRef);
+  if (refs.length > 0) {
+    const sources = await collection()
+      .find({ slug: { $in: [...new Set(refs.map((ref) => ref.sourceSlug))] } })
+      .project<{ slug: string; plans?: StoredPlacePlan[] }>({
+        _id: 0,
+        slug: 1,
+        plans: 1,
+      })
+      .toArray();
+    const bySlug = new Map(sources.map((source) => [source.slug, source]));
+
+    for (const ref of refs) {
+      const owned = bySlug
+        .get(ref.sourceSlug)
+        ?.plans?.some(
+          (candidate) =>
+            !isPlacePlanRef(candidate) && candidate.id === ref.sourcePlanId,
+        );
+      if (!owned) {
+        throw new Error(
+          `Le plan emprunté à « ${ref.sourceSlug} » n'existe plus, ou n'est lui-même qu'un emprunt`,
+        );
+      }
+    }
+  }
+
+  const kept = new Set(
+    plans.filter((plan) => !isPlacePlanRef(plan)).map((plan) => plan.id),
+  );
+  const orphaned = (await borrowersOf(slug)).filter((borrower) =>
+    borrower.planIds.some((planId) => !kept.has(planId)),
+  );
+  if (orphaned.length > 0) {
+    const names = orphaned.map((borrower) => borrower.name);
+    throw new Error(
+      `${andList(names)} affiche${names.length > 1 ? "nt" : ""} un de ces plans : détachez-les avant de le retirer`,
+    );
+  }
+}
+
 /** Les plans sont remplacés en bloc : l'éditeur envoie toujours l'état complet. */
 export async function savePlacePlans(
   slug: string,
   plans: unknown,
 ): Promise<Place> {
-  const normalized = normalizePlans(plans);
+  const normalized = normalizePlans(plans, slug);
+  await assertPlansAreSafe(slug, normalized);
 
   const updated = await collection().findOneAndUpdate(
     { slug },

@@ -147,7 +147,81 @@ export type PlacePlan = {
   imageWidth: number;
   imageHeight: number;
   markers: PlacePlanMarker[];
+  /**
+   * D'où vient ce plan quand il est emprunté. **Résolu à la lecture, jamais
+   * stocké** : en base, le lieu emprunteur ne garde qu'un `PlacePlanRef`.
+   * `normalizePlans` efface ce champ, pour qu'un aller-retour par l'éditeur ne
+   * puisse pas figer une copie de ce qui doit rester une référence.
+   */
+  borrowedFrom?: PlacePlanOrigin;
 };
+
+export type PlacePlanOrigin = {
+  slug: string;
+  name: string;
+  /** L'identifiant du plan chez la source, pas celui d'ici. */
+  planId: string;
+};
+
+/**
+ * Un plan emprunté à un autre lieu. Les Lazarus Complex et les Farro Data
+ * Center sont bâtis sur le même moule : les relever dix fois coûterait dix
+ * téléversements et dix séries de repères, et la onzième correction n'en
+ * atteindrait qu'un seul.
+ *
+ * On ne recopie donc rien — on garde l'adresse. La source reste seule à
+ * pouvoir modifier le plan, et sa correction se voit partout à la lecture
+ * suivante. Un emprunt ne vise que des plans possédés : pas de chaîne, sinon
+ * une source supprimée laisserait des maillons pendants qu'il faudrait suivre.
+ */
+export type PlacePlanRef = {
+  id: string;
+  sourceSlug: string;
+  sourcePlanId: string;
+};
+
+/** Ce qu'un lieu range vraiment dans `plans` : un plan à lui, ou une adresse. */
+export type StoredPlacePlan = PlacePlan | PlacePlanRef;
+
+/**
+ * La clé qui rapproche « Farro Data Center I » de « Farro Data Center X », et
+ * « Lazarus Complex Phoenix-I » de « Lazarus Complex Phoenix-III ».
+ *
+ * On efface les désignations — chiffres, numéros romains, suffixes du genre
+ * `-II` — et ce qui reste nomme le moule. Les numéros romains sont reconnus en
+ * majuscules uniquement : sans cela « DID » ou « MIX » passeraient pour des
+ * nombres, et deux lieux sans rapport se retrouveraient dans le même groupe.
+ *
+ * Phoenix et Tithonus restent séparés, à dessein : ce sont deux sites, et rien
+ * ne dit qu'ils partagent un plan. L'écran de liaison ne fait de toute façon
+ * que proposer — c'est un humain qui valide chaque rapprochement.
+ */
+export function placeGroupKey(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((token) => token.replace(/-(?:[IVXLCDM]+|\d+)$/, ""))
+    .filter((token) => token && !/^(?:[IVXLCDM]+|\d+|[A-Z]-?\d+)$/.test(token))
+    .join(" ")
+    .trim();
+}
+
+/** En deçà, un « groupe » n'en est pas un : il n'y a rien à rapprocher. */
+export const MIN_PLACE_GROUP_SIZE = 2;
+
+/**
+ * Un prédicat doit valider tout ce qu'il affirme : dire « c'est un
+ * `PlacePlanRef` » sur la foi du seul `sourceSlug` laisserait passer un objet
+ * incomplet, que la suite du code traiterait ensuite comme une référence
+ * utilisable. Les trois champs sont donc vérifiés.
+ */
+export function isPlacePlanRef(plan: StoredPlacePlan): plan is PlacePlanRef {
+  const ref = plan as PlacePlanRef;
+  return (
+    typeof ref.sourceSlug === "string" &&
+    typeof ref.sourcePlanId === "string" &&
+    typeof ref.id === "string"
+  );
+}
 
 export type Place = {
   id: string;
@@ -190,7 +264,7 @@ export type Place = {
   shopCount: number;
   planCount: number;
 
-  plans?: PlacePlan[];
+  plans?: StoredPlacePlan[];
   source?: PlaceSource;
   createdAt?: string;
   updatedAt?: string;
@@ -221,6 +295,11 @@ export type PlaceSummary = Pick<
 export type PlaceAncestor = Pick<Place, "slug" | "name" | "type">;
 
 export type PlaceDetails = Place & {
+  /**
+   * Les plans prêts à afficher : les emprunts ont été remplacés par le plan de
+   * leur source, et ceux dont la source a disparu ne sont plus là.
+   */
+  plans?: PlacePlan[];
   /** De la racine au parent direct, dans cet ordre. */
   ancestors: PlaceAncestor[];
   /** Les lieux contenus directement, dans l'ordre d'affichage. */
@@ -246,6 +325,32 @@ export type PlacePlansResponse = {
   /** Les lieux que les repères ouvrent, résolus une fois pour toutes. */
   targets: PlaceSummary[];
 };
+
+/** Un lieu tel que l'écran de liaison le montre : ce qu'il a, ce qu'il emprunte. */
+export type PlaceGroupMember = {
+  slug: string;
+  name: string;
+  type: PlaceType;
+  systemName?: string;
+  parentName?: string;
+  /** Ses plans à lui, donc ceux qu'il peut prêter. */
+  ownPlans: { id: string; name: string }[];
+  /** Ce qu'il emprunte déjà, de quoi le détacher sans changer d'écran. */
+  borrowed: {
+    id: string;
+    sourceSlug: string;
+    sourceName?: string;
+    sourcePlanId: string;
+  }[];
+};
+
+export type PlaceGroup = {
+  /** La clé de rapprochement, qui sert aussi de libellé au groupe. */
+  key: string;
+  members: PlaceGroupMember[];
+};
+
+export type PlaceGroupsResponse = { groups: PlaceGroup[] };
 
 export type PlaceFacetCount = { value: string; count: number };
 

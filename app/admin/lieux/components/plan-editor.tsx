@@ -11,8 +11,10 @@ import {
   ArrowsPointingOutIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
+  LinkSlashIcon,
   MapPinIcon,
   PlusIcon,
+  Square2StackIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
@@ -31,12 +33,14 @@ import { useImageViewport } from "@/app/lieux/use-image-viewport";
 import {
   PLACE_SERVICES,
   type PlacePlan,
+  type StoredPlacePlan,
   type PlacePlanMarker,
   type PlaceService,
   type PlaceSummary,
 } from "@/types/places";
 import { PlanImageUpload } from "./place-image-upload";
 import { PlacePicker } from "./place-picker";
+import { BorrowPlanDialog } from "./borrow-plan-dialog";
 
 /** Quatre décimales, comme la normalisation côté serveur. */
 const round4 = (value: number) => Number(value.toFixed(4));
@@ -124,6 +128,29 @@ export function PlanEditor({
     setDirty(true);
   };
 
+  const borrowPlan = (borrowed: PlacePlan) => {
+    // L'identité locale est neuve : c'est elle que porte l'ancre `?plan=`, et
+    // deux lieux qui empruntent le même plan ne doivent pas la partager.
+    const entry: PlacePlan = { ...borrowed, id: nanoid() };
+    setPlans((current) => [...current, entry]);
+    setActiveId(entry.id);
+    setDirty(true);
+  };
+
+  /**
+   * Le plan devient celui du lieu. L'image reste celle de la source : le dépôt
+   * ne supprime jamais un fichier de plan, donc la copie ne peut pas se
+   * retrouver sans image le jour où la source retire le sien.
+   */
+  const detachPlan = (planId: string) => {
+    setPlans((current) =>
+      current.map((entry) =>
+        entry.id === planId ? { ...entry, borrowedFrom: undefined } : entry,
+      ),
+    );
+    setDirty(true);
+  };
+
   const movePlan = (planId: string, delta: number) => {
     setPlans((current) => {
       const index = current.findIndex((entry) => entry.id === planId);
@@ -143,7 +170,7 @@ export function PlanEditor({
   };
 
   const dropMarker = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (mode !== "place" || !plan?.imageUrl) return;
+    if (mode !== "place" || !plan?.imageUrl || plan.borrowedFrom) return;
     const { x, y } = toNormalized(event.clientX, event.clientY);
     const marker: PlacePlanMarker = {
       id: nanoid(),
@@ -158,9 +185,28 @@ export function PlanEditor({
     setSelectedId(marker.id);
   };
 
+  /**
+   * Dans l'éditeur, un plan qui porte `borrowedFrom` est un emprunt : on le
+   * manipule comme un plan ordinaire — il s'affiche, il se réordonne — mais à
+   * l'enregistrement il retrouve sa forme d'adresse.
+   *
+   * C'est tout le mécanisme du détachement : retirer `borrowedFrom` à un plan
+   * suffit à en faire le sien, et le prochain enregistrement l'écrit en propre.
+   * Sans cette conversion, le premier enregistrement recopierait chaque
+   * emprunt, et la correction faite chez la source ne se propagerait plus.
+   */
+  const toStored = (entry: PlacePlan): StoredPlacePlan =>
+    entry.borrowedFrom
+      ? {
+          id: entry.id,
+          sourceSlug: entry.borrowedFrom.slug,
+          sourcePlanId: entry.borrowedFrom.planId,
+        }
+      : entry;
+
   const save = () => {
     startTransition(async () => {
-      const result = await savePlacePlansAction(slug, plans);
+      const result = await savePlacePlansAction(slug, plans.map(toStored));
       if (!result.ok) {
         toast.error(result.error);
         return;
@@ -230,7 +276,28 @@ export function PlanEditor({
               <p className="text-xs text-muted-foreground">
                 {t("Admin.markerCount", { count: entry.markers.length })}
               </p>
+              {entry.borrowedFrom && (
+                <p className="flex items-center gap-1 text-xs text-[#9ED0FF]">
+                  <Square2StackIcon className="size-3.5 shrink-0" />
+                  <span className="truncate">
+                    {t("Admin.borrowedFrom", {
+                      name: entry.borrowedFrom.name,
+                    })}
+                  </span>
+                </p>
+              )}
               <div className="mt-1.5 flex items-center gap-1">
+                {entry.borrowedFrom && (
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("Admin.detachPlan")}
+                    title={t("Admin.detachPlan")}
+                    onClick={() => detachPlan(entry.id)}
+                  >
+                    <LinkSlashIcon />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon-xs"
@@ -271,6 +338,8 @@ export function PlanEditor({
             <PlusIcon className="size-4" />
             {t("Admin.planAdd")}
           </Button>
+
+          <BorrowPlanDialog exclude={slug} onBorrow={borrowPlan} />
         </div>
 
         {/* ── Le plan lui-même ── */}
@@ -362,9 +431,16 @@ export function PlanEditor({
                       )}
                       scale={view.scale}
                       selected={marker.id === selectedId}
-                      editable
-                      onSelect={() => setSelectedId(marker.id)}
+                      editable={!plan.borrowedFrom}
+                      onSelect={() => {
+                        if (!plan.borrowedFrom) setSelectedId(marker.id);
+                      }}
                       onPointerDown={() => {
+                        // Sur un plan emprunté, ni sélection ni glisser :
+                        // l'inspecteur proposerait des modifications que
+                        // l'enregistrement effacerait en silence, puisque le
+                        // plan repart en référence.
+                        if (plan.borrowedFrom) return;
                         dragging.current = marker.id;
                         setSelectedId(marker.id);
                       }}
@@ -409,6 +485,7 @@ export function PlanEditor({
                 <Input
                   id="plan-name"
                   value={plan.name}
+                  disabled={!!plan.borrowedFrom}
                   onChange={(event) =>
                     mutatePlan(plan.id, (entry) => ({
                       ...entry,
@@ -422,6 +499,7 @@ export function PlanEditor({
                 <Input
                   id="plan-note"
                   value={plan.note ?? ""}
+                  disabled={!!plan.borrowedFrom}
                   onChange={(event) =>
                     mutatePlan(plan.id, (entry) => ({
                       ...entry,
@@ -440,7 +518,11 @@ export function PlanEditor({
             {t("Admin.markerTitle")}
           </p>
 
-          {!selected ? (
+          {plan?.borrowedFrom ? (
+            <p className="text-xs text-muted-foreground">
+              {t("Admin.borrowedReadOnly", { name: plan.borrowedFrom.name })}
+            </p>
+          ) : !selected ? (
             <p className="text-xs text-muted-foreground">
               {t("Admin.markerNone")}
             </p>
