@@ -978,13 +978,17 @@ export async function deletePlace(slug: string): Promise<boolean> {
  * Pose la vignette d'un lieu, et rien d'autre. Passer par `updatePlace`
  * obligerait à lui repasser toute la fiche, et un champ oublié en chemin
  * serait effacé — l'import d'images n'a pas à connaître le reste.
+ *
+ * Une URL refusée lève, elle ne rend pas `false` : le booléen ne répond qu'à
+ * « le lieu existait-il ? ». Les confondre ferait passer un bogue d'appelant
+ * pour un slug manquant, et c'est le mauvais endroit où aller chercher.
  */
 export async function setPlaceImage(
   slug: string,
   imageUrl: string,
 ): Promise<boolean> {
   const url = optionalUrl(imageUrl);
-  if (!url) return false;
+  if (!url) throw new Error(`URL d'image invalide : ${imageUrl}`);
 
   const { matchedCount } = await collection().updateOne(
     { slug },

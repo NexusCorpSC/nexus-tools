@@ -69,7 +69,11 @@ export default async function PlacesPage() {
 
       <p className="text-xs text-nexus">
         Images retrieved from various incredible tools such as{" "}
-        <Link href="https://starcitizen.tools/" target="_blank">
+        <Link
+          href="https://starcitizen.tools/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Star Citizen Tools
         </Link>
         .

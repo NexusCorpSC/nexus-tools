@@ -49,18 +49,30 @@ type Options = {
 function parseArgs(argv: string[]): Options {
   const options: Options = { force: false, mirror: false, dryRun: false };
 
+  const fail = (message: string): never => {
+    console.error(message);
+    process.exit(1);
+  };
+
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    const next = () => argv[++i];
+    // Une option à valeur qui n'en trouve pas s'arrête ici. La laisser passer
+    // en `undefined` ferait qu'une faute de frappe sur `--limit` traiterait
+    // tout le catalogue en silence, ce qui est précisément ce dont on se
+    // protégeait en tapant `--limit`.
+    const next = () => argv[++i] ?? fail(`${arg} attend une valeur`);
+
     if (arg === "--force") options.force = true;
     else if (arg === "--mirror") options.mirror = true;
-    else if (arg === "--limit") options.limit = Number(next());
-    else if (arg === "--filter") options.filter = next()?.toLowerCase();
+    else if (arg === "--limit") {
+      const limit = Number(next());
+      if (!Number.isInteger(limit) || limit < 1) {
+        fail("--limit attend un entier positif");
+      }
+      options.limit = limit;
+    } else if (arg === "--filter") options.filter = next().toLowerCase();
     else if (arg === "--dry-run") options.dryRun = true;
-    else {
-      console.error(`Option inconnue : ${arg}`);
-      process.exit(1);
-    }
+    else fail(`Option inconnue : ${arg}`);
   }
 
   return options;
@@ -191,9 +203,17 @@ async function mirrorImage(url: string, slug: string): Promise<string> {
   const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
   if (!response.ok) throw new Error(`image ${response.status} — ${url}`);
 
-  const contentType = response.headers.get("content-type") ?? "image/jpeg";
+  // « image/webp; charset=utf-8 » est un content-type valide : sans couper au
+  // point-virgule, le fichier finirait nommé .jpg et le blob se verrait poser
+  // un type qui traîne un charset.
+  const contentType = (response.headers.get("content-type") ?? "image/jpeg")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
   const extension =
-    { "image/png": "png", "image/webp": "webp" }[contentType] ?? "jpg";
+    { "image/png": "png", "image/webp": "webp", "image/jpeg": "jpg" }[
+      contentType
+    ] ?? "jpg";
 
   const blob = await put(
     `lieux/${slug}/image.${extension}`,
@@ -237,7 +257,7 @@ async function main() {
       place.name.toLowerCase().includes(needle),
     );
   }
-  if (options.limit) places = places.slice(0, options.limit);
+  if (options.limit !== undefined) places = places.slice(0, options.limit);
 
   console.log(`${places.length} lieu(x) sans couverture à chercher`);
   if (places.length === 0) {
