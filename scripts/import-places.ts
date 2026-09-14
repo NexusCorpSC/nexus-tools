@@ -427,6 +427,60 @@ const CURATED: Curated[] = [
     parent: "bloom",
     services: ["restock", "cargo", "missions", "habitation"],
   },
+
+  // ── Onyx, rattachée au système faute de mieux ──
+  // Le dump ne nomme la facility nulle part : elle n'existe que dans le texte
+  // des contrats « Jorrit Dossier », et `locationPools` n'en garde que des
+  // sous-zones anonymes — « Research Wing », « Engineering Wing », « Site-B
+  // Lab » — sans système ni parent, que le filtre écarte à raison.
+  //
+  // Le rattachement vient donc du wiki : site de recherche souterrain d'ASD,
+  // dans Stanton, sans corps d'accueil — l'accès ne se fait que par marqueur
+  // quantique de mission. Elle pend sous l'étoile, ce qui est inhabituel mais
+  // exact : lui inventer une planète serait pire.
+  {
+    slug: "onyx-facility",
+    name: "Onyx Facility",
+    type: "outpost",
+    parent: "stanton",
+    description:
+      "Site de recherche souterrain d'Associated Sciences & Development, fermé puis laissé à l'abandon, et depuis fréquenté par les récupérateurs — l'endroit est délabré et franchement hostile. En surface, deux hangars larges et une structure centrale ; tout le reste est sous terre. On n'y accède que par un marqueur quantique de mission. Le jeu en a dupliqué l'exemplaire une centaine de fois à travers Stanton faute d'instanciation coopérative, mais c'est un seul et même lieu.",
+    services: ["asop", "hangar", "missions"],
+  },
+  {
+    slug: "onyx-facility-lobby",
+    name: "Onyx Facility — Hall",
+    type: "building",
+    parent: "onyx-facility",
+    description:
+      "L'entrée du site : un grand ascenseur hors service en son centre, un comptoir d'accueil devant, puis les terminaux ASOP et les ascenseurs qui redescendent vers les hangars.",
+    services: ["asop", "hangar"],
+  },
+  {
+    slug: "onyx-facility-engineering",
+    name: "Onyx Facility — Ingénierie (secteur A)",
+    type: "building",
+    parent: "onyx-facility",
+    description:
+      "Le secteur technique : sas d'entrée, condenseurs, réacteur à carburant et cœur de puissance.",
+  },
+  {
+    slug: "onyx-facility-research",
+    name: "Onyx Facility — Recherche (secteur B)",
+    type: "building",
+    parent: "onyx-facility",
+    description:
+      "Neuf sous-niveaux, de la réception à l'atrium central, en passant par le laboratoire de xénotechnologie et d'énergie, le traitement des données et le laboratoire médical. C'est là que se tenaient les travaux du docteur Jorrit.",
+  },
+  {
+    slug: "onyx-facility-site-b",
+    name: "Onyx Facility — Site B",
+    type: "building",
+    parent: "onyx-facility",
+    description:
+      "Une annexe à part : sas d'entrée, inspection et transit du fret, bâtiment principal.",
+    services: ["cargo"],
+  },
 ];
 
 // ─── Le dictionnaire d'assets/missions.json ───────────────────────────────────
