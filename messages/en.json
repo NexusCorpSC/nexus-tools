@@ -20,7 +20,8 @@
       "missions": "Missions",
       "notes": "Scratch Pad",
       "items": "Items",
-      "squads": "Squad"
+      "squads": "Squad",
+      "places": "Locations"
     },
     "openMenu": "Open menu",
     "openUserMenu": "Open user menu",
@@ -809,6 +810,76 @@
       "volatileNote": "Unstable cargo: carry it in a suitable container.",
       "transportNoteFallback": "No particular transport constraint.",
       "openCargo": "Add to the cargo sheet"
+    }
+  },
+  "Places": {
+    "home": "Home",
+    "title": "Locations",
+    "header": "Cities, stations and outposts: the services you find there, the shops that stand there, and the floor plans.",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Location, system, planet…",
+    "filterType": "Location type",
+    "filterAllTypes": "All types",
+    "filterSystem": "System",
+    "filterAllSystems": "All systems",
+    "filterBody": "Planet / moon",
+    "filterAllBodies": "All planets and moons",
+    "filterService": "Service",
+    "filterAllServices": "All services",
+    "filterSort": "Sort by",
+    "filterReset": "Reset",
+    "viewGrid": "Grid",
+    "viewTree": "Tree",
+    "resultsCount": "{count, plural, =0 {No location} one {# location} other {# locations}}",
+    "resultsOf": "{count} of {total}",
+    "noResults": "No location matches these filters",
+    "noResultsHint": "Widen the search, or suggest the missing location — the catalogue is community-kept.",
+    "treeTruncated": "Too many locations for the tree view: narrow the search.",
+    "treeExpand": "Expand {name}",
+    "treeCollapse": "Collapse {name}",
+    "containedCount": "{count, plural, =0 {Nothing inside} one {# location inside} other {# locations inside}}",
+    "shopsCount": "{count, plural, =0 {No shop} one {# shop} other {# shops}}",
+    "servicesCount": "{count, plural, =0 {No service} one {# service} other {# services}}",
+    "plansCount": "{count, plural, =0 {No plan surveyed} one {# plan} other {# plans}}",
+    "paginationFirst": "First page",
+    "paginationPrev": "Previous page",
+    "paginationNext": "Next page",
+    "paginationLast": "Last page",
+    "paginationPage": "Page {page} / {totalPages}",
+    "footnote": "Services, shops and plans surveyed by the community. A terminal moved? Report it from the location page.",
+    "types": {
+      "star": "System",
+      "planet": "Planet",
+      "moon": "Moon",
+      "city": "City",
+      "station": "Station",
+      "outpost": "Outpost",
+      "spaceport": "Spaceport",
+      "district": "District",
+      "building": "Building",
+      "shop": "Shop"
+    },
+    "services": {
+      "asop": "Ship terminal (ASOP)",
+      "restock": "Restocking",
+      "medical": "Medical",
+      "armory": "Armory",
+      "cargo": "Cargo & freight",
+      "refinery": "Refinery",
+      "rental": "Rental",
+      "habitation": "Habitation",
+      "crafting": "Crafting bench",
+      "missions": "Missions & reputation",
+      "transit": "Local transit",
+      "hangar": "Personal hangar"
+    },
+    "sorts": {
+      "name": "Name (A → Z)",
+      "children": "Locations inside",
+      "plans": "Plans surveyed"
+    },
+    "Admin": {
+      "newPlaceButton": "New location"
     }
   },
   "Shopping": {

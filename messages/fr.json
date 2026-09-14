@@ -20,7 +20,8 @@
       "missions": "Missions",
       "notes": "Bloc-notes",
       "items": "Objets",
-      "squads": "Escouade"
+      "squads": "Escouade",
+      "places": "Lieux"
     },
     "openMenu": "Ouvrir le menu",
     "openUserMenu": "Ouvrir le menu utilisateur",
@@ -804,6 +805,76 @@
       "volatileNote": "Cargaison instable : à transporter en conteneur adapté.",
       "transportNoteFallback": "Pas de contrainte de transport particulière.",
       "openCargo": "Ajouter à la feuille de cargo"
+    }
+  },
+  "Places": {
+    "home": "Accueil",
+    "title": "Lieux",
+    "header": "Villes, stations et avant-postes : les services qu’on y trouve, les magasins qui s’y tiennent, et le plan des lieux.",
+    "searchLabel": "Recherche",
+    "searchPlaceholder": "Nom du lieu, système, planète…",
+    "filterType": "Type de lieu",
+    "filterAllTypes": "Tous les types",
+    "filterSystem": "Système",
+    "filterAllSystems": "Tous les systèmes",
+    "filterBody": "Planète / lune",
+    "filterAllBodies": "Toutes les planètes et lunes",
+    "filterService": "Service",
+    "filterAllServices": "Tous les services",
+    "filterSort": "Trier par",
+    "filterReset": "Réinitialiser",
+    "viewGrid": "Grille",
+    "viewTree": "Arbre",
+    "resultsCount": "{count, plural, =0 {Aucun lieu} one {# lieu} other {# lieux}}",
+    "resultsOf": "{count} sur {total}",
+    "noResults": "Aucun lieu ne répond à ces filtres",
+    "noResultsHint": "Élargissez la recherche, ou proposez le lieu manquant — le catalogue est tenu par la communauté.",
+    "treeTruncated": "Trop de lieux pour l’arborescence : affinez la recherche.",
+    "treeExpand": "Déplier {name}",
+    "treeCollapse": "Replier {name}",
+    "containedCount": "{count, plural, =0 {Aucun lieu à l’intérieur} one {# lieu à l’intérieur} other {# lieux à l’intérieur}}",
+    "shopsCount": "{count, plural, =0 {Aucun magasin} one {# magasin} other {# magasins}}",
+    "servicesCount": "{count, plural, =0 {Aucun service} one {# service} other {# services}}",
+    "plansCount": "{count, plural, =0 {Plan non relevé} one {# plan} other {# plans}}",
+    "paginationFirst": "Première page",
+    "paginationPrev": "Page précédente",
+    "paginationNext": "Page suivante",
+    "paginationLast": "Dernière page",
+    "paginationPage": "Page {page} / {totalPages}",
+    "footnote": "Services, magasins et plans relevés par la communauté. Un terminal a bougé ? Signalez-le depuis la fiche du lieu.",
+    "types": {
+      "star": "Système",
+      "planet": "Planète",
+      "moon": "Lune",
+      "city": "Ville",
+      "station": "Station",
+      "outpost": "Avant-poste",
+      "spaceport": "Spatioport",
+      "district": "Quartier",
+      "building": "Bâtiment",
+      "shop": "Magasin"
+    },
+    "services": {
+      "asop": "Terminal vaisseaux (ASOP)",
+      "restock": "Réapprovisionnement",
+      "medical": "Médical",
+      "armory": "Armurerie",
+      "cargo": "Fret et cargo",
+      "refinery": "Raffinerie",
+      "rental": "Location",
+      "habitation": "Habitation",
+      "crafting": "Atelier de fabrication",
+      "missions": "Missions et réputation",
+      "transit": "Transit local",
+      "hangar": "Hangar personnel"
+    },
+    "sorts": {
+      "name": "Nom (A → Z)",
+      "children": "Lieux contenus",
+      "plans": "Plans relevés"
+    },
+    "Admin": {
+      "newPlaceButton": "Nouveau lieu"
     }
   },
   "Industry": {
