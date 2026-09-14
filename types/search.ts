@@ -5,6 +5,7 @@
 export const SEARCH_TYPES = [
   "blueprint",
   "item",
+  "place",
   "mission",
   "faction",
   "shopItem",

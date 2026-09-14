@@ -141,27 +141,57 @@ function LocationCombobox({
       />
       {open && (inputValue.length > 0 || suggestions.length > 0) && (
         <div className="absolute z-50 mt-1 w-full  border border-gray-200 rounded-md shadow-lg max-h-52 overflow-auto">
-          {suggestions.map((loc) => (
-            <button
-              key={loc.id}
-              type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                onChange(loc);
-                setInputValue(loc.name);
-                setOpen(false);
-              }}
-            >
-              <MapPinIcon className="size-4  shrink-0" />
-              <span>{loc.name}</span>
-              {loc.userId && (
-                <span className="ml-auto text-xs ">
-                  {t("locationPersonal")}
-                </span>
-              )}
-            </button>
-          ))}
+          {/*
+            Deux groupes : les lieux du catalogue d'abord — ceux qui portent un
+            `placeSlug` —, puis ceux que le joueur a nommés lui-même. « Hangar
+            de Karim » reste à sa place, il n'est pas au catalogue.
+          */}
+          {[
+            {
+              key: "catalogue",
+              label: t("locationCatalogue"),
+              rows: suggestions.filter((loc) => loc.placeSlug),
+            },
+            {
+              key: "mine",
+              label: t("locationMine"),
+              rows: suggestions.filter((loc) => !loc.placeSlug),
+            },
+          ]
+            .filter((group) => group.rows.length > 0)
+            .map((group) => (
+              <div key={group.key}>
+                <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide opacity-60">
+                  {group.label}
+                </p>
+                {group.rows.map((loc) => (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      onChange(loc);
+                      setInputValue(loc.name);
+                      setOpen(false);
+                    }}
+                  >
+                    <MapPinIcon className="size-4  shrink-0" />
+                    <span>{loc.name}</span>
+                    {loc.system && (
+                      <span className="ml-auto text-xs opacity-70">
+                        {loc.system}
+                      </span>
+                    )}
+                    {!loc.placeSlug && loc.userId && (
+                      <span className="ml-auto text-xs ">
+                        {t("locationPersonal")}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            ))}
           {inputValue.trim() && !exactMatch && (
             <button
               type="button"

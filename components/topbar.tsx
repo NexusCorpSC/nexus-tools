@@ -29,6 +29,7 @@ const navigation = [
   { name: "shopping", href: "/shopping" },
   { name: "crafting", href: "/crafting" },
   { name: "items", href: "/items" },
+  { name: "places", href: "/lieux" },
   { name: "inventory", href: "/inventory" },
   { name: "industry", href: "/industry" },
   { name: "missions", href: "/missions" },

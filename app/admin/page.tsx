@@ -34,6 +34,12 @@ export default function AdminPage() {
           </Button>
 
           <Button asChild>
+            <Link href="/admin/lieux" className="w-full">
+              Gérer les lieux
+            </Link>
+          </Button>
+
+          <Button asChild>
             <Link href="/admin/cargo-ships" className="w-full">
               Gérer les vaisseaux cargo
             </Link>

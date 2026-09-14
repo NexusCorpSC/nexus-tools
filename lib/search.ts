@@ -491,9 +491,72 @@ async function searchInventoryItems({
   }));
 }
 
+/**
+ * Les lieux du 'verse. On cherche aussi sur le nom du lieu qui contient
+ * celui-ci, du système et du corps : « un magasin de Lorville » se trouve en
+ * tapant Lorville, alors que le magasin ne porte ce nom nulle part.
+ */
+async function searchPlaces({
+  matcher,
+  candidates,
+  needle,
+}: SearchContext): Promise<SearchResult[]> {
+  const docs = await db
+    .db()
+    .collection("gameLocations")
+    .find({
+      $or: [
+        { name: matcher },
+        { description: matcher },
+        { parentName: matcher },
+        { systemName: matcher },
+        { bodyName: matcher },
+      ],
+    })
+    .project({
+      name: 1,
+      slug: 1,
+      type: 1,
+      description: 1,
+      imageUrl: 1,
+      parentName: 1,
+      systemName: 1,
+      bodyName: 1,
+      planCount: 1,
+    })
+    .limit(candidates)
+    .toArray();
+
+  return docs.map((doc) => ({
+    type: "place" as const,
+    id: doc._id.toString(),
+    title: doc.name,
+    subtitle:
+      [doc.systemName, doc.bodyName, doc.parentName]
+        .filter((part, index, all) => part && all.indexOf(part) === index)
+        .join(" › ") || undefined,
+    description: nonEmpty(doc.description),
+    url: `/lieux/${doc.slug}`,
+    imageUrl: nonEmpty(doc.imageUrl),
+    meta: {
+      ...(nonEmpty(doc.type) ? { placeType: doc.type } : {}),
+      ...(typeof doc.planCount === "number" ? { plans: doc.planCount } : {}),
+    },
+    score: relevance(
+      needle,
+      doc.name,
+      doc.description,
+      doc.parentName,
+      doc.systemName,
+      doc.bodyName,
+    ),
+  }));
+}
+
 const FETCHERS: Record<SearchType, Fetcher> = {
   blueprint: searchBlueprints,
   item: searchGameItems,
+  place: searchPlaces,
   mission: searchMissions,
   faction: searchFactions,
   shopItem: searchShopItems,
