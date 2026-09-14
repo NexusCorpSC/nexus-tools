@@ -1427,7 +1427,9 @@
     "orgInventoryEmpty": "Aucun objet partagé pour l'instant.",
     "orgInventoryEmptySubtitle": "Les membres peuvent partager des objets depuis leur inventaire personnel.",
     "orgInventoryFilterAllMembers": "Tous les membres",
-    "orgInventoryLoadMore": "Charger plus"
+    "orgInventoryLoadMore": "Charger plus",
+    "locationCatalogue": "Catalogue",
+    "locationMine": "Mes lieux"
   },
   "Missions": {
     "title": "Missions",

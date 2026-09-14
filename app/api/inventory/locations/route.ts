@@ -7,9 +7,14 @@ import { ObjectId } from "bson";
 /**
  * GET /api/inventory/locations
  * Returns locations available to the current user:
- * - Generic locations (no userId)
+ * - Generic locations (no userId), which now include the catalogue mirror
  * - Locations owned by the user (userId === session.user.id)
  * Supports ?query= for autocomplete filtering.
+ *
+ * Les lieux du catalogue sont des lignes partagées comme les autres — sans
+ * `userId`, donc déjà couvertes par le `$or` — à ceci près qu'elles portent un
+ * `placeSlug`. Le tri les fait remonter en premier, et le champ les propose
+ * avant les lieux qu'un joueur a nommés lui-même.
  */
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -31,8 +36,8 @@ export async function GET(request: NextRequest) {
     .db()
     .collection("locations")
     .find(matchStage)
-    .sort({ name: 1 })
-    .limit(30)
+    .sort({ placeSlug: -1, name: 1 })
+    .limit(50)
     .toArray();
 
   return NextResponse.json(
@@ -42,7 +47,8 @@ export async function GET(request: NextRequest) {
       slug: loc.slug,
       system: loc.system,
       userId: loc.userId,
-    }))
+      placeSlug: loc.placeSlug,
+    })),
   );
 }
 
@@ -78,6 +84,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(
     { id: doc._id.toString(), name: doc.name, userId: doc.userId },
-    { status: 201 }
+    { status: 201 },
   );
 }
