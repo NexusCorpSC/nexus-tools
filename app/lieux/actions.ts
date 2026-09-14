@@ -5,9 +5,12 @@ import { requirePermission } from "@/lib/permissions";
 import {
   createPlace,
   deletePlace,
+  removeBorrowedPlan,
   savePlacePlans,
+  sharePlanToPlaces,
   updatePlace,
   type PlaceInput,
+  type SharePlanReport,
 } from "@/lib/places";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 
@@ -94,6 +97,51 @@ export async function savePlacePlansAction(
 
   try {
     const place = await savePlacePlans(slug, plans);
+    revalidatePlace(place.slug);
+    return { ok: true, slug: place.slug };
+  } catch (error) {
+    return { ok: false, error: toMessage(error) };
+  }
+}
+
+/**
+ * Fait afficher un plan par plusieurs lieux d'un coup, depuis l'écran de
+ * liaison. Le rapport revient au client : lier sept lieux sur dix n'est pas un
+ * succès s'il ne dit pas lesquels manquent, ni pourquoi.
+ *
+ * Chaque lieu touché voit sa page revalidée — un emprunt change ce qu'elle
+ * montre, pas seulement ce que la base contient.
+ */
+export async function sharePlanAction(
+  sourceSlug: string,
+  sourcePlanId: string,
+  targetSlugs: string[],
+): Promise<({ ok: true } & SharePlanReport) | { ok: false; error: string }> {
+  await requirePermission(PLACES_EDIT_PERMISSION);
+
+  try {
+    const report = await sharePlanToPlaces(
+      sourceSlug,
+      sourcePlanId,
+      targetSlugs,
+    );
+    revalidatePlace(sourceSlug);
+    for (const slug of targetSlugs) revalidatePath(`/lieux/${slug}`);
+    return { ok: true, ...report };
+  } catch (error) {
+    return { ok: false, error: toMessage(error) };
+  }
+}
+
+/** Le lieu cesse d'afficher le plan du voisin. La source n'est pas touchée. */
+export async function removeBorrowedPlanAction(
+  slug: string,
+  planId: string,
+): Promise<PlaceActionResult> {
+  await requirePermission(PLACES_EDIT_PERMISSION);
+
+  try {
+    const place = await removeBorrowedPlan(slug, planId);
     revalidatePlace(place.slug);
     return { ok: true, slug: place.slug };
   } catch (error) {

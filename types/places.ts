@@ -178,8 +178,6 @@ export type PlacePlanRef = {
   id: string;
   sourceSlug: string;
   sourcePlanId: string;
-  /** Un libellé local ; à défaut, celui de la source est repris. */
-  name?: string;
 };
 
 /** Ce qu'un lieu range vraiment dans `plans` : un plan à lui, ou une adresse. */

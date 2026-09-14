@@ -211,12 +211,11 @@ function normalizePlans(value: unknown, ownerSlug?: string): StoredPlacePlan[] {
         if (!sourceSlug || !sourcePlanId || !candidate.id) return null;
         if (ownerSlug && sourceSlug === ownerSlug) return null;
 
-        return withoutUndefined({
+        return {
           id: text(candidate.id, 40),
           sourceSlug,
           sourcePlanId,
-          name: optionalText(candidate.name, MAX_PLACE_NAME_LENGTH),
-        }) as PlacePlanRef;
+        } satisfies PlacePlanRef;
       }
 
       const plan = raw as Partial<PlacePlan>;
@@ -731,8 +730,10 @@ async function resolvePlans(
       return {
         ...original,
         // L'identité locale l'emporte : c'est elle que porte l'ancre `?plan=`.
+        // Le nom, lui, reste celui de la source : un libellé propre à
+        // l'emprunteur serait un champ de plus à tenir à jour le jour où la
+        // source se renomme, pour un gain qu'aucun cas n'a réclamé.
         id: plan.id,
-        name: plan.name ?? original.name,
         borrowedFrom: {
           slug: source.slug,
           name: source.name,
@@ -1022,35 +1023,6 @@ export async function removeBorrowedPlan(
 
   const plans = (place.plans ?? []).filter(
     (plan) => !(isPlacePlanRef(plan) && plan.id === planId),
-  );
-  return savePlacePlans(slug, plans);
-}
-
-/**
- * Détache un emprunt : le plan de la source est recopié ici, et le lieu en
- * devient propriétaire. C'est la sortie de secours du partage — le jour où un
- * Farro Data Center doit diverger, il n'y a rien à re-téléverser, et la source
- * ne s'en trouve pas modifiée.
- */
-export async function detachBorrowedPlan(
-  slug: string,
-  planId: string,
-): Promise<Place> {
-  const place = await getPlaceBySlug(slug);
-  if (!place) throw new Error("Lieu introuvable");
-
-  const ref = (place.plans ?? []).find(
-    (plan): plan is PlacePlanRef => isPlacePlanRef(plan) && plan.id === planId,
-  );
-  if (!ref) throw new Error("Ce plan n'est pas un emprunt");
-
-  const [resolved] = await resolvePlans([ref]);
-  if (!resolved) throw new Error("Le plan emprunté est introuvable");
-
-  // `borrowedFrom` n'a pas à être effacé ici : `normalizePlans` ne le recopie
-  // pas, ce qui est précisément ce qui empêche un emprunt de se figer en copie.
-  const plans = (place.plans ?? []).map((plan) =>
-    isPlacePlanRef(plan) && plan.id === planId ? resolved : plan,
   );
   return savePlacePlans(slug, plans);
 }
