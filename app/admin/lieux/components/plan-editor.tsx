@@ -515,31 +515,19 @@ export function PlanEditor({
                       )?.name
                     }
                     exclude={slug}
-                    onChange={(target, label) => {
+                    onChange={(target) => {
                       mutateMarker(selected.id, {
-                        targetSlug: target,
+                        targetSlug: target?.slug,
                         service: undefined,
                       });
-                      // Le lieu visé vient d'être choisi : on le garde sous la
-                      // main pour que la pastille prenne tout de suite son
-                      // allure, sans attendre un aller-retour serveur.
-                      if (target && label) {
+                      // Le sélecteur rend la fiche entière : la pastille prend
+                      // tout de suite son vrai type et son vrai nombre de
+                      // plans, sans qu'on ait rien à deviner ni à attendre.
+                      if (target) {
                         setTargets((current) =>
-                          current.some((entry) => entry.slug === target)
+                          current.some((entry) => entry.slug === target.slug)
                             ? current
-                            : [
-                                ...current,
-                                {
-                                  slug: target,
-                                  name: label,
-                                  type: "building",
-                                  id: target,
-                                  depth: 0,
-                                  childCount: 0,
-                                  shopCount: 0,
-                                  planCount: 1,
-                                } as PlaceSummary,
-                              ],
+                            : [...current, target],
                         );
                       }
                     }}

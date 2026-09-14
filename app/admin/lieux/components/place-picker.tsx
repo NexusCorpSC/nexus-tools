@@ -6,8 +6,13 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Input } from "@/components/ui/input";
 import { usePlaceSearch } from "@/app/lieux/use-place-search";
 import { placeTrail } from "@/lib/place-icons";
+import type { PlaceSummary } from "@/types/places";
 
-/** Choisit un lieu par son nom, et rend son slug. */
+/**
+ * Choisit un lieu par son nom, et rend la fiche entière. Rendre le seul slug
+ * obligerait l'appelant à deviner le reste — et le type d'un lieu décide de
+ * l'allure de sa pastille sur un plan.
+ */
 export function PlacePicker({
   value,
   valueLabel,
@@ -17,7 +22,7 @@ export function PlacePicker({
 }: {
   value?: string;
   valueLabel?: string;
-  onChange: (slug: string | undefined, label?: string) => void;
+  onChange: (place: PlaceSummary | undefined) => void;
   exclude?: string;
   placeholder?: string;
 }) {
@@ -87,7 +92,7 @@ export function PlacePicker({
               key={place.slug}
               type="button"
               onClick={() => {
-                onChange(place.slug, place.name);
+                onChange(place);
                 setQuery("");
                 setOpen(false);
               }}

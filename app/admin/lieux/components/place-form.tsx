@@ -143,9 +143,9 @@ export function PlaceForm({
             value={parentSlug}
             valueLabel={parentLabel}
             exclude={place?.slug}
-            onChange={(next, label) => {
-              setParentSlug(next);
-              setParentLabel(label);
+            onChange={(next) => {
+              setParentSlug(next?.slug);
+              setParentLabel(next?.name);
             }}
             placeholder={t("Admin.fieldParentNone")}
           />

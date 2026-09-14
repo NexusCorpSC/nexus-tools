@@ -28,24 +28,36 @@ export function usePlaceSearch({
   useEffect(() => {
     if (!enabled) return;
 
+    // La minuterie suffit à espacer les requêtes, pas à les ordonner : une
+    // frappe rapide peut laisser partir une requête que la suivante double, et
+    // dont la réponse écraserait ensuite la plus fraîche. On l'abandonne au
+    // nettoyage, et on ignore ce qui reviendrait quand même.
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       const params = new URLSearchParams({ limit: String(limit) });
       if (query.trim()) params.set("query", query.trim());
 
       try {
-        const response = await fetch(`/api/lieux?${params.toString()}`);
+        const response = await fetch(`/api/lieux?${params.toString()}`, {
+          signal: controller.signal,
+        });
         const data: PlaceListResponse = await response.json();
+        if (controller.signal.aborted) return;
         setResults(
           data.places.filter((place) => !exclude || place.slug !== exclude),
         );
       } catch {
+        if (controller.signal.aborted) return;
         setResults([]);
       } finally {
-        setServed(query.trim());
+        if (!controller.signal.aborted) setServed(query.trim());
       }
     }, 250);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query, enabled, limit, exclude]);
 
   return { results, isLoading: enabled && served !== wanted };

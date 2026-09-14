@@ -15,6 +15,11 @@ import { ObjectId } from "bson";
  * `userId`, donc déjà couvertes par le `$or` — à ceci près qu'elles portent un
  * `placeSlug`. Le tri les fait remonter en premier, et le champ les propose
  * avant les lieux qu'un joueur a nommés lui-même.
+ *
+ * Le tri passe par une agrégation plutôt que par `sort({ placeSlug: -1 })` :
+ * trier sur le slug lui-même classerait tout le catalogue par slug décroissant
+ * au lieu de l'ordre alphabétique. Le drapeau dérivé ne sert qu'à séparer les
+ * deux groupes, et le nom trie à l'intérieur de chacun.
  */
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -35,9 +40,18 @@ export async function GET(request: NextRequest) {
   const locations = await db
     .db()
     .collection("locations")
-    .find(matchStage)
-    .sort({ placeSlug: -1, name: 1 })
-    .limit(50)
+    .aggregate([
+      { $match: matchStage },
+      {
+        $addFields: {
+          fromCatalogue: {
+            $cond: [{ $ifNull: ["$placeSlug", false] }, 1, 0],
+          },
+        },
+      },
+      { $sort: { fromCatalogue: -1, name: 1 } },
+      { $limit: 50 },
+    ])
     .toArray();
 
   return NextResponse.json(
