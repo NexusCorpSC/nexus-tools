@@ -4,6 +4,7 @@ import type { ChangeStream, Document, ResumeToken } from "mongodb";
 import db from "@/lib/db";
 import type { EventTopic } from "@/types/events";
 import { noteTopic, type NoteParams } from "./note";
+import { planTopic, type PlanParams } from "./plan";
 import { squadTopic, type SquadParams } from "./squad";
 import {
   CHANGE_PROJECTION,
@@ -39,9 +40,14 @@ import {
 const TOPICS: { [K in EventTopic]: Topic<TopicParams[K], unknown> } = {
   squad: squadTopic,
   note: noteTopic,
+  plan: planTopic,
 };
 
-export type TopicParams = { squad: SquadParams; note: NoteParams };
+export type TopicParams = {
+  squad: SquadParams;
+  note: NoteParams;
+  plan: PlanParams;
+};
 
 /** The topics one stream asked for, each with its parameters. */
 export type TopicSelection = { [K in EventTopic]?: TopicParams[K] };

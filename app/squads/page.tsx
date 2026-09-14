@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 
 import { auth } from "@/lib/auth";
+import { planFeedFor } from "@/lib/plans";
 import { currentSquadView } from "@/lib/squad-view";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,7 +58,10 @@ export default async function SquadsPage() {
     );
   }
 
-  const view = await currentSquadView(session.user.id, null);
+  const [view, plans] = await Promise.all([
+    currentSquadView(session.user.id, null),
+    planFeedFor(session.user.id, null),
+  ]);
 
   return (
     <div className="m-2 mx-auto max-w-3xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-4 shadow-xl shadow-black/20 backdrop-blur-sm sm:p-6">
@@ -73,7 +77,11 @@ export default async function SquadsPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <SquadBoard initialView={view} userId={session.user.id} />
+      <SquadBoard
+        initialView={view}
+        initialPlans={plans.plans}
+        userId={session.user.id}
+      />
     </div>
   );
 }

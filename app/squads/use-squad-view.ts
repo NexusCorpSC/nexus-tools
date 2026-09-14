@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import type { PlanFeed, PlanSummary } from "@/types/plan";
 import type { Squad, SquadView } from "@/types/squad";
 import { useEventStream } from "@/lib/use-event-stream";
 import { squadApi } from "./api";
@@ -43,6 +44,7 @@ type Run = (
  */
 export function useSquadView(
   initial: SquadView,
+  initialPlans: PlanSummary[],
   current: string | null,
   userId: string,
 ) {
@@ -204,8 +206,23 @@ export function useSquadView(
   );
   runRef.current = run;
 
+  /**
+   * The squad's plans de vol, which the board shows a card for.
+   *
+   * On this stream rather than one of its own: every reader of `/squads` would
+   * otherwise hold two connections, and the second would carry a kilobyte of
+   * plan names. The hook is the squad's, the topic is not — but the page is,
+   * and one connection per page is the whole point of the event hub.
+   */
+  const [plans, setPlans] = useState(initialPlans);
+
   const onEvent = useCallback(
-    (_topic: unknown, data: unknown) => {
+    (topic: unknown, data: unknown) => {
+      if (topic === "plan") {
+        setPlans((data as PlanFeed).plans);
+        return;
+      }
+
       const next = data as SquadView;
 
       if (writingRef.current > 0) {
@@ -219,10 +236,10 @@ export function useSquadView(
   );
 
   const { offline } = useEventStream({
-    topics: ["squad"],
+    topics: ["squad", "plan"],
     squad: current,
     onEvent,
   });
 
-  return { view, run, busy: writing > 0, offline };
+  return { view, plans, run, busy: writing > 0, offline };
 }

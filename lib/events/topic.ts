@@ -63,5 +63,9 @@ export const CHANGE_PROJECTION = {
   "fullDocument.raidId": 1,
   "fullDocument.members.userId": 1,
   "fullDocument.userId": 1,
+  // A plan names neither a raid nor its members: `ownerId` is the squad or raid
+  // it hangs off, and the only way a plan nobody has read yet — one just
+  // created — reaches the people it concerns.
+  "fullDocument.ownerId": 1,
   "updateDescription.updatedFields.raidId": 1,
 } as const;
