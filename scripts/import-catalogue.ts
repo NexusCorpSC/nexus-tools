@@ -173,7 +173,7 @@ async function mirrorImage(
   name = "image",
 ): Promise<string> {
   const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
-  if (!response.ok) throw new Error(`image ${response.status} — ${url}`);
+  if (!response.ok) throw new Error(`${name} ${response.status} — ${url}`);
 
   const contentType = response.headers.get("content-type") ?? "image/jpeg";
   const extension =
@@ -220,9 +220,7 @@ async function mirrorPlans(
     try {
       plans[view] = await mirrorImage(url, slug, `plan-${view}`);
     } catch (error) {
-      console.warn(
-        `  ~ plan ${view} non recopié : ${(error as Error).message}`,
-      );
+      console.warn(`  ~ plan non recopié : ${(error as Error).message}`);
     }
   }
 }

@@ -38,5 +38,5 @@ try {
 } catch (error) {
   // Une installation sans three (ou partielle) ne doit pas faire échouer le
   // `npm install` : seule la vue 3D en dépend, et elle sait se taire.
-  console.warn(`draco : décodeur non copié (${error.message})`);
+  console.warn(`draco : décodeur non copié (${error})`);
 }
