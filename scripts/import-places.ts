@@ -440,18 +440,42 @@ type PoolEntry = {
 };
 
 /**
- * Ce qu'on garde. On écarte « Destination » (des points de largage de mission,
- * dont 258 portent le nom d'une entrée déjà retenue) et « Default » (des
- * points de Lagrange, qui ne sont pas des lieux où l'on marche).
+ * Ce qu'on garde. « Default » reste dehors : ce sont des points de Lagrange et
+ * des doublons, pas des lieux où l'on marche.
+ *
+ * « Destination » a d'abord été écarté en bloc, et c'était trop large. Sur ses
+ * 459 entrées, 147 portent le nom d'un lieu déjà retenu et 194 sont des
+ * rebuts — mais il restait 138 noms uniques, dont Jumptown, Kudre Ore, les
+ * abris de secours de Stanton, une vingtaine d'avant-postes de Pyro et les
+ * points de saut de Nyx. On les admet, en confiant à `DESTINATION_JUNK` le
+ * tri de ce qui reste : ces entrées désignent aussi des pièces intérieures.
  */
-const KEPT_TYPES: Record<string, PlaceType> = {
+const KEPT_TYPES: Partial<Record<string, PlaceType>> = {
   Star: "star",
   Planet: "planet",
   Moon: "moon",
   LandingZone: "city",
   Station: "station",
   Outpost: "outpost",
+  Destination: "outpost",
 };
+
+/**
+ * Le rebut propre aux « Destination », et à elles seules : le type sert aussi
+ * de point de largage à l'intérieur d'un lieu déjà catalogué. « Checkmate
+ * Habs » et « Orbituary Clinic » sont des pièces de stations qu'on a déjà,
+ * « Hangar 12 » et « Research Wing » ne nomment rien tout seuls, et
+ * « Caterpillar » ou « Starfarer » sont des coques de vaisseau.
+ *
+ * Ce filtre ne s'applique qu'à ce type, sciemment : « microTech Logistics
+ * Depot S4LD01 » est un avant-poste légitime, et le mot « Depot » ne doit le
+ * condamner que lorsqu'il vient d'une Destination.
+ */
+const DESTINATION_JUNK =
+  /\[|UNINITIALIZED|\b(habs?|entrance|clinic|refinery|depot|warehouse|hangar \d+|maintenance area|(research|engineering) wing|landing area|storage shed|main building|abandoned section|site-b lab|trading post|asteroid (mining )?base)\b|^(caterpillar|constellation|freelancer|starfarer|aegis reclaimer)$/i;
+
+/** Une « Destination » ainsi nommée est une station, pas un avant-poste. */
+const DESTINATION_STATION = /\b(station|gateway|jump point)\b/i;
 
 /** Les désignations techniques et les sous-zones d'intérieur du dump. */
 const JUNK_NAME =
@@ -493,7 +517,11 @@ function loadPool(): PoolCandidate[] {
     .map(([key, entry]) => ({
       ...entry,
       key,
-      placeType: KEPT_TYPES[entry.type],
+      placeType:
+        entry.type === "Destination" &&
+        DESTINATION_STATION.test(entry.name ?? "")
+          ? ("station" as PlaceType)
+          : KEPT_TYPES[entry.type],
     }))
     .filter(
       (entry): entry is PoolCandidate =>
@@ -501,6 +529,7 @@ function loadPool(): PoolCandidate[] {
         !!entry.name?.trim() &&
         !JUNK_NAME.test(entry.name) &&
         !JUNK_PHRASE.test(entry.name) &&
+        !(entry.type === "Destination" && DESTINATION_JUNK.test(entry.name)) &&
         !!toPlaceSlug(entry.name),
     );
 
@@ -529,13 +558,26 @@ function buildNameIndex(candidates: PoolCandidate[]): Map<string, string> {
   return index;
 }
 
+/**
+ * Le dump désigne un même corps de deux façons. Ses planètes de Pyro sont, dans
+ * l'ordre, Pyro I, Monox, Bloom, Pyro IV, Pyro V, Terminus : Monox est donc le
+ * deuxième, et 16 entrées le rattachent à « Pyro II » quand 19 l'appellent par
+ * son nom. Sans cette table, ces 16 lieux perdent leur parent — Arid Reach,
+ * Last Ditch et Ostler's Claim en font partie.
+ *
+ * Bloom et Terminus ne sont jamais désignés par leur numéro dans ce fichier ;
+ * on ne déclare donc pas d'alias pour eux, faute de l'avoir constaté.
+ */
+const BODY_ALIASES: Record<string, string> = { "pyro ii": "monox" };
+
 function parentOf(
   candidate: PoolCandidate,
   index: Map<string, string>,
 ): { slug?: string; missing?: string } {
   const wanted = candidate.moon || candidate.planet || candidate.system;
   if (!wanted) return {};
-  const slug = index.get(wanted.trim().toLowerCase());
+  const key = wanted.trim().toLowerCase();
+  const slug = index.get(key) ?? index.get(BODY_ALIASES[key] ?? "");
   return slug ? { slug } : { missing: wanted };
 }
 
@@ -632,10 +674,22 @@ async function importMissions(options: Options, report: Report): Promise<void> {
   console.log(`  ${selected.length} lieu(x) retenu(s)`);
 
   const rows: Candidate[] = [];
+  const taken = new Set<string>();
   for (const candidate of selected) {
     const slug = toPlaceSlug(candidate.name);
     // La table écrite à la main fait autorité : le dump ne la double pas.
     if (CURATED.some((entry) => entry.slug === slug)) continue;
+    // Deux entrées peuvent porter le même nom sous des clés différentes — le
+    // dump en compte 262. Le slug étant unique en base, la seconde ferait
+    // échouer l'écriture. C'est la première *retenue* qui le prend, pas la
+    // première rencontrée : `taken` ne se remplit qu'en fin de boucle, pour
+    // qu'une entrée sortie faute de parent laisse sa place à son homonyme
+    // mieux rattaché. À rattachement égal, l'ordre de `TYPE_ORDER` tranche.
+    if (taken.has(slug)) {
+      report.skipped++;
+      console.log(`  = ${candidate.name} (nom déjà pris)`);
+      continue;
+    }
 
     const { slug: parentSlug, missing } = parentOf(candidate, index);
     if (missing) {
@@ -643,6 +697,15 @@ async function importMissions(options: Options, report: Report): Promise<void> {
       console.log(`  = ${candidate.name} (parent « ${missing} » inconnu)`);
       continue;
     }
+    // Une « Destination » sans corps de rattachement n'est pas une racine :
+    // « Stanton Gateway » n'a rien à faire à côté de Stanton dans l'arbre. Les
+    // types historiques gardent leur comportement, eux.
+    if (candidate.type === "Destination" && !parentSlug) {
+      report.skipped++;
+      console.log(`  = ${candidate.name} (sans corps de rattachement)`);
+      continue;
+    }
+    taken.add(slug);
 
     rows.push({
       label: `${candidate.placeType.padEnd(10)} ${candidate.name}`,
