@@ -991,7 +991,7 @@
       "sharedHeader": "Les lieux au nom voisin sortent souvent du même moule. Désignez le plan d’un lieu, et faites-le afficher par les autres sans le relever une seconde fois.",
       "sharedEmpty": "Aucune famille de lieux à rapprocher pour l’instant.",
       "sharedMembers": "{count, plural, one {# lieu} other {# lieux}}",
-      "sharedNoPlanYet": "Aucun lieu de ce groupe n’a encore de plan à prêter. Relevez-en un, puis revenez le partager.",
+      "sharedNoPlanYet": "Aucun lieu du catalogue n’a encore de plan à prêter. Relevez-en un, puis revenez le partager.",
       "sharedSourceLabel": "Plan à partager",
       "sharedApply": "{count, plural, =0 {Lier les lieux cochés} one {Lier # lieu} other {Lier # lieux}}",
       "sharedSelectAll": "Tout cocher",
@@ -1012,7 +1012,9 @@
       "borrowedFrom": "Emprunté à {name}",
       "borrowedReadOnly": "Ce plan appartient à {name} : modifiez-le là-bas, ou détachez-le pour en faire une copie propre à ce lieu.",
       "detachPlan": "Détacher",
-      "removeBorrowed": "Retirer l’emprunt"
+      "removeBorrowed": "Retirer l’emprunt",
+      "sharedSourceThisGroup": "Dans ce groupe",
+      "sharedSourceElsewhere": "Ailleurs dans le catalogue"
     }
   },
   "Industry": {
