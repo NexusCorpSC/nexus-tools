@@ -622,13 +622,38 @@ export async function getPlaceBySlug(slug: string): Promise<Place | null> {
   return place ?? null;
 }
 
+/**
+ * Les lieux que les repères d'une liste de plans ouvrent. Résolus en une
+ * requête : le visualiseur en tire le nom, le type — qui décide de l'allure de
+ * la pastille — et de quoi savoir si la descente mène quelque part.
+ */
+async function resolveMarkerTargets(
+  plans: PlacePlan[] | undefined,
+): Promise<PlaceSummary[]> {
+  const slugs = Array.from(
+    new Set(
+      (plans ?? []).flatMap((plan) =>
+        plan.markers
+          .map((marker) => marker.targetSlug)
+          .filter((slug): slug is string => !!slug),
+      ),
+    ),
+  );
+  if (slugs.length === 0) return [];
+
+  const targets = await collection()
+    .find({ slug: { $in: slugs } }, { projection: SUMMARY_PROJECTION })
+    .toArray();
+  return targets as PlaceSummary[];
+}
+
 export async function getPlaceDetails(
   slug: string,
 ): Promise<PlaceDetails | null> {
   const place = await getPlaceBySlug(slug);
   if (!place) return null;
 
-  const [ancestors, children, shops] = await Promise.all([
+  const [ancestors, children, shops, planTargets] = await Promise.all([
     collection()
       .find({ slug: { $in: place.ancestorSlugs ?? [] } })
       .project<PlaceAncestor>({ _id: 0, slug: 1, name: 1, type: 1 })
@@ -646,6 +671,7 @@ export async function getPlaceDetails(
       )
       .sort({ name: 1 })
       .toArray(),
+    resolveMarkerTargets(place.plans),
   ]);
 
   const ordered = (place.ancestorSlugs ?? [])
@@ -657,6 +683,7 @@ export async function getPlaceDetails(
     ancestors: ordered,
     children: children as PlaceSummary[],
     shops: shops as PlaceSummary[],
+    planTargets,
   };
 }
 
@@ -679,10 +706,13 @@ export async function getPlacePlans(
   );
   if (!place) return null;
 
-  const ancestors = await collection()
-    .find({ slug: { $in: place.ancestorSlugs ?? [] } })
-    .project<PlaceAncestor>({ _id: 0, slug: 1, name: 1, type: 1 })
-    .toArray();
+  const [ancestors, targets] = await Promise.all([
+    collection()
+      .find({ slug: { $in: place.ancestorSlugs ?? [] } })
+      .project<PlaceAncestor>({ _id: 0, slug: 1, name: 1, type: 1 })
+      .toArray(),
+    resolveMarkerTargets(place.plans),
+  ]);
 
   return {
     slug: place.slug,
@@ -695,6 +725,7 @@ export async function getPlacePlans(
       )
       .filter((node): node is PlaceAncestor => !!node),
     plans: place.plans ?? [],
+    targets,
   };
 }
 

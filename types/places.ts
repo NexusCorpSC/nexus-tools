@@ -227,6 +227,12 @@ export type PlaceDetails = Place & {
   children: PlaceSummary[];
   /** Les magasins de tout le sous-arbre : ceux de Lorville sont dans ses quartiers. */
   shops: PlaceSummary[];
+  /**
+   * Les lieux que les repères des plans ouvrent. Le visualiseur en tire le
+   * nom, le type — qui décide de l'allure de la pastille — et de quoi savoir
+   * si la descente mène quelque part.
+   */
+  planTargets: PlaceSummary[];
 };
 
 /** Le strict nécessaire pour afficher le plan d'un lieu voisin. */
@@ -237,6 +243,8 @@ export type PlacePlansResponse = {
   ancestorSlugs: string[];
   ancestors: PlaceAncestor[];
   plans: PlacePlan[];
+  /** Les lieux que les repères ouvrent, résolus une fois pour toutes. */
+  targets: PlaceSummary[];
 };
 
 export type PlaceFacetCount = { value: string; count: number };

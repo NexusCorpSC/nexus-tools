@@ -5,11 +5,12 @@ import { MapIcon } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { Button } from "@/components/ui/button";
 import { hasPermission } from "@/lib/permissions";
-import { getPlaceDetails } from "@/lib/places";
+import { getPlaceDetails, getPlacePlans } from "@/lib/places";
 import { placeTrail } from "@/lib/place-icons";
 import { KeyFigure } from "@/app/items/[slug]/sections";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import { PlaceAdminMenu } from "./components";
+import { PlanViewer } from "./plan-viewer";
 import {
   PlaceBreadcrumb,
   PlaceEmpty,
@@ -53,11 +54,11 @@ export default async function PlacePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ onglet?: string }>;
+  searchParams: Promise<{ onglet?: string; lieu?: string; plan?: string }>;
 }) {
   const t = await getTranslations("Places");
   const { slug } = await params;
-  const { onglet } = await searchParams;
+  const { onglet, lieu, plan } = await searchParams;
   const place = await getPlaceDetails(slug);
 
   if (!place) {
@@ -73,6 +74,28 @@ export default async function PlacePage({
 
   const canEdit = await hasPermission(PLACES_EDIT_PERMISSION);
   const tab: Tab = TABS.includes(onglet as Tab) ? (onglet as Tab) : "apercu";
+
+  /*
+    Le plan regardé vit dans l'adresse. On ne descend que dans l'arborescence
+    de ce lieu-là : un `?lieu=` tapé à la main ne transforme pas la fiche de
+    Lorville en visualiseur de n'importe quel plan du catalogue.
+  */
+  const visited =
+    tab === "plan" && lieu && lieu !== slug ? await getPlacePlans(lieu) : null;
+  const plans =
+    visited && visited.ancestorSlugs.includes(slug)
+      ? visited
+      : place.planCount > 0
+        ? {
+            slug: place.slug,
+            name: place.name,
+            type: place.type,
+            ancestorSlugs: place.ancestorSlugs,
+            ancestors: place.ancestors,
+            plans: place.plans ?? [],
+            targets: place.planTargets,
+          }
+        : null;
   const services = place.services ?? [];
   const trail = placeTrail(place);
 
@@ -228,22 +251,30 @@ export default async function PlacePage({
       {tab === "plan" && (
         <div>
           <SectionTitle>{t("planTitle")}</SectionTitle>
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#9ED0FF]/25 bg-[#092F49]/35 px-6 py-12 text-center">
-            <MapIcon className="size-8 text-muted-foreground" />
-            <p className="text-base font-semibold">
-              {t("noPlan", { name: place.name })}
-            </p>
-            <p className="max-w-md text-sm text-muted-foreground">
-              {t("noPlanHint")}
-            </p>
-            {canEdit && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/admin/lieux/${place.slug}/plans`}>
-                  {t("suggestPlan")}
-                </Link>
-              </Button>
-            )}
-          </div>
+          {plans && plans.plans.length > 0 ? (
+            <PlanViewer
+              data={plans}
+              rootSlug={place.slug}
+              activePlanId={plan}
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#9ED0FF]/25 bg-[#092F49]/35 px-6 py-12 text-center">
+              <MapIcon className="size-8 text-muted-foreground" />
+              <p className="text-base font-semibold">
+                {t("noPlan", { name: place.name })}
+              </p>
+              <p className="max-w-md text-sm text-muted-foreground">
+                {t("noPlanHint")}
+              </p>
+              {canEdit && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/admin/lieux/${place.slug}/plans`}>
+                    {t("suggestPlan")}
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
