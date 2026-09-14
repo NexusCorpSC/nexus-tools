@@ -3,6 +3,7 @@ import Image from "next/image";
 import { isNumber, type ItemDetails } from "@/types/items";
 import { ItemAdminMenu } from "../components";
 import { ItemCompareButton } from "../compare-button";
+import { VehiclePlansSection } from "./vehicle-plans";
 import {
   CommonSections,
   EmptySection,
@@ -351,6 +352,20 @@ export async function VehicleView({
                 />
               )}
             </div>
+
+            {vehicle.plans && (
+              <div>
+                <SectionTitle aside={tv("plansSource")}>
+                  {tv("plansTitle")}
+                </SectionTitle>
+                <VehiclePlansSection
+                  plans={vehicle.plans}
+                  name={item.name}
+                  accent={ACCENT}
+                  scale={dimensions}
+                />
+              </div>
+            )}
 
             <div>
               <SectionTitle

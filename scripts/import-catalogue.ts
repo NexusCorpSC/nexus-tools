@@ -8,14 +8,18 @@
  *   --types A,B        (scwiki) types du wiki à importer, voir WIKI_TYPES
  *   --update           rafraîchir les objets déjà importés (défaut : les sauter)
  *   --mirror-images    recopier les images dans le blob storage plutôt que de
- *                      pointer vers la source (BLOB_READ_WRITE_TOKEN requis)
+ *                      pointer vers la source (BLOB_READ_WRITE_TOKEN requis).
+ *                      Le modèle 3D n'est jamais recopié : c'est un fichier de
+ *                      plusieurs mégaoctets par vaisseau, et Fleetyards le sert
+ *                      déjà avec les en-têtes CORS qu'il faut.
  *   --no-fleetyards    (rsi) ne pas compléter « Où l'obtenir » avec Fleetyards
  *   --dry-run          tout calculer, n'écrire nulle part
  *
  * Sources :
  *   rsi     Matrice officielle des vaisseaux (robertsspaceindustries.com) :
  *           caractéristiques, description, image, points d'emport, composants.
- *           Fleetyards ajoute les points de vente et de location en jeu.
+ *           Fleetyards ajoute les points de vente et de location en jeu, et
+ *           les plans : vues de dessus, de côté et de face, plus le modèle 3D.
  *   scwiki  API du Star Citizen Wiki (données extraites du jeu, en français) :
  *           armes personnelles et de vaisseau, accessoires, armures, composants.
  *   uex     UEX Corp : ressources échangeables et leurs cours par comptoir.
@@ -47,6 +51,7 @@ import {
   type ResourceMarket,
   type WeaponAmmunition,
   type WeaponFireMode,
+  type VehiclePlans,
   type WeaponSpread,
   type WeaponStat,
 } from "@/types/items";
@@ -160,16 +165,21 @@ const leadingNumber = (value: unknown): number | undefined => {
 /**
  * Copies an illustration into the blob storage under the same path the admin
  * upload uses, so the fiche stops depending on the source keeping its urls.
+ * `name` separates an object's illustration from its plans, which share a slug.
  */
-async function mirrorImage(url: string, slug: string): Promise<string> {
+async function mirrorImage(
+  url: string,
+  slug: string,
+  name = "image",
+): Promise<string> {
   const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
-  if (!response.ok) throw new Error(`image ${response.status} — ${url}`);
+  if (!response.ok) throw new Error(`${name} ${response.status} — ${url}`);
 
   const contentType = response.headers.get("content-type") ?? "image/jpeg";
   const extension =
     { "image/png": "png", "image/webp": "webp" }[contentType] ?? "jpg";
   const blob = await put(
-    `items/${slug}/image.${extension}`,
+    `items/${slug}/${name}.${extension}`,
     Buffer.from(await response.arrayBuffer()),
     {
       access: "public",
@@ -193,6 +203,28 @@ type Report = {
   failed: number;
 };
 
+/**
+ * The orthographic views, recopied like the illustration. A view that fails to
+ * copy keeps pointing at the source rather than dropping the whole vehicle:
+ * a plan is an extra, the fiche is not worth losing over it.
+ */
+async function mirrorPlans(
+  plans: VehiclePlans | undefined,
+  slug: string,
+): Promise<void> {
+  if (!plans) return;
+
+  for (const view of ["top", "side", "front"] as const) {
+    const url = plans[view];
+    if (!url) continue;
+    try {
+      plans[view] = await mirrorImage(url, slug, `plan-${view}`);
+    } catch (error) {
+      console.warn(`  ~ plan non recopié : ${(error as Error).message}`);
+    }
+  }
+}
+
 /** Writes what a source produced, one object at a time, and tallies the outcome. */
 async function persist(
   candidates: Candidate[],
@@ -208,9 +240,15 @@ async function persist(
     }
 
     try {
-      if (options.mirrorImages && input.imageUrl) {
+      if (options.mirrorImages) {
         const slug = toItemSlug(input.slug ?? input.name);
-        input.imageUrl = await mirrorImage(input.imageUrl, slug);
+        if (input.imageUrl) {
+          input.imageUrl = await mirrorImage(input.imageUrl, slug);
+        }
+        // `ItemInput.vehicle` est `unknown` — c'est la normalisation qui le
+        // typera. Ici on sait ce qu'on vient d'y mettre.
+        const vehicle = input.vehicle as { plans?: VehiclePlans } | undefined;
+        await mirrorPlans(vehicle?.plans, slug);
       }
 
       const outcome = await upsertImportedItem(input, {
@@ -351,20 +389,47 @@ function rsiImage(ship: RsiShip): string | undefined {
 
 type Availability = { sale: string[]; rental: string[] };
 
+/** Ce que Fleetyards sait d'un vaisseau et que la matrice RSI ignore. */
+type FleetyardsModel = { availability: Availability; plans?: VehiclePlans };
+
+/** Une image de Fleetyards, dans ses différentes tailles. */
+type FleetyardsImage = {
+  url?: string | null;
+  mediumUrl?: string | null;
+  largeUrl?: string | null;
+};
+
+/**
+ * La taille servie à la fiche. L'original fait 3 000 px et plusieurs mégaoctets
+ * — un plan lu dans un encart n'en a pas l'usage ; le dérivé « medium » est un
+ * webp de 1 000 px pour quelques dizaines de kilooctets.
+ */
+function fleetyardsPlan(image: FleetyardsImage | null | undefined) {
+  return image?.mediumUrl ?? image?.url ?? undefined;
+}
+
 /**
  * Fleetyards knows where a ship is sold and rented in game, which the official
- * matrix does not. Matched on the RSI id it keeps for every model.
+ * matrix does not, and publishes the orthographic renders its fleetcharts are
+ * made of — the top, side and front views, and the 3D model behind its holo
+ * viewer. Matched on the RSI id it keeps for every model.
  */
-async function loadFleetyards(): Promise<Map<number, Availability>> {
+async function loadFleetyards(): Promise<Map<number, FleetyardsModel>> {
   type Model = {
     rsiId: number | null;
+    holo?: string | null;
+    media?: {
+      topView?: FleetyardsImage | null;
+      sideView?: FleetyardsImage | null;
+      frontView?: FleetyardsImage | null;
+    } | null;
     availability?: {
       soldAt?: { price: number; location: string }[];
       rentalAt?: { price: number; location: string; timeRange?: string }[];
     };
   };
 
-  const byRsiId = new Map<number, Availability>();
+  const byRsiId = new Map<number, FleetyardsModel>();
   for (let page = 1; page <= 10; page++) {
     const { items } = await fetchJson<{ items: Model[] }>(
       `https://api.fleetyards.net/v1/models?perPage=240&page=${page}`,
@@ -387,8 +452,21 @@ async function loadFleetyards(): Promise<Map<number, Availability>> {
           (r) =>
             `Location : ${r.location} — ${Math.round(r.price).toLocaleString("fr-FR")} aUEC${r.timeRange ? ` / ${r.timeRange}` : ""}`,
         );
-      if (sale.length || rental.length)
-        byRsiId.set(model.rsiId, { sale, rental });
+
+      const plans: VehiclePlans = {
+        top: fleetyardsPlan(model.media?.topView),
+        side: fleetyardsPlan(model.media?.sideView),
+        front: fleetyardsPlan(model.media?.frontView),
+        holo: model.holo ?? undefined,
+      };
+      const hasPlan = Object.values(plans).some(Boolean);
+
+      if (sale.length || rental.length || hasPlan) {
+        byRsiId.set(model.rsiId, {
+          availability: { sale, rental },
+          plans: hasPlan ? plans : undefined,
+        });
+      }
     }
     if (items.length < 240) break;
   }
@@ -403,19 +481,20 @@ async function importRsi(options: Options, report: Report): Promise<void> {
   const ships = select(data, (ship) => ship.name, options);
   console.log(`  ${ships.length} vaisseau(x) retenu(s) sur ${data.length}`);
 
-  const availability = options.fleetyards
+  const fleetyards = options.fleetyards
     ? await loadFleetyards().catch((error) => {
         console.warn(
-          `  Fleetyards indisponible (${(error as Error).message}) — pas de points de vente`,
+          `  Fleetyards indisponible (${(error as Error).message}) — pas de points de vente ni de plans`,
         );
-        return new Map<number, Availability>();
+        return new Map<number, FleetyardsModel>();
       })
-    : new Map<number, Availability>();
+    : new Map<number, FleetyardsModel>();
 
   const candidates: Candidate[] = ships.map((ship) => {
     const type = (ship.type ?? "").toLowerCase();
     const isGround = type === "ground";
-    const where = availability.get(ship.id);
+    const known = fleetyards.get(ship.id);
+    const where = known?.availability;
 
     const statistics: ItemStatistics = {
       ...(ship.focus ? { Rôle: { value: ship.focus } } : {}),
@@ -445,7 +524,7 @@ async function importRsi(options: Options, report: Report): Promise<void> {
       imageUrl: rsiImage(ship),
       statistics,
       obtention: where
-        ? [...where.sale, ...where.rental].join("\n")
+        ? [...where.sale, ...where.rental].join("\n") || undefined
         : undefined,
       vehicle: {
         crew: number(ship.max_crew),
@@ -458,6 +537,7 @@ async function importRsi(options: Options, report: Report): Promise<void> {
         height: number(ship.height),
         hardpoints: rsiSlots(ship, RSI_HARDPOINTS),
         components: rsiSlots(ship, RSI_COMPONENTS),
+        plans: known?.plans,
       },
       source: {
         name: "rsi",

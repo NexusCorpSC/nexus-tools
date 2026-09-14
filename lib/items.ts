@@ -35,6 +35,7 @@ import {
   type ResourceMarketSide,
   type ResourceRefining,
   type VehicleDetails,
+  type VehiclePlans,
   type WeaponAmmunition,
   type WeaponDetails,
   type WeaponFireMode,
@@ -91,6 +92,17 @@ function optionalNumber(value: unknown): number | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/**
+ * A url the fiche will hand to the browser — an `<img src>`, a model the 3D
+ * viewer fetches. Only http(s) survives: an administrator types these by hand,
+ * and a `javascript:` or `data:` url in that field would run on every visit.
+ */
+function optionalUrl(value: unknown): string | undefined {
+  const url = optionalText(value, 2048);
+  if (!url) return undefined;
+  return /^https?:\/\//i.test(url) ? url : undefined;
 }
 
 function normalizeStatistics(value: unknown): ItemStatistics | undefined {
@@ -184,6 +196,18 @@ function compact<T extends object>(details: T): T | undefined {
   return hasValue ? details : undefined;
 }
 
+function normalizeVehiclePlans(value: unknown): VehiclePlans | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const input = value as Record<string, unknown>;
+
+  return compact({
+    top: optionalUrl(input.top),
+    side: optionalUrl(input.side),
+    front: optionalUrl(input.front),
+    holo: optionalUrl(input.holo),
+  });
+}
+
 function normalizeVehicle(value: unknown): VehicleDetails | undefined {
   if (!value || typeof value !== "object") return undefined;
   const input = value as Record<string, unknown>;
@@ -199,6 +223,7 @@ function normalizeVehicle(value: unknown): VehicleDetails | undefined {
     height: optionalNumber(input.height),
     hardpoints: normalizeSlots(input.hardpoints),
     components: normalizeSlots(input.components),
+    plans: normalizeVehiclePlans(input.plans),
   });
 }
 

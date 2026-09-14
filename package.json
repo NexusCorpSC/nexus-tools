@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "postinstall": "node scripts/copy-draco.mjs",
     "import:catalogue": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-catalogue.ts",
     "ensure:indexes": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/ensure-indexes.ts"
   },
@@ -60,7 +61,8 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "three": "^0.186.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
@@ -69,6 +71,7 @@
     "@types/node": "^24",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/three": "^0.186.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.0",
     "postcss": "^8",

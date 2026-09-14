@@ -81,6 +81,23 @@ export type ResolvedItemSlot = ItemSlot & {
   mounted?: ItemSummary;
 };
 
+/**
+ * Les plans du véhicule : les vues orthographiques et le modèle 3D. Ce sont
+ * les rendus dont Fleetyards fait ses fleetcharts, pas des visuels de
+ * communication — une vue de dessus y est vraiment prise de dessus, à
+ * l'échelle, sur fond transparent.
+ */
+export type VehiclePlans = {
+  /** Vue de dessus. */
+  top?: string;
+  /** Vue de côté. */
+  side?: string;
+  /** Vue de face. */
+  front?: string;
+  /** Modèle 3D au format glTF, maillage compressé en Draco. */
+  holo?: string;
+};
+
 export type VehicleDetails = {
   /** Nombre de places. */
   crew?: number;
@@ -100,6 +117,8 @@ export type VehicleDetails = {
   hardpoints?: ItemSlot[];
   /** Composants montés (générateur, bouclier, refroidisseur…). */
   components?: ItemSlot[];
+  /** Plans du véhicule : vues orthographiques et modèle 3D. */
+  plans?: VehiclePlans;
 };
 
 /** Une caractéristique de tir comparable aux autres armes de la même classe. */
