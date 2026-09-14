@@ -170,6 +170,7 @@ const CURATED: Curated[] = [
   // ── Les systèmes et les corps qui portent quelque chose ──
   { slug: "stanton", name: "Stanton", type: "star" },
   { slug: "pyro", name: "Pyro", type: "star" },
+  { slug: "nyx", name: "Nyx", type: "star" },
   { slug: "hurston", name: "Hurston", type: "planet", parent: "stanton" },
   { slug: "crusader", name: "Crusader", type: "planet", parent: "stanton" },
   { slug: "arccorp", name: "ArcCorp", type: "planet", parent: "stanton" },
