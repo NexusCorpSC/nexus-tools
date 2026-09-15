@@ -61,6 +61,9 @@ async function call(
   return {
     feed: answer.feed ?? { scope: "squad", ownerId: null, plans: [] },
     plan: answer.plan ?? null,
+    // Only the list route says it; kept as it came rather than defaulted, so
+    // `undefined` stays «not answered» and never reads as «refused».
+    governs: answer.governs,
   };
 }
 
@@ -114,7 +117,14 @@ export const planApi = {
     body: {
       name?: string;
       drawPolicy?: DrawPolicy;
-      background?: { url: string; width: number; height: number } | null;
+      /**
+       * Deux formes : le téléversement, et le relevé d'un lieu — que le
+       * serveur va chercher lui-même, l'appelant ne le nommant que.
+       */
+      background?:
+        | { url: string; width: number; height: number }
+        | { place: { slug: string; planId: string } }
+        | null;
       archived?: boolean;
     },
   ) => call(at(`${PLANS}/${planId}`, squadId), { method: "PATCH", body }),

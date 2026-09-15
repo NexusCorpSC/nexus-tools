@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deletePlan, patchPlan, type PlanPatch } from "@/lib/plans";
+import { getPlacePlan } from "@/lib/places";
 import { isDrawPolicy, PLAN_NAME_MAX_LENGTH } from "@/types/plan";
 import { readBody, readString } from "../../caller";
 import { planResponse, refuseRank, resolvePlan } from "../caller";
@@ -39,6 +40,10 @@ export async function GET(
  * Body: `{ name?, drawPolicy?, background?, archived? }` — any subset; an absent
  * field is left alone rather than cleared. `background: null` takes the image
  * off and leaves the grid.
+ *
+ * A background arrives one of two ways: `{ url, width, height }`, straight from
+ * an upload, or `{ place: { slug, planId } }`, naming a place's survey — which
+ * this route resolves itself rather than believing.
  */
 export async function PATCH(
   request: NextRequest,
@@ -99,9 +104,9 @@ export async function PATCH(
   }
 
   if (body?.background !== undefined) {
-    const read = readBackground(body.background);
+    const read = await readBackground(body.background);
     if ("error" in read) {
-      return NextResponse.json({ error: read.error }, { status: 400 });
+      return NextResponse.json({ error: read.error }, { status: read.status });
     }
 
     patch.background = read.background;
@@ -152,32 +157,45 @@ export async function DELETE(
 }
 
 /**
- * The background, as the client reports it after the upload.
+ * The background, one of the two ways it arrives.
  *
- * The URL is whatever the blob store answered; the size comes with it because
- * the canvas frames the image before it has loaded, and a frame that resizes
- * under a drawing moves every trace on it.
+ * `{ place: { slug, planId } }` names a survey, and the image is looked up
+ * here. That is the whole reason the shape exists: a client that could hand
+ * over a URL *and* claim it came from Lorville would be writing a caption
+ * nobody checked, and the caption is what the board offers to click.
+ *
+ * `{ url, width, height }` is the upload, unchanged. The URL is whatever the
+ * blob store answered; the size comes with it because the canvas frames the
+ * image before it has loaded, and a frame that resizes under a drawing moves
+ * every trace on it.
  */
-function readBackground(
+async function readBackground(
   value: unknown,
-): { background: PlanPatch["background"] } | { error: string } {
+): Promise<
+  { background: PlanPatch["background"] } | { error: string; status: number }
+> {
   if (value === null) return { background: null };
 
   if (typeof value !== "object" || Array.isArray(value)) {
-    return { error: "`background` must be an object or null" };
+    return {
+      error: "`background` must be an object or null",
+      status: 400,
+    };
   }
 
-  const { url, width, height } = value as Record<string, unknown>;
+  const { url, width, height, place } = value as Record<string, unknown>;
+
+  if (place !== undefined) return readPlaceBackground(place);
 
   if (typeof url !== "string" || !url) {
-    return { error: "`background.url` must be a non-empty string" };
+    return { error: "`background.url` must be a non-empty string", status: 400 };
   }
 
   // Only ever the store this deployment uploads to: a plan is drawn by one
   // member and read by twenty, and an arbitrary URL here would let the first
   // point the other nineteen anywhere.
   if (!/^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i.test(url)) {
-    return { error: "`background.url` must be an uploaded image" };
+    return { error: "`background.url` must be an uploaded image", status: 400 };
   }
 
   if (
@@ -188,7 +206,10 @@ function readBackground(
     width <= 0 ||
     height <= 0
   ) {
-    return { error: "`background.width` and `background.height` must be positive numbers" };
+    return {
+      error: "`background.width` and `background.height` must be positive numbers",
+      status: 400,
+    };
   }
 
   return {
@@ -196,6 +217,59 @@ function readBackground(
       url,
       width: Math.round(width),
       height: Math.round(height),
+      // An upload is nobody's survey. Said rather than left out, because
+      // `patchPlan` writes this field with every image and a plan that kept
+      // the previous caption would credit a place it no longer shows.
+      from: null,
+    },
+  };
+}
+
+/** A place's survey, read from the catalogue rather than from the request. */
+async function readPlaceBackground(
+  value: unknown,
+): Promise<
+  { background: PlanPatch["background"] } | { error: string; status: number }
+> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return { error: "`background.place` must be an object", status: 400 };
+  }
+
+  const { slug, planId } = value as Record<string, unknown>;
+
+  if (typeof slug !== "string" || !slug) {
+    return {
+      error: "`background.place.slug` must be a non-empty string",
+      status: 400,
+    };
+  }
+
+  if (typeof planId !== "string" || !planId) {
+    return {
+      error: "`background.place.planId` must be a non-empty string",
+      status: 400,
+    };
+  }
+
+  const found = await getPlacePlan(slug, planId);
+
+  // 404 rather than 400: the body is well formed, the survey is simply not
+  // there — deleted since the page that offered it was drawn, most likely.
+  if (!found) {
+    return { error: "Place survey not found", status: 404 };
+  }
+
+  return {
+    background: {
+      url: found.plan.imageUrl,
+      width: found.plan.imageWidth,
+      height: found.plan.imageHeight,
+      from: {
+        placeSlug: found.place.slug,
+        placeName: found.place.name,
+        planId: found.plan.id,
+        planName: found.plan.name,
+      },
     },
   };
 }
