@@ -360,6 +360,7 @@ export function PlanBoard({
           <Link
             href={`/lieux/${plan.backgroundFrom.placeSlug}?onglet=plan&plan=${plan.backgroundFrom.planId}`}
             target="_blank"
+            rel="noopener noreferrer"
             title={t("backgroundFromLabel", {
               place: plan.backgroundFrom.placeName,
               plan: plan.backgroundFrom.planName,

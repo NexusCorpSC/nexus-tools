@@ -104,10 +104,18 @@ function Chooser({
     const slug = place.slug;
 
     fetch(`/api/lieux/${slug}/plans`, { signal: controller.signal })
-      .then((response) => response.json() as Promise<PlacePlansResponse>)
-      .then((data) => {
+      .then(async (response) => {
+        // Un refus répond du JSON lui aussi. Sans ce garde, `{ error }` passe
+        // pour une réponse valide, `plans` vaut `undefined`, et cela ne casse
+        // qu'au rendu — loin d'ici, et sans rien qui dise pourquoi.
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = (await response.json()) as PlacePlansResponse;
+        return Array.isArray(data.plans) ? data.plans : [];
+      })
+      .then((plans) => {
         if (controller.signal.aborted) return;
-        setFetched({ slug, plans: data.plans });
+        setFetched({ slug, plans });
       })
       .catch(() => {
         if (!controller.signal.aborted) setFetched({ slug, plans: [] });
