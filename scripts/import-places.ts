@@ -492,17 +492,17 @@ const CURATED: Curated[] = [
   ...QV_BREAKERS,
 
   // ── Les zones contestées de Pyro ──
-  // Trois bases d'astéroïde de Pyrotechnic Amalgamated, abandonnées à sa
-  // faillite. `locationPools` ne garde qu'EXHANG-0-1, et en type « Default »
-  // que la graine écarte ; les deux SUPVISR n'y sont pas du tout. Le
-  // rattachement et la description viennent du wiki.
+  // Trois bases creusées dans des astéroïdes par Pyrotechnic Amalgamated, et
+  // abandonnées à sa faillite. `locationPools` ne garde qu'EXHANG-0-1, et en
+  // type « Default » que la graine écarte ; les deux SUPVISR n'y sont pas du
+  // tout. Le rattachement et la description viennent du wiki.
   {
     slug: "pyam-supvisr-3-4",
     name: "PYAM-SUPVISR-3-4",
     type: "station",
     parent: "bloom",
     description:
-      "Base d'astéroïde de Pyrotechnic Amalgamated, au point de Lagrange L5 de Bloom, laissée à l'abandon à la faillite de la compagnie et occupée depuis par des hors-la-loi. C'est une zone contestée : on y entre pour ce qu'on en rapporte, et rarement seul.",
+      "Base creusée dans un astéroïde par Pyrotechnic Amalgamated, au point de Lagrange L5 de Bloom, laissée à l'abandon à la faillite de la compagnie et occupée depuis par des hors-la-loi. C'est une zone contestée : on y entre pour ce qu'on en rapporte, et rarement seul.",
   },
   {
     slug: "pyam-supvisr-3-5",
@@ -518,7 +518,7 @@ const CURATED: Curated[] = [
     type: "station",
     parent: "pyro",
     description:
-      "Trois bases d'astéroïde au sud-ouest de l'étoile de Pyro, que le mobiGlas ne désigne que par ce seul nom. C'est le bout de la chaîne des zones contestées : là où l'on vient échanger ce qu'on a rapporté des autres.",
+      "Trois bases creusées dans des astéroïdes, au sud-ouest de l'étoile de Pyro, que le mobiGlas ne désigne que par ce seul nom. C'est le bout de la chaîne des zones contestées : là où l'on vient échanger ce qu'on a rapporté des autres.",
   },
 
   // Le dump ne la nomme que dans le texte de quatre contrats InterSec, au

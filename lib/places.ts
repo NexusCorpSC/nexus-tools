@@ -1540,10 +1540,11 @@ export async function upsertImportedPlace(
      * en double dont certains désignent réellement deux endroits — d'où le
      * repli en « -2 » qui reste la règle par défaut.
      *
-     * Sans cette reprise, déclarer dans la table un lieu que le dump avait
-     * déjà créé, ou qu'un administrateur avait saisi à la main, produisait un
-     * doublon silencieux : « nyx » d'un côté, « nyx-2 » de l'autre, et
-     * personne pour dire lequel porte les enfants.
+     * Sans cette reprise, déclarer dans la table un lieu que le dump avait déjà
+     * créé, ou qu'un administrateur avait saisi à la main, ne produisait rien :
+     * `persist` reconnaît le slug pris par une autre provenance et passe son
+     * tour. Pas de doublon, donc — mais une entrée qui n'écrit jamais, et une
+     * table qui dit quelque chose sans effet.
      */
     adoptSlug?: boolean;
   } = {},
