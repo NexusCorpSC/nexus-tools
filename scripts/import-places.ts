@@ -491,6 +491,36 @@ const CURATED: Curated[] = [
 
   ...QV_BREAKERS,
 
+  // ── Les zones contestées de Pyro ──
+  // Trois bases d'astéroïde de Pyrotechnic Amalgamated, abandonnées à sa
+  // faillite. `locationPools` ne garde qu'EXHANG-0-1, et en type « Default »
+  // que la graine écarte ; les deux SUPVISR n'y sont pas du tout. Le
+  // rattachement et la description viennent du wiki.
+  {
+    slug: "pyam-supvisr-3-4",
+    name: "PYAM-SUPVISR-3-4",
+    type: "station",
+    parent: "bloom",
+    description:
+      "Base d'astéroïde de Pyrotechnic Amalgamated, au point de Lagrange L5 de Bloom, laissée à l'abandon à la faillite de la compagnie et occupée depuis par des hors-la-loi. C'est une zone contestée : on y entre pour ce qu'on en rapporte, et rarement seul.",
+  },
+  {
+    slug: "pyam-supvisr-3-5",
+    name: "PYAM-SUPVISR-3-5",
+    type: "station",
+    parent: "bloom",
+    description:
+      "La jumelle de PYAM-SUPVISR-3-4, au même point de Lagrange L5 de Bloom : même compagnie, même abandon, mêmes occupants. Zone contestée elle aussi.",
+  },
+  {
+    slug: "pyam-exhang-0-1",
+    name: "PYAM-EXHANG-0-1",
+    type: "station",
+    parent: "pyro",
+    description:
+      "Trois bases d'astéroïde au sud-ouest de l'étoile de Pyro, que le mobiGlas ne désigne que par ce seul nom. C'est le bout de la chaîne des zones contestées : là où l'on vient échanger ce qu'on a rapporté des autres.",
+  },
+
   // Le dump ne la nomme que dans le texte de quatre contrats InterSec, au
   // singulier et toujours « the old QV Logistics station ». Le wiki n'a pas de
   // page pour elle ; le contexte vient de celle des QV Services Stations —
@@ -728,6 +758,12 @@ async function persist(
   candidates: Candidate[],
   options: Options,
   report: Report,
+  /**
+   * La table écrite à la main reprend un slug déjà pris : c'est le même lieu,
+   * qu'il vienne du dump ou d'une saisie. Le remplissage, lui, ne le fait pas —
+   * le dump compte 262 noms en double dont certains désignent deux endroits.
+   */
+  adoptSlug = false,
 ): Promise<void> {
   for (const { input, label } of candidates) {
     if (options.dryRun) {
@@ -738,11 +774,12 @@ async function persist(
     try {
       // Un slug déjà pris par une autre provenance appartient à la table
       // écrite à la main, ou à un administrateur : le remplissage ne lui
-      // invente pas un `-2` à côté.
+      // invente pas un `-2` à côté, il passe son tour.
       const slug = toPlaceSlug(input.slug ?? input.name);
       const existing = await getPlaceBySlug(slug);
       const source = input.source as { name: string; id: string };
       if (
+        !adoptSlug &&
         existing &&
         (existing.source?.name !== source.name ||
           existing.source?.id !== source.id)
@@ -754,6 +791,7 @@ async function persist(
 
       const outcome = await upsertImportedPlace(input, {
         update: options.update,
+        adoptSlug,
       });
       report[outcome.action]++;
       const mark = { created: "+", updated: "~", skipped: "=" }[outcome.action];
@@ -810,6 +848,7 @@ async function importCurated(
     })),
     options,
     report,
+    true,
   );
 }
 
