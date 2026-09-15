@@ -1528,27 +1528,73 @@ export type ImportPlaceOutcome = {
  */
 export async function upsertImportedPlace(
   input: PlaceInput,
-  options: { update?: boolean; slugFallbacks?: string[] } = {},
+  options: {
+    update?: boolean;
+    slugFallbacks?: string[];
+    /**
+     * Le slug déjà pris désigne ce lieu-ci, pas un homonyme : on le reprend au
+     * lieu d'en créer un second.
+     *
+     * C'est vrai d'une table écrite à la main, où le slug est choisi pour
+     * nommer un lieu précis ; ça ne l'est pas d'un dump, qui compte 262 noms
+     * en double dont certains désignent réellement deux endroits — d'où le
+     * repli en « -2 » qui reste la règle par défaut.
+     *
+     * Sans cette reprise, déclarer dans la table un lieu que le dump avait déjà
+     * créé, ou qu'un administrateur avait saisi à la main, ne produisait rien :
+     * `persist` reconnaît le slug pris par une autre provenance et passe son
+     * tour. Pas de doublon, donc — mais une entrée qui n'écrit jamais, et une
+     * table qui dit quelque chose sans effet.
+     */
+    adoptSlug?: boolean;
+  } = {},
 ): Promise<ImportPlaceOutcome> {
   const source = input.source as Place["source"] | undefined;
   if (!source?.name || !source?.id) {
     throw new Error("Un lieu importé doit porter sa provenance");
   }
 
-  const existing = await findPlaceBySource(source.name, source.id);
-  if (existing) {
-    if (!options.update) return { action: "skipped", place: existing };
-
+  /**
+   * La reprise et la mise à jour écrivent la même chose : la fiche telle que
+   * la source la décrit, mais jamais par-dessus le travail d'un humain —
+   * description, image et services posés à la main survivent.
+   */
+  const applyOver = async (
+    existing: Place,
+    keep: Place["source"],
+  ): Promise<Place> => {
     const normalized = normalizePlaceInput({ ...input, slug: existing.slug });
-    const updated = await updatePlace(existing.slug, {
+    return updatePlace(existing.slug, {
       ...input,
       slug: existing.slug,
       description: existing.description ?? normalized.description,
       imageUrl: existing.imageUrl ?? normalized.imageUrl,
       services: existing.services ?? normalized.services,
-      source: existing.source,
+      source: keep,
     });
-    return { action: "updated", place: updated };
+  };
+
+  const existing = await findPlaceBySource(source.name, source.id);
+  if (existing) {
+    if (!options.update) return { action: "skipped", place: existing };
+    // La provenance ne bouge pas : `importedAt` date la première venue.
+    return {
+      action: "updated",
+      place: await applyOver(existing, existing.source),
+    };
+  }
+
+  if (options.adoptSlug && input.slug) {
+    const sameSlug = await getPlaceBySlug(toPlaceSlug(input.slug));
+    if (sameSlug) {
+      return {
+        action: "updated",
+        place: await applyOver(sameSlug, {
+          ...source,
+          importedAt: new Date().toISOString(),
+        }),
+      };
+    }
   }
 
   const base = toPlaceSlug(
