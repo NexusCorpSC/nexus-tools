@@ -12,6 +12,7 @@ import {
   type DrawPolicy,
   type Plan,
   type PlanAssignment,
+  type PlanBackgroundOrigin,
   type PlanFeed,
   type PlanInk,
   type PlanPhase,
@@ -75,6 +76,7 @@ export interface DbPlan {
   backgroundUrl?: string | null;
   backgroundW?: number;
   backgroundH?: number;
+  backgroundFrom?: PlanBackgroundOrigin | null;
   drawPolicy: DrawPolicy;
   presenter?: PlanPresenter | null;
   /** Stored in plan order; `order` is the array index. */
@@ -173,6 +175,7 @@ export function toSummary(doc: DbPlan): PlanSummary {
     backgroundUrl: doc.backgroundUrl ?? null,
     backgroundW: doc.backgroundW ?? 0,
     backgroundH: doc.backgroundH ?? 0,
+    backgroundFrom: doc.backgroundFrom ?? null,
     drawPolicy: doc.drawPolicy ?? "all",
     presenter: doc.presenter ?? null,
     archivedAt: doc.archivedAt ?? null,
@@ -363,6 +366,7 @@ export async function createPlan(
     backgroundUrl: null,
     backgroundW: 0,
     backgroundH: 0,
+    backgroundFrom: null,
     drawPolicy: "all",
     presenter: null,
     phases: [freshPhase(firstPhaseName)],
@@ -434,6 +438,7 @@ export async function duplicatePlan(
     backgroundUrl: source.backgroundUrl,
     backgroundW: source.backgroundW,
     backgroundH: source.backgroundH,
+    backgroundFrom: source.backgroundFrom,
     drawPolicy: source.drawPolicy,
     presenter: null,
     phases,
@@ -489,7 +494,18 @@ export async function duplicatePlan(
 export interface PlanPatch {
   name?: string;
   drawPolicy?: DrawPolicy;
-  background?: { url: string; width: number; height: number } | null;
+  /**
+   * `from` accompagne l'image quand elle est le relevé d'un lieu. Il n'est
+   * jamais lu d'un corps de requête : le serveur le compose lui-même en
+   * résolvant le relevé, faute de quoi n'importe qui pourrait attribuer son
+   * téléversement à Lorville.
+   */
+  background?: {
+    url: string;
+    width: number;
+    height: number;
+    from?: PlanBackgroundOrigin | null;
+  } | null;
   archived?: boolean;
 }
 
@@ -508,6 +524,9 @@ export async function patchPlan(
     set.backgroundUrl = patch.background?.url ?? null;
     set.backgroundW = patch.background?.width ?? 0;
     set.backgroundH = patch.background?.height ?? 0;
+    // Toujours réécrit avec l'image : un téléversement par-dessus un relevé
+    // laisserait sinon le plan se réclamer d'un lieu qu'il ne montre plus.
+    set.backgroundFrom = patch.background?.from ?? null;
   }
 
   if (patch.archived !== undefined) {

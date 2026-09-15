@@ -786,6 +786,37 @@ export async function getPlaceDetails(
   };
 }
 
+/**
+ * Un relevé précis, nommé par son lieu — ce que demande qui veut s'en servir
+ * ailleurs qu'ici.
+ *
+ * Rendre le lieu avec le plan n'est pas du confort : un appelant qui veut
+ * étiqueter le relevé (« Lorville › Teasa Spaceport ») aurait sinon à relire
+ * le lieu juste pour son nom.
+ *
+ * L'emprunt est résolu comme partout — une carte empruntée rend l'image de sa
+ * source — mais le lieu rendu est celui qu'on a demandé, pas le prêteur :
+ * c'est Lazarus Complex Tithonus qu'on regarde, même si le relevé vient de
+ * Phoenix.
+ */
+export async function getPlacePlan(
+  slug: string,
+  planId: string,
+): Promise<{ place: { slug: string; name: string }; plan: PlacePlan } | null> {
+  const place = await collection().findOne(
+    { slug },
+    { projection: { _id: 0, slug: 1, name: 1, plans: 1 } },
+  );
+  if (!place) return null;
+
+  const plan = (await resolvePlans(place.plans)).find(
+    (candidate) => candidate.id === planId,
+  );
+  if (!plan) return null;
+
+  return { place: { slug: place.slug, name: place.name }, plan };
+}
+
 /** Ce qu'il faut pour afficher le plan d'un lieu voisin, et rien de plus. */
 export async function getPlacePlans(
   slug: string,

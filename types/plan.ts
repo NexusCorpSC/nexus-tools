@@ -283,6 +283,31 @@ export interface PlanPhaseSummary {
   strokes: number;
 }
 
+/**
+ * Where a background came from, when it was taken from a place's survey rather
+ * than uploaded.
+ *
+ * **Denormalised on purpose.** The names are written the moment the background
+ * is set and never read back from `gameLocations`: the feed of a plan is
+ * recomputed once per connected subscription on every pen-up (see the note at
+ * the top of this file), and a join there would cost a raid of twenty a
+ * lookup each time somebody draws a line.
+ *
+ * What that costs: a place renamed since shows the label of the day it was
+ * picked, and a place whose slug was changed in the back-office leaves a link
+ * that no longer resolves. Neither touches the drawing — `backgroundUrl`
+ * stands on its own, and re-picking the survey writes the names again. A
+ * correction to the survey's *image* does reach every plan using it, the blob
+ * path being stable and overwritten in place.
+ */
+export interface PlanBackgroundOrigin {
+  placeSlug: string;
+  placeName: string;
+  /** The survey's id at the place, not here. */
+  planId: string;
+  planName: string;
+}
+
 /** A plan as the feed carries it — see the note at the top of this file. */
 export interface PlanSummary {
   id: string;
@@ -293,6 +318,8 @@ export interface PlanSummary {
   /** The background's own pixel size, so the canvas can frame it before it loads. */
   backgroundW: number;
   backgroundH: number;
+  /** Where the background was taken from, when it is a place's survey. */
+  backgroundFrom: PlanBackgroundOrigin | null;
   drawPolicy: DrawPolicy;
   presenter: PlanPresenter | null;
   archivedAt: string | null;
@@ -402,6 +429,12 @@ export interface PlanFeed {
 export interface PlanView {
   feed: PlanFeed;
   plan: Plan | null;
+  /**
+   * Whether the caller may change a plan of this scope. Filled by the list
+   * route only — the ones that name a plan enforce the rank themselves, and a
+   * screen showing one plan has already been told what it may do with it.
+   */
+  governs?: boolean;
 }
 
 /* ------------------------------------------------------------------ */

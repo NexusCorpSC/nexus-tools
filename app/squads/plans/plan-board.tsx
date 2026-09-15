@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   Image as ImageIcon,
+  MapPin,
   Play,
   Printer,
   Square as StopIcon,
@@ -27,6 +28,7 @@ import {
 import type { SquadView } from "@/types/squad";
 import { planApi } from "./api";
 import { BackgroundImport } from "./background-import";
+import { BackgroundFromPlace } from "./background-from-place";
 import { BriefPanel } from "./brief-panel";
 import { PlanCanvas, type Tool } from "./canvas";
 import { hueMap } from "./ink";
@@ -348,6 +350,30 @@ export function PlanBoard({
           {plan.name}
         </h1>
 
+        {/*
+          D'où vient le sol qu'on dessine. Le dire coûte une ligne et évite la
+          question qui revient — « c'est quelle station, ça ? » — et le lien
+          rouvre le relevé chez lui, avec ses repères, que le fond n'a pas
+          emportés.
+        */}
+        {plan.backgroundFrom ? (
+          <Link
+            href={`/lieux/${plan.backgroundFrom.placeSlug}?onglet=plan&plan=${plan.backgroundFrom.planId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t("backgroundFromLabel", {
+              place: plan.backgroundFrom.placeName,
+              plan: plan.backgroundFrom.planName,
+            })}
+            className="hidden shrink-0 items-center gap-1 text-xs text-[#9ED0FF]/70 underline-offset-2 hover:text-[#CCE7FF] hover:underline sm:flex"
+          >
+            <MapPin className="size-3.5" />
+            <span className="max-w-40 truncate">
+              {plan.backgroundFrom.placeName}
+            </span>
+          </Link>
+        ) : null}
+
         {offline ? (
           <span className="flex items-center gap-1 text-xs text-amber-300" title={t("offline")}>
             <WifiOff className="size-4" aria-hidden="true" />
@@ -356,18 +382,29 @@ export function PlanBoard({
         ) : null}
 
         {governs ? (
-          <BackgroundImport
-            planId={plan.id}
-            squadId={squadId}
-            hasBackground={Boolean(background)}
-            busy={busy}
-            onDone={(next) =>
-              run(() => planApi.update(plan.id, squadId, { background: next }))
-            }
-          >
-            <ImageIcon />
-            <span className="hidden sm:inline">{t("background")}</span>
-          </BackgroundImport>
+          <>
+            <BackgroundImport
+              planId={plan.id}
+              squadId={squadId}
+              hasBackground={Boolean(background)}
+              busy={busy}
+              onDone={(next) =>
+                run(() => planApi.update(plan.id, squadId, { background: next }))
+              }
+            >
+              <ImageIcon />
+              <span className="hidden sm:inline">{t("background")}</span>
+            </BackgroundImport>
+
+            <BackgroundFromPlace
+              busy={busy}
+              onPick={(place) =>
+                run(() =>
+                  planApi.update(plan.id, squadId, { background: { place } }),
+                )
+              }
+            />
+          </>
         ) : null}
 
         <Button variant="secondary" size="sm" asChild>

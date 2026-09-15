@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { MapIcon } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { getPlaceDetails, getPlacePlans } from "@/lib/places";
 import { placeTrail } from "@/lib/place-icons";
@@ -73,6 +75,11 @@ export default async function PlacePage({
   }
 
   const canEdit = await hasPermission(PLACES_EDIT_PERMISSION);
+
+  // Poser un relevé en fond d'un plan de vol demande une escouade ; cette page
+  // n'en demande aucune. On ne lit donc ici que « y a-t-il quelqu'un », et
+  // c'est l'API qui dira, à l'ouverture du dialogue, ce que ce quelqu'un peut.
+  const session = await auth.api.getSession({ headers: await headers() });
   const tab: Tab = TABS.includes(onglet as Tab) ? (onglet as Tab) : "apercu";
 
   /*
@@ -256,6 +263,7 @@ export default async function PlacePage({
               data={plans}
               rootSlug={place.slug}
               activePlanId={plan}
+              canBrief={Boolean(session)}
             />
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#9ED0FF]/25 bg-[#092F49]/35 px-6 py-12 text-center">

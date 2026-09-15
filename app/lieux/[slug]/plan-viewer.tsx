@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import type { PlacePlansResponse, PlaceSummary } from "@/types/places";
 import { markerName, markerTone, PlanMarker } from "@/app/lieux/plan-marker";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
+import { UseAsBackground } from "./use-as-background";
 
 /**
  * Le visualiseur d'un plan, et la descente dans les lieux qu'il contient.
@@ -29,11 +30,19 @@ export function PlanViewer({
   data,
   rootSlug,
   activePlanId,
+  canBrief = false,
 }: {
   data: PlacePlansResponse;
   /** Le lieu de la page : la descente ne sort jamais de son arborescence. */
   rootSlug: string;
   activePlanId?: string;
+  /**
+   * Y a-t-il quelqu'un de connecté ? Un relevé se pose en fond d'un plan de
+   * vol, et un plan de vol appartient à une escouade — la fiche, elle, est
+   * publique. Le bouton ne s'affiche donc pas pour un visiteur de passage,
+   * plutôt que de s'afficher pour lui dire non.
+   */
+  canBrief?: boolean;
 }) {
   const t = useTranslations("Places");
   const router = useRouter();
@@ -110,29 +119,38 @@ export function PlanViewer({
           </nav>
         </div>
 
-        {data.plans.length > 1 && (
-          <div className="flex items-center gap-0.5 rounded-md border border-input p-0.5">
-            {data.plans.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                aria-pressed={entry.id === plan.id}
-                // Remplacer plutôt qu'empiler : feuilleter les plans d'un même
-                // lieu ne doit pas remplir l'historique.
-                onClick={() =>
-                  router.replace(href(data.slug, entry.id), { scroll: false })
-                }
-                className={`h-7 rounded px-2.5 text-sm font-medium transition-colors ${
-                  entry.id === plan.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`}
-              >
-                {entry.name}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {canBrief && (
+            <UseAsBackground
+              place={{ slug: data.slug, name: data.name }}
+              plan={{ id: plan.id, name: plan.name }}
+            />
+          )}
+
+          {data.plans.length > 1 && (
+            <div className="flex items-center gap-0.5 rounded-md border border-input p-0.5">
+              {data.plans.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  aria-pressed={entry.id === plan.id}
+                  // Remplacer plutôt qu'empiler : feuilleter les plans d'un même
+                  // lieu ne doit pas remplir l'historique.
+                  onClick={() =>
+                    router.replace(href(data.slug, entry.id), { scroll: false })
+                  }
+                  className={`h-7 rounded px-2.5 text-sm font-medium transition-colors ${
+                    entry.id === plan.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  {entry.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div

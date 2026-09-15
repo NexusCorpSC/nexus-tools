@@ -1020,7 +1020,17 @@
       "removeBorrowed": "Remove the borrowing",
       "sharedSourceThisGroup": "In this group",
       "sharedSourceElsewhere": "Elsewhere in the catalogue"
-    }
+    },
+    "useAsBackground": "Flight plan background",
+    "useAsBackgroundHint": "Use this survey as a flight plan's background.",
+    "useAsBackgroundDescription": "The “{plan}” survey of {place} will become the chosen flight plan's background. The markers do not follow: it is the image alone, to draw over.",
+    "backgroundLoading": "Loading…",
+    "backgroundNoSession": "Sign in to put this survey on a flight plan.",
+    "backgroundNoRank": "Only the squad leader, or a lieutenant, may change a flight plan's background.",
+    "backgroundNoPlans": "Your squad has no active flight plan.",
+    "backgroundAlready": "Current background",
+    "backgroundSet": "Background set on “{plan}”.",
+    "backgroundFailed": "The background could not be set."
   },
   "Shopping": {
     "home": "Home",
@@ -1663,6 +1673,12 @@
     "undo": "Undo your last move",
     "undoShortcut": "Ctrl+Z",
     "redo": "Redo",
-    "redoShortcut": "Ctrl+Shift+Z or Ctrl+Y"
+    "redoShortcut": "Ctrl+Shift+Z or Ctrl+Y",
+    "backgroundFromPlace": "From a place",
+    "backgroundFromPlaceHint": "Use a place's survey from the catalogue as the briefing's background.",
+    "backgroundPlaceSearch": "A place's name…",
+    "backgroundPlaceNoPlan": "This place has not been surveyed yet.",
+    "backgroundLoading": "Loading…",
+    "backgroundFromLabel": "Background: {place} › {plan}"
   }
 }

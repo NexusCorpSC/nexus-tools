@@ -9,7 +9,7 @@ import type {
   PlacePlansResponse,
   PlaceSummary,
 } from "@/types/places";
-import { PlacePicker } from "./place-picker";
+import { PlacePicker } from "@/app/lieux/place-picker";
 
 /**
  * Choisir le plan d'un autre lieu pour l'afficher ici. On ne propose que les

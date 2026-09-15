@@ -39,7 +39,7 @@ import {
   type PlaceSummary,
 } from "@/types/places";
 import { PlanImageUpload } from "./place-image-upload";
-import { PlacePicker } from "./place-picker";
+import { PlacePicker } from "@/app/lieux/place-picker";
 import { BorrowPlanDialog } from "./borrow-plan-dialog";
 
 /** Quatre décimales, comme la normalisation côté serveur. */

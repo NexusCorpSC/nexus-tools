@@ -18,7 +18,7 @@ import { createPlaceAction, updatePlaceAction } from "@/app/lieux/actions";
 import { PLACE_SERVICES, PLACE_TYPES, toPlaceSlug } from "@/types/places";
 import type { Place, PlaceService, PlaceType } from "@/types/places";
 import { PlaceImageUpload } from "./place-image-upload";
-import { PlacePicker } from "./place-picker";
+import { PlacePicker } from "@/app/lieux/place-picker";
 
 export function PlaceForm({
   place,

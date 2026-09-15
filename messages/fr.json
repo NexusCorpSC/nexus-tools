@@ -1015,7 +1015,17 @@
       "removeBorrowed": "Retirer l’emprunt",
       "sharedSourceThisGroup": "Dans ce groupe",
       "sharedSourceElsewhere": "Ailleurs dans le catalogue"
-    }
+    },
+    "useAsBackground": "Fond de plan de vol",
+    "useAsBackgroundHint": "Utiliser ce relevé comme fond d'un plan de vol.",
+    "useAsBackgroundDescription": "Le relevé « {plan} » de {place} servira de fond au plan de vol choisi. Les repères ne suivent pas : c'est l'image seule, pour dessiner par-dessus.",
+    "backgroundLoading": "Chargement…",
+    "backgroundNoSession": "Connectez-vous pour poser ce relevé sur un plan de vol.",
+    "backgroundNoRank": "Seul le chef d'escouade, ou un lieutenant, peut changer le fond d'un plan de vol.",
+    "backgroundNoPlans": "Votre escouade n'a aucun plan de vol en cours.",
+    "backgroundAlready": "Fond actuel",
+    "backgroundSet": "Fond posé sur « {plan} ».",
+    "backgroundFailed": "Le fond n'a pas pu être posé."
   },
   "Industry": {
     "home": "Accueil",
@@ -1697,6 +1707,12 @@
     "undo": "Annuler le dernier geste",
     "undoShortcut": "Ctrl+Z",
     "redo": "Rétablir",
-    "redoShortcut": "Ctrl+Maj+Z ou Ctrl+Y"
+    "redoShortcut": "Ctrl+Maj+Z ou Ctrl+Y",
+    "backgroundFromPlace": "Depuis un lieu",
+    "backgroundFromPlaceHint": "Prendre le relevé d'un lieu du catalogue comme fond du briefing.",
+    "backgroundPlaceSearch": "Nom d'un lieu…",
+    "backgroundPlaceNoPlan": "Ce lieu n'a pas encore été relevé.",
+    "backgroundLoading": "Chargement…",
+    "backgroundFromLabel": "Fond : {place} › {plan}"
   }
 }

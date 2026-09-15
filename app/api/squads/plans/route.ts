@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
   const outcome = await resolveScope(request);
   if ("refused" in outcome) return outcome.refused;
 
-  const { ref } = outcome;
+  const { ref, governs } = outcome;
 
   return NextResponse.json({
     feed: {
@@ -121,6 +121,12 @@ export async function GET(request: NextRequest) {
       plans: await getPlansOfOwner(ref.ownerId),
     },
     plan: null,
+    // Said here alone, and for one reason: a place's page offers «use this
+    // survey as a background» before it knows which plan, so it has to learn
+    // in the same breath whether the caller may change one at all. The routes
+    // that name a plan enforce the same rank; this only keeps a screen from
+    // offering what the next call would refuse.
+    governs,
   });
 }
 
