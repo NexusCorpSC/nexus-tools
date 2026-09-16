@@ -87,8 +87,12 @@ export function usePlanSaver(slug: string, placeName: string) {
         plans.map(async (entry) => {
           if (!isDrawnPlan(entry) || entry.borrowedFrom) return entry;
           try {
+            // `null` : le relevé est encore vide et n'a rien à montrer. On
+            // retire alors l'aperçu au lieu d'en garder un qui ne décrit plus
+            // rien — c'est ce cadre vide, gardé, qui était le défaut.
             const preview = await renderPreview(entry, slug, plate(entry));
-            return { ...entry, preview };
+            const next: PlacePlan = { ...entry, preview: preview ?? undefined };
+            return next;
           } catch {
             toast.warning(t("Admin.previewFailed"));
             return entry;

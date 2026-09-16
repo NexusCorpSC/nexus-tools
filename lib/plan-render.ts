@@ -111,6 +111,19 @@ function metres(value: number): string {
   return `${(value / 100).toFixed(2).replace(".", ",")} m`;
 }
 
+/**
+ * Un facteur d'échelle, avec assez de décimales pour ne pas mentir.
+ *
+ * `n()` arrondit au centième, ce qui convient à un centimètre de relevé mais
+ * ruine un rapport : à partir d'environ 2 528 m d'emprise — que
+ * `MAX_PLAN_EXTENT_CM` autorise largement — le rapport passait sous 0,005,
+ * s'arrondissait à zéro, et la planche sortait avec son titre, son échelle et
+ * un vide à la place du plan.
+ */
+function ratio(value: number): string {
+  return Number.isFinite(value) && value > 0 ? value.toPrecision(8) : "0";
+}
+
 /** La rotation d'un élément, autour de son propre centre. Vide quand nulle. */
 function spin(rot: number, cx: number, cy: number): string {
   return rot ? ` transform="rotate(${n(rot)} ${n(cx)} ${n(cy)})"` : "";
@@ -387,12 +400,7 @@ function glyph(
  * plus haut, parce qu'une planche coupée est le seul défaut qu'on ne rattrape
  * pas après coup.
  */
-export function renderPlateSvg(
-  plan: DrawnPlacePlan,
-  options: PlateOptions,
-): string {
-  const theme = options.theme ?? PLAN_THEME;
-  const accent = options.accent ?? theme.accent;
+function plateLayout(plan: DrawnPlacePlan, options: PlateOptions) {
   const width = options.width ?? 1600;
   const pad = Math.round(width * 0.02);
 
@@ -417,13 +425,70 @@ export function renderPlateSvg(
   );
   const cellHeight = (cellWidth * plan.heightCm) / plan.widthCm;
   const titleHeight = Math.round(width * 0.022);
-  const bodyHeight = cellHeight + titleHeight;
   const height = Math.round(
-    headerHeight + bodyHeight + footerHeight + pad * 2.5,
+    headerHeight + cellHeight + titleHeight + footerHeight + pad * 2.5,
   );
 
-  const bodyTop = headerHeight + pad;
-  const bandLeft = pad + (legendWidth ? legendWidth + gutter : 0);
+  return {
+    width,
+    height,
+    pad,
+    levels,
+    legend,
+    legendWidth,
+    headerHeight,
+    footerHeight,
+    gutter,
+    cellWidth,
+    titleHeight,
+    bodyTop: headerHeight + pad,
+    bandLeft: pad + (legendWidth ? legendWidth + gutter : 0),
+    /**
+     * Combien de pixels de planche vaut un centimètre de relevé. C'est la
+     * seule échelle : le dessin et la barre d'échelle la partagent, sans quoi
+     * la barre mesurerait autre chose que ce qu'elle surmonte.
+     */
+    perCm: cellWidth / plan.widthCm,
+  };
+}
+
+/**
+ * Les dimensions d'une planche, sans la dessiner.
+ *
+ * Elles se calculent ; elles ne se relisent pas dans le SVG produit. L'export
+ * les cherchait à l'expression régulière dans l'attribut `height` et retombait
+ * sur la **largeur** quand la racine cessait d'y porter un entier — un PNG au
+ * mauvais rapport, et pas un mot pour le dire.
+ */
+export function plateSize(
+  plan: DrawnPlacePlan,
+  options: PlateOptions,
+): { width: number; height: number } {
+  const layout = plateLayout(plan, options);
+  return { width: layout.width, height: layout.height };
+}
+
+export function renderPlateSvg(
+  plan: DrawnPlacePlan,
+  options: PlateOptions,
+): string {
+  const theme = options.theme ?? PLAN_THEME;
+  const accent = options.accent ?? theme.accent;
+  const {
+    width,
+    height,
+    pad,
+    levels,
+    legend,
+    headerHeight,
+    footerHeight,
+    gutter,
+    cellWidth,
+    titleHeight,
+    bodyTop,
+    bandLeft,
+    perCm,
+  } = plateLayout(plan, options);
 
   let out =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"` +
@@ -467,15 +532,13 @@ export function renderPlateSvg(
       ` font-family="${DISPLAY_FACE}" font-size="${Math.round(width * 0.014)}"` +
       ` font-weight="700" letter-spacing="${n(width * 0.0012)}">${esc(level.name.toUpperCase())}</text>`;
 
-    const scale = cellWidth / plan.widthCm;
     out +=
-      `<g transform="translate(${n(left)} ${n(bodyTop + titleHeight)}) scale(${n(scale)})">` +
+      `<g transform="translate(${n(left)} ${n(bodyTop + titleHeight)}) scale(${ratio(perCm)})">` +
       renderLevelBody(level, { theme }) +
       `</g>`;
   });
 
   // ── Échelle : dix mètres, mesurés sur la planche elle-même ──
-  const perCm = cellWidth / plan.widthCm;
   const barWidth = 1000 * perCm;
   const barY = height - footerHeight - pad * 0.5;
   out +=
