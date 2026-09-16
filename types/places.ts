@@ -251,8 +251,7 @@ export type PlacePlan = ImagePlacePlan | DrawnPlacePlan;
  * tronqué, que le rendu traiterait ensuite comme une géométrie utilisable.
  */
 export function isDrawnPlan(plan: PlacePlan): plan is DrawnPlacePlan {
-  const drawn = plan as DrawnPlacePlan;
-  return drawn.kind === "drawn" && Array.isArray(drawn.levels);
+  return plan.kind === "drawn" && Array.isArray(plan.levels);
 }
 
 /**
