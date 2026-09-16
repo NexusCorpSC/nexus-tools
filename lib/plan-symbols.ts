@@ -46,6 +46,53 @@ export const PLAN_GLYPHS = {
 export type PlanGlyph = keyof typeof PLAN_GLYPHS;
 
 /**
+ * Les icônes du rail d'outils, reprises une à une de la maquette validée.
+ *
+ * Même grille de 24 et même trait que `PLAN_GLYPHS` : le rail, la légende et la
+ * planche parlent la même langue graphique. Des lettres y tenaient lieu d'icônes
+ * à la première livraison — elles ne disaient rien, et c'est ce que cette table
+ * répare.
+ *
+ * Les clés sont celles de `PLAN_TOOLS` (`drawn-plan-editor/use-plan-draft.ts`) :
+ * en ajouter un outil sans l'ajouter ici laisse un bouton vide.
+ */
+export const TOOL_GLYPHS = {
+  select: "m5 3 14 8.5-6.2 1.4L10 20Z",
+  room: "M3.5 5.5h17v13h-17Z",
+  poly: "M4 4h9v7h7v9H4Z",
+  wall:
+    "M3 18 21 6M1.9 18a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0" +
+    "M18.9 6a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0",
+  door: "M4 20h4V4l8 2.4V20h4" + "M13.9 12.5a.9.9 0 1 0 1.8 0 .9.9 0 1 0-1.8 0",
+  stair: "M3 20h4v-4h5v-4h5V8h4",
+  marker:
+    "M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z" +
+    "M9.6 10a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0",
+  label: "M5 6.5V5h14v1.5M12 5v14M9 19h6",
+  measure: "M2.5 8.5h19v7h-19ZM7 8.5v3M11 8.5v4M15 8.5v3M19 8.5v4",
+} as const;
+
+export type ToolGlyph = keyof typeof TOOL_GLYPHS;
+
+/**
+ * La lettre du raccourci, affichée en badge d'angle sur le bouton.
+ *
+ * Ce n'est pas une traduction : une touche du clavier est la même partout, et
+ * la passer par `messages/*.json` laissait croire le contraire.
+ */
+export const TOOL_KEYS = {
+  select: "V",
+  room: "R",
+  poly: "P",
+  wall: "M",
+  door: "D",
+  stair: "E",
+  marker: "X",
+  label: "T",
+  measure: "C",
+} as const;
+
+/**
  * Les encres de la planche, reprises une à une de `PLAN_INKS` (`types/plan.ts`).
  *
  * Le plan de vol et le plan de lieu se lisent souvent l'un après l'autre — le

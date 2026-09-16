@@ -111,6 +111,20 @@ export const MAX_LEVEL_DOORS = 200;
 export const MAX_LEVEL_LABELS = 100;
 
 /**
+ * Les cotes d'un niveau. Une planche qui en porte plus de cinquante ne se lit
+ * plus : ce sont des chiffres par-dessus un dessin, et ils finissent par cacher
+ * ce qu'ils mesurent.
+ */
+export const MAX_LEVEL_MEASURES = 50;
+
+/**
+ * Les sommets d'une pièce libre. Au-delà de quarante, on ne relève plus un
+ * bâtiment, on décalque une courbe — et le rendu comme la saisie deviennent
+ * illisibles bien avant.
+ */
+export const MAX_ROOM_POINTS = 40;
+
+/**
  * Cinq kilomètres de côté, en centimètres. Une borne de sûreté, pas une
  * ambition : elle empêche une saisie aberrante de produire une planche que le
  * rendu ne saura jamais rastériser.
@@ -227,6 +241,29 @@ export type ImagePlacePlan = PlacePlanBase & {
  */
 export type PlanPreview = { url: string; width: number; height: number };
 
+/**
+ * La capture qui a servi au relevé, posée sous le dessin.
+ *
+ * C'est un outil, pas le plan : elle ne part **jamais** au rendu, et
+ * `lib/plan-render.ts` ne la connaît pas. Une capture d'écran de jeu dans une
+ * planche publiée serait au mieux illisible, au pire un problème de droits.
+ *
+ * Elle est persistée quand même — sans cela, il faudrait la recaler à chaque
+ * ouverture, et un relevé se fait en plusieurs séances.
+ */
+export type PlanUnderlay = {
+  url: string;
+  /** Taille naturelle de l'image, pour lui garder ses proportions. */
+  width: number;
+  height: number;
+  /** Son calage sur l'emprise, en centimètres, et son échelle. */
+  x: number;
+  y: number;
+  scale: number;
+  /** Entre 0 et 1. Au-delà de la moitié, le dessin ne se voit plus dessus. */
+  opacity: number;
+};
+
 export type DrawnPlacePlan = PlacePlanBase & {
   kind: "drawn";
   /**
@@ -241,6 +278,7 @@ export type DrawnPlacePlan = PlacePlanBase & {
   heightCm: number;
   levels: PlanLevel[];
   preview?: PlanPreview;
+  underlay?: PlanUnderlay;
 };
 
 export type PlacePlan = ImagePlacePlan | DrawnPlacePlan;
@@ -352,6 +390,15 @@ export type PlanRoom = {
    */
   rot: number;
   fill: RoomFill;
+  /**
+   * Les sommets d'une pièce qui n'est pas un rectangle, en paires plates de
+   * centimètres — `[x0, y0, x1, y1, …]`, dans le repère du relevé.
+   *
+   * `x/y/w/h` restent la boîte englobante quand ce champ est là : c'est ce qui
+   * permet à la rotation, à la sélection et aux cotes de l'inspecteur de ne rien
+   * savoir de la forme. Un bâtiment en L est une pièce, pas deux.
+   */
+  points?: number[];
   /** Un escalier : la pièce porte le hachurage, et le sens qu'il indique. */
   stair?: "up" | "down";
   /** Si le nom part au rendu. Une gaine technique n'a pas à se nommer. */
@@ -384,6 +431,21 @@ export type PlanDoor = {
   rot: number;
 };
 
+/**
+ * Une cote : deux points, et la distance entre eux.
+ *
+ * La longueur n'est pas stockée — elle se calcule au rendu. Une cote saisie à la
+ * main finit par mentir le jour où l'on déplace ce qu'elle mesurait, et une
+ * mesure fausse sur un plan vaut moins que pas de mesure du tout.
+ */
+export type PlanMeasure = {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+
 /** Un texte libre posé sur le plan, indépendant des pièces. */
 export type PlanLabel = {
   id: string;
@@ -408,6 +470,7 @@ export type PlanLevel = {
   walls: PlanWall[];
   doors: PlanDoor[];
   labels: PlanLabel[];
+  measures: PlanMeasure[];
 };
 
 export type PlacePlanOrigin = {

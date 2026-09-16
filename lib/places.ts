@@ -16,12 +16,14 @@ import {
   isRoomKind,
   MAX_LEVEL_DOORS,
   MAX_LEVEL_LABELS,
+  MAX_LEVEL_MEASURES,
   MAX_LEVEL_ROOMS,
   MAX_LEVEL_WALLS,
   MAX_PLACE_DEPTH,
   MAX_PLACE_MARKERS,
   MAX_PLAN_EXTENT_CM,
   MAX_PLAN_LEVELS,
+  MAX_ROOM_POINTS,
   MAX_PLACE_NAME_LENGTH,
   MAX_PLACE_PAGE_SIZE,
   MAX_PLACE_PLANS,
@@ -42,7 +44,9 @@ import {
   type PlanDoor,
   type PlanLabel,
   type PlanPreview,
+  type PlanUnderlay,
   type PlanLevel,
+  type PlanMeasure,
   type PlanRoom,
   type PlanWall,
   type PlacePlanOrigin,
@@ -259,6 +263,21 @@ function degrees(value: unknown): number {
   return ((((parsed + 180) % 360) + 360) % 360) - 180;
 }
 
+/**
+ * Les sommets d'une pièce libre, en paires plates.
+ *
+ * Un nombre impair de valeurs décrit un point qui n'existe pas : plutôt que
+ * d'inventer son ordonnée, on laisse tomber la dernière. Et sous trois sommets
+ * il n'y a pas de surface — la pièce redevient son rectangle englobant.
+ */
+function normalizePoints(value: unknown): number[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const points = value.slice(0, MAX_ROOM_POINTS * 2).map(cm);
+  if (points.length % 2 === 1) points.pop();
+  return points.length >= 6 ? points : undefined;
+}
+
 function normalizeRooms(value: unknown): PlanRoom[] {
   return (Array.isArray(value) ? value : [])
     .slice(0, MAX_LEVEL_ROOMS)
@@ -279,6 +298,7 @@ function normalizeRooms(value: unknown): PlanRoom[] {
         h: extent(room.h),
         rot: degrees(room.rot),
         fill: isRoomFill(fill) ? fill : "plain",
+        points: normalizePoints(room.points),
         stair: stair === "up" || stair === "down" ? stair : undefined,
         // Une pièce s'étiquette, sauf si on a dit le contraire.
         label: room.label !== false,
@@ -345,6 +365,50 @@ function normalizeLabels(value: unknown): PlanLabel[] {
     .filter((label): label is PlanLabel => label !== null);
 }
 
+function normalizeMeasures(value: unknown): PlanMeasure[] {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, MAX_LEVEL_MEASURES)
+    .map((raw) => {
+      const measure = raw as Partial<PlanMeasure>;
+      if (!measure.id) return null;
+      return {
+        id: text(measure.id, 40),
+        x1: cm(measure.x1),
+        y1: cm(measure.y1),
+        x2: cm(measure.x2),
+        y2: cm(measure.y2),
+      } satisfies PlanMeasure;
+    })
+    .filter((measure): measure is PlanMeasure => measure !== null);
+}
+
+/**
+ * Le fond de calque. Jamais rendu, mais gardé : un relevé se fait en plusieurs
+ * séances, et le recaler à chaque ouverture serait le meilleur moyen qu'il ne
+ * serve jamais.
+ */
+function normalizeUnderlay(value: unknown): PlanUnderlay | undefined {
+  const underlay = value as Partial<PlanUnderlay> | undefined;
+  const url = optionalUrl(underlay?.url);
+  if (!url) return undefined;
+
+  const opacity = Number(underlay?.opacity);
+  return {
+    url,
+    width: Math.max(1, Math.round(Number(underlay?.width) || 1)),
+    height: Math.max(1, Math.round(Number(underlay?.height) || 1)),
+    x: cm(underlay?.x),
+    y: cm(underlay?.y),
+    // Une échelle nulle ferait disparaître l'image sans rien dire.
+    scale: Number.isFinite(Number(underlay?.scale))
+      ? Math.min(20, Math.max(0.01, Number(underlay?.scale)))
+      : 1,
+    opacity: Number.isFinite(opacity)
+      ? Number(Math.min(1, Math.max(0, opacity)).toFixed(2))
+      : 0.4,
+  };
+}
+
 /**
  * Les niveaux d'un relevé. L'ordre est réécrit d'après la position dans le
  * tableau plutôt que cru sur parole : c'est la seule façon qu'un niveau inséré
@@ -364,6 +428,7 @@ function normalizeLevels(value: unknown): PlanLevel[] {
         walls: normalizeWalls(level.walls),
         doors: normalizeDoors(level.doors),
         labels: normalizeLabels(level.labels),
+        measures: normalizeMeasures(level.measures),
       } satisfies PlanLevel;
     })
     .filter((level): level is PlanLevel => level !== null);
@@ -440,6 +505,7 @@ function normalizePlans(value: unknown, ownerSlug?: string): StoredPlacePlan[] {
           heightCm: extent(plan.heightCm),
           levels: normalizeLevels(plan.levels),
           preview: normalizePreview(plan.preview),
+          underlay: normalizeUnderlay(plan.underlay),
         }) as DrawnPlacePlan;
       }
 
