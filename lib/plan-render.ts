@@ -19,6 +19,7 @@ import {
   GLYPH_GRID,
   GLYPH_STROKE,
   PLACE_SERVICE_GLYPHS,
+  PLAN_INK_COLORS,
   PLAN_GLYPHS,
   type PlanGlyph,
 } from "@/lib/plan-symbols";
@@ -639,6 +640,39 @@ export function plateSize(
   return { width: layout.width, height: layout.height };
 }
 
+/**
+ * La légende d'une planche : les seuls symboles qu'elle emploie.
+ *
+ * Une légende exhaustive dirait d'un relevé sans escalier qu'il en a un. On la
+ * déduit donc du dessin, plutôt que de la tenir à la main quelque part.
+ */
+export function plateLegend(
+  plan: DrawnPlacePlan,
+  labels: Record<string, string>,
+): { glyph: PlanGlyph; label: string; color?: string }[] {
+  const used = new Set<PlanGlyph>();
+
+  for (const level of plan.levels) {
+    for (const door of level.doors) {
+      if (door.kind === "double") used.add("doubleDoor");
+      else if (door.kind === "airlock") used.add("airlock");
+      else if (door.kind === "single") used.add("door");
+    }
+    for (const room of level.rooms) {
+      if (room.stair === "up") used.add("stairUp");
+      if (room.stair === "down") used.add("stairDown");
+      if (room.fill === "objective") used.add("objective");
+    }
+  }
+  if (plan.markers.length) used.add("terminal");
+
+  return [...used].map((glyph) => ({
+    glyph,
+    label: labels[glyph] ?? glyph,
+    color: glyph === "objective" ? PLAN_INK_COLORS.amber : undefined,
+  }));
+}
+
 export function renderPlateSvg(
   plan: DrawnPlacePlan,
   options: PlateOptions,
@@ -743,4 +777,47 @@ export function renderPlateSvg(
   }
 
   return out + `</svg>`;
+}
+
+/**
+ * Les glyphes que la légende d'une planche peut nommer.
+ *
+ * Les libellés viennent de l'interface, donc de `next-intl`, et le moteur est
+ * pur : chaque appelant traduit de son côté et passe la table. Ce type existe
+ * pour qu'ils n'en oublient pas un.
+ */
+export type PlateGlyphLabels = Record<
+  | "door"
+  | "doubleDoor"
+  | "airlock"
+  | "stairUp"
+  | "stairDown"
+  | "objective"
+  | "terminal",
+  string
+>;
+
+/**
+ * L'habillage complet d'une planche : titre, sous-titre, légende, mentions.
+ *
+ * Trois surfaces la composent — l'aperçu produit à l'enregistrement, la page de
+ * planche qu'on partage, et le téléchargement depuis la page d'un lieu — et
+ * elles le faisaient chacune à sa façon. La page de planche, notamment, passait
+ * une légende vide : la planche partagée n'expliquait aucun de ses symboles,
+ * alors que le PNG du même relevé les listait tous.
+ */
+export function plateOptions(
+  plan: DrawnPlacePlan,
+  {
+    placeName,
+    glyphs,
+    credits,
+  }: { placeName: string; glyphs: PlateGlyphLabels; credits: string },
+): Omit<PlateOptions, "fontCss"> {
+  return {
+    title: placeName,
+    subtitle: plan.name,
+    legend: plateLegend(plan, glyphs),
+    credits,
+  };
 }
