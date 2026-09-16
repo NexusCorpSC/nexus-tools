@@ -251,7 +251,16 @@ export type PlacePlan = ImagePlacePlan | DrawnPlacePlan;
  * tronqué, que le rendu traiterait ensuite comme une géométrie utilisable.
  */
 export function isDrawnPlan(plan: PlacePlan): plan is DrawnPlacePlan {
-  return plan.kind === "drawn" && Array.isArray(plan.levels);
+  return (
+    plan.kind === "drawn" &&
+    Array.isArray(plan.levels) &&
+    // L'emprise est ce que le rendu met dans son `viewBox` : nulle ou absente,
+    // elle ne produit pas un plan de travers mais un SVG que rien n'affiche.
+    Number.isFinite(plan.widthCm) &&
+    plan.widthCm > 0 &&
+    Number.isFinite(plan.heightCm) &&
+    plan.heightCm > 0
+  );
 }
 
 /**

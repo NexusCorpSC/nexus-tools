@@ -1100,7 +1100,8 @@
         "terminal": "Repère"
       },
       "plateHint": "Imprimez cette page pour en faire un PDF.",
-      "platePrint": "Imprimer"
+      "platePrint": "Imprimer",
+      "levelFull": "Ce niveau a atteint sa limite."
     },
     "useAsBackground": "Fond de plan de vol",
     "useAsBackgroundHint": "Utiliser ce relevé comme fond d'un plan de vol.",

@@ -203,10 +203,6 @@ export function normalizePlaceInput(input: PlaceInput): NormalizedPlace {
  * Borne les repères d'un plan. Un repère sans service ni cible ne veut rien
  * dire : il disparaît plutôt que de rester posé sans rien ouvrir.
  */
-/**
- * Borne les repères d'un plan. Un repère sans service ni cible ne veut rien
- * dire : il disparaît plutôt que de rester posé sans rien ouvrir.
- */
 function normalizeMarkers(value: unknown): PlacePlanMarker[] {
   return (Array.isArray(value) ? value : [])
     .slice(0, MAX_PLACE_MARKERS)

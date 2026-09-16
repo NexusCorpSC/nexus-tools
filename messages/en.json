@@ -1105,7 +1105,8 @@
         "terminal": "Marker"
       },
       "plateHint": "Print this page to get a PDF.",
-      "platePrint": "Print"
+      "platePrint": "Print",
+      "levelFull": "This level has reached its limit."
     },
     "useAsBackground": "Flight plan background",
     "useAsBackgroundHint": "Use this survey as a flight plan's background.",

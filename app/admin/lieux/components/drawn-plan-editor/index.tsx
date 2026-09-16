@@ -196,11 +196,15 @@ export function DrawnPlanEditor({
     const y = snapTo(point.y, SNAP_CM, snap);
 
     if (tool === "door") {
-      draft.addDoor({ kind: "single", x, y, ...DOOR_CM, rot: 0 });
+      if (!draft.addDoor({ kind: "single", x, y, ...DOOR_CM, rot: 0 })) {
+        toast.error(t("Admin.levelFull"));
+      }
       return;
     }
     if (tool === "label") {
-      draft.addLabel({ text: t("Admin.planLabelNew"), x, y, rot: 0 });
+      if (!draft.addLabel({ text: t("Admin.planLabelNew"), x, y, rot: 0 })) {
+        toast.error(t("Admin.levelFull"));
+      }
       return;
     }
     if (tool === "marker") {
@@ -300,7 +304,7 @@ export function DrawnPlanEditor({
 
     if (current?.kind === "draw" && sketch) {
       if (sketch.w >= MIN_ROOM_CM && sketch.h >= MIN_ROOM_CM) {
-        draft.addRoom({
+        const added = draft.addRoom({
           name: "",
           kind: current.tool === "stair" ? "circulation" : "technical",
           x: sketch.x,
@@ -312,6 +316,7 @@ export function DrawnPlanEditor({
           stair: current.tool === "stair" ? "up" : undefined,
           label: true,
         });
+        if (!added) toast.error(t("Admin.levelFull"));
       }
       setSketch(null);
       setTool("select");

@@ -3,6 +3,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 import {
+  MAX_LEVEL_DOORS,
+  MAX_LEVEL_LABELS,
   MAX_LEVEL_ROOMS,
   MAX_PLAN_LEVELS,
   type DrawnPlacePlan,
@@ -170,18 +172,28 @@ export function usePlanDraft(
     [apply, level],
   );
 
+  /**
+   * Les trois ajouts refusent au-delà de la limite du niveau, et c'est la même
+   * limite que la normalisation serveur.
+   *
+   * Sans ce garde, `normalizePlans` tronque à l'enregistrement : le travail
+   * disparaît sans un mot, et la sélection désigne un identifiant que plus
+   * rien ne porte. Refuser tout de suite, et le dire, vaut mieux que perdre en
+   * silence — d'où le `null`, qui est aussi ce qui empêche de sélectionner ce
+   * qu'on n'a pas ajouté.
+   */
   const addRoom = useCallback(
     (room: Omit<PlanRoom, "id">) => {
+      if (!level || level.rooms.length >= MAX_LEVEL_ROOMS) return null;
       const id = nanoid();
-      mutateLevel((current) =>
-        current.rooms.length >= MAX_LEVEL_ROOMS
-          ? current
-          : { ...current, rooms: [...current.rooms, { ...room, id }] },
-      );
+      mutateLevel((current) => ({
+        ...current,
+        rooms: [...current.rooms, { ...room, id }],
+      }));
       setSelection({ kind: "room", id });
       return id;
     },
-    [mutateLevel],
+    [level, mutateLevel],
   );
 
   const updateRoom = useCallback(
@@ -201,6 +213,7 @@ export function usePlanDraft(
 
   const addDoor = useCallback(
     (door: Omit<PlanDoor, "id">) => {
+      if (!level || level.doors.length >= MAX_LEVEL_DOORS) return null;
       const id = nanoid();
       mutateLevel((current) => ({
         ...current,
@@ -209,7 +222,7 @@ export function usePlanDraft(
       setSelection({ kind: "door", id });
       return id;
     },
-    [mutateLevel],
+    [level, mutateLevel],
   );
 
   const updateDoor = useCallback(
@@ -229,6 +242,7 @@ export function usePlanDraft(
 
   const addLabel = useCallback(
     (label: Omit<PlanLabel, "id">) => {
+      if (!level || level.labels.length >= MAX_LEVEL_LABELS) return null;
       const id = nanoid();
       mutateLevel((current) => ({
         ...current,
@@ -237,7 +251,7 @@ export function usePlanDraft(
       setSelection({ kind: "label", id });
       return id;
     },
-    [mutateLevel],
+    [level, mutateLevel],
   );
 
   const updateLabel = useCallback(
