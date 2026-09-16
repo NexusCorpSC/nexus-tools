@@ -49,3 +49,4 @@ assets/blueprints.json
 
 # Décodeur Draco recopié depuis three par `npm run postinstall`
 /public/draco
+/public/fonts

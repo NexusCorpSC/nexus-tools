@@ -8,11 +8,20 @@ import type {
 } from "mongodb";
 import db from "@/lib/db";
 import {
+  isDoorKind,
   isPlaceService,
   isPlaceSort,
   isPlaceType,
+  isRoomFill,
+  isRoomKind,
+  MAX_LEVEL_DOORS,
+  MAX_LEVEL_LABELS,
+  MAX_LEVEL_ROOMS,
+  MAX_LEVEL_WALLS,
   MAX_PLACE_DEPTH,
   MAX_PLACE_MARKERS,
+  MAX_PLAN_EXTENT_CM,
+  MAX_PLAN_LEVELS,
   MAX_PLACE_NAME_LENGTH,
   MAX_PLACE_PAGE_SIZE,
   MAX_PLACE_PLANS,
@@ -26,8 +35,16 @@ import {
   type PlaceFacets,
   type PlaceGroup,
   type PlaceGroupMember,
+  type DrawnPlacePlan,
+  type ImagePlacePlan,
   type PlacePlan,
   type PlacePlanMarker,
+  type PlanDoor,
+  type PlanLabel,
+  type PlanPreview,
+  type PlanLevel,
+  type PlanRoom,
+  type PlanWall,
   type PlacePlanOrigin,
   type PlacePlanRef,
   type PlacePlansResponse,
@@ -187,6 +204,188 @@ export function normalizePlaceInput(input: PlaceInput): NormalizedPlace {
  * dire : il disparaît plutôt que de rester posé sans rien ouvrir.
  */
 /**
+ * Borne les repères d'un plan. Un repère sans service ni cible ne veut rien
+ * dire : il disparaît plutôt que de rester posé sans rien ouvrir.
+ */
+function normalizeMarkers(value: unknown): PlacePlanMarker[] {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, MAX_PLACE_MARKERS)
+    .map((rawMarker) => {
+      const marker = rawMarker as Partial<PlacePlanMarker>;
+      const service = text(marker.service, 40);
+      const targetSlug = marker.targetSlug
+        ? toPlaceSlug(text(marker.targetSlug, MAX_PLACE_NAME_LENGTH))
+        : "";
+      if (!marker.id) return null;
+      if (!targetSlug && !isPlaceService(service)) return null;
+
+      return withoutUndefined({
+        id: text(marker.id, 40),
+        x: clampFraction(marker.x),
+        y: clampFraction(marker.y),
+        levelId: optionalText(marker.levelId, 40),
+        // Une cible l'emporte sur un service : c'est elle qui ouvre un plan.
+        service: targetSlug ? undefined : (service as PlaceService),
+        targetSlug: targetSlug || undefined,
+        label: optionalText(marker.label, MAX_PLACE_NAME_LENGTH),
+        note: optionalText(marker.note, MAX_PLACE_NAME_LENGTH),
+      }) as PlacePlanMarker;
+    })
+    .filter((marker): marker is PlacePlanMarker => marker !== null);
+}
+
+/**
+ * Un centimètre entier, borné par l'emprise maximale. Négatif accepté : une
+ * pièce peut déborder de l'emprise pendant qu'on la déplace, et la rogner à
+ * zéro la ferait sauter contre le bord sans prévenir.
+ */
+function cm(value: unknown): number {
+  const parsed = Math.round(Number(value));
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(MAX_PLAN_EXTENT_CM, Math.max(-MAX_PLAN_EXTENT_CM, parsed));
+}
+
+/** Une emprise, elle, est une longueur : jamais nulle, jamais négative. */
+function extent(value: unknown): number {
+  const parsed = Math.round(Number(value));
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.min(MAX_PLAN_EXTENT_CM, parsed);
+}
+
+/**
+ * Un angle en degrés entiers, replié dans `[-180, 180[`. C'est la valeur que
+ * l'inspecteur affiche : sans ce repli, un aller-retour par la base rendrait
+ * « 375° » pour une pièce qu'on a fait tourner un tour de trop.
+ */
+function degrees(value: unknown): number {
+  const parsed = Math.round(Number(value));
+  if (!Number.isFinite(parsed)) return 0;
+  return ((((parsed + 180) % 360) + 360) % 360) - 180;
+}
+
+function normalizeRooms(value: unknown): PlanRoom[] {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, MAX_LEVEL_ROOMS)
+    .map((raw) => {
+      const room = raw as Partial<PlanRoom>;
+      const kind = text(room.kind, 40);
+      const fill = text(room.fill, 40);
+      if (!room.id) return null;
+
+      const stair = text(room.stair, 8);
+      return withoutUndefined({
+        id: text(room.id, 40),
+        name: text(room.name, MAX_PLACE_NAME_LENGTH),
+        kind: isRoomKind(kind) ? kind : "technical",
+        x: cm(room.x),
+        y: cm(room.y),
+        w: extent(room.w),
+        h: extent(room.h),
+        rot: degrees(room.rot),
+        fill: isRoomFill(fill) ? fill : "plain",
+        stair: stair === "up" || stair === "down" ? stair : undefined,
+        // Une pièce s'étiquette, sauf si on a dit le contraire.
+        label: room.label !== false,
+        note: optionalText(room.note, MAX_PLACE_NAME_LENGTH),
+      }) as PlanRoom;
+    })
+    .filter((room): room is PlanRoom => room !== null);
+}
+
+function normalizeWalls(value: unknown): PlanWall[] {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, MAX_LEVEL_WALLS)
+    .map((raw) => {
+      const wall = raw as Partial<PlanWall>;
+      if (!wall.id) return null;
+      return {
+        id: text(wall.id, 40),
+        x: cm(wall.x),
+        y: cm(wall.y),
+        w: extent(wall.w),
+        h: extent(wall.h),
+        rot: degrees(wall.rot),
+      } satisfies PlanWall;
+    })
+    .filter((wall): wall is PlanWall => wall !== null);
+}
+
+function normalizeDoors(value: unknown): PlanDoor[] {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, MAX_LEVEL_DOORS)
+    .map((raw) => {
+      const door = raw as Partial<PlanDoor>;
+      const kind = text(door.kind, 40);
+      if (!door.id) return null;
+      return {
+        id: text(door.id, 40),
+        kind: isDoorKind(kind) ? kind : "single",
+        x: cm(door.x),
+        y: cm(door.y),
+        w: extent(door.w),
+        h: extent(door.h),
+        rot: degrees(door.rot),
+      } satisfies PlanDoor;
+    })
+    .filter((door): door is PlanDoor => door !== null);
+}
+
+function normalizeLabels(value: unknown): PlanLabel[] {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, MAX_LEVEL_LABELS)
+    .map((raw) => {
+      const label = raw as Partial<PlanLabel>;
+      const content = text(label.text, MAX_PLACE_NAME_LENGTH);
+      // Une étiquette vide n'est rien qu'un point invisible à déplacer.
+      if (!label.id || !content) return null;
+      return {
+        id: text(label.id, 40),
+        text: content,
+        x: cm(label.x),
+        y: cm(label.y),
+        rot: degrees(label.rot),
+      } satisfies PlanLabel;
+    })
+    .filter((label): label is PlanLabel => label !== null);
+}
+
+/**
+ * Les niveaux d'un relevé. L'ordre est réécrit d'après la position dans le
+ * tableau plutôt que cru sur parole : c'est la seule façon qu'un niveau inséré
+ * au milieu ne partage pas son rang avec un autre.
+ */
+function normalizeLevels(value: unknown): PlanLevel[] {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, MAX_PLAN_LEVELS)
+    .map((raw, index) => {
+      const level = raw as Partial<PlanLevel>;
+      if (!level.id) return null;
+      return {
+        id: text(level.id, 40),
+        name: text(level.name, MAX_PLACE_NAME_LENGTH),
+        order: index,
+        rooms: normalizeRooms(level.rooms),
+        walls: normalizeWalls(level.walls),
+        doors: normalizeDoors(level.doors),
+        labels: normalizeLabels(level.labels),
+      } satisfies PlanLevel;
+    })
+    .filter((level): level is PlanLevel => level !== null);
+}
+
+/** L'aperçu rastérisé. Absent tant que le rendu n'a pas abouti. */
+function normalizePreview(value: unknown): PlanPreview | undefined {
+  const preview = value as Partial<PlanPreview> | undefined;
+  const url = optionalUrl(preview?.url);
+  if (!url) return undefined;
+  return {
+    url,
+    width: Math.max(1, Math.round(Number(preview?.width) || 1)),
+    height: Math.max(1, Math.round(Number(preview?.height) || 1)),
+  };
+}
+
+/**
  * Met en forme ce que l'éditeur envoie. Un élément est soit un plan possédé,
  * soit l'adresse d'un plan d'ailleurs ; c'est `sourceSlug` qui les distingue.
  *
@@ -218,44 +417,45 @@ function normalizePlans(value: unknown, ownerSlug?: string): StoredPlacePlan[] {
         } satisfies PlacePlanRef;
       }
 
-      const plan = raw as Partial<PlacePlan>;
-      const imageUrl = optionalUrl(plan.imageUrl);
+      // Les deux natures ont des `kind` inconciliables : les intersecter
+      // donnerait `never`. On lit donc le brut avec un `kind` libre, et c'est la
+      // branche ci-dessous qui décide ce qu'il devient.
+      const plan = raw as Partial<Omit<ImagePlacePlan, "kind">> &
+        Partial<Omit<DrawnPlacePlan, "kind">> & { kind?: string };
       const name = text(plan.name, MAX_PLACE_NAME_LENGTH);
-      if (!imageUrl || !name || !plan.id) return null;
+      if (!name || !plan.id) return null;
 
-      const markers = (Array.isArray(plan.markers) ? plan.markers : [])
-        .slice(0, MAX_PLACE_MARKERS)
-        .map((rawMarker) => {
-          const marker = rawMarker as Partial<PlacePlanMarker>;
-          const service = text(marker.service, 40);
-          const targetSlug = marker.targetSlug
-            ? toPlaceSlug(text(marker.targetSlug, MAX_PLACE_NAME_LENGTH))
-            : "";
-          if (!marker.id) return null;
-          if (!targetSlug && !isPlaceService(service)) return null;
-
-          return withoutUndefined({
-            id: text(marker.id, 40),
-            x: clampFraction(marker.x),
-            y: clampFraction(marker.y),
-            // Une cible l'emporte sur un service : c'est elle qui ouvre un plan.
-            service: targetSlug ? undefined : (service as PlaceService),
-            targetSlug: targetSlug || undefined,
-            label: optionalText(marker.label, MAX_PLACE_NAME_LENGTH),
-            note: optionalText(marker.note, MAX_PLACE_NAME_LENGTH),
-          }) as PlacePlanMarker;
-        })
-        .filter((marker): marker is PlacePlanMarker => marker !== null);
-
-      return withoutUndefined({
+      const common = {
         id: text(plan.id, 40),
         name,
         note: optionalText(plan.note, MAX_PLACE_TEXT_LENGTH),
+        markers: normalizeMarkers(plan.markers),
+      };
+
+      // Un plan dessiné n'a pas d'image à fournir : c'est sa géométrie qui fait
+      // le fond, et l'aperçu rastérisé n'arrive qu'après. Exiger `imageUrl` ici,
+      // comme le fait la branche image, reviendrait à jeter en silence le
+      // premier enregistrement de chaque relevé.
+      if (plan.kind === "drawn") {
+        return withoutUndefined({
+          ...common,
+          kind: "drawn",
+          widthCm: extent(plan.widthCm),
+          heightCm: extent(plan.heightCm),
+          levels: normalizeLevels(plan.levels),
+          preview: normalizePreview(plan.preview),
+        }) as DrawnPlacePlan;
+      }
+
+      const imageUrl = optionalUrl(plan.imageUrl);
+      if (!imageUrl) return null;
+
+      return withoutUndefined({
+        ...common,
         imageUrl,
         imageWidth: Math.max(1, Math.round(Number(plan.imageWidth) || 1)),
         imageHeight: Math.max(1, Math.round(Number(plan.imageHeight) || 1)),
-        markers,
-      }) as PlacePlan;
+      }) as ImagePlacePlan;
     })
     .filter((plan): plan is StoredPlacePlan => plan !== null);
 }

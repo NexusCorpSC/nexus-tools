@@ -13,6 +13,7 @@ import {
   MagnifyingGlassPlusIcon,
   LinkSlashIcon,
   MapPinIcon,
+  PencilSquareIcon,
   PlusIcon,
   Square2StackIcon,
   TrashIcon,
@@ -31,7 +32,10 @@ import { savePlacePlansAction } from "@/app/lieux/actions";
 import { PlanMarker } from "@/app/lieux/plan-marker";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
 import {
+  isDrawnPlan,
   PLACE_SERVICES,
+  planImage,
+  type DrawnPlacePlan,
   type PlacePlan,
   type StoredPlacePlan,
   type PlacePlanMarker,
@@ -39,6 +43,9 @@ import {
   type PlaceSummary,
 } from "@/types/places";
 import { PlanImageUpload } from "./place-image-upload";
+import { DrawnPlanEditor } from "./drawn-plan-editor";
+import { plateLegend, renderPreview } from "./drawn-plan-editor/export";
+import { emptyDrawnPlan } from "./drawn-plan-editor/use-plan-draft";
 import { PlacePicker } from "@/app/lieux/place-picker";
 import { BorrowPlanDialog } from "./borrow-plan-dialog";
 
@@ -47,10 +54,13 @@ const round4 = (value: number) => Number(value.toFixed(4));
 
 export function PlanEditor({
   slug,
+  placeName,
   initialPlans,
   initialTargets,
 }: {
   slug: string;
+  /** Le titre que porte une planche exportée : le lieu, pas le plan. */
+  placeName: string;
   initialPlans: PlacePlan[];
   initialTargets: PlaceSummary[];
 }) {
@@ -67,6 +77,8 @@ export function PlanEditor({
   const [targets, setTargets] = useState<PlaceSummary[]>(initialTargets);
 
   const plan = plans.find((entry) => entry.id === activeId) ?? plans[0] ?? null;
+  /** Le fond du plan ouvert, quelle que soit sa nature. */
+  const image = plan ? planImage(plan) : null;
   const selected = plan?.markers.find((marker) => marker.id === selectedId);
 
   const {
@@ -128,6 +140,27 @@ export function PlanEditor({
     setDirty(true);
   };
 
+  /**
+   * Un relevé dessiné plutôt qu'une image. C'est la réponse aux lieux dont
+   * personne n'a jamais publié de carte : sans lui, la seule façon d'avoir un
+   * plan était d'en trouver un ailleurs.
+   */
+  const addDrawnPlan = () => {
+    const entry = emptyDrawnPlan(`${t("Admin.planName")} ${plans.length + 1}`);
+    setPlans((current) => [...current, entry]);
+    setActiveId(entry.id);
+    setSelectedId(null);
+    setDirty(true);
+  };
+
+  /**
+   * Le plan ouvert quand c'est un relevé dessiné — emprunt compris. Le laisser
+   * retomber sur la branche image montrerait un téléverseur vide à la place du
+   * relevé du voisin ; il s'affiche donc, en lecture seule, comme le fait déjà
+   * l'inspecteur de repères d'un plan emprunté.
+   */
+  const drawn: DrawnPlacePlan | null = plan && isDrawnPlan(plan) ? plan : null;
+
   const borrowPlan = (borrowed: PlacePlan) => {
     // L'identité locale est neuve : c'est elle que porte l'ancre `?plan=`, et
     // deux lieux qui empruntent le même plan ne doivent pas la partager.
@@ -170,7 +203,7 @@ export function PlanEditor({
   };
 
   const dropMarker = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (mode !== "place" || !plan?.imageUrl || plan.borrowedFrom) return;
+    if (mode !== "place" || !plan || !image || plan.borrowedFrom) return;
     const { x, y } = toNormalized(event.clientX, event.clientY);
     const marker: PlacePlanMarker = {
       id: nanoid(),
@@ -204,13 +237,57 @@ export function PlanEditor({
         }
       : entry;
 
+  /** Ce que la planche d'un relevé porte en en-tête et en pied de page. */
+  const plateOptions = useCallback(
+    (entry: DrawnPlacePlan) => ({
+      title: placeName,
+      subtitle: entry.name,
+      legend: plateLegend(entry, {
+        door: t("Admin.glyphs.door"),
+        doubleDoor: t("Admin.glyphs.doubleDoor"),
+        airlock: t("Admin.glyphs.airlock"),
+        stairUp: t("Admin.glyphs.stairUp"),
+        stairDown: t("Admin.glyphs.stairDown"),
+        objective: t("Admin.glyphs.objective"),
+        terminal: t("Admin.glyphs.terminal"),
+      }),
+      credits: t("Admin.plateCredits"),
+    }),
+    [placeName, t],
+  );
+
   const save = () => {
     startTransition(async () => {
-      const result = await savePlacePlansAction(slug, plans.map(toStored));
+      /*
+       * Un relevé dessiné emporte son aperçu rastérisé. C'est lui que lisent
+       * ceux qui ne savent pas dessiner une géométrie — l'overlay de nexus-app,
+       * le fond d'un plan de vol — et le produire ici, au moment où le dessin
+       * est complet, évite d'avoir à le régénérer à la lecture.
+       */
+      const rendered = await Promise.all(
+        plans.map(async (entry) => {
+          if (!isDrawnPlan(entry) || entry.borrowedFrom) return entry;
+          try {
+            const preview = await renderPreview(
+              entry,
+              slug,
+              plateOptions(entry),
+            );
+            return { ...entry, preview };
+          } catch {
+            // L'aperçu est un confort ; le relevé, lui, doit être enregistré.
+            toast.warning(t("Admin.previewFailed"));
+            return entry;
+          }
+        }),
+      );
+
+      const result = await savePlacePlansAction(slug, rendered.map(toStored));
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
+      setPlans(rendered);
       setDirty(false);
       toast.success(t("Admin.saved"));
     });
@@ -251,7 +328,13 @@ export function PlanEditor({
 
       <p className="text-xs text-muted-foreground">{t("Admin.modeHint")}</p>
 
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
+      <div
+        className={`grid gap-4 ${
+          drawn
+            ? "lg:grid-cols-[220px_minmax(0,1fr)]"
+            : "lg:grid-cols-[220px_minmax(0,1fr)_280px]"
+        }`}
+      >
         {/* ── Les plans du lieu ── */}
         <div className="space-y-2">
           {plans.map((entry, index) => (
@@ -339,335 +422,371 @@ export function PlanEditor({
             {t("Admin.planAdd")}
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={addDrawnPlan}
+          >
+            <PencilSquareIcon className="size-4" />
+            {t("Admin.planDraw")}
+          </Button>
+
           <BorrowPlanDialog exclude={slug} onBorrow={borrowPlan} />
         </div>
 
-        {/* ── Le plan lui-même ── */}
-        <div className="space-y-2">
-          {!plan ? (
-            <p className="rounded-xl border border-dashed border-[#9ED0FF]/25 px-6 py-16 text-center text-sm text-muted-foreground">
-              {t("Admin.planNone")}
-            </p>
-          ) : !plan.imageUrl ? (
-            <div className="space-y-3 rounded-xl border border-dashed border-[#9ED0FF]/25 p-6">
-              <p className="text-sm text-muted-foreground">
-                {t("Admin.planNoImage")}
-              </p>
-              <PlanImageUpload
-                slug={slug}
-                planId={plan.id}
-                onChange={(value) =>
-                  value &&
-                  mutatePlan(plan.id, (entry) => ({
-                    ...entry,
-                    imageUrl: value.url,
-                    imageWidth: value.width,
-                    imageHeight: value.height,
-                  }))
-                }
-              />
-            </div>
-          ) : (
-            <div
-              ref={containerRef}
-              className="relative h-[480px] overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/45"
-            >
-              <div
-                {...stageProps}
-                onPointerDown={(event) => {
-                  dropMarker(event);
-                  stageProps.onPointerDown(event);
-                }}
-                onPointerMove={(event) => {
-                  if (dragging.current) {
-                    const { x, y } = toNormalized(event.clientX, event.clientY);
-                    mutateMarker(dragging.current, {
-                      x: round4(x),
-                      y: round4(y),
-                    });
-                    return;
-                  }
-                  stageProps.onPointerMove(event);
-                }}
-                onPointerUp={(event) => {
-                  dragging.current = null;
-                  stageProps.onPointerUp(event);
-                }}
-                onPointerCancel={(event) => {
-                  dragging.current = null;
-                  stageProps.onPointerCancel(event);
-                }}
-                className={`absolute inset-0 flex items-center justify-center ${
-                  mode === "place"
-                    ? "cursor-crosshair"
-                    : isPanning
-                      ? "cursor-grabbing"
-                      : "cursor-grab"
-                }`}
-              >
-                <div
-                  ref={imageRef}
-                  className="relative max-h-full max-w-full"
-                  style={{
-                    aspectRatio: `${plan.imageWidth} / ${plan.imageHeight}`,
-                    height: "100%",
-                  }}
-                >
-                  <Image
-                    src={plan.imageUrl}
-                    alt={plan.name}
-                    fill
-                    sizes="960px"
-                    className="select-none object-contain"
-                    draggable={false}
-                  />
-
-                  {plan.markers.map((marker) => (
-                    <PlanMarker
-                      key={marker.id}
-                      marker={marker}
-                      target={targets.find(
-                        (entry) => entry.slug === marker.targetSlug,
-                      )}
-                      scale={view.scale}
-                      selected={marker.id === selectedId}
-                      editable={!plan.borrowedFrom}
-                      onSelect={() => {
-                        if (!plan.borrowedFrom) setSelectedId(marker.id);
-                      }}
-                      onPointerDown={() => {
-                        // Sur un plan emprunté, ni sélection ni glisser :
-                        // l'inspecteur proposerait des modifications que
-                        // l'enregistrement effacerait en silence, puisque le
-                        // plan repart en référence.
-                        if (plan.borrowedFrom) return;
-                        dragging.current = marker.id;
-                        setSelectedId(marker.id);
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="absolute right-3 top-3 z-10 flex flex-col gap-1">
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label={t("planZoomIn")}
-                  onClick={() => zoomBy(1.2)}
-                >
-                  <MagnifyingGlassPlusIcon className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label={t("planZoomOut")}
-                  onClick={() => zoomBy(1 / 1.2)}
-                >
-                  <MagnifyingGlassMinusIcon className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label={t("planReset")}
-                  onClick={reset}
-                >
-                  <ArrowsPointingOutIcon className="size-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {plan && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="plan-name">{t("Admin.planName")}</Label>
-                <Input
-                  id="plan-name"
-                  value={plan.name}
-                  disabled={!!plan.borrowedFrom}
-                  onChange={(event) =>
-                    mutatePlan(plan.id, (entry) => ({
-                      ...entry,
-                      name: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="plan-note">{t("Admin.planNote")}</Label>
-                <Input
-                  id="plan-note"
-                  value={plan.note ?? ""}
-                  disabled={!!plan.borrowedFrom}
-                  onChange={(event) =>
-                    mutatePlan(plan.id, (entry) => ({
-                      ...entry,
-                      note: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Le repère choisi ── */}
-        <div className="space-y-3 rounded-xl border border-[#9ED0FF]/15 p-3">
-          <p className="text-sm font-semibold text-nexus-primary">
-            {t("Admin.markerTitle")}
-          </p>
-
-          {plan?.borrowedFrom ? (
-            <p className="text-xs text-muted-foreground">
-              {t("Admin.borrowedReadOnly", { name: plan.borrowedFrom.name })}
-            </p>
-          ) : !selected ? (
-            <p className="text-xs text-muted-foreground">
-              {t("Admin.markerNone")}
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-0.5 rounded-md border border-input p-0.5">
-                <button
-                  type="button"
-                  aria-pressed={!selected.targetSlug}
-                  onClick={() =>
-                    mutateMarker(selected.id, {
-                      targetSlug: undefined,
-                      service: selected.service ?? "asop",
-                    })
-                  }
-                  className={`h-7 flex-1 rounded px-2 text-xs font-medium ${
-                    !selected.targetSlug
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {t("Admin.markerKindService")}
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={!!selected.targetSlug}
-                  onClick={() =>
-                    mutateMarker(selected.id, { service: undefined })
-                  }
-                  className={`h-7 flex-1 rounded px-2 text-xs font-medium ${
-                    selected.targetSlug
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {t("Admin.markerKindPlace")}
-                </button>
-              </div>
-
-              {!selected.targetSlug ? (
-                <div className="space-y-1.5">
-                  <Label>{t("Admin.markerService")}</Label>
-                  <Select
-                    value={selected.service ?? "asop"}
-                    onValueChange={(value) =>
-                      mutateMarker(selected.id, {
-                        service: value as PlaceService,
-                        targetSlug: undefined,
-                      })
+        {drawn ? (
+          <DrawnPlanEditor
+            plan={drawn}
+            slug={slug}
+            plate={plateOptions(drawn)}
+            readOnly={!!drawn.borrowedFrom}
+            onChange={(next) => {
+              setPlans((current) =>
+                current.map((entry) => (entry.id === next.id ? next : entry)),
+              );
+              setDirty(true);
+            }}
+          />
+        ) : (
+          <>
+            {/* ── Le plan lui-même ── */}
+            <div className="space-y-2">
+              {!plan ? (
+                <p className="rounded-xl border border-dashed border-[#9ED0FF]/25 px-6 py-16 text-center text-sm text-muted-foreground">
+                  {t("Admin.planNone")}
+                </p>
+              ) : !image ? (
+                <div className="space-y-3 rounded-xl border border-dashed border-[#9ED0FF]/25 p-6">
+                  <p className="text-sm text-muted-foreground">
+                    {t("Admin.planNoImage")}
+                  </p>
+                  <PlanImageUpload
+                    slug={slug}
+                    planId={plan.id}
+                    onChange={(value) =>
+                      value &&
+                      mutatePlan(plan.id, (entry) => ({
+                        ...entry,
+                        imageUrl: value.url,
+                        imageWidth: value.width,
+                        imageHeight: value.height,
+                      }))
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PLACE_SERVICES.map((service) => (
-                        <SelectItem key={service} value={service}>
-                          {t(`services.${service}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  <Label>{t("Admin.markerTarget")}</Label>
-                  <PlacePicker
-                    value={selected.targetSlug}
-                    valueLabel={
-                      targets.find(
-                        (entry) => entry.slug === selected.targetSlug,
-                      )?.name
-                    }
-                    exclude={slug}
-                    onChange={(target) => {
-                      mutateMarker(selected.id, {
-                        targetSlug: target?.slug,
-                        service: undefined,
-                      });
-                      // Le sélecteur rend la fiche entière : la pastille prend
-                      // tout de suite son vrai type et son vrai nombre de
-                      // plans, sans qu'on ait rien à deviner ni à attendre.
-                      if (target) {
-                        setTargets((current) =>
-                          current.some((entry) => entry.slug === target.slug)
-                            ? current
-                            : [...current, target],
-                        );
-                      }
+                <div
+                  ref={containerRef}
+                  className="relative h-[480px] overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/45"
+                >
+                  <div
+                    {...stageProps}
+                    onPointerDown={(event) => {
+                      dropMarker(event);
+                      stageProps.onPointerDown(event);
                     }}
-                  />
+                    onPointerMove={(event) => {
+                      if (dragging.current) {
+                        const { x, y } = toNormalized(
+                          event.clientX,
+                          event.clientY,
+                        );
+                        mutateMarker(dragging.current, {
+                          x: round4(x),
+                          y: round4(y),
+                        });
+                        return;
+                      }
+                      stageProps.onPointerMove(event);
+                    }}
+                    onPointerUp={(event) => {
+                      dragging.current = null;
+                      stageProps.onPointerUp(event);
+                    }}
+                    onPointerCancel={(event) => {
+                      dragging.current = null;
+                      stageProps.onPointerCancel(event);
+                    }}
+                    className={`absolute inset-0 flex items-center justify-center ${
+                      mode === "place"
+                        ? "cursor-crosshair"
+                        : isPanning
+                          ? "cursor-grabbing"
+                          : "cursor-grab"
+                    }`}
+                  >
+                    <div
+                      ref={imageRef}
+                      className="relative max-h-full max-w-full"
+                      style={{
+                        aspectRatio: `${image.width} / ${image.height}`,
+                        height: "100%",
+                      }}
+                    >
+                      <Image
+                        src={image.url}
+                        alt={plan.name}
+                        fill
+                        sizes="960px"
+                        className="select-none object-contain"
+                        draggable={false}
+                      />
+
+                      {plan.markers.map((marker) => (
+                        <PlanMarker
+                          key={marker.id}
+                          marker={marker}
+                          target={targets.find(
+                            (entry) => entry.slug === marker.targetSlug,
+                          )}
+                          scale={view.scale}
+                          selected={marker.id === selectedId}
+                          editable={!plan.borrowedFrom}
+                          onSelect={() => {
+                            if (!plan.borrowedFrom) setSelectedId(marker.id);
+                          }}
+                          onPointerDown={() => {
+                            // Sur un plan emprunté, ni sélection ni glisser :
+                            // l'inspecteur proposerait des modifications que
+                            // l'enregistrement effacerait en silence, puisque le
+                            // plan repart en référence.
+                            if (plan.borrowedFrom) return;
+                            dragging.current = marker.id;
+                            setSelectedId(marker.id);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="absolute right-3 top-3 z-10 flex flex-col gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={t("planZoomIn")}
+                      onClick={() => zoomBy(1.2)}
+                    >
+                      <MagnifyingGlassPlusIcon className="size-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={t("planZoomOut")}
+                      onClick={() => zoomBy(1 / 1.2)}
+                    >
+                      <MagnifyingGlassMinusIcon className="size-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={t("planReset")}
+                      onClick={reset}
+                    >
+                      <ArrowsPointingOutIcon className="size-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="marker-label">{t("Admin.markerLabel")}</Label>
-                <Input
-                  id="marker-label"
-                  value={selected.label ?? ""}
-                  onChange={(event) =>
-                    mutateMarker(selected.id, { label: event.target.value })
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t("Admin.markerLabelHint")}
-                </p>
-              </div>
+              {plan && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="plan-name">{t("Admin.planName")}</Label>
+                    <Input
+                      id="plan-name"
+                      value={plan.name}
+                      disabled={!!plan.borrowedFrom}
+                      onChange={(event) =>
+                        mutatePlan(plan.id, (entry) => ({
+                          ...entry,
+                          name: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="plan-note">{t("Admin.planNote")}</Label>
+                    <Input
+                      id="plan-note"
+                      value={plan.note ?? ""}
+                      disabled={!!plan.borrowedFrom}
+                      onChange={(event) =>
+                        mutatePlan(plan.id, (entry) => ({
+                          ...entry,
+                          note: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="marker-note">{t("Admin.markerNote")}</Label>
-                <Input
-                  id="marker-note"
-                  value={selected.note ?? ""}
-                  onChange={(event) =>
-                    mutateMarker(selected.id, { note: event.target.value })
-                  }
-                />
-              </div>
-
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <MapPinIcon className="size-3.5" />
-                {selected.x.toFixed(3)} · {selected.y.toFixed(3)}
+            {/* ── Le repère choisi ── */}
+            <div className="space-y-3 rounded-xl border border-[#9ED0FF]/15 p-3">
+              <p className="text-sm font-semibold text-nexus-primary">
+                {t("Admin.markerTitle")}
               </p>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-red-400"
-                onClick={() => {
-                  if (!plan) return;
-                  mutatePlan(plan.id, (entry) => ({
-                    ...entry,
-                    markers: entry.markers.filter(
-                      (marker) => marker.id !== selected.id,
-                    ),
-                  }));
-                  setSelectedId(null);
-                }}
-              >
-                <TrashIcon className="size-4" />
-                {t("Admin.markerDelete")}
-              </Button>
+              {plan?.borrowedFrom ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("Admin.borrowedReadOnly", {
+                    name: plan.borrowedFrom.name,
+                  })}
+                </p>
+              ) : !selected ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("Admin.markerNone")}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-0.5 rounded-md border border-input p-0.5">
+                    <button
+                      type="button"
+                      aria-pressed={!selected.targetSlug}
+                      onClick={() =>
+                        mutateMarker(selected.id, {
+                          targetSlug: undefined,
+                          service: selected.service ?? "asop",
+                        })
+                      }
+                      className={`h-7 flex-1 rounded px-2 text-xs font-medium ${
+                        !selected.targetSlug
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {t("Admin.markerKindService")}
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={!!selected.targetSlug}
+                      onClick={() =>
+                        mutateMarker(selected.id, { service: undefined })
+                      }
+                      className={`h-7 flex-1 rounded px-2 text-xs font-medium ${
+                        selected.targetSlug
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {t("Admin.markerKindPlace")}
+                    </button>
+                  </div>
+
+                  {!selected.targetSlug ? (
+                    <div className="space-y-1.5">
+                      <Label>{t("Admin.markerService")}</Label>
+                      <Select
+                        value={selected.service ?? "asop"}
+                        onValueChange={(value) =>
+                          mutateMarker(selected.id, {
+                            service: value as PlaceService,
+                            targetSlug: undefined,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PLACE_SERVICES.map((service) => (
+                            <SelectItem key={service} value={service}>
+                              {t(`services.${service}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label>{t("Admin.markerTarget")}</Label>
+                      <PlacePicker
+                        value={selected.targetSlug}
+                        valueLabel={
+                          targets.find(
+                            (entry) => entry.slug === selected.targetSlug,
+                          )?.name
+                        }
+                        exclude={slug}
+                        onChange={(target) => {
+                          mutateMarker(selected.id, {
+                            targetSlug: target?.slug,
+                            service: undefined,
+                          });
+                          // Le sélecteur rend la fiche entière : la pastille prend
+                          // tout de suite son vrai type et son vrai nombre de
+                          // plans, sans qu'on ait rien à deviner ni à attendre.
+                          if (target) {
+                            setTargets((current) =>
+                              current.some(
+                                (entry) => entry.slug === target.slug,
+                              )
+                                ? current
+                                : [...current, target],
+                            );
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="marker-label">
+                      {t("Admin.markerLabel")}
+                    </Label>
+                    <Input
+                      id="marker-label"
+                      value={selected.label ?? ""}
+                      onChange={(event) =>
+                        mutateMarker(selected.id, { label: event.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t("Admin.markerLabelHint")}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="marker-note">{t("Admin.markerNote")}</Label>
+                    <Input
+                      id="marker-note"
+                      value={selected.note ?? ""}
+                      onChange={(event) =>
+                        mutateMarker(selected.id, { note: event.target.value })
+                      }
+                    />
+                  </div>
+
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPinIcon className="size-3.5" />
+                    {selected.x.toFixed(3)} · {selected.y.toFixed(3)}
+                  </p>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-red-400"
+                    onClick={() => {
+                      if (!plan) return;
+                      mutatePlan(plan.id, (entry) => ({
+                        ...entry,
+                        markers: entry.markers.filter(
+                          (marker) => marker.id !== selected.id,
+                        ),
+                      }));
+                      setSelectedId(null);
+                    }}
+                  >
+                    <TrashIcon className="size-4" />
+                    {t("Admin.markerDelete")}
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

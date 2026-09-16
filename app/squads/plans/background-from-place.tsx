@@ -14,10 +14,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PlacePicker } from "@/app/lieux/place-picker";
-import type {
-  PlacePlan,
-  PlacePlansResponse,
-  PlaceSummary,
+import {
+  planImage,
+  type PlacePlan,
+  type PlacePlansResponse,
+  type PlaceSummary,
 } from "@/types/places";
 
 /**
@@ -159,13 +160,15 @@ function Chooser({
                 className="w-full overflow-hidden rounded-lg border border-input text-left transition-colors hover:border-nexus"
               >
                 <span className="relative block aspect-video bg-[#092F49]/45">
-                  <Image
-                    src={plan.imageUrl}
-                    alt=""
-                    fill
-                    sizes="240px"
-                    className="object-contain"
-                  />
+                  {planImage(plan) ? (
+                    <Image
+                      src={planImage(plan)!.url}
+                      alt=""
+                      fill
+                      sizes="240px"
+                      className="object-contain"
+                    />
+                  ) : null}
                 </span>
                 <span className="block truncate px-2 py-1.5 text-sm font-medium">
                   {plan.name}

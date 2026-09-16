@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { deletePlan, patchPlan, type PlanPatch } from "@/lib/plans";
 import { getPlacePlan } from "@/lib/places";
 import { isDrawPolicy, PLAN_NAME_MAX_LENGTH } from "@/types/plan";
+import { planImage } from "@/types/places";
 import { readBody, readString } from "../../caller";
 import { planResponse, refuseRank, resolvePlan } from "../caller";
 
@@ -259,11 +260,19 @@ async function readPlaceBackground(
     return { error: "Place survey not found", status: 404 };
   }
 
+  // A drawn survey is only usable as a background once it has been rendered.
+  // Until then there is no image to trace over, and saying so beats handing the
+  // canvas an empty url it would silently draw nothing from.
+  const image = planImage(found.plan);
+  if (!image) {
+    return { error: "This survey has no rendered image yet", status: 409 };
+  }
+
   return {
     background: {
-      url: found.plan.imageUrl,
-      width: found.plan.imageWidth,
-      height: found.plan.imageHeight,
+      url: image.url,
+      width: image.width,
+      height: image.height,
       from: {
         placeSlug: found.place.slug,
         placeName: found.place.name,
