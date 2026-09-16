@@ -60,6 +60,7 @@ export default async function EditPlansPage({
 
       <PlanEditor
         slug={place.slug}
+        placeName={place.name}
         initialPlans={place.plans}
         initialTargets={place.targets}
       />

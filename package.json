@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "postinstall": "node scripts/copy-draco.mjs",
+    "postinstall": "node scripts/copy-draco.mjs && node scripts/copy-plan-font.mjs",
     "import:place-images": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-place-images.ts",
     "sync:inventory-locations": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/sync-inventory-locations.ts",
     "import:places": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-places.ts",

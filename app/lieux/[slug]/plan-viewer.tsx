@@ -12,7 +12,13 @@ import {
   MagnifyingGlassPlusIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
-import type { PlacePlansResponse, PlaceSummary } from "@/types/places";
+import { renderLevelSvg } from "@/lib/plan-render";
+import {
+  isDrawnPlan,
+  planImage,
+  type PlacePlansResponse,
+  type PlaceSummary,
+} from "@/types/places";
 import { markerName, markerTone, PlanMarker } from "@/app/lieux/plan-marker";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
 import { UseAsBackground } from "./use-as-background";
@@ -47,9 +53,52 @@ export function PlanViewer({
   const t = useTranslations("Places");
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [levelId, setLevelId] = useState<string | null>(null);
 
   const plan =
     data.plans.find((entry) => entry.id === activePlanId) ?? data.plans[0];
+  /**
+   * Le fond, quand il y en a un. Un plan dessiné dont le rendu n'a pas encore
+   * abouti n'a pas d'image : le cadre reste, et les repères avec lui.
+   */
+  const image = plan ? planImage(plan) : null;
+  /**
+   * Les proportions du cadre : celles de l'image, ou celles de l'emprise pour un
+   * relevé dessiné. Les repères étant des fractions, c'est ce rapport qui décide
+   * où ils tombent — le fausser les décale tous d'un coup.
+   */
+  const frame = image
+    ? { width: image.width, height: image.height }
+    : plan && isDrawnPlan(plan)
+      ? { width: plan.widthCm, height: plan.heightCm }
+      : { width: 16, height: 9 };
+
+  /**
+   * Le niveau regardé. On retombe sur le premier plutôt que sur rien quand
+   * l'identifiant gardé en état vient du plan d'avant : changer de plan ne doit
+   * pas vider le cadre.
+   */
+  const drawn = plan && isDrawnPlan(plan) ? plan : null;
+  const level = drawn
+    ? (drawn.levels.find((entry) => entry.id === levelId) ?? drawn.levels[0])
+    : null;
+
+  /**
+   * Un relevé dessiné est rendu en vecteurs, pas depuis son aperçu rastérisé :
+   * il reste net à douze fois le zoom, et il s'affiche même quand le rendu qui
+   * sert aux autres écrans n'a pas encore abouti.
+   */
+  const levelSvg = drawn && level ? renderLevelSvg(drawn, level) : null;
+
+  /**
+   * Les repères de l'étage regardé. Ceux d'un plan image n'ont pas de niveau et
+   * passent tous — c'est ce qui laisse les relevés d'avant inchangés.
+   */
+  const markers = plan
+    ? plan.markers.filter(
+        (marker) => !level || !marker.levelId || marker.levelId === level.id,
+      )
+    : [];
   const {
     containerRef,
     imageRef,
@@ -120,11 +169,39 @@ export function PlanViewer({
         </div>
 
         <div className="flex items-center gap-2">
-          {canBrief && (
+          {/*
+            Un relevé dessiné dont l'aperçu n'a pas abouti n'a pas d'image à
+            poser en fond : la route du plan de vol répondrait 409. Mieux vaut
+            ne rien proposer que proposer ce qui va échouer.
+          */}
+          {canBrief && (!drawn || drawn.preview) && (
             <UseAsBackground
               place={{ slug: data.slug, name: data.name }}
               plan={{ id: plan.id, name: plan.name }}
             />
+          )}
+
+          {drawn && drawn.levels.length > 1 && (
+            <div className="flex items-center gap-0.5 rounded-md border border-input p-0.5">
+              {drawn.levels.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  aria-pressed={entry.id === level?.id}
+                  onClick={() => {
+                    setLevelId(entry.id);
+                    setSelectedId(null);
+                  }}
+                  className={`h-7 rounded px-2.5 text-sm font-medium transition-colors ${
+                    entry.id === level?.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  {entry.name}
+                </button>
+              ))}
+            </div>
           )}
 
           {data.plans.length > 1 && (
@@ -177,21 +254,32 @@ export function PlanViewer({
             ref={imageRef}
             className="relative max-h-full max-w-full"
             style={{
-              aspectRatio: `${plan.imageWidth} / ${plan.imageHeight}`,
+              aspectRatio: `${frame.width} / ${frame.height}`,
               height: "100%",
             }}
           >
-            <Image
-              src={plan.imageUrl}
-              alt={`${t("planTitle")} — ${data.name}`}
-              fill
-              sizes="(max-width: 768px) 100vw, 960px"
-              className="select-none object-contain"
-              draggable={false}
-              priority
-            />
+            {image ? (
+              <Image
+                src={image.url}
+                alt={`${t("planTitle")} — ${data.name}`}
+                fill
+                sizes="(max-width: 768px) 100vw, 960px"
+                className="select-none object-contain"
+                draggable={false}
+                priority
+              />
+            ) : null}
 
-            {plan.markers.map((marker) => (
+            {levelSvg ? (
+              <div
+                className="pointer-events-none absolute inset-0 [&>svg]:size-full"
+                // Chaîne produite par `lib/plan-render.ts` à partir de données
+                // déjà normalisées, et dont chaque texte passe par `esc()`.
+                dangerouslySetInnerHTML={{ __html: levelSvg }}
+              />
+            ) : null}
+
+            {markers.map((marker) => (
               <PlanMarker
                 key={marker.id}
                 marker={marker}

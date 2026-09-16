@@ -92,6 +92,31 @@ export const MAX_PLACE_DEPTH = 8;
 export const MAX_PLACE_PLANS = 12;
 export const MAX_PLACE_MARKERS = 120;
 
+/**
+ * Huit niveaux : au-delà, ce n'est plus un lieu qu'on relève mais une ville, et
+ * la planche exportée ne les tient plus côte à côte de toute façon.
+ */
+export const MAX_PLAN_LEVELS = 8;
+
+/**
+ * Deux cents pièces par niveau. Le plus dense des lieux relevés à la main en
+ * compte une quarantaine ; cinq fois la marge suffit, et tout le plan tient
+ * dans le document du lieu, qu'un `$size` relit à chaque recalcul d'arbre.
+ */
+export const MAX_LEVEL_ROOMS = 200;
+
+/** Les murs isolés sont l'exception : ils bordent ce que les pièces ne bordent pas. */
+export const MAX_LEVEL_WALLS = 400;
+export const MAX_LEVEL_DOORS = 200;
+export const MAX_LEVEL_LABELS = 100;
+
+/**
+ * Cinq kilomètres de côté, en centimètres. Une borne de sûreté, pas une
+ * ambition : elle empêche une saisie aberrante de produire une planche que le
+ * rendu ne saura jamais rastériser.
+ */
+export const MAX_PLAN_EXTENT_CM = 500_000;
+
 /** Au-delà, la vue arborescente demande d'affiner plutôt que de tout charger. */
 export const MAX_PLACE_TREE_NODES = 600;
 
@@ -122,6 +147,12 @@ export type PlacePlanMarker = {
   /** Fraction de l'image, origine en haut à gauche. Entre 0 et 1. */
   x: number;
   y: number;
+  /**
+   * Le niveau sur lequel il est posé, pour un plan dessiné. Absent sur un plan
+   * image, qui n'a qu'une feuille : c'est ce qui permet à un repère d'exister
+   * au premier étage sans se montrer au rez-de-chaussée.
+   */
+  levelId?: string;
   service?: PlaceService;
   /** Le slug du lieu que ce repère ouvre. */
   targetSlug?: string;
@@ -131,21 +162,32 @@ export type PlacePlanMarker = {
 };
 
 /**
- * Un plan. L'image est téléversée, jamais saisie : une URL externe casserait
- * `next/image`, dont les hôtes sont listés dans `next.config.ts`.
+ * Un plan, et ses deux natures.
+ *
+ * Un plan **image** est un relevé venu d'ailleurs : une capture redressée, une
+ * carte trouvée sur le wiki. C'est ce qui existait en premier, et l'image est
+ * téléversée, jamais saisie — une URL externe casserait `next/image`, dont les
+ * hôtes sont listés dans `next.config.ts`.
+ *
+ * Un plan **dessiné** est un relevé fait ici, pièce par pièce. Il existe parce
+ * que beaucoup de lieux n'ont aucune carte : ni en jeu, ni sur le wiki, nulle
+ * part. Sans lui, ces lieux-là restent sans plan pour toujours, puisque le seul
+ * moyen d'en avoir un était d'en trouver un.
+ *
+ * Ce qui ne change pas d'une nature à l'autre est ce qui compte : **les repères
+ * restent des fractions de l'emprise**. Le visualiseur, l'emprunt entre lieux et
+ * le prêt d'un relevé à un plan de vol ignorent donc si le fond est une image ou
+ * une géométrie, et n'ont pas à l'apprendre.
  */
-export type PlacePlan = {
+export const PLAN_KINDS = ["image", "drawn"] as const;
+
+export type PlanKind = (typeof PLAN_KINDS)[number];
+
+/** Ce qu'un plan porte quelle que soit sa nature. */
+type PlacePlanBase = {
   id: string;
   name: string;
   note?: string;
-  imageUrl: string;
-  /**
-   * Taille naturelle de l'image, lue au téléversement. Purement présentable :
-   * elle donne le rapport d'aspect du cadre. Les repères, eux, sont en
-   * fractions — une dimension fausse abîme la mise en page sans les déplacer.
-   */
-  imageWidth: number;
-  imageHeight: number;
   markers: PlacePlanMarker[];
   /**
    * D'où vient ce plan quand il est emprunté. **Résolu à la lecture, jamais
@@ -154,6 +196,218 @@ export type PlacePlan = {
    * puisse pas figer une copie de ce qui doit rester une référence.
    */
   borrowedFrom?: PlacePlanOrigin;
+};
+
+/**
+ * Le relevé téléversé.
+ *
+ * `kind` est facultatif, et c'est délibéré : les documents écrits avant les
+ * plans dessinés ne le portent pas, et un plan sans nature est une image. Rien
+ * à migrer, aucun script à passer.
+ */
+export type ImagePlacePlan = PlacePlanBase & {
+  kind?: "image";
+  imageUrl: string;
+  /**
+   * Taille naturelle de l'image, lue au téléversement. Purement présentable :
+   * elle donne le rapport d'aspect du cadre. Les repères, eux, sont en
+   * fractions — une dimension fausse abîme la mise en page sans les déplacer.
+   */
+  imageWidth: number;
+  imageHeight: number;
+};
+
+/**
+ * L'aperçu rastérisé d'un plan dessiné, produit à l'enregistrement.
+ *
+ * Il n'est pas la source de vérité — la géométrie l'est — mais il est ce que
+ * lisent tous ceux qui ne savent pas dessiner un plan : l'overlay de
+ * `nexus-app` et le fond d'un plan de vol. Facultatif à dessein : si le rendu
+ * échoue au moment d'enregistrer, on perd l'aperçu, jamais le relevé.
+ */
+export type PlanPreview = { url: string; width: number; height: number };
+
+export type DrawnPlacePlan = PlacePlanBase & {
+  kind: "drawn";
+  /**
+   * L'emprise du relevé, en centimètres entiers.
+   *
+   * Des centimètres et pas des pixels, pour la raison que `PLAN_GRID` donne
+   * dans `types/plan.ts` : un plan dessiné sur un grand écran et relu sur un
+   * téléphone est le même plan. Et la largeur d'un couloir est une longueur,
+   * pas une décision d'affichage — c'est ce qui permet de coter le relevé.
+   */
+  widthCm: number;
+  heightCm: number;
+  levels: PlanLevel[];
+  preview?: PlanPreview;
+};
+
+export type PlacePlan = ImagePlacePlan | DrawnPlacePlan;
+
+/**
+ * Un prédicat doit valider tout ce qu'il affirme, comme `isPlacePlanRef` :
+ * annoncer un plan dessiné sur le seul `kind` laisserait passer un document
+ * tronqué, que le rendu traiterait ensuite comme une géométrie utilisable.
+ */
+export function isDrawnPlan(plan: PlacePlan): plan is DrawnPlacePlan {
+  return (
+    plan.kind === "drawn" &&
+    Array.isArray(plan.levels) &&
+    // L'emprise est ce que le rendu met dans son `viewBox` : nulle ou absente,
+    // elle ne produit pas un plan de travers mais un SVG que rien n'affiche.
+    Number.isFinite(plan.widthCm) &&
+    plan.widthCm > 0 &&
+    Number.isFinite(plan.heightCm) &&
+    plan.heightCm > 0
+  );
+}
+
+/**
+ * L'image d'un plan, quelle que soit sa nature — ou rien, quand un plan dessiné
+ * n'a pas encore été rendu. Les quelques écrans qui montrent un plan sans savoir
+ * le dessiner passent tous par là, plutôt que de lire `imageUrl` en aveugle.
+ */
+export function planImage(plan: PlacePlan): PlanPreview | null {
+  if (isDrawnPlan(plan)) return plan.preview ?? null;
+  return plan.imageUrl
+    ? { url: plan.imageUrl, width: plan.imageWidth, height: plan.imageHeight }
+    : null;
+}
+
+/* ------------------------------------------------------------------ */
+/* La géométrie d'un plan dessiné                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Ce qu'une pièce est, au sens du rendu : sa nature décide de son remplissage
+ * par défaut et de la ligne que la légende lui consacre. Fermée comme
+ * `PLACE_SERVICES`, et pour la même raison — c'est une facette, pas du texte
+ * libre, et les libellés vivent dans `messages/*.json`.
+ */
+export const ROOM_KINDS = [
+  "technical",
+  "storage",
+  "living",
+  "medical",
+  "circulation",
+  "outside",
+] as const;
+
+export type RoomKind = (typeof ROOM_KINDS)[number];
+
+/**
+ * Le remplissage au rendu. Séparé de la nature parce qu'il dit autre chose :
+ * la nature classe la pièce, le remplissage la fait ressortir. Une salle de
+ * contrôle est technique, et elle est en ambre le jour où elle porte
+ * l'objectif d'un contrat.
+ */
+export const ROOM_FILLS = [
+  "plain",
+  "mass",
+  "corridor",
+  "objective",
+  "access",
+  "none",
+] as const;
+
+export type RoomFill = (typeof ROOM_FILLS)[number];
+
+export const DOOR_KINDS = ["single", "double", "airlock", "opening"] as const;
+
+export type DoorKind = (typeof DOOR_KINDS)[number];
+
+export function isRoomKind(value: string): value is RoomKind {
+  return (ROOM_KINDS as readonly string[]).includes(value);
+}
+
+export function isRoomFill(value: string): value is RoomFill {
+  return (ROOM_FILLS as readonly string[]).includes(value);
+}
+
+export function isDoorKind(value: string): value is DoorKind {
+  return (DOOR_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * Une pièce. Coordonnées en centimètres entiers, origine en haut à gauche de
+ * l'emprise du plan — les mêmes unités pour tout ce qui se dessine, de sorte
+ * qu'une cote se lise sans conversion.
+ */
+export type PlanRoom = {
+  id: string;
+  name: string;
+  kind: RoomKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /**
+   * Degrés entiers, sens horaire, autour du centre de la pièce, dans
+   * `]-180, 180]`.
+   *
+   * Le champ existe pour un cas précis : une salle d'antenne est orientée sur
+   * son relais, pas sur la trame du bâtiment. Sans lui, on ne peut relever ces
+   * lieux-là qu'en mentant sur leur géométrie.
+   */
+  rot: number;
+  fill: RoomFill;
+  /** Un escalier : la pièce porte le hachurage, et le sens qu'il indique. */
+  stair?: "up" | "down";
+  /** Si le nom part au rendu. Une gaine technique n'a pas à se nommer. */
+  label: boolean;
+  note?: string;
+};
+
+/** Un pan de mur seul, là où il ne borde aucune pièce : une façade, un muret. */
+export type PlanWall = {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rot: number;
+};
+
+/**
+ * Une porte. Elle ne connaît pas les pièces qu'elle relie : elle est posée sur
+ * un mur, et c'est sa position qui dit ce qu'elle ouvre. Lier une porte à deux
+ * pièces obligerait à réparer ce lien à chaque fois qu'on déplace un mur.
+ */
+export type PlanDoor = {
+  id: string;
+  kind: DoorKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rot: number;
+};
+
+/** Un texte libre posé sur le plan, indépendant des pièces. */
+export type PlanLabel = {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  rot: number;
+};
+
+/**
+ * Un niveau. Un lieu se relève étage par étage, et chaque étage est une feuille
+ * complète : ses pièces, ses murs, ses portes. Rien n'est partagé entre deux
+ * niveaux, pas même un mur mitoyen — le jour où l'un bouge, l'autre ne doit pas
+ * bouger avec lui sans qu'on l'ait demandé.
+ */
+export type PlanLevel = {
+  id: string;
+  name: string;
+  /** Du bas vers le haut : le sous-sol avant le rez-de-chaussée. */
+  order: number;
+  rooms: PlanRoom[];
+  walls: PlanWall[];
+  doors: PlanDoor[];
+  labels: PlanLabel[];
 };
 
 export type PlacePlanOrigin = {
