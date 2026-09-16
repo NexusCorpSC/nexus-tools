@@ -18,12 +18,14 @@
 import {
   GLYPH_GRID,
   GLYPH_STROKE,
+  PLACE_SERVICE_GLYPHS,
   PLAN_GLYPHS,
   type PlanGlyph,
 } from "@/lib/plan-symbols";
 import { polygonCentroid } from "@/lib/plan-geometry";
 import type {
   DrawnPlacePlan,
+  PlacePlanMarker,
   PlanLevel,
   PlanMeasure,
   PlanRoom,
@@ -157,6 +159,13 @@ export type LevelOptions = {
   background?: boolean;
   /** Graver les noms de pièce. Faux pour une vignette, où ils seraient illisibles. */
   labels?: boolean;
+  /**
+   * Les repères de ce niveau, à graver. Absents, ils ne le sont pas — le
+   * visualiseur pose les siens en boutons focusables par-dessus le SVG.
+   */
+  markers?: PlacePlanMarker[];
+  /** L'emprise, pour convertir les fractions d'un repère en centimètres. */
+  extentCm?: { width: number; height: number };
 };
 
 /** Les sommets d'un contour, au format qu'attend `points`. */
@@ -327,6 +336,19 @@ export function renderLevelBody(
     out += measureLine(measure, theme, withLabels);
   }
 
+  // Les repères ne sont gravés que si on les demande : le visualiseur pose les
+  // siens en vrais boutons par-dessus, et les dessiner ici les doublerait.
+  if (options.markers?.length && options.extentCm) {
+    for (const marker of options.markers) {
+      out += markerBadge(
+        marker,
+        options.extentCm.width,
+        options.extentCm.height,
+        theme,
+      );
+    }
+  }
+
   if (withLabels) {
     for (const room of level.rooms) out += roomLabel(room, theme);
 
@@ -442,6 +464,21 @@ export type PlateOptions = {
   fontCss?: string;
 };
 
+function glyphPath(
+  d: string,
+  x: number,
+  y: number,
+  size: number,
+  color: string,
+): string {
+  return (
+    `<g transform="translate(${n(x)} ${n(y)}) scale(${ratio(size / GLYPH_GRID)})"` +
+    ` fill="none" stroke="${color}" stroke-width="${GLYPH_STROKE}"` +
+    ` stroke-linecap="round" stroke-linejoin="round">` +
+    `<path d="${d}" /></g>`
+  );
+}
+
 function glyph(
   name: PlanGlyph,
   x: number,
@@ -449,12 +486,49 @@ function glyph(
   size: number,
   color: string,
 ): string {
-  const ratio = size / GLYPH_GRID;
+  return glyphPath(PLAN_GLYPHS[name], x, y, size, color);
+}
+
+/**
+ * Un repère, gravé sur la planche.
+ *
+ * Il n'y en avait aucun : `renderLevelBody` ne mentionnait pas les repères,
+ * alors que la légende annonçait une ligne « Repère » dès qu'il y en avait un.
+ * La planche promettait un symbole qu'elle ne traçait pas.
+ *
+ * Les repères sont en fractions de l'emprise, pas en centimètres — c'est ce qui
+ * leur permet de survivre à un changement de fond — donc ils se convertissent
+ * ici, et nulle part ailleurs.
+ */
+function markerBadge(
+  marker: PlacePlanMarker,
+  widthCm: number,
+  heightCm: number,
+  theme: PlanTheme,
+): string {
+  const d = marker.glyph
+    ? PLAN_GLYPHS[marker.glyph]
+    : marker.service
+      ? PLACE_SERVICE_GLYPHS[marker.service]
+      : PLAN_GLYPHS.spawn;
+  if (!d) return "";
+
+  const box = Math.max(60, widthCm * 0.028);
+  const cx = marker.x * widthCm;
+  const cy = marker.y * heightCm;
+  const pad = box * 0.18;
+
   return (
-    `<g transform="translate(${n(x)} ${n(y)}) scale(${n(ratio)})"` +
-    ` fill="none" stroke="${color}" stroke-width="${GLYPH_STROKE}"` +
-    ` stroke-linecap="round" stroke-linejoin="round">` +
-    `<path d="${PLAN_GLYPHS[name]}" /></g>`
+    `<rect x="${n(cx - box / 2)}" y="${n(cy - box / 2)}" width="${n(box)}" height="${n(box)}"` +
+    ` rx="${n(box * 0.16)}" fill="${theme.field}" fill-opacity="0.9"` +
+    ` stroke="${theme.accent}" stroke-width="${n(Math.max(2, box * 0.06))}" />` +
+    glyphPath(
+      d,
+      cx - box / 2 + pad,
+      cy - box / 2 + pad,
+      box - pad * 2,
+      theme.accent,
+    )
   );
 }
 
@@ -600,7 +674,15 @@ export function renderPlateSvg(
 
     out +=
       `<g transform="translate(${n(left)} ${n(bodyTop + titleHeight)}) scale(${ratio(perCm)})">` +
-      renderLevelBody(level, { theme }) +
+      renderLevelBody(level, {
+        theme,
+        // Un repère sans niveau vaut pour tous : c'est le cas d'un plan image
+        // dont le relevé a repris les repères.
+        markers: plan.markers.filter(
+          (marker) => !marker.levelId || marker.levelId === level.id,
+        ),
+        extentCm: { width: plan.widthCm, height: plan.heightCm },
+      }) +
       `</g>`;
   });
 

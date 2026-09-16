@@ -34,9 +34,16 @@ import {
   stairs,
   type PlateOptions,
 } from "@/lib/plan-render";
-import { TOOL_GLYPHS, TOOL_KEYS } from "@/lib/plan-symbols";
+import {
+  PLACE_SERVICE_GLYPHS,
+  PLAN_GLYPHS,
+  TOOL_GLYPHS,
+  TOOL_KEYS,
+  type PlanGlyph,
+} from "@/lib/plan-symbols";
 import {
   DOOR_KINDS,
+  PLACE_SERVICES,
   ROOM_FILLS,
   ROOM_KINDS,
   type DrawnPlacePlan,
@@ -166,6 +173,13 @@ function rulerLabel(metresFromOrigin: number): string {
     : String(Math.round(metresFromOrigin));
 }
 
+/** Le tracé d'un repère, quelle que soit la nature de ce qu'il désigne. */
+function markerPath(marker: PlacePlanMarker): string {
+  if (marker.glyph) return PLAN_GLYPHS[marker.glyph];
+  if (marker.service) return PLACE_SERVICE_GLYPHS[marker.service];
+  return PLAN_GLYPHS.spawn;
+}
+
 /** La boîte englobante d'une suite de sommets, pour une pièce libre. */
 function boundsOf(points: number[]) {
   const xs = points.filter((unused, index) => index % 2 === 0);
@@ -206,6 +220,11 @@ export function DrawnPlanEditor({
   const [poly, setPoly] = useState<number[]>([]);
   const [exporting, setExporting] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  /** Ce que désignait le dernier repère réglé : la nature du prochain posé. */
+  const [lastMarker, setLastMarker] = useState<
+    Pick<PlacePlanMarker, "service" | "glyph">
+  >({ service: "asop" });
 
   /**
    * L'origine du plan à l'écran et l'échelle mesurée, pour les règles. Les
@@ -436,7 +455,9 @@ export function DrawnPlanEditor({
         x: Number((point.x / plan.widthCm).toFixed(4)),
         y: Number((point.y / plan.heightCm).toFixed(4)),
         levelId: level?.id,
-        service: "asop",
+        // Le choix fait dans l'inspecteur tient pour les suivants : poser dix
+        // caméras d'affilée ne doit pas demander dix fois le même clic.
+        ...lastMarker,
       };
       draft.apply((current) => ({
         ...current,
@@ -1376,11 +1397,12 @@ export function DrawnPlanEditor({
                       event.stopPropagation();
                       setSelection({ kind: "marker", id: marker.id });
                     }}
-                    className="absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border"
+                    className="absolute flex size-[22px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded border"
                     style={{
                       left: `${marker.x * 100}%`,
                       top: `${marker.y * 100}%`,
                       borderColor: PLAN_THEME.accent,
+                      color: PLAN_THEME.accent,
                       background: "rgba(6, 30, 47, 0.9)",
                       boxShadow:
                         selection?.kind === "marker" &&
@@ -1388,7 +1410,23 @@ export function DrawnPlanEditor({
                           ? "0 0 0 2px rgba(143, 203, 255, 0.55)"
                           : undefined,
                     }}
-                  />
+                  >
+                    {/*
+                      Le repère montre ce qu'il désigne. C'était un carré vide
+                      de 12 px : on posait des symboles qu'on ne voyait jamais.
+                    */}
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="size-3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d={markerPath(marker)} />
+                    </svg>
+                  </button>
                 ))}
 
               {sketch && tool !== "measure" ? (
@@ -1578,7 +1616,13 @@ export function DrawnPlanEditor({
           <MarkerInspector
             marker={selectedMarker}
             readOnly={readOnly}
-            onPatch={(patch) =>
+            onPatch={(patch) => {
+              if ("service" in patch || "glyph" in patch) {
+                setLastMarker({
+                  service: patch.service,
+                  glyph: patch.glyph,
+                });
+              }
               draft.apply((current) => ({
                 ...current,
                 markers: current.markers.map((entry) =>
@@ -1586,8 +1630,8 @@ export function DrawnPlanEditor({
                     ? { ...entry, ...patch }
                     : entry,
                 ),
-              }))
-            }
+              }));
+            }}
             onDelete={draft.removeSelected}
           />
         ) : (
@@ -1901,6 +1945,86 @@ function RoomInspector({
   );
 }
 
+type MarkerKind = "service" | "glyph";
+
+/**
+ * Les symboles qu'un repère peut porter quand il ne désigne pas un service.
+ *
+ * Tous les glyphes du plan n'ont pas leur place ici : une porte ou un escalier
+ * se dessinent, ils ne se piquent pas sur une carte. Ceux-ci marquent ce qu'on
+ * vient chercher dans un lieu, et ce qui s'y oppose.
+ */
+const MARKER_GLYPHS = [
+  "crate",
+  "container",
+  "locker",
+  "terminal",
+  "key",
+  "objective",
+  "supply",
+  "deposit",
+  "wreck",
+  "care",
+  "spawn",
+  "exit",
+  "ladder",
+  "lift",
+  "camera",
+  "turret",
+  "breaker",
+  "lockedDoor",
+  "listening",
+  "hazard",
+] as const satisfies readonly PlanGlyph[];
+
+/** Une grille de symboles cliquables, celle de la maquette. */
+function SymbolGrid({
+  entries,
+  readOnly,
+}: {
+  entries: {
+    key: string;
+    d: string;
+    title: string;
+    on: boolean;
+    pick: () => void;
+  }[];
+  readOnly: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-6 gap-1">
+      {entries.map((entry) => (
+        <button
+          key={entry.key}
+          type="button"
+          title={entry.title}
+          aria-label={entry.title}
+          aria-pressed={entry.on}
+          disabled={readOnly}
+          onClick={entry.pick}
+          className={`flex aspect-square items-center justify-center rounded border transition-colors disabled:opacity-40 ${
+            entry.on
+              ? "border-[#9ED0FF]/50 bg-white/10 text-foreground"
+              : "border-[#9ED0FF]/15 text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d={entry.d} />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function MarkerInspector({
   marker,
   readOnly,
@@ -1913,11 +2037,64 @@ function MarkerInspector({
   onDelete: () => void;
 }) {
   const t = useTranslations("Places");
+  const kind: MarkerKind = marker.glyph ? "glyph" : "service";
+
   return (
     <div className="space-y-3">
       <p className="text-sm font-semibold text-nexus-primary">
         {t("Admin.markerTitle")}
       </p>
+
+      {/*
+        Ce que le repère désigne. Il n'y avait pas de choix du tout : tout
+        repère naissait « terminal vaisseaux » et le restait.
+      */}
+      <div className="flex gap-1 rounded-md border border-input p-0.5">
+        {(["service", "glyph"] as const).map((entry) => (
+          <button
+            key={entry}
+            type="button"
+            aria-pressed={kind === entry}
+            disabled={readOnly}
+            onClick={() =>
+              onPatch(
+                entry === "service"
+                  ? { service: "asop", glyph: undefined }
+                  : { service: undefined, glyph: "crate" },
+              )
+            }
+            className={`h-7 flex-1 rounded text-[11px] font-medium transition-colors ${
+              kind === entry
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            {t(`Admin.markerKind.${entry}`)}
+          </button>
+        ))}
+      </div>
+
+      <SymbolGrid
+        readOnly={readOnly}
+        entries={
+          kind === "service"
+            ? PLACE_SERVICES.map((service) => ({
+                key: service,
+                d: PLACE_SERVICE_GLYPHS[service],
+                title: t(`services.${service}`),
+                on: marker.service === service,
+                pick: () => onPatch({ service, glyph: undefined }),
+              }))
+            : MARKER_GLYPHS.map((name) => ({
+                key: name,
+                d: PLAN_GLYPHS[name],
+                title: t(`Admin.glyphs.${name}`),
+                on: marker.glyph === name,
+                pick: () => onPatch({ glyph: name, service: undefined }),
+              }))
+        }
+      />
+
       <div className="space-y-1.5">
         <Label htmlFor="marker-label">{t("Admin.markerLabel")}</Label>
         <Input
@@ -1927,6 +2104,9 @@ function MarkerInspector({
           onChange={(event) => onPatch({ label: event.target.value })}
         />
       </div>
+      <p className="text-[10px] text-muted-foreground">
+        {t("Admin.markerLabelHint")}
+      </p>
       <p className="font-mono text-[11px] text-muted-foreground">
         {marker.x.toFixed(3)} · {marker.y.toFixed(3)}
       </p>

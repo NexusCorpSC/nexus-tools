@@ -1136,11 +1136,34 @@
         "stairUp": "Stairs (up)",
         "stairDown": "Stairs (down)",
         "objective": "Objective",
-        "terminal": "Marker"
+        "terminal": "Marker",
+        "lift": "Lift",
+        "ladder": "Ladder",
+        "glazing": "Window",
+        "spawn": "Spawn point",
+        "exit": "Emergency exit",
+        "locker": "Locker",
+        "care": "First aid",
+        "hazard": "Hazard",
+        "crate": "Crate",
+        "key": "Security key",
+        "camera": "Camera",
+        "turret": "Turret",
+        "breaker": "Breaker box",
+        "lockedDoor": "Locked door",
+        "listening": "Listening post",
+        "deposit": "Ore deposit",
+        "wreck": "Wreck",
+        "container": "Abandoned container",
+        "supply": "Supply point"
       },
       "plateHint": "Print this page to get a PDF.",
       "platePrint": "Print",
-      "levelFull": "This level has reached its limit."
+      "levelFull": "This level has reached its limit.",
+      "markerKind": {
+        "service": "A service",
+        "glyph": "A symbol"
+      }
     },
     "useAsBackground": "Flight plan background",
     "useAsBackgroundHint": "Use this survey as a flight plan's background.",
