@@ -30,14 +30,18 @@ import { useImageViewport } from "@/app/lieux/use-image-viewport";
 import { PLAN_THEME, type PlateOptions } from "@/lib/plan-render";
 import { TOOL_GLYPHS, TOOL_KEYS } from "@/lib/plan-symbols";
 import {
+  DOOR_KINDS,
   ROOM_FILLS,
   ROOM_KINDS,
   type DrawnPlacePlan,
+  type DoorKind,
   type PlacePlanMarker,
+  type PlanDoor,
   type PlanRoom,
   type RoomFill,
   type RoomKind,
 } from "@/types/places";
+import { nearestEdge } from "@/lib/plan-geometry";
 import { downloadPlatePng } from "./export";
 import {
   PLAN_TOOLS,
@@ -68,6 +72,13 @@ import {
 
 /** La taille d'une porte posée d'un clic, en centimètres. */
 const DOOR_CM = { w: 130, h: 40 };
+
+/**
+ * À quelle distance d'une paroi un clic compte encore comme « sur ce mur », en
+ * centimètres. Une demi-porte : au-delà, on visait manifestement autre chose, et
+ * accrocher quand même donnerait une porte posée de travers au milieu du vide.
+ */
+const DOOR_REACH_CM = DOOR_CM.w / 2;
 
 /** En deçà, un glisser est un clic qui a tremblé, pas une pièce. */
 const MIN_ROOM_CM = 50;
@@ -217,6 +228,10 @@ export function DrawnPlanEditor({
     selection?.kind === "marker"
       ? (plan.markers.find((marker) => marker.id === selection.id) ?? null)
       : null;
+  const selectedDoor =
+    selection?.kind === "door"
+      ? (level?.doors.find((door) => door.id === selection.id) ?? null)
+      : null;
 
   const shows = useCallback(
     (layer: LayerKey) => !draft.hidden.includes(layer),
@@ -324,7 +339,30 @@ export function DrawnPlanEditor({
       return;
     }
     if (tool === "door") {
-      if (!draft.addDoor({ kind: "single", x, y, ...DOOR_CM, rot: 0 })) {
+      /*
+       * Une porte s'accroche à la paroi qu'on vise. On cherche le segment le
+       * plus proche du point **non aimanté** : l'aimant de 25 cm tirerait le
+       * clic hors d'un mur en biais, donc hors de la paroi qu'on désigne.
+       *
+       * Et on pose la porte **centrée** sur la projection. Elle était posée par
+       * son coin haut gauche, donc déjà décalée d'une demi-porte avant même
+       * qu'on parle d'angle — un décalage que la rotation autour du centre
+       * rendait franchement visible.
+       */
+      const edge = nearestEdge(level.rooms, point);
+      const onWall = edge && edge.distSq <= DOOR_REACH_CM * DOOR_REACH_CM;
+      const cx = onWall ? edge.x : x;
+      const cy = onWall ? edge.y : y;
+
+      if (
+        !draft.addDoor({
+          kind: "single",
+          x: cx - DOOR_CM.w / 2,
+          y: cy - DOOR_CM.h / 2,
+          ...DOOR_CM,
+          rot: onWall ? wrapDegrees(Math.round(edge.angleDeg)) : 0,
+        })
+      ) {
         toast.error(t("Admin.levelFull"));
       }
       return;
@@ -1372,6 +1410,13 @@ export function DrawnPlanEditor({
             onPatch={(patch) => draft.updateRoom(selectedRoom.id, patch)}
             onDelete={draft.removeSelected}
           />
+        ) : selectedDoor ? (
+          <DoorInspector
+            door={selectedDoor}
+            readOnly={readOnly}
+            onPatch={(patch) => draft.updateDoor(selectedDoor.id, patch)}
+            onDelete={draft.removeSelected}
+          />
         ) : selectedMarker ? (
           <MarkerInspector
             marker={selectedMarker}
@@ -1407,6 +1452,134 @@ export function DrawnPlanEditor({
 /* ------------------------------------------------------------------ */
 /* Les trois visages de l'inspecteur                                   */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Le réglage d'orientation, commun à une pièce et à une porte.
+ *
+ * Une porte accrochée à un mur en biais en prend l'angle toute seule ; ce champ
+ * est là pour la reprendre quand l'accrochage a visé le mauvais mur, ou quand on
+ * veut une porte que rien ne porte.
+ */
+function OrientationField({
+  rot,
+  readOnly,
+  onChange,
+}: {
+  rot: number;
+  readOnly: boolean;
+  onChange: (rot: number) => void;
+}) {
+  const t = useTranslations("Places");
+
+  return (
+    <div className="space-y-1.5">
+      <Label>{t("Admin.orientation")}</Label>
+      <div className="grid grid-cols-[auto_1fr_auto] gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={readOnly}
+          onClick={() => onChange(wrapDegrees(rot - SNAP_DEG))}
+        >
+          −{SNAP_DEG}°
+        </Button>
+        <div className="flex h-8 items-center justify-center rounded-md border border-input bg-input/30 font-mono text-xs">
+          {rot}°
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={readOnly}
+          onClick={() => onChange(wrapDegrees(rot + SNAP_DEG))}
+        >
+          +{SNAP_DEG}°
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {[0, 15, 30, 45, 90].map((angle) => (
+          <button
+            key={angle}
+            type="button"
+            disabled={readOnly}
+            onClick={() => onChange(angle)}
+            className={`h-6 rounded border px-2 text-[11px] ${rot === angle ? "border-[#9ED0FF]/45 bg-white/10 text-foreground" : "border-[#9ED0FF]/15 text-muted-foreground"}`}
+          >
+            {angle}°
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        {t("Admin.orientationHint")}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Une porte : sa nature, et son angle.
+ *
+ * Il n'y en avait aucun. La sélection d'une porte existait déjà mais n'ouvrait
+ * rien, donc ni sa nature — simple, double, sas — ni son orientation n'étaient
+ * modifiables une fois posée.
+ */
+function DoorInspector({
+  door,
+  readOnly,
+  onPatch,
+  onDelete,
+}: {
+  door: PlanDoor;
+  readOnly: boolean;
+  onPatch: (patch: Partial<PlanDoor>) => void;
+  onDelete: () => void;
+}) {
+  const t = useTranslations("Places");
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold text-nexus-primary">
+        {t("Admin.doorTitle")}
+      </p>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="door-kind">{t("Admin.doorKind")}</Label>
+        <select
+          id="door-kind"
+          value={door.kind}
+          disabled={readOnly}
+          onChange={(event) =>
+            onPatch({ kind: event.target.value as DoorKind })
+          }
+          className="h-8 w-full rounded-md border border-input bg-input/30 px-2 text-sm"
+        >
+          {DOOR_KINDS.map((kind) => (
+            <option key={kind} value={kind}>
+              {t(`Admin.doorKinds.${kind}`)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <OrientationField
+        rot={door.rot}
+        readOnly={readOnly}
+        onChange={(rot) => onPatch({ rot })}
+      />
+
+      {!readOnly && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-red-400"
+          onClick={onDelete}
+        >
+          <TrashIcon className="size-4" />
+          {t("Admin.doorDelete")}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 function RoomInspector({
   room,
@@ -1511,46 +1684,11 @@ function RoomInspector({
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <Label>{t("Admin.orientation")}</Label>
-        <div className="grid grid-cols-[auto_1fr_auto] gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={readOnly}
-            onClick={() => onPatch({ rot: wrapDegrees(room.rot - SNAP_DEG) })}
-          >
-            −{SNAP_DEG}°
-          </Button>
-          <div className="flex h-8 items-center justify-center rounded-md border border-input bg-input/30 font-mono text-xs">
-            {room.rot}°
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={readOnly}
-            onClick={() => onPatch({ rot: wrapDegrees(room.rot + SNAP_DEG) })}
-          >
-            +{SNAP_DEG}°
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {[0, 15, 30, 45, 90].map((angle) => (
-            <button
-              key={angle}
-              type="button"
-              disabled={readOnly}
-              onClick={() => onPatch({ rot: angle })}
-              className={`h-6 rounded border px-2 text-[11px] ${room.rot === angle ? "border-[#9ED0FF]/45 bg-white/10 text-foreground" : "border-[#9ED0FF]/15 text-muted-foreground"}`}
-            >
-              {angle}°
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted-foreground">
-          {t("Admin.orientationHint")}
-        </p>
-      </div>
+      <OrientationField
+        rot={room.rot}
+        readOnly={readOnly}
+        onChange={(rot) => onPatch({ rot })}
+      />
 
       <div className="flex items-center justify-between text-sm">
         <span>{t("Admin.roomLabelShown")}</span>

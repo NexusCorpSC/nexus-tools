@@ -971,6 +971,15 @@
       "modeNavigate": "Naviguer",
       "modePlace": "Poser un repère",
       "modeHint": "En mode « poser », le clic dépose un repère et le plan ne se déplace plus.",
+      "doorTitle": "Porte",
+      "doorKind": "Nature",
+      "doorKinds": {
+        "single": "Simple",
+        "double": "Double",
+        "airlock": "Sas",
+        "opening": "Ouverture"
+      },
+      "doorDelete": "Supprimer cette porte",
       "markerTitle": "Repère",
       "markerNone": "Aucun repère sélectionné. Cliquez-en un, ou posez-en un nouveau.",
       "markerKindService": "Un service",

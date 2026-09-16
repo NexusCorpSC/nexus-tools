@@ -976,6 +976,15 @@
       "modeNavigate": "Navigate",
       "modePlace": "Place a marker",
       "modeHint": "In placing mode, a click drops a marker and the plan no longer pans.",
+      "doorTitle": "Door",
+      "doorKind": "Kind",
+      "doorKinds": {
+        "single": "Single",
+        "double": "Double",
+        "airlock": "Airlock",
+        "opening": "Opening"
+      },
+      "doorDelete": "Delete this door",
       "markerTitle": "Marker",
       "markerNone": "No marker selected. Click one, or place a new one.",
       "markerKindService": "A service",
