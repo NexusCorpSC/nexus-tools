@@ -1031,6 +1031,26 @@
       "snapCm": "Aimant {step} cm",
       "snapAngle": "Angle {step}°",
       "extent": "{width} × {height} m",
+      "drawnBack": "Retour aux plans",
+      "drawnReadOnly": "Emprunté, lecture seule",
+      "drawnOpen": "Ouvrir la table à dessin",
+      "drawnOpenBorrowed": "Consulter le relevé",
+      "drawnSummary": "{levels, plural, =0 {Aucun niveau} one {# niveau} other {# niveaux}}, {rooms, plural, =0 {aucune pièce} one {# pièce} other {# pièces}}.",
+      "drawnNoPreview": "Ce relevé n'a pas encore d'aperçu. Ouvrez la table à dessin, tracez, puis enregistrez.",
+      "layers": "Calques",
+      "layer": {
+        "rooms": "Murs et pièces",
+        "markers": "Repères",
+        "labels": "Étiquettes",
+        "measures": "Cotes"
+      },
+      "gridToggle": "Grille",
+      "underlay": "Fond de calque",
+      "underlayHint": "Une capture à décalquer, visible ici seulement : ni la planche ni l'export ne la reprennent.",
+      "underlayAdd": "Choisir une image",
+      "underlayRemove": "Retirer le fond",
+      "underlayOpacity": "Opacité {percent} %",
+      "roomFreeHint": "Pièce libre : les cotes donnent la boîte englobante du tracé.",
       "undo": "Annuler",
       "redo": "Rétablir",
       "rotate": "Faire tourner la pièce",
@@ -1054,20 +1074,24 @@
       "tool": {
         "select": "Sélection",
         "room": "Pièce",
+        "poly": "Pièce libre",
         "wall": "Mur",
         "door": "Porte",
         "stair": "Escalier",
         "marker": "Repère",
-        "label": "Étiquette"
+        "label": "Étiquette",
+        "measure": "Cote"
       },
-      "toolShort": {
-        "select": "V",
-        "room": "R",
-        "wall": "M",
-        "door": "D",
-        "stair": "E",
-        "marker": "X",
-        "label": "T"
+      "toolHint": {
+        "select": "Cliquez une pièce pour l'ouvrir dans l'inspecteur, glissez le fond pour déplacer le plan.",
+        "room": "Glissez en diagonale pour tracer une pièce rectangulaire.",
+        "poly": "Cliquez chaque angle. Entrée, ou un clic sur le premier point, referme la pièce.",
+        "wall": "Glissez le long d'une façade : le volume est rendu plein.",
+        "door": "Cliquez sur un mur pour y percer une porte.",
+        "stair": "Glissez sur la trémie : la pièce est une circulation qui monte.",
+        "marker": "Cliquez pour poser un repère de service, à régler dans l'inspecteur.",
+        "label": "Cliquez pour écrire une mention sur le plan.",
+        "measure": "Glissez d'une extrémité à l'autre. La longueur est calculée, jamais saisie."
       },
       "roomKinds": {
         "technical": "Technique",

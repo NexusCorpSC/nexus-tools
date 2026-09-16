@@ -5,13 +5,16 @@ import { nanoid } from "nanoid";
 import {
   MAX_LEVEL_DOORS,
   MAX_LEVEL_LABELS,
+  MAX_LEVEL_MEASURES,
   MAX_LEVEL_ROOMS,
   MAX_PLAN_LEVELS,
   type DrawnPlacePlan,
   type PlanDoor,
   type PlanLabel,
   type PlanLevel,
+  type PlanMeasure,
   type PlanRoom,
+  type PlanUnderlay,
 } from "@/types/places";
 
 /**
@@ -31,11 +34,13 @@ import {
 export const PLAN_TOOLS = [
   "select",
   "room",
+  "poly",
   "wall",
   "door",
   "stair",
   "marker",
   "label",
+  "measure",
 ] as const;
 
 export type PlanTool = (typeof PLAN_TOOLS)[number];
@@ -45,8 +50,16 @@ export type Selection =
   | { kind: "door"; id: string }
   | { kind: "wall"; id: string }
   | { kind: "label"; id: string }
+  | { kind: "measure"; id: string }
   | { kind: "marker"; id: string }
   | null;
+
+/**
+ * Ce qu'on choisit de regarder. Volontairement **hors du plan** : la visibilité
+ * d'un calque est une commodité de celui qui dessine, pas une propriété du
+ * relevé — la mettre en base la ferait voyager d'un membre à l'autre.
+ */
+export type LayerKey = "rooms" | "markers" | "labels" | "measures";
 
 /** Le pas du magnétisme, en centimètres. Vingt-cinq : le quart de mètre. */
 export const SNAP_CM = 25;
@@ -75,6 +88,7 @@ export function emptyLevel(name: string, order: number): PlanLevel {
     walls: [],
     doors: [],
     labels: [],
+    measures: [],
   };
 }
 
@@ -106,6 +120,8 @@ export function usePlanDraft(
   const [selection, setSelection] = useState<Selection>(null);
   const [snap, setSnap] = useState(true);
   const [angleSnap, setAngleSnap] = useState(true);
+  const [grid, setGrid] = useState(true);
+  const [hidden, setHidden] = useState<LayerKey[]>([]);
 
   const past = useRef<DrawnPlacePlan[]>([]);
   const future = useRef<DrawnPlacePlan[]>([]);
@@ -269,6 +285,36 @@ export function usePlanDraft(
     [mutateLevel],
   );
 
+  const addMeasure = useCallback(
+    (measure: Omit<PlanMeasure, "id">) => {
+      if (!level || level.measures.length >= MAX_LEVEL_MEASURES) return null;
+      const id = nanoid();
+      mutateLevel((current) => ({
+        ...current,
+        measures: [...current.measures, { ...measure, id }],
+      }));
+      setSelection({ kind: "measure", id });
+      return id;
+    },
+    [level, mutateLevel],
+  );
+
+  /** Le fond de calque appartient au plan, pas au niveau : on le cale une fois. */
+  const setUnderlay = useCallback(
+    (underlay: PlanUnderlay | undefined) => {
+      apply((current) => ({ ...current, underlay }));
+    },
+    [apply],
+  );
+
+  const toggleLayer = useCallback((layer: LayerKey) => {
+    setHidden((current) =>
+      current.includes(layer)
+        ? current.filter((entry) => entry !== layer)
+        : [...current, layer],
+    );
+  }, []);
+
   /** Efface ce qui est choisi, quelle que soit sa nature. */
   const removeSelected = useCallback(() => {
     if (!selection) return;
@@ -284,6 +330,9 @@ export function usePlanDraft(
         doors: current.doors.filter((door) => door.id !== selection.id),
         walls: current.walls.filter((wall) => wall.id !== selection.id),
         labels: current.labels.filter((label) => label.id !== selection.id),
+        measures: current.measures.filter(
+          (measure) => measure.id !== selection.id,
+        ),
       }));
     }
     setSelection(null);
@@ -371,6 +420,12 @@ export function usePlanDraft(
     updateDoor,
     addLabel,
     updateLabel,
+    addMeasure,
+    setUnderlay,
+    grid,
+    setGrid,
+    hidden,
+    toggleLayer,
     removeSelected,
     addLevel,
     renameLevel,

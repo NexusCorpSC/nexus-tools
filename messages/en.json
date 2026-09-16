@@ -1036,6 +1036,26 @@
       "snapCm": "Snap {step} cm",
       "snapAngle": "Angle {step}°",
       "extent": "{width} × {height} m",
+      "drawnBack": "Back to plans",
+      "drawnReadOnly": "Borrowed, read-only",
+      "drawnOpen": "Open the drawing board",
+      "drawnOpenBorrowed": "View the survey",
+      "drawnSummary": "{levels, plural, =0 {No level} one {# level} other {# levels}}, {rooms, plural, =0 {no room} one {# room} other {# rooms}}.",
+      "drawnNoPreview": "This survey has no preview yet. Open the drawing board, draw, then save.",
+      "layers": "Layers",
+      "layer": {
+        "rooms": "Walls and rooms",
+        "markers": "Markers",
+        "labels": "Labels",
+        "measures": "Dimensions"
+      },
+      "gridToggle": "Grid",
+      "underlay": "Underlay",
+      "underlayHint": "A capture to trace over, visible here only: neither the plate nor the export picks it up.",
+      "underlayAdd": "Pick an image",
+      "underlayRemove": "Remove the underlay",
+      "underlayOpacity": "Opacity {percent}%",
+      "roomFreeHint": "Free room: the dimensions give the bounding box of the outline.",
       "undo": "Undo",
       "redo": "Redo",
       "rotate": "Rotate the room",
@@ -1059,20 +1079,24 @@
       "tool": {
         "select": "Select",
         "room": "Room",
+        "poly": "Free room",
         "wall": "Wall",
         "door": "Door",
         "stair": "Stairs",
         "marker": "Marker",
-        "label": "Label"
+        "label": "Label",
+        "measure": "Dimension"
       },
-      "toolShort": {
-        "select": "V",
-        "room": "R",
-        "wall": "W",
-        "door": "D",
-        "stair": "S",
-        "marker": "X",
-        "label": "T"
+      "toolHint": {
+        "select": "Click a room to open it in the inspector, drag the background to move the plan.",
+        "room": "Drag diagonally to draw a rectangular room.",
+        "poly": "Click each corner. Enter, or a click on the first point, closes the room.",
+        "wall": "Drag along a wall line: the volume renders solid.",
+        "door": "Click on a wall to cut a door through it.",
+        "stair": "Drag over the stairwell: the room is a circulation going up.",
+        "marker": "Click to drop a service marker, then set it in the inspector.",
+        "label": "Click to write a note on the plan.",
+        "measure": "Drag from one end to the other. The length is computed, never typed."
       },
       "roomKinds": {
         "technical": "Technical",

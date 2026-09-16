@@ -1,17 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { nanoid } from "nanoid";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { upload } from "@vercel/blob/client";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
   ArrowsPointingOutIcon,
-  ArrowUturnLeftIcon,
-  ArrowUturnRightIcon,
+  EyeIcon,
+  EyeSlashIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
+  PhotoIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
@@ -20,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
 import { PLAN_THEME, type PlateOptions } from "@/lib/plan-render";
-import { downloadPlatePng } from "./export";
+import { TOOL_GLYPHS, TOOL_KEYS } from "@/lib/plan-symbols";
 import {
   ROOM_FILLS,
   ROOM_KINDS,
@@ -30,6 +38,7 @@ import {
   type RoomFill,
   type RoomKind,
 } from "@/types/places";
+import { downloadPlatePng } from "./export";
 import {
   PLAN_TOOLS,
   SNAP_CM,
@@ -37,17 +46,20 @@ import {
   snapTo,
   usePlanDraft,
   wrapDegrees,
+  type LayerKey,
   type PlanTool,
 } from "./use-plan-draft";
 
 /**
- * L'éditeur d'un relevé dessiné.
+ * L'éditeur d'un relevé dessiné, en plein écran.
  *
- * Le dessin vit dans une couche transformée en CSS, et non dans un `<svg>`,
- * pour la raison que `use-image-viewport.ts` donne déjà : une pièce est alors un
- * vrai nœud du document, qui reçoit le pointeur, le focus et les mêmes styles
- * que le reste de l'administration. Le SVG, lui, sert au rendu — c'est
- * `lib/plan-render.ts` qui le fabrique, à partir des mêmes données.
+ * Le dessin vit dans une couche transformée en CSS, pour la raison que
+ * `use-image-viewport.ts` donne déjà : une pièce est alors un vrai nœud du
+ * document, qui reçoit le pointeur et le focus. Une seule exception, assumée :
+ * **ce qui n'est pas une boîte alignée sur les axes** — pièces libres et cotes —
+ * passe par une couche SVG posée par-dessus, parce qu'un `<div>` ne sait pas
+ * dessiner un hexagone ni une diagonale. Les deux couches partagent le même
+ * repère, celui de l'emprise en centimètres.
  *
  * Les coordonnées manipulées ici sont **toujours des centimètres du relevé**.
  * La conversion depuis l'écran passe par `toNormalized`, qui mesure sur la boîte
@@ -59,6 +71,9 @@ const DOOR_CM = { w: 130, h: 40 };
 
 /** En deçà, un glisser est un clic qui a tremblé, pas une pièce. */
 const MIN_ROOM_CM = 50;
+
+/** La graduation des règles, en pixels d'écran à l'échelle 1. */
+const RULER_STEP = 60;
 
 type Drag =
   | { kind: "draw"; tool: PlanTool; x: number; y: number }
@@ -95,6 +110,32 @@ function metres(cm: number): string {
   return (cm / 100).toFixed(2).replace(".", ",");
 }
 
+/**
+ * Une graduation, en mètres. Sous les dix mètres l'entier ment trop — à fort
+ * zoom, trois graduations d'affilée diraient « 0 » —, au-dessus la décimale ne
+ * sert à rien.
+ */
+function rulerLabel(metresFromOrigin: number): string {
+  if (metresFromOrigin === 0) return "0";
+  return metresFromOrigin < 10
+    ? metresFromOrigin.toFixed(1).replace(".", ",")
+    : String(Math.round(metresFromOrigin));
+}
+
+/** La boîte englobante d'une suite de sommets, pour une pièce libre. */
+function boundsOf(points: number[]) {
+  const xs = points.filter((unused, index) => index % 2 === 0);
+  const ys = points.filter((unused, index) => index % 2 === 1);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return {
+    x,
+    y,
+    w: Math.max(1, Math.max(...xs) - x),
+    h: Math.max(1, Math.max(...ys) - y),
+  };
+}
+
 export function DrawnPlanEditor({
   plan,
   slug,
@@ -103,7 +144,7 @@ export function DrawnPlanEditor({
   readOnly = false,
 }: {
   plan: DrawnPlacePlan;
-  /** Le lieu à qui ce relevé appartient : il nomme le fichier exporté. */
+  /** Le lieu à qui ce relevé appartient : il nomme les fichiers téléversés. */
   slug: string;
   /** L'habillage de la planche — titre, légende, mentions. */
   plate: Omit<PlateOptions, "fontCss">;
@@ -117,8 +158,25 @@ export function DrawnPlanEditor({
 
   /** Le rectangle qu'on est en train de tirer. Rien à voir avec `plan.preview`. */
   const [sketch, setSketch] = useState<PlanRoom | null>(null);
+  /** Les sommets déjà posés d'une pièce libre en cours. */
+  const [poly, setPoly] = useState<number[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  /**
+   * L'origine du plan à l'écran et l'échelle mesurée, pour les règles. Les
+   * valeurs de départ n'ont pas à être justes : le premier `useLayoutEffect`
+   * les remplace avant que quiconque les lise.
+   */
+  const [ruler, setRuler] = useState({
+    x: 0,
+    y: 0,
+    pxPerMetre: RULER_STEP,
+    width: 0,
+    height: 0,
+  });
   const drag = useRef<Drag>(null);
+  const file = useRef<HTMLInputElement>(null);
 
   const {
     containerRef,
@@ -130,16 +188,13 @@ export function DrawnPlanEditor({
     toNormalized,
     stageProps,
     keyboardProps,
-  } = useImageViewport({ enabled: tool === "select", minScale: 0.5 });
+  } = useImageViewport({ enabled: tool === "select", minScale: 0.2 });
 
   /** Un point de l'écran, en centimètres du relevé. */
   const toCm = useCallback(
     (clientX: number, clientY: number) => {
       const fraction = toNormalized(clientX, clientY);
-      return {
-        x: fraction.x * plan.widthCm,
-        y: fraction.y * plan.heightCm,
-      };
+      return { x: fraction.x * plan.widthCm, y: fraction.y * plan.heightCm };
     },
     [plan.heightCm, plan.widthCm, toNormalized],
   );
@@ -153,16 +208,42 @@ export function DrawnPlanEditor({
       ? (plan.markers.find((marker) => marker.id === selection.id) ?? null)
       : null;
 
-  // Supprimer ce qui est choisi, annuler, rétablir : les trois raccourcis qu'on
-  // cherche sans y penser. Ils vivent sur le conteneur, qui a déjà le focus.
+  const shows = useCallback(
+    (layer: LayerKey) => !draft.hidden.includes(layer),
+    [draft.hidden],
+  );
+
+  /** Ferme la pièce libre en cours, si elle a de quoi faire une surface. */
+  const closePoly = useCallback(() => {
+    if (poly.length >= 6) {
+      const box = boundsOf(poly);
+      draft.addRoom({
+        name: "",
+        kind: "technical",
+        ...box,
+        rot: 0,
+        fill: "plain",
+        label: true,
+        points: poly,
+      });
+    }
+    setPoly([]);
+  }, [draft, poly]);
+
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (readOnly) return;
       const meta = event.metaKey || event.ctrlKey;
+
       if (meta && event.key.toLowerCase() === "z") {
         event.preventDefault();
         if (event.shiftKey) draft.redo();
         else draft.undo();
+        return;
+      }
+      if (event.key === "Enter" && poly.length) {
+        event.preventDefault();
+        closePoly();
         return;
       }
       if (event.key === "Delete" || event.key === "Backspace") {
@@ -172,10 +253,34 @@ export function DrawnPlanEditor({
         }
         return;
       }
-      if (event.key === "Escape") setSelection(null);
+      if (event.key === "Escape") {
+        setPoly([]);
+        setSelection(null);
+        return;
+      }
+
+      // Les lettres du rail, celles-là mêmes qui s'affichent sur les boutons.
+      const shortcut = PLAN_TOOLS.find(
+        (entry) => TOOL_KEYS[entry].toLowerCase() === event.key.toLowerCase(),
+      );
+      if (shortcut && !meta) {
+        event.preventDefault();
+        setTool(shortcut);
+        return;
+      }
+
       keyboardProps.onKeyDown(event);
     },
-    [draft, keyboardProps, readOnly, selection, setSelection],
+    [
+      closePoly,
+      draft,
+      keyboardProps,
+      poly.length,
+      readOnly,
+      selection,
+      setSelection,
+      setTool,
+    ],
   );
 
   /* ── Le geste sur la scène ───────────────────────────────────────────── */
@@ -184,8 +289,6 @@ export function DrawnPlanEditor({
     if (readOnly) return;
 
     if (tool === "select") {
-      // Cliquer le vide désélectionne : c'est ce que fait tout éditeur, et sans
-      // ça l'inspecteur montre encore une pièce qu'on ne regarde plus.
       setSelection(null);
       stageProps.onPointerDown(event);
       return;
@@ -195,6 +298,18 @@ export function DrawnPlanEditor({
     const x = snapTo(point.x, SNAP_CM, snap);
     const y = snapTo(point.y, SNAP_CM, snap);
 
+    if (tool === "poly") {
+      // Un clic sur le premier sommet referme, comme dans tout éditeur vectoriel.
+      if (
+        poly.length >= 6 &&
+        Math.hypot(x - poly[0], y - poly[1]) < SNAP_CM * 4
+      ) {
+        closePoly();
+        return;
+      }
+      setPoly((current) => [...current, x, y]);
+      return;
+    }
     if (tool === "door") {
       if (!draft.addDoor({ kind: "single", x, y, ...DOOR_CM, rot: 0 })) {
         toast.error(t("Admin.levelFull"));
@@ -223,13 +338,11 @@ export function DrawnPlanEditor({
       return;
     }
 
-    // Les outils qui tirent un rectangle : pièce, mur, escalier.
+    // Les outils qui tirent : pièce, mur, escalier, cote.
     drag.current = { kind: "draw", tool, x, y };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  // Le même geste sert au fond de scène et aux deux poignées : le type de
-  // l'élément suit, et seule la délégation au déplacement de vue le resserre.
   const onStagePointerMove = (event: React.PointerEvent<Element>) => {
     const current = drag.current;
     if (!current) {
@@ -246,10 +359,12 @@ export function DrawnPlanEditor({
         id: "sketch",
         name: "",
         kind: current.tool === "stair" ? "circulation" : "technical",
-        x: Math.min(current.x, x),
-        y: Math.min(current.y, y),
-        w: Math.max(1, Math.abs(x - current.x)),
-        h: Math.max(1, Math.abs(y - current.y)),
+        x: current.tool === "measure" ? current.x : Math.min(current.x, x),
+        y: current.tool === "measure" ? current.y : Math.min(current.y, y),
+        w:
+          current.tool === "measure" ? x : Math.max(1, Math.abs(x - current.x)),
+        h:
+          current.tool === "measure" ? y : Math.max(1, Math.abs(y - current.y)),
         rot: 0,
         fill: "plain",
         label: true,
@@ -284,8 +399,6 @@ export function DrawnPlanEditor({
     }
 
     if (current.kind === "rotate") {
-      // L'angle du pointeur autour du centre de la pièce. Le quart de tour
-      // d'écart vient de ce qu'une poignée se prend en haut, pas à droite.
       const angle =
         (Math.atan2(point.y - current.cy, point.x - current.cx) * 180) /
           Math.PI +
@@ -303,7 +416,23 @@ export function DrawnPlanEditor({
     drag.current = null;
 
     if (current?.kind === "draw" && sketch) {
-      if (sketch.w >= MIN_ROOM_CM && sketch.h >= MIN_ROOM_CM) {
+      if (current.tool === "measure") {
+        // Pour une cote, le croquis porte les deux extrémités, pas une boîte.
+        if (
+          Math.hypot(sketch.w - sketch.x, sketch.h - sketch.y) >= MIN_ROOM_CM
+        ) {
+          if (
+            !draft.addMeasure({
+              x1: sketch.x,
+              y1: sketch.y,
+              x2: sketch.w,
+              y2: sketch.h,
+            })
+          ) {
+            toast.error(t("Admin.levelFull"));
+          }
+        }
+      } else if (sketch.w >= MIN_ROOM_CM && sketch.h >= MIN_ROOM_CM) {
         const added = draft.addRoom({
           name: "",
           kind: current.tool === "stair" ? "circulation" : "technical",
@@ -326,11 +455,60 @@ export function DrawnPlanEditor({
     stageProps.onPointerUp(event);
   };
 
+  /* ── Le fond de calque ───────────────────────────────────────────────── */
+
+  async function pickUnderlay(event: React.ChangeEvent<HTMLInputElement>) {
+    const picked = event.target.files?.[0];
+    event.target.value = "";
+    if (!picked) return;
+
+    setUploading(true);
+    try {
+      const extension = picked.name.split(".").pop()?.toLowerCase() ?? "png";
+      const size = await new Promise<{ width: number; height: number }>(
+        (resolve, reject) => {
+          const url = URL.createObjectURL(picked);
+          const image = new window.Image();
+          image.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve({ width: image.naturalWidth, height: image.naturalHeight });
+          };
+          image.onerror = reject;
+          image.src = url;
+        },
+      );
+      const blob = await upload(
+        `lieux/${slug}/plans/${plan.id}-calque.${extension}`,
+        picked,
+        { access: "public", handleUploadUrl: "/api/lieux/upload" },
+      );
+      draft.setUnderlay({
+        url: blob.url,
+        width: size.width,
+        height: size.height,
+        x: 0,
+        y: 0,
+        scale: plan.widthCm / size.width,
+        opacity: 0.4,
+      });
+    } catch {
+      toast.error(t("Admin.imageUploadFailed"));
+    } finally {
+      setUploading(false);
+    }
+  }
+
   /* ── Le dessin ───────────────────────────────────────────────────────── */
 
   const pct = (value: number, span: number) => `${(value / span) * 100}%`;
 
-  const roomBox = (room: PlanRoom) => ({
+  const roomBox = (room: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    rot?: number;
+  }) => ({
     left: pct(room.x, plan.widthCm),
     top: pct(room.y, plan.heightCm),
     width: pct(room.w, plan.widthCm),
@@ -340,33 +518,90 @@ export function DrawnPlanEditor({
 
   useEffect(() => {
     if (tool !== "select") setSelection(null);
+    if (tool !== "poly") setPoly([]);
   }, [setSelection, tool]);
+
+  /*
+   * Les règles se mesurent. La boîte du plan est dimensionnée par la mise en
+   * page — hauteur du conteneur, rapport d'aspect de l'emprise — puis mise à
+   * l'échelle par la transformation CSS : aucune constante ne dit combien de
+   * pixels vaut un mètre. Le déduire d'une valeur écrite en dur donnerait des
+   * graduations fausses, et une règle qui ment est pire que pas de règle.
+   */
+  useLayoutEffect(() => {
+    const measure = () => {
+      const stage = containerRef.current?.getBoundingClientRect();
+      const box = imageRef.current?.getBoundingClientRect();
+      if (!stage || !box || box.width <= 0) return;
+      setRuler({
+        x: box.left - stage.left,
+        y: box.top - stage.top,
+        // Le rectangle porte déjà le zoom : la mesure suit toute seule.
+        pxPerMetre: box.width / (plan.widthCm / 100),
+        width: stage.width,
+        height: stage.height,
+      });
+    };
+
+    measure();
+    const node = containerRef.current;
+    if (!node) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [containerRef, imageRef, level?.id, plan.heightCm, plan.widthCm, view]);
 
   if (!level) return null;
 
+  /** Ce qu'une graduation de 60 px vaut en mètres, à l'échelle courante. */
+  const rulerStepMetres = RULER_STEP / ruler.pxPerMetre;
+  const ticksX = Math.ceil(Math.max(0, ruler.width - ruler.x) / RULER_STEP) + 1;
+  const ticksY =
+    Math.ceil(Math.max(0, ruler.height - ruler.y) / RULER_STEP) + 1;
+  /** Le pas du magnétisme, en pixels d'écran : la maille fine de la grille. */
+  const gridFine = (ruler.pxPerMetre * SNAP_CM) / 100;
+  const markers = plan.markers.filter(
+    (marker) => !marker.levelId || marker.levelId === level.id,
+  );
+
   return (
-    <div className="flex h-[640px] overflow-hidden rounded-xl border border-[#9ED0FF]/15">
-      {/* ── Le rail d'outils ── */}
-      <nav className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-[#9ED0FF]/15 bg-card py-2">
-        {PLAN_TOOLS.map((entry) => (
-          <button
-            key={entry}
-            type="button"
-            title={t(`Admin.tool.${entry}`)}
-            aria-label={t(`Admin.tool.${entry}`)}
-            aria-pressed={tool === entry}
-            disabled={readOnly}
-            onClick={() => setTool(entry)}
-            className={`flex size-9 items-center justify-center rounded-md text-[11px] font-semibold uppercase transition-colors disabled:opacity-40 ${
-              tool === entry
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            {t(`Admin.toolShort.${entry}`)}
-          </button>
+    <div className="flex h-full min-h-0 overflow-hidden">
+      {/* ══ Le rail d'outils ══ */}
+      <nav className="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#9ED0FF]/15 bg-card py-2">
+        {PLAN_TOOLS.map((entry, index) => (
+          <div key={entry} className="contents">
+            {index === 4 && <div className="my-1 h-px w-5 bg-[#9ED0FF]/15" />}
+            <button
+              type="button"
+              title={`${t(`Admin.tool.${entry}`)} — ${TOOL_KEYS[entry]}`}
+              aria-label={t(`Admin.tool.${entry}`)}
+              aria-pressed={tool === entry}
+              disabled={readOnly}
+              onClick={() => setTool(entry)}
+              className={`relative flex size-9 items-center justify-center rounded-md transition-colors disabled:opacity-40 ${
+                tool === entry
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="size-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d={TOOL_GLYPHS[entry]} />
+              </svg>
+              <span className="absolute bottom-0 right-0.5 font-mono text-[8px] font-semibold opacity-55">
+                {TOOL_KEYS[entry]}
+              </span>
+            </button>
+          </div>
         ))}
-        <div className="mt-2 h-px w-6 bg-[#9ED0FF]/15" />
+        <div className="my-1 h-px w-5 bg-[#9ED0FF]/15" />
         <Button
           variant="ghost"
           size="icon-sm"
@@ -374,7 +609,17 @@ export function DrawnPlanEditor({
           disabled={readOnly || !draft.canUndo}
           onClick={draft.undo}
         >
-          <ArrowUturnLeftIcon className="size-4" />
+          <svg
+            viewBox="0 0 24 24"
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3" />
+          </svg>
         </Button>
         <Button
           variant="ghost"
@@ -383,85 +628,215 @@ export function DrawnPlanEditor({
           disabled={readOnly || !draft.canRedo}
           onClick={draft.redo}
         >
-          <ArrowUturnRightIcon className="size-4" />
+          <svg
+            viewBox="0 0 24 24"
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 14 5-5-5-5M20 9H9a5 5 0 0 0 0 10h3" />
+          </svg>
         </Button>
       </nav>
 
-      {/* ── Les niveaux ── */}
-      <aside className="w-44 shrink-0 overflow-y-auto border-r border-[#9ED0FF]/15 p-2">
-        <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      {/* ══ Niveaux, calques, fond ══ */}
+      <aside className="flex w-[232px] shrink-0 flex-col overflow-y-auto border-r border-[#9ED0FF]/15">
+        <p className="px-3 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           {t("Admin.levels")}
         </p>
-        {plan.levels.map((entry, index) => (
-          <div
-            key={entry.id}
-            className={`mb-1 rounded-md border p-1.5 transition-colors ${
-              entry.id === level.id
-                ? "border-primary/50 bg-white/5"
-                : "border-transparent hover:bg-accent/40"
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                draft.setLevelId(entry.id);
-                setSelection(null);
-              }}
-              className="block w-full truncate text-left text-sm font-medium"
+        <div className="px-2">
+          {plan.levels.map((entry, index) => (
+            <div
+              key={entry.id}
+              className={`mb-1 rounded-md border p-2 transition-colors ${
+                entry.id === level.id
+                  ? "border-primary/50 bg-white/5"
+                  : "border-transparent hover:bg-accent/40"
+              }`}
             >
-              {entry.name || t("Admin.levelUnnamed")}
+              <button
+                type="button"
+                onClick={() => {
+                  draft.setLevelId(entry.id);
+                  setSelection(null);
+                }}
+                className="flex w-full items-center gap-2 text-left"
+              >
+                <span
+                  className={`flex size-6 shrink-0 items-center justify-center rounded font-mono text-[10px] ${
+                    entry.id === level.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-[#9ED0FF]/10 text-muted-foreground"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {entry.name || t("Admin.levelUnnamed")}
+                  </span>
+                  <span className="block font-mono text-[10px] text-muted-foreground">
+                    {t("Admin.levelCount", { rooms: entry.rooms.length })}
+                  </span>
+                </span>
+              </button>
+              {entry.id === level.id && !readOnly && (
+                <div className="mt-1 flex items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("Admin.planMoveUp")}
+                    disabled={index === 0}
+                    onClick={() => draft.moveLevel(entry.id, -1)}
+                  >
+                    <ArrowUpIcon />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("Admin.planMoveDown")}
+                    disabled={index === plan.levels.length - 1}
+                    onClick={() => draft.moveLevel(entry.id, 1)}
+                  >
+                    <ArrowDownIcon />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("Admin.levelDelete")}
+                    disabled={plan.levels.length <= 1}
+                    onClick={() => draft.removeLevel(entry.id)}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    <TrashIcon />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+          {!readOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={draft.addLevel}
+            >
+              <PlusIcon className="size-4" />
+              {t("Admin.levelAdd")}
+            </Button>
+          )}
+        </div>
+
+        <div className="mx-3 my-3 h-px bg-[#9ED0FF]/15" />
+
+        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t("Admin.layers")}
+        </p>
+        <div className="px-2">
+          {(
+            [
+              ["rooms", PLAN_THEME.wall, level.rooms.length],
+              ["markers", PLAN_THEME.accent, markers.length],
+              ["labels", "#6FB6F0", level.labels.length],
+              ["measures", PLAN_THEME.access, level.measures.length],
+            ] as [LayerKey, string, number][]
+          ).map(([layer, colour, count]) => (
+            <button
+              key={layer}
+              type="button"
+              aria-pressed={shows(layer)}
+              onClick={() => draft.toggleLayer(layer)}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent/40 ${
+                shows(layer) ? "" : "opacity-45"
+              }`}
+            >
+              <span
+                className="size-2.5 shrink-0 rounded-sm"
+                style={{ background: colour }}
+              />
+              <span className="flex-1 text-left">
+                {t(`Admin.layer.${layer}`)}
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {count}
+              </span>
+              {shows(layer) ? (
+                <EyeIcon className="size-3.5 text-muted-foreground" />
+              ) : (
+                <EyeSlashIcon className="size-3.5 text-muted-foreground" />
+              )}
             </button>
-            <p className="font-mono text-[10px] text-muted-foreground">
-              {t("Admin.levelCount", { rooms: entry.rooms.length })}
-            </p>
-            {entry.id === level.id && !readOnly && (
-              <div className="mt-1 flex items-center gap-0.5">
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={t("Admin.planMoveUp")}
-                  disabled={index === 0}
-                  onClick={() => draft.moveLevel(entry.id, -1)}
-                >
-                  <ArrowUpIcon />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={t("Admin.planMoveDown")}
-                  disabled={index === plan.levels.length - 1}
-                  onClick={() => draft.moveLevel(entry.id, 1)}
-                >
-                  <ArrowDownIcon />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={t("Admin.levelDelete")}
-                  disabled={plan.levels.length <= 1}
-                  onClick={() => draft.removeLevel(entry.id)}
-                  className="text-red-400 hover:text-red-300"
-                >
-                  <TrashIcon />
-                </Button>
-              </div>
-            )}
-          </div>
-        ))}
-        {!readOnly && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={draft.addLevel}
-          >
-            <PlusIcon className="size-4" />
-            {t("Admin.levelAdd")}
-          </Button>
-        )}
+          ))}
+        </div>
+
+        <div className="mx-3 my-3 h-px bg-[#9ED0FF]/15" />
+
+        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t("Admin.underlay")}
+        </p>
+        <div className="mx-3 mb-4 rounded-lg border border-dashed border-[#9ED0FF]/25 p-2.5">
+          <p className="mb-2 text-[11px] leading-snug text-muted-foreground">
+            {t("Admin.underlayHint")}
+          </p>
+          <input
+            ref={file}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={pickUnderlay}
+          />
+          {plan.underlay ? (
+            <>
+              <label className="mb-1 block text-[11px] text-muted-foreground">
+                {t("Admin.underlayOpacity", {
+                  percent: Math.round(plan.underlay.opacity * 100),
+                })}
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(plan.underlay.opacity * 100)}
+                disabled={readOnly}
+                onChange={(event) =>
+                  plan.underlay &&
+                  draft.setUnderlay({
+                    ...plan.underlay,
+                    opacity: Number(event.target.value) / 100,
+                  })
+                }
+                className="w-full accent-[#C2E2FF]"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full text-red-400"
+                disabled={readOnly}
+                onClick={() => draft.setUnderlay(undefined)}
+              >
+                <TrashIcon className="size-4" />
+                {t("Admin.underlayRemove")}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              disabled={readOnly || uploading}
+              onClick={() => file.current?.click()}
+            >
+              <PhotoIcon className="size-4" />
+              {uploading ? t("Admin.imageUploading") : t("Admin.underlayAdd")}
+            </Button>
+          )}
+        </div>
       </aside>
 
-      {/* ── La scène ── */}
+      {/* ══ La scène ══ */}
       <main className="flex min-w-0 flex-1 flex-col">
         <div
           ref={containerRef}
@@ -469,15 +844,71 @@ export function DrawnPlanEditor({
           tabIndex={0}
           role="application"
           aria-label={t("Admin.stageLabel")}
-          className="relative flex-1 overflow-hidden bg-[#061E2F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="relative flex-1 overflow-hidden bg-[#061E2F] focus-visible:outline-none"
         >
+          {/* Les règles, graduées en mètres, calées sur le bord du plan. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-[22px] items-end overflow-hidden border-b border-[#9ED0FF]/15 bg-[#092E49]/90">
+            <div className="flex h-2 shrink-0" style={{ marginLeft: ruler.x }}>
+              {Array.from({ length: ticksX }, (unused, index) => (
+                <div
+                  key={index}
+                  className="relative h-2 w-[60px] shrink-0 border-l border-[#9ED0FF]/25"
+                >
+                  <span className="absolute -top-[11px] left-1 font-mono text-[8px] text-muted-foreground">
+                    {rulerLabel(index * rulerStepMetres)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-20 w-[22px] overflow-hidden border-r border-[#9ED0FF]/15 bg-[#092E49]/90">
+            <div style={{ marginTop: ruler.y }}>
+              {Array.from({ length: ticksY }, (unused, index) => (
+                <div
+                  key={index}
+                  className="relative h-[60px] border-t border-[#9ED0FF]/25"
+                >
+                  <span className="absolute left-1 top-0.5 font-mono text-[8px] text-muted-foreground">
+                    {rulerLabel(index * rulerStepMetres)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="pointer-events-none absolute left-0 top-0 z-30 size-[22px] border-b border-r border-[#9ED0FF]/15 bg-[#092E49]/90" />
+
+          {/*
+            La grille, sous le plan et jamais dessus. Son pas fin est celui du
+            magnétisme et son pas large en vaut cinq : ce qu'elle montre, ce
+            sont les positions où une pièce va effectivement se poser. Elle est
+            calée sur l'origine du plan, sinon elle quadrillerait l'écran sans
+            rien dire de l'emprise — et elle s'efface quand la maille descend
+            sous quelques pixels, où elle ne serait plus qu'un aplat.
+          */}
+          {draft.grid && gridFine >= 4 && (
+            <div
+              className="pointer-events-none absolute bottom-0 left-[22px] right-0 top-[22px]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, rgba(158,208,255,0.07) 1px, transparent 1px)," +
+                  "linear-gradient(to bottom, rgba(158,208,255,0.07) 1px, transparent 1px)," +
+                  "linear-gradient(to right, rgba(158,208,255,0.035) 1px, transparent 1px)," +
+                  "linear-gradient(to bottom, rgba(158,208,255,0.035) 1px, transparent 1px)",
+                backgroundSize:
+                  `${gridFine * 5}px ${gridFine * 5}px, ${gridFine * 5}px ${gridFine * 5}px, ` +
+                  `${gridFine}px ${gridFine}px, ${gridFine}px ${gridFine}px`,
+                backgroundPosition: `${ruler.x - 22}px ${ruler.y - 22}px`,
+              }}
+            />
+          )}
+
           <div
             {...stageProps}
             onPointerDown={onStagePointerDown}
             onPointerMove={onStagePointerMove}
             onPointerUp={onStagePointerUp}
             onPointerCancel={onStagePointerUp}
-            className={`absolute inset-0 flex items-center justify-center p-6 ${
+            className={`absolute bottom-0 left-[22px] right-0 top-[22px] flex items-center justify-center p-10 ${
               tool === "select"
                 ? isPanning
                   ? "cursor-grabbing"
@@ -493,58 +924,191 @@ export function DrawnPlanEditor({
                 height: "100%",
               }}
             >
-              {level.rooms.map((room) => {
-                const paint = fillStyle(room.fill);
-                const chosen =
-                  selection?.kind === "room" && selection.id === room.id;
-                return (
-                  <div
-                    key={room.id}
-                    role="button"
-                    tabIndex={-1}
-                    aria-label={room.name || t("Admin.roomUnnamed")}
-                    onPointerDown={(event) => {
-                      if (readOnly || tool !== "select") return;
-                      event.stopPropagation();
-                      const point = toCm(event.clientX, event.clientY);
-                      drag.current = {
-                        kind: "move",
-                        id: room.id,
-                        dx: point.x - room.x,
-                        dy: point.y - room.y,
-                      };
-                      setSelection({ kind: "room", id: room.id });
-                      event.currentTarget.setPointerCapture(event.pointerId);
-                    }}
-                    onPointerMove={onStagePointerMove}
-                    onPointerUp={(event) => {
-                      drag.current = null;
-                      event.currentTarget.releasePointerCapture(
-                        event.pointerId,
-                      );
-                    }}
-                    className="absolute flex items-center justify-center overflow-hidden text-center"
-                    style={{
-                      ...roomBox(room),
-                      background: paint.background,
-                      outline: `2px solid ${chosen ? PLAN_THEME.fg : paint.border}`,
-                      outlineOffset: "-2px",
-                      boxShadow: chosen
-                        ? "0 0 0 2px rgba(143, 203, 255, 0.55)"
-                        : undefined,
-                    }}
-                  >
-                    {room.label && room.name ? (
-                      <span
-                        className="pointer-events-none px-1 text-[10px] font-semibold uppercase leading-tight tracking-wide"
-                        style={{ color: PLAN_THEME.fg }}
+              {plan.underlay ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={plan.underlay.url}
+                  alt=""
+                  draggable={false}
+                  className="pointer-events-none absolute select-none"
+                  style={{
+                    left: pct(plan.underlay.x, plan.widthCm),
+                    top: pct(plan.underlay.y, plan.heightCm),
+                    width: pct(
+                      plan.underlay.width * plan.underlay.scale,
+                      plan.widthCm,
+                    ),
+                    opacity: plan.underlay.opacity,
+                  }}
+                />
+              ) : null}
+
+              {shows("rooms") &&
+                level.rooms
+                  .filter((room) => !room.points?.length)
+                  .map((room) => {
+                    const paint = fillStyle(room.fill);
+                    const chosen =
+                      selection?.kind === "room" && selection.id === room.id;
+                    return (
+                      <div
+                        key={room.id}
+                        role="button"
+                        tabIndex={-1}
+                        aria-label={room.name || t("Admin.roomUnnamed")}
+                        onPointerDown={(event) => {
+                          if (readOnly || tool !== "select") return;
+                          event.stopPropagation();
+                          const point = toCm(event.clientX, event.clientY);
+                          drag.current = {
+                            kind: "move",
+                            id: room.id,
+                            dx: point.x - room.x,
+                            dy: point.y - room.y,
+                          };
+                          setSelection({ kind: "room", id: room.id });
+                          event.currentTarget.setPointerCapture(
+                            event.pointerId,
+                          );
+                        }}
+                        onPointerMove={onStagePointerMove}
+                        onPointerUp={(event) => {
+                          drag.current = null;
+                          event.currentTarget.releasePointerCapture(
+                            event.pointerId,
+                          );
+                        }}
+                        className="absolute flex items-center justify-center overflow-hidden text-center"
+                        style={{
+                          ...roomBox(room),
+                          background: paint.background,
+                          outline: `2px solid ${chosen ? PLAN_THEME.fg : paint.border}`,
+                          outlineOffset: "-2px",
+                          boxShadow: chosen
+                            ? "0 0 0 2px rgba(143, 203, 255, 0.55)"
+                            : undefined,
+                        }}
                       >
-                        {room.name}
-                      </span>
-                    ) : null}
-                  </div>
-                );
-              })}
+                        {room.label && room.name ? (
+                          <span
+                            className="pointer-events-none px-1 text-[10px] font-semibold uppercase leading-tight tracking-wide"
+                            style={{ color: PLAN_THEME.fg }}
+                          >
+                            {room.name}
+                          </span>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+
+              {/*
+                Ce qui n'est pas une boîte alignée sur les axes : pièces libres,
+                cotes, et le tracé en cours. Même repère que les `<div>` — celui
+                de l'emprise en centimètres.
+              */}
+              <svg
+                viewBox={`0 0 ${plan.widthCm} ${plan.heightCm}`}
+                className="pointer-events-none absolute inset-0 size-full"
+              >
+                {shows("rooms") &&
+                  level.rooms
+                    .filter((room) => room.points?.length)
+                    .map((room) => {
+                      const paint = fillStyle(room.fill);
+                      const chosen =
+                        selection?.kind === "room" && selection.id === room.id;
+                      return (
+                        <polygon
+                          key={room.id}
+                          points={(room.points ?? []).join(" ")}
+                          fill={paint.background}
+                          stroke={chosen ? PLAN_THEME.fg : paint.border}
+                          strokeWidth={Math.max(
+                            2,
+                            Math.min(room.w, room.h) * 0.02,
+                          )}
+                          strokeLinejoin="round"
+                          className="pointer-events-auto"
+                          transform={
+                            room.rot
+                              ? `rotate(${room.rot} ${room.x + room.w / 2} ${room.y + room.h / 2})`
+                              : undefined
+                          }
+                          onPointerDown={(event) => {
+                            if (readOnly || tool !== "select") return;
+                            event.stopPropagation();
+                            setSelection({ kind: "room", id: room.id });
+                          }}
+                        />
+                      );
+                    })}
+
+                {shows("measures") &&
+                  level.measures.map((measure) => {
+                    const chosen =
+                      selection?.kind === "measure" &&
+                      selection.id === measure.id;
+                    return (
+                      <g
+                        key={measure.id}
+                        className="pointer-events-auto"
+                        onPointerDown={(event) => {
+                          if (readOnly || tool !== "select") return;
+                          event.stopPropagation();
+                          setSelection({ kind: "measure", id: measure.id });
+                        }}
+                      >
+                        <line
+                          x1={measure.x1}
+                          y1={measure.y1}
+                          x2={measure.x2}
+                          y2={measure.y2}
+                          stroke={chosen ? PLAN_THEME.fg : PLAN_THEME.access}
+                          strokeWidth={Math.max(4, plan.widthCm * 0.003)}
+                        />
+                        <text
+                          x={(measure.x1 + measure.x2) / 2}
+                          y={(measure.y1 + measure.y2) / 2}
+                          dy={-plan.heightCm * 0.015}
+                          fill={PLAN_THEME.access}
+                          fontSize={plan.widthCm * 0.022}
+                          fontFamily="var(--font-geist-mono), monospace"
+                          textAnchor="middle"
+                        >
+                          {metres(
+                            Math.hypot(
+                              measure.x2 - measure.x1,
+                              measure.y2 - measure.y1,
+                            ),
+                          )}{" "}
+                          m
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                {poly.length >= 2 && (
+                  <polyline
+                    points={poly.join(" ")}
+                    fill="rgba(242, 180, 65, 0.1)"
+                    stroke={PLAN_THEME.accent}
+                    strokeWidth={Math.max(3, plan.widthCm * 0.002)}
+                    strokeDasharray={`${plan.widthCm * 0.006} ${plan.widthCm * 0.004}`}
+                  />
+                )}
+
+                {sketch && tool === "measure" && (
+                  <line
+                    x1={sketch.x}
+                    y1={sketch.y}
+                    x2={sketch.w}
+                    y2={sketch.h}
+                    stroke={PLAN_THEME.accent}
+                    strokeWidth={Math.max(4, plan.widthCm * 0.003)}
+                    strokeDasharray={`${plan.widthCm * 0.006} ${plan.widthCm * 0.004}`}
+                  />
+                )}
+              </svg>
 
               {level.doors.map((door) => (
                 <div
@@ -556,11 +1120,7 @@ export function DrawnPlanEditor({
                   }}
                   className="absolute"
                   style={{
-                    left: pct(door.x, plan.widthCm),
-                    top: pct(door.y, plan.heightCm),
-                    width: pct(door.w, plan.widthCm),
-                    height: pct(door.h, plan.heightCm),
-                    transform: door.rot ? `rotate(${door.rot}deg)` : undefined,
+                    ...roomBox(door),
                     background:
                       door.kind === "opening" ? "#061E2F" : PLAN_THEME.wall,
                     outline:
@@ -571,11 +1131,8 @@ export function DrawnPlanEditor({
                 />
               ))}
 
-              {plan.markers
-                .filter(
-                  (marker) => !marker.levelId || marker.levelId === level.id,
-                )
-                .map((marker) => (
+              {shows("markers") &&
+                markers.map((marker) => (
                   <button
                     key={marker.id}
                     type="button"
@@ -602,7 +1159,7 @@ export function DrawnPlanEditor({
                   />
                 ))}
 
-              {sketch ? (
+              {sketch && tool !== "measure" ? (
                 <div
                   className="pointer-events-none absolute border-2 border-dashed"
                   style={{
@@ -613,7 +1170,6 @@ export function DrawnPlanEditor({
                 />
               ) : null}
 
-              {/* La poignée de rotation et celle de taille, sur la pièce choisie. */}
               {selectedRoom && !readOnly ? (
                 <div
                   className="pointer-events-none absolute"
@@ -642,33 +1198,45 @@ export function DrawnPlanEditor({
                       );
                     }}
                   />
-                  <button
-                    type="button"
-                    aria-label={t("Admin.resize")}
-                    className="pointer-events-auto absolute -bottom-1.5 -right-1.5 size-3 cursor-nwse-resize rounded-sm border"
-                    style={{
-                      borderColor: PLAN_THEME.fg,
-                      background: PLAN_THEME.fg,
-                    }}
-                    onPointerDown={(event) => {
-                      event.stopPropagation();
-                      drag.current = { kind: "resize", id: selectedRoom.id };
-                      event.currentTarget.setPointerCapture(event.pointerId);
-                    }}
-                    onPointerMove={onStagePointerMove}
-                    onPointerUp={(event) => {
-                      drag.current = null;
-                      event.currentTarget.releasePointerCapture(
-                        event.pointerId,
-                      );
-                    }}
-                  />
+                  {!selectedRoom.points?.length && (
+                    <button
+                      type="button"
+                      aria-label={t("Admin.resize")}
+                      className="pointer-events-auto absolute -bottom-1.5 -right-1.5 size-3 cursor-nwse-resize rounded-sm border"
+                      style={{
+                        borderColor: PLAN_THEME.fg,
+                        background: PLAN_THEME.fg,
+                      }}
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                        drag.current = { kind: "resize", id: selectedRoom.id };
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                      }}
+                      onPointerMove={onStagePointerMove}
+                      onPointerUp={(event) => {
+                        drag.current = null;
+                        event.currentTarget.releasePointerCapture(
+                          event.pointerId,
+                        );
+                      }}
+                    />
+                  )}
                 </div>
               ) : null}
             </div>
           </div>
 
-          <div className="absolute right-3 top-3 z-10 flex flex-col gap-1">
+          {/* Le HUD : ce que fait l'outil en main, et comment. */}
+          <div className="pointer-events-none absolute left-[34px] top-[34px] z-10 max-w-[260px] rounded-lg border border-[#9ED0FF]/15 bg-[#143B57]/92 px-3 py-2">
+            <b className="block text-xs font-semibold">
+              {t(`Admin.tool.${tool}`)}
+            </b>
+            <span className="text-[11px] leading-snug text-muted-foreground">
+              {t(`Admin.toolHint.${tool}`)}
+            </span>
+          </div>
+
+          <div className="absolute right-3 top-8 z-10 flex flex-col gap-1">
             <Button
               variant="outline"
               size="icon-sm"
@@ -696,33 +1264,48 @@ export function DrawnPlanEditor({
           </div>
         </div>
 
-        {/* ── La barre d'état ── */}
+        {/* ══ La barre d'état ══ */}
         <div className="flex h-9 shrink-0 items-center gap-2 border-t border-[#9ED0FF]/15 bg-card px-2 text-[11px] text-muted-foreground">
-          <button
-            type="button"
-            aria-pressed={snap}
-            onClick={() => draft.setSnap(!snap)}
-            className={`h-6 rounded border px-2 ${snap ? "border-[#9ED0FF]/40 bg-white/10 text-foreground" : "border-[#9ED0FF]/15"}`}
-          >
-            {t("Admin.snapCm", { step: SNAP_CM })}
-          </button>
-          <button
-            type="button"
-            aria-pressed={angleSnap}
-            onClick={() => draft.setAngleSnap(!angleSnap)}
-            className={`h-6 rounded border px-2 ${angleSnap ? "border-[#9ED0FF]/40 bg-white/10 text-foreground" : "border-[#9ED0FF]/15"}`}
-          >
-            {t("Admin.snapAngle", { step: SNAP_DEG })}
-          </button>
-          <span className="font-mono">{level.name}</span>
+          {(
+            [
+              [
+                draft.grid,
+                () => draft.setGrid(!draft.grid),
+                t("Admin.gridToggle"),
+              ],
+              [
+                snap,
+                () => draft.setSnap(!snap),
+                t("Admin.snapCm", { step: SNAP_CM }),
+              ],
+              [
+                angleSnap,
+                () => draft.setAngleSnap(!angleSnap),
+                t("Admin.snapAngle", { step: SNAP_DEG }),
+              ],
+            ] as [boolean, () => void, string][]
+          ).map(([on, toggle, label]) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={on}
+              onClick={toggle}
+              className={`h-6 shrink-0 rounded border px-2 ${on ? "border-[#9ED0FF]/40 bg-white/10 text-foreground" : "border-[#9ED0FF]/15"}`}
+            >
+              {label}
+            </button>
+          ))}
+          <span className="shrink-0 font-mono">{level.name}</span>
           <span className="grow" />
-          <span className="font-mono">
+          <span className="shrink-0 font-mono">
             {t("Admin.extent", {
               width: metres(plan.widthCm),
               height: metres(plan.heightCm),
             })}
           </span>
-          <span className="font-mono">{Math.round(view.scale * 100)} %</span>
+          <span className="shrink-0 font-mono">
+            {Math.round(view.scale * 100)} %
+          </span>
           <button
             type="button"
             disabled={exporting}
@@ -736,15 +1319,15 @@ export function DrawnPlanEditor({
                 setExporting(false);
               }
             }}
-            className="h-6 rounded border border-[#9ED0FF]/15 px-2 hover:bg-accent disabled:opacity-50"
+            className="h-6 shrink-0 rounded border border-[#9ED0FF]/15 px-2 hover:bg-accent disabled:opacity-50"
           >
             {exporting ? t("Admin.exporting") : t("Admin.exportPng")}
           </button>
         </div>
       </main>
 
-      {/* ── L'inspecteur ── */}
-      <aside className="w-64 shrink-0 space-y-3 overflow-y-auto border-l border-[#9ED0FF]/15 p-3">
+      {/* ══ L'inspecteur ══ */}
+      <aside className="w-[296px] shrink-0 space-y-3 overflow-y-auto border-l border-[#9ED0FF]/15 p-3">
         {selectedRoom ? (
           <RoomInspector
             room={selectedRoom}
@@ -850,7 +1433,7 @@ function RoomInspector({
                 aria-pressed={room.fill === fill}
                 disabled={readOnly}
                 onClick={() => onPatch({ fill })}
-                className={`size-7 rounded-md border-2 ${room.fill === fill ? "ring-2 ring-ring" : ""}`}
+                className={`size-8 rounded-md border-2 ${room.fill === fill ? "ring-2 ring-ring" : ""}`}
                 style={{
                   background: paint.background,
                   borderColor: paint.border,
@@ -869,7 +1452,7 @@ function RoomInspector({
               <span className="sr-only">{axis}</span>
               <Input
                 inputMode="decimal"
-                disabled={readOnly}
+                disabled={readOnly || !!room.points?.length}
                 className="h-8 px-1.5 text-center font-mono text-[11px]"
                 value={metres(room[axis])}
                 onChange={(event) => {
@@ -885,7 +1468,9 @@ function RoomInspector({
           ))}
         </div>
         <p className="text-[10px] text-muted-foreground">
-          {t("Admin.roomSizeHint")}
+          {room.points?.length
+            ? t("Admin.roomFreeHint")
+            : t("Admin.roomSizeHint")}
         </p>
       </div>
 
@@ -1052,6 +1637,16 @@ function PlanInspector({
       </p>
 
       <div className="space-y-1.5">
+        <Label htmlFor="plan-name-drawn">{t("Admin.planName")}</Label>
+        <Input
+          id="plan-name-drawn"
+          value={plan.name}
+          disabled={readOnly}
+          onChange={(event) => onPatch({ name: event.target.value })}
+        />
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="level-name">{t("Admin.levelName")}</Label>
         <Input
           id="level-name"
@@ -1064,30 +1659,23 @@ function PlanInspector({
       <div className="space-y-1.5">
         <Label>{t("Admin.planExtent")}</Label>
         <div className="grid grid-cols-2 gap-1.5">
-          <Input
-            inputMode="decimal"
-            disabled={readOnly}
-            className="h-8 text-center font-mono text-[11px]"
-            value={metres(plan.widthCm)}
-            onChange={(event) => {
-              const parsed = Number(event.target.value.replace(",", "."));
-              if (Number.isFinite(parsed) && parsed > 0) {
-                onPatch({ widthCm: Math.round(parsed * 100) });
-              }
-            }}
-          />
-          <Input
-            inputMode="decimal"
-            disabled={readOnly}
-            className="h-8 text-center font-mono text-[11px]"
-            value={metres(plan.heightCm)}
-            onChange={(event) => {
-              const parsed = Number(event.target.value.replace(",", "."));
-              if (Number.isFinite(parsed) && parsed > 0) {
-                onPatch({ heightCm: Math.round(parsed * 100) });
-              }
-            }}
-          />
+          {(["widthCm", "heightCm"] as const).map((axis) => (
+            <Input
+              key={axis}
+              inputMode="decimal"
+              disabled={readOnly}
+              className="h-8 text-center font-mono text-[11px]"
+              value={metres(plan[axis])}
+              onChange={(event) => {
+                const parsed = Number(event.target.value.replace(",", "."));
+                if (Number.isFinite(parsed) && parsed > 0) {
+                  onPatch({
+                    [axis]: Math.round(parsed * 100),
+                  } as Partial<DrawnPlacePlan>);
+                }
+              }}
+            />
+          ))}
         </div>
         <p className="text-[10px] text-muted-foreground">
           {t("Admin.planExtentHint")}

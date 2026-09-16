@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
@@ -28,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { savePlacePlansAction } from "@/app/lieux/actions";
 import { PlanMarker } from "@/app/lieux/plan-marker";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
 import {
@@ -37,15 +37,13 @@ import {
   planImage,
   type DrawnPlacePlan,
   type PlacePlan,
-  type StoredPlacePlan,
   type PlacePlanMarker,
   type PlaceService,
   type PlaceSummary,
 } from "@/types/places";
 import { PlanImageUpload } from "./place-image-upload";
-import { DrawnPlanEditor } from "./drawn-plan-editor";
-import { plateLegend, renderPreview } from "./drawn-plan-editor/export";
 import { emptyDrawnPlan } from "./drawn-plan-editor/use-plan-draft";
+import { usePlanSaver } from "./save-plans";
 import { PlacePicker } from "@/app/lieux/place-picker";
 import { BorrowPlanDialog } from "./borrow-plan-dialog";
 
@@ -65,6 +63,8 @@ export function PlanEditor({
   initialTargets: PlaceSummary[];
 }) {
   const t = useTranslations("Places");
+  const router = useRouter();
+  const { save: savePlans } = usePlanSaver(slug, placeName);
   const [isPending, startTransition] = useTransition();
 
   const [plans, setPlans] = useState<PlacePlan[]>(initialPlans);
@@ -141,6 +141,30 @@ export function PlanEditor({
   };
 
   /**
+   * Ouvre la table à dessin, en enregistrant d'abord ce qui traîne : la route
+   * recharge les plans depuis la base, et une navigation client ne déclenche
+   * pas le `beforeunload` qui protège cette page. Sans cet enregistrement, les
+   * repères posés juste avant seraient perdus sans un mot.
+   */
+  const openDrawnPlan = (planId: string, pending?: PlacePlan[]) => {
+    const go = () => router.push(`/admin/lieux/${slug}/plans/${planId}/dessin`);
+    if (!pending && !dirty) {
+      go();
+      return;
+    }
+    startTransition(async () => {
+      const result = await savePlans(pending ?? plans);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setPlans(result.plans);
+      setDirty(false);
+      go();
+    });
+  };
+
+  /**
    * Un relevé dessiné plutôt qu'une image. C'est la réponse aux lieux dont
    * personne n'a jamais publié de carte : sans lui, la seule façon d'avoir un
    * plan était d'en trouver un ailleurs.
@@ -151,6 +175,9 @@ export function PlanEditor({
     setActiveId(entry.id);
     setSelectedId(null);
     setDirty(true);
+    // La table à dessin est ailleurs : autant y aller tout de suite, plutôt
+    // que de laisser un relevé vide au milieu de la liste.
+    openDrawnPlan(entry.id, [...plans, entry]);
   };
 
   /**
@@ -218,76 +245,14 @@ export function PlanEditor({
     setSelectedId(marker.id);
   };
 
-  /**
-   * Dans l'éditeur, un plan qui porte `borrowedFrom` est un emprunt : on le
-   * manipule comme un plan ordinaire — il s'affiche, il se réordonne — mais à
-   * l'enregistrement il retrouve sa forme d'adresse.
-   *
-   * C'est tout le mécanisme du détachement : retirer `borrowedFrom` à un plan
-   * suffit à en faire le sien, et le prochain enregistrement l'écrit en propre.
-   * Sans cette conversion, le premier enregistrement recopierait chaque
-   * emprunt, et la correction faite chez la source ne se propagerait plus.
-   */
-  const toStored = (entry: PlacePlan): StoredPlacePlan =>
-    entry.borrowedFrom
-      ? {
-          id: entry.id,
-          sourceSlug: entry.borrowedFrom.slug,
-          sourcePlanId: entry.borrowedFrom.planId,
-        }
-      : entry;
-
-  /** Ce que la planche d'un relevé porte en en-tête et en pied de page. */
-  const plateOptions = useCallback(
-    (entry: DrawnPlacePlan) => ({
-      title: placeName,
-      subtitle: entry.name,
-      legend: plateLegend(entry, {
-        door: t("Admin.glyphs.door"),
-        doubleDoor: t("Admin.glyphs.doubleDoor"),
-        airlock: t("Admin.glyphs.airlock"),
-        stairUp: t("Admin.glyphs.stairUp"),
-        stairDown: t("Admin.glyphs.stairDown"),
-        objective: t("Admin.glyphs.objective"),
-        terminal: t("Admin.glyphs.terminal"),
-      }),
-      credits: t("Admin.plateCredits"),
-    }),
-    [placeName, t],
-  );
-
   const save = () => {
     startTransition(async () => {
-      /*
-       * Un relevé dessiné emporte son aperçu rastérisé. C'est lui que lisent
-       * ceux qui ne savent pas dessiner une géométrie — l'overlay de nexus-app,
-       * le fond d'un plan de vol — et le produire ici, au moment où le dessin
-       * est complet, évite d'avoir à le régénérer à la lecture.
-       */
-      const rendered = await Promise.all(
-        plans.map(async (entry) => {
-          if (!isDrawnPlan(entry) || entry.borrowedFrom) return entry;
-          try {
-            const preview = await renderPreview(
-              entry,
-              slug,
-              plateOptions(entry),
-            );
-            return { ...entry, preview };
-          } catch {
-            // L'aperçu est un confort ; le relevé, lui, doit être enregistré.
-            toast.warning(t("Admin.previewFailed"));
-            return entry;
-          }
-        }),
-      );
-
-      const result = await savePlacePlansAction(slug, rendered.map(toStored));
+      const result = await savePlans(plans);
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
-      setPlans(rendered);
+      setPlans(result.plans);
       setDirty(false);
       toast.success(t("Admin.saved"));
     });
@@ -436,18 +401,47 @@ export function PlanEditor({
         </div>
 
         {drawn ? (
-          <DrawnPlanEditor
-            plan={drawn}
-            slug={slug}
-            plate={plateOptions(drawn)}
-            readOnly={!!drawn.borrowedFrom}
-            onChange={(next) => {
-              setPlans((current) =>
-                current.map((entry) => (entry.id === next.id ? next : entry)),
-              );
-              setDirty(true);
-            }}
-          />
+          /*
+           * Un relevé ne se dessine pas ici. La table à dessin veut l'écran
+           * entier — règles, rail, inspecteur — et la colonne de cette page ne
+           * lui en laissait que le tiers. Elle a sa propre route ; cette carte
+           * n'est que la porte d'entrée.
+           */
+          <div className="space-y-4 rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/45 p-6">
+            <div>
+              <h2 className="text-lg font-semibold">{drawn.name}</h2>
+              <p className="text-sm text-muted-foreground">
+                {t("Admin.drawnSummary", {
+                  levels: drawn.levels.length,
+                  rooms: drawn.levels.reduce(
+                    (total, level) => total + level.rooms.length,
+                    0,
+                  ),
+                })}
+              </p>
+            </div>
+
+            {drawn.preview ? (
+              <Image
+                src={drawn.preview.url}
+                alt={drawn.name}
+                width={drawn.preview.width}
+                height={drawn.preview.height}
+                className="w-full rounded-lg border border-[#9ED0FF]/15"
+              />
+            ) : (
+              <p className="rounded-lg border border-dashed border-[#9ED0FF]/25 px-6 py-12 text-center text-sm text-muted-foreground">
+                {t("Admin.drawnNoPreview")}
+              </p>
+            )}
+
+            <Button onClick={() => openDrawnPlan(drawn.id)} disabled={isPending}>
+              <PencilSquareIcon className="size-4" />
+              {drawn.borrowedFrom
+                ? t("Admin.drawnOpenBorrowed")
+                : t("Admin.drawnOpen")}
+            </Button>
+          </div>
         ) : (
           <>
             {/* ── Le plan lui-même ── */}

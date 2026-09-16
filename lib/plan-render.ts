@@ -24,6 +24,7 @@ import {
 import type {
   DrawnPlacePlan,
   PlanLevel,
+  PlanMeasure,
   PlanRoom,
   RoomFill,
 } from "@/types/places";
@@ -103,6 +104,11 @@ export function esc(value: string): string {
 /** Deux décimales suffisent au centimètre, et allègent la chaîne d'autant. */
 function n(value: number): string {
   return Number.isFinite(value) ? String(Math.round(value * 100) / 100) : "0";
+}
+
+/** Des centimètres en mètres, à la française. */
+function metres(value: number): string {
+  return `${(value / 100).toFixed(2).replace(".", ",")} m`;
 }
 
 /** La rotation d'un élément, autour de son propre centre. Vide quand nulle. */
@@ -204,10 +210,22 @@ export function renderLevelBody(
     const cy = room.y + room.h / 2;
     const stroke = Math.max(2, Math.min(room.w, room.h) * 0.02);
 
+    // Une pièce libre est le même objet dessiné autrement : `x/y/w/h` restent sa
+    // boîte englobante, donc la rotation, le hachurage et l'étiquette ne savent
+    // rien de sa forme.
+    const shape = room.points?.length
+      ? `<polygon points="${room.points
+          .map((value, index) => (index % 2 ? `${n(value)} ` : `${n(value)},`))
+          .join("")
+          .trim()}"` +
+        ` fill="${paint.fill}" stroke="${paint.stroke}" stroke-width="${n(stroke)}"` +
+        ` stroke-linejoin="round" />`
+      : `<rect x="${n(room.x)}" y="${n(room.y)}" width="${n(room.w)}" height="${n(room.h)}"` +
+        ` fill="${paint.fill}" stroke="${paint.stroke}" stroke-width="${n(stroke)}" />`;
+
     out +=
       `<g${spin(room.rot, cx, cy)}>` +
-      `<rect x="${n(room.x)}" y="${n(room.y)}" width="${n(room.w)}" height="${n(room.h)}"` +
-      ` fill="${paint.fill}" stroke="${paint.stroke}" stroke-width="${n(stroke)}" />` +
+      shape +
       (room.stair ? stairs(room, theme) : "") +
       `</g>`;
   }
@@ -226,6 +244,10 @@ export function renderLevelBody(
       ` fill="${fill}"${spin(door.rot, door.x + door.w / 2, door.y + door.h / 2)} />`;
   }
 
+  for (const measure of level.measures ?? []) {
+    out += measureLine(measure, theme, withLabels);
+  }
+
   if (withLabels) {
     for (const room of level.rooms) out += roomLabel(room, theme);
 
@@ -236,6 +258,50 @@ export function renderLevelBody(
         ` dominant-baseline="central"${spin(label.rot, label.x, label.y)}>` +
         `${esc(label.text)}</text>`;
     }
+  }
+
+  return out;
+}
+
+/**
+ * Une cote : le trait, ses deux embouts, et la longueur au-dessus.
+ *
+ * La longueur se calcule ici et nulle part ailleurs. Elle n'est pas stockée,
+ * donc elle ne peut pas mentir le jour où l'on déplace ce qu'elle mesure — et
+ * le texte reste droit quelle que soit l'inclinaison du trait, parce qu'une
+ * mesure qu'il faut pencher la tête pour lire n'est pas une mesure.
+ */
+function measureLine(
+  measure: PlanMeasure,
+  theme: PlanTheme,
+  withLabel: boolean,
+): string {
+  const dx = measure.x2 - measure.x1;
+  const dy = measure.y2 - measure.y1;
+  const length = Math.hypot(dx, dy);
+  if (length < 1) return "";
+
+  const width = Math.max(2, length * 0.006);
+  const tick = Math.max(12, length * 0.03);
+  // La normale au trait, pour poser les embouts en travers et décaler le texte.
+  const nx = (-dy / length) * tick;
+  const ny = (dx / length) * tick;
+  const stroke = ` stroke="${theme.accent}" stroke-width="${n(width)}"`;
+
+  let out =
+    `<line x1="${n(measure.x1)}" y1="${n(measure.y1)}"` +
+    ` x2="${n(measure.x2)}" y2="${n(measure.y2)}"${stroke} />` +
+    `<line x1="${n(measure.x1 - nx / 2)}" y1="${n(measure.y1 - ny / 2)}"` +
+    ` x2="${n(measure.x1 + nx / 2)}" y2="${n(measure.y1 + ny / 2)}"${stroke} />` +
+    `<line x1="${n(measure.x2 - nx / 2)}" y1="${n(measure.y2 - ny / 2)}"` +
+    ` x2="${n(measure.x2 + nx / 2)}" y2="${n(measure.y2 + ny / 2)}"${stroke} />`;
+
+  if (withLabel) {
+    const size = Math.max(50, Math.min(120, length / 8));
+    out +=
+      `<text x="${n(measure.x1 + dx / 2 + nx)}" y="${n(measure.y1 + dy / 2 + ny)}"` +
+      ` fill="${theme.accent}" font-family="${MONO_FACE}" font-size="${n(size)}"` +
+      ` text-anchor="middle" dominant-baseline="central">${esc(metres(length))}</text>`;
   }
 
   return out;
