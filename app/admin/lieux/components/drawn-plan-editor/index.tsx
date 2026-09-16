@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -27,7 +28,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
-import { PLAN_THEME, type PlateOptions } from "@/lib/plan-render";
+import {
+  PLAN_THEME,
+  roomLabel,
+  stairs,
+  type PlateOptions,
+} from "@/lib/plan-render";
 import { TOOL_GLYPHS, TOOL_KEYS } from "@/lib/plan-symbols";
 import {
   DOOR_KINDS,
@@ -98,7 +104,24 @@ const UNDERLAY_EXTENSIONS: Record<string, string> = {
 
 type Drag =
   | { kind: "draw"; tool: PlanTool; x: number; y: number }
-  | { kind: "move"; id: string; dx: number; dy: number }
+  /*
+   * Un déplacement porte l'état de la pièce **au début du geste**, pas son
+   * état courant. Une pièce libre garde ses sommets en centimètres absolus :
+   * la bouger, c'est translater le contour autant que la boîte, et recalculer
+   * la translation depuis l'origine plutôt que de la cumuler à chaque
+   * correctif — un glissement en produit une soixantaine, et les cumuler
+   * dérive.
+   */
+  | {
+      kind: "move";
+      id: string;
+      dx: number;
+      dy: number;
+      x0: number;
+      y0: number;
+      points?: number[];
+    }
+  | { kind: "vertex"; id: string; index: number }
   | { kind: "resize"; id: string }
   | { kind: "rotate"; id: string; cx: number; cy: number }
   | null;
@@ -313,6 +336,40 @@ export function DrawnPlanEditor({
 
   /* ── Le geste sur la scène ───────────────────────────────────────────── */
 
+  /**
+   * Prendre une pièce pour la déplacer — rectangle comme pièce libre.
+   *
+   * L'instantané des sommets est pris ici : la translation se calcule depuis
+   * l'origine du geste, jamais en la cumulant correctif après correctif.
+   *
+   * Le `updateRoom` non silencieux ouvre l'entrée d'historique. Sans lui, tout
+   * le glissement passait en silencieux et Ctrl+Z sautait par-dessus le
+   * déplacement entier — ce que l'en-tête de `use-plan-draft.ts` dit pourtant
+   * vouloir éviter.
+   */
+  const beginMove = (room: PlanRoom, event: React.PointerEvent<Element>) => {
+    if (readOnly || tool !== "select") return;
+    event.stopPropagation();
+    const point = toCm(event.clientX, event.clientY);
+    drag.current = {
+      kind: "move",
+      id: room.id,
+      dx: point.x - room.x,
+      dy: point.y - room.y,
+      x0: room.x,
+      y0: room.y,
+      points: room.points?.length ? [...room.points] : undefined,
+    };
+    setSelection({ kind: "room", id: room.id });
+    draft.updateRoom(room.id, {});
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const endDrag = (event: React.PointerEvent<Element>) => {
+    drag.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
   const onStagePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (readOnly) return;
 
@@ -424,14 +481,39 @@ export function DrawnPlanEditor({
     }
 
     if (current.kind === "move") {
+      const nx = snapTo(point.x - current.dx, SNAP_CM, snap);
+      const ny = snapTo(point.y - current.dy, SNAP_CM, snap);
       draft.updateRoom(
         current.id,
         {
-          x: snapTo(point.x - current.dx, SNAP_CM, snap),
-          y: snapTo(point.y - current.dy, SNAP_CM, snap),
+          x: nx,
+          y: ny,
+          // Le contour suit la boîte, sinon les deux se désaccordent et le
+          // pivot, l'étiquette et les poignées suivent un rectangle qui n'est
+          // plus celui de la pièce.
+          ...(current.points
+            ? {
+                points: current.points.map((value, index) =>
+                  index % 2
+                    ? value + (ny - current.y0)
+                    : value + (nx - current.x0),
+                ),
+              }
+            : {}),
         },
         true,
       );
+      return;
+    }
+
+    if (current.kind === "vertex") {
+      const room = level?.rooms.find((entry) => entry.id === current.id);
+      if (!room?.points?.length) return;
+      const points = [...room.points];
+      points[current.index * 2] = snapTo(point.x, SNAP_CM, snap);
+      points[current.index * 2 + 1] = snapTo(point.y, SNAP_CM, snap);
+      // La boîte englobante n'est pas saisie : elle se déduit du contour.
+      draft.updateRoom(current.id, { points, ...boundsOf(points) }, true);
       return;
     }
 
@@ -1031,28 +1113,9 @@ export function DrawnPlanEditor({
                         role="button"
                         tabIndex={-1}
                         aria-label={room.name || t("Admin.roomUnnamed")}
-                        onPointerDown={(event) => {
-                          if (readOnly || tool !== "select") return;
-                          event.stopPropagation();
-                          const point = toCm(event.clientX, event.clientY);
-                          drag.current = {
-                            kind: "move",
-                            id: room.id,
-                            dx: point.x - room.x,
-                            dy: point.y - room.y,
-                          };
-                          setSelection({ kind: "room", id: room.id });
-                          event.currentTarget.setPointerCapture(
-                            event.pointerId,
-                          );
-                        }}
+                        onPointerDown={(event) => beginMove(room, event)}
                         onPointerMove={onStagePointerMove}
-                        onPointerUp={(event) => {
-                          drag.current = null;
-                          event.currentTarget.releasePointerCapture(
-                            event.pointerId,
-                          );
-                        }}
+                        onPointerUp={endDrag}
                         className="absolute flex items-center justify-center overflow-hidden text-center"
                         style={{
                           ...roomBox(room),
@@ -1063,16 +1126,7 @@ export function DrawnPlanEditor({
                             ? "0 0 0 2px rgba(143, 203, 255, 0.55)"
                             : undefined,
                         }}
-                      >
-                        {room.label && room.name ? (
-                          <span
-                            className="pointer-events-none px-1 text-[10px] font-semibold uppercase leading-tight tracking-wide"
-                            style={{ color: PLAN_THEME.fg }}
-                          >
-                            {room.name}
-                          </span>
-                        ) : null}
-                      </div>
+                      />
                     );
                   })}
 
@@ -1092,31 +1146,134 @@ export function DrawnPlanEditor({
                       const paint = fillStyle(room.fill);
                       const chosen =
                         selection?.kind === "room" && selection.id === room.id;
+                      const spin = room.rot
+                        ? `rotate(${room.rot} ${room.x + room.w / 2} ${room.y + room.h / 2})`
+                        : undefined;
                       return (
-                        <polygon
-                          key={room.id}
-                          points={(room.points ?? []).join(" ")}
-                          fill={paint.background}
-                          stroke={chosen ? PLAN_THEME.fg : paint.border}
-                          strokeWidth={Math.max(
-                            2,
-                            Math.min(room.w, room.h) * 0.02,
-                          )}
-                          strokeLinejoin="round"
-                          className="pointer-events-auto"
-                          transform={
-                            room.rot
-                              ? `rotate(${room.rot} ${room.x + room.w / 2} ${room.y + room.h / 2})`
-                              : undefined
-                          }
-                          onPointerDown={(event) => {
-                            if (readOnly || tool !== "select") return;
-                            event.stopPropagation();
-                            setSelection({ kind: "room", id: room.id });
-                          }}
-                        />
+                        <Fragment key={room.id}>
+                          {/*
+                            La forme et son hachurage tournent avec la pièce ;
+                            le nom, lui, porte déjà sa propre rotation — celle
+                            qui se retourne pour rester lisible — et le mettre
+                            dans ce groupe la lui appliquerait deux fois.
+                          */}
+                          <g transform={spin}>
+                            <polygon
+                              points={(room.points ?? []).join(" ")}
+                              fill={paint.background}
+                              stroke={chosen ? PLAN_THEME.fg : paint.border}
+                              strokeWidth={Math.max(
+                                2,
+                                Math.min(room.w, room.h) * 0.02,
+                              )}
+                              strokeLinejoin="round"
+                              className="pointer-events-auto"
+                              aria-label={room.name || t("Admin.roomUnnamed")}
+                              onPointerDown={(event) => beginMove(room, event)}
+                              onPointerMove={onStagePointerMove}
+                              onPointerUp={endDrag}
+                            />
+                            {room.stair ? (
+                              <g
+                                className="pointer-events-none"
+                                dangerouslySetInnerHTML={{
+                                  __html: stairs(room, PLAN_THEME),
+                                }}
+                              />
+                            ) : null}
+                          </g>
+                          {shows("labels") ? (
+                            <g
+                              className="pointer-events-none"
+                              dangerouslySetInnerHTML={{
+                                __html: roomLabel(room, PLAN_THEME),
+                              }}
+                            />
+                          ) : null}
+                        </Fragment>
                       );
                     })}
+
+                {/*
+                  Nom et hachurage des pièces rectangulaires. Elles sont
+                  dessinées en `<div>` dans la couche du dessous, qui ne sait
+                  tracer ni des marches ni un nom incliné ; cette couche-ci
+                  partage le repère du moteur et passe au-dessus, donc elle
+                  montre exactement ce que la planche montrera.
+
+                  Le nom était jusqu'ici un `<span>` centré dans le `<div>`.
+                  C'était une deuxième mise en page de l'étiquette, qui ignorait
+                  que le moteur remonte un nom au-dessus du hachurage d'un
+                  escalier — les deux se seraient chevauchés dès que l'éditeur
+                  s'est mis à dessiner les marches.
+                */}
+                {shows("rooms") &&
+                  level.rooms
+                    .filter((room) => !room.points?.length)
+                    .map((room) => (
+                      <Fragment key={`decor-${room.id}`}>
+                        {room.stair ? (
+                          <g
+                            className="pointer-events-none"
+                            transform={
+                              room.rot
+                                ? `rotate(${room.rot} ${room.x + room.w / 2} ${room.y + room.h / 2})`
+                                : undefined
+                            }
+                            dangerouslySetInnerHTML={{
+                              __html: stairs(room, PLAN_THEME),
+                            }}
+                          />
+                        ) : null}
+                        {shows("labels") ? (
+                          <g
+                            className="pointer-events-none"
+                            dangerouslySetInnerHTML={{
+                              __html: roomLabel(room, PLAN_THEME),
+                            }}
+                          />
+                        ) : null}
+                      </Fragment>
+                    ))}
+
+                {/*
+                  Les poignées d'une pièce libre sélectionnée : un sommet se
+                  reprend sans avoir à effacer et retracer toute la pièce.
+                */}
+                {!readOnly &&
+                tool === "select" &&
+                selectedRoom?.points?.length &&
+                selectedRoom.points.length >= 6
+                  ? Array.from(
+                      { length: selectedRoom.points.length / 2 },
+                      (unused, index) => (
+                        <circle
+                          key={`vertex-${index}`}
+                          cx={selectedRoom.points![index * 2]}
+                          cy={selectedRoom.points![index * 2 + 1]}
+                          r={Math.max(12, plan.widthCm * 0.006)}
+                          fill={PLAN_THEME.field}
+                          stroke={PLAN_THEME.accent}
+                          strokeWidth={Math.max(3, plan.widthCm * 0.0016)}
+                          className="pointer-events-auto cursor-move"
+                          onPointerDown={(event) => {
+                            event.stopPropagation();
+                            drag.current = {
+                              kind: "vertex",
+                              id: selectedRoom.id,
+                              index,
+                            };
+                            draft.updateRoom(selectedRoom.id, {});
+                            event.currentTarget.setPointerCapture(
+                              event.pointerId,
+                            );
+                          }}
+                          onPointerMove={onStagePointerMove}
+                          onPointerUp={endDrag}
+                        />
+                      ),
+                    )
+                  : null}
 
                 {shows("measures") &&
                   level.measures.map((measure) => {

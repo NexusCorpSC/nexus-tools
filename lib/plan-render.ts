@@ -21,6 +21,7 @@ import {
   PLAN_GLYPHS,
   type PlanGlyph,
 } from "@/lib/plan-symbols";
+import { polygonCentroid } from "@/lib/plan-geometry";
 import type {
   DrawnPlacePlan,
   PlanLevel,
@@ -158,11 +159,38 @@ export type LevelOptions = {
   labels?: boolean;
 };
 
+/** Les sommets d'un contour, au format qu'attend `points`. */
+function roomPolygonPoints(points: number[]): string {
+  return points
+    .map((value, index) => (index % 2 ? `${n(value)} ` : `${n(value)},`))
+    .join("")
+    .trim();
+}
+
+/**
+ * L'inclinaison d'une étiquette, pour qu'elle ne se lise jamais à l'envers.
+ *
+ * Au-delà du quart de tour, le texte suivait la pièce jusqu'à se retrouver la
+ * tête en bas. Un demi-tour de plus le remet debout sans changer la ligne qu'il
+ * suit : c'est la convention des plans d'architecte.
+ */
+function readableAngle(rot: number): number {
+  return rot > 90 || rot < -90 ? rot + 180 : rot;
+}
+
 /**
  * Le hachurage d'un escalier : cinq marches dans la moitié basse de la pièce,
- * sous l'étiquette plutôt qu'à travers.
+ * sous l'étiquette plutôt qu'à travers, et le glyphe qui dit **où ça mène**.
+ *
+ * Le sens manquait. `room.stair` n'était testé qu'en vérité : « monte » et
+ * « descend » sortaient identiques, et le choix fait dans l'inspecteur — stocké,
+ * normalisé, relu — était jeté au moment de dessiner.
+ *
+ * Exporté parce que l'éditeur s'en sert : sa couche SVG partage le repère en
+ * centimètres du moteur, donc elle affiche la même hachure que la planche au
+ * lieu d'en réinventer une qui finirait par diverger.
  */
-function stairs(room: PlanRoom, theme: PlanTheme): string {
+export function stairs(room: PlanRoom, theme: PlanTheme): string {
   const inset = Math.min(room.w, room.h) * 0.14;
   const top = room.y + room.h * 0.45;
   const span = room.h * 0.42;
@@ -177,16 +205,43 @@ function stairs(room: PlanRoom, theme: PlanTheme): string {
       ` stroke="${theme.wall}" stroke-width="${n(Math.max(2, room.h * 0.012))}"` +
       ` opacity="0.65" />`;
   }
+
+  if (room.stair === "up" || room.stair === "down") {
+    const size = Math.min(room.w, room.h) * 0.22;
+    out += glyph(
+      room.stair === "up" ? "stairUp" : "stairDown",
+      room.x + room.w / 2 - size / 2,
+      top + span / 2 - size / 2,
+      size,
+      theme.accent,
+    );
+  }
+
   return out;
 }
 
-function roomLabel(room: PlanRoom, theme: PlanTheme): string {
+/**
+ * Le nom d'une pièce, posé dans la pièce.
+ *
+ * Exporté pour la même raison que `stairs` : l'éditeur ne dessinait pas le nom
+ * d'une pièce libre, et plutôt que d'écrire une troisième mise en page
+ * d'étiquette, il appelle celle-ci.
+ */
+export function roomLabel(room: PlanRoom, theme: PlanTheme): string {
   if (!room.label || !room.name) return "";
 
   const size = Math.max(45, Math.min(130, Math.min(room.w, room.h) / 5));
-  const cx = room.x + room.w / 2;
+  /*
+   * Le centre d'une pièce libre est son centre de gravité, pas celui de sa
+   * boîte : sur une pièce en L, le centre de la boîte tombe dans l'échancrure,
+   * donc hors de la pièce, et le nom avec lui.
+   */
+  const middle = room.points?.length
+    ? polygonCentroid(room.points)
+    : { x: room.x + room.w / 2, y: room.y + room.h / 2 };
+  const cx = middle.x;
   // Un escalier porte son hachurage en bas : son nom monte pour lui laisser la place.
-  const cy = room.stair ? room.y + room.h * 0.22 : room.y + room.h / 2;
+  const cy = room.stair ? room.y + room.h * 0.22 : middle.y;
   const lines = twoLines(
     room.name,
     Math.max(10, Math.floor(room.w / size) * 2),
@@ -204,7 +259,7 @@ function roomLabel(room: PlanRoom, theme: PlanTheme): string {
     ` font-family="${DISPLAY_FACE}" font-size="${n(size)}"` +
     ` font-weight="600" letter-spacing="${n(size * 0.06)}"` +
     ` text-anchor="middle" dominant-baseline="central"` +
-    `${spin(room.rot, cx, room.y + room.h / 2)}>${tspans}</text>`
+    `${spin(readableAngle(room.rot), cx, middle.y)}>${tspans}</text>`
   );
 }
 
@@ -224,23 +279,34 @@ export function renderLevelBody(
     const stroke = Math.max(2, Math.min(room.w, room.h) * 0.02);
 
     // Une pièce libre est le même objet dessiné autrement : `x/y/w/h` restent sa
-    // boîte englobante, donc la rotation, le hachurage et l'étiquette ne savent
-    // rien de sa forme.
-    const shape = room.points?.length
-      ? `<polygon points="${room.points
-          .map((value, index) => (index % 2 ? `${n(value)} ` : `${n(value)},`))
-          .join("")
-          .trim()}"` +
+    // boîte englobante, donc la rotation et la sélection ne savent rien de sa
+    // forme. Le hachurage, lui, la connaît maintenant — voir plus bas.
+    const outline = room.points?.length ? roomPolygonPoints(room.points) : "";
+    const shape = outline
+      ? `<polygon points="${outline}"` +
         ` fill="${paint.fill}" stroke="${paint.stroke}" stroke-width="${n(stroke)}"` +
         ` stroke-linejoin="round" />`
       : `<rect x="${n(room.x)}" y="${n(room.y)}" width="${n(room.w)}" height="${n(room.h)}"` +
         ` fill="${paint.fill}" stroke="${paint.stroke}" stroke-width="${n(stroke)}" />`;
 
-    out +=
-      `<g${spin(room.rot, cx, cy)}>` +
-      shape +
-      (room.stair ? stairs(room, theme) : "") +
-      `</g>`;
+    /*
+     * Le hachurage d'escalier se calcule sur la boîte englobante. Dans une cage
+     * en L, il déborderait donc de la pièce : on le découpe au contour.
+     *
+     * C'est le seul `id` que ce moteur émette, et il vaut d'être justifié —
+     * un identifiant est global au document, donc deux rendus du même relevé
+     * sur une page se marcheraient dessus. Celui-ci porte l'identifiant de la
+     * pièce, un nanoid, et aucune de nos trois sorties n'affiche deux fois le
+     * même niveau.
+     */
+    const hatch = room.stair ? stairs(room, theme) : "";
+    const clipped =
+      hatch && outline
+        ? `<clipPath id="stair-${room.id}"><polygon points="${outline}" /></clipPath>` +
+          `<g clip-path="url(#stair-${room.id})">${hatch}</g>`
+        : hatch;
+
+    out += `<g${spin(room.rot, cx, cy)}>` + shape + clipped + `</g>`;
   }
 
   for (const wall of level.walls) {
