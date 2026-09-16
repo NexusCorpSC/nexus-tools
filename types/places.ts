@@ -13,6 +13,8 @@
  * un autre lieu — et ce repère-là ouvre le plan de ce lieu.
  */
 
+import type { PlanGlyph } from "@/lib/plan-symbols";
+
 export const PLACE_TYPES = [
   "star",
   "planet",
@@ -150,10 +152,18 @@ export function toPlaceSlug(value: string): string {
 }
 
 /**
- * Un repère posé sur un plan. Il porte soit un service, soit un autre lieu —
- * jamais les deux, jamais aucun des deux. Sa couleur n'est pas stockée : elle
- * se déduit du type du lieu visé, pour qu'un magasin devenu quartier change
- * d'allure partout sans qu'on ait à repasser sur les plans.
+ * Un repère posé sur un plan. Il porte **une seule** de trois choses : un
+ * service, un autre lieu, ou un symbole.
+ *
+ * Le symbole est le cas neuf. Un service est ce qu'on vient chercher sur place
+ * et un lieu est une porte vers ailleurs — mais une caisse à fouiller, une
+ * caméra, une clé de sécurité ne sont ni l'un ni l'autre, et un relevé qui ne
+ * sait pas les montrer oblige à détourner un service pour dire autre chose que
+ * ce qu'il dit.
+ *
+ * Sa couleur n'est pas stockée : elle se déduit du type du lieu visé, pour
+ * qu'un magasin devenu quartier change d'allure partout sans qu'on ait à
+ * repasser sur les plans.
  */
 export type PlacePlanMarker = {
   /** nanoid : la clé React, l'ancre `?pin=`, et l'identité pendant le glisser. */
@@ -170,6 +180,8 @@ export type PlacePlanMarker = {
   service?: PlaceService;
   /** Le slug du lieu que ce repère ouvre. */
   targetSlug?: string;
+  /** Le dessin d'un repère qui ne désigne ni un service ni un lieu. */
+  glyph?: PlanGlyph;
   label?: string;
   /** Une précision libre : « deuxième étage », « entrée nord ». */
   note?: string;

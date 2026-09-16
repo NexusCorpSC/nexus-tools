@@ -7,6 +7,7 @@ import type {
   UpdateFilter,
 } from "mongodb";
 import db from "@/lib/db";
+import { isPlanGlyph, type PlanGlyph } from "@/lib/plan-symbols";
 import {
   isDoorKind,
   isPlaceService,
@@ -213,20 +214,41 @@ function normalizeMarkers(value: unknown): PlacePlanMarker[] {
     .map((rawMarker) => {
       const marker = rawMarker as Partial<PlacePlanMarker>;
       const service = text(marker.service, 40);
+      const glyph = text(marker.glyph, 40);
       const targetSlug = marker.targetSlug
         ? toPlaceSlug(text(marker.targetSlug, MAX_PLACE_NAME_LENGTH))
         : "";
       if (!marker.id) return null;
-      if (!targetSlug && !isPlaceService(service)) return null;
+      // Un repère doit désigner quelque chose : un lieu, un service, ou — c'est
+      // le cas neuf — un simple symbole, pour ce qui n'est ni l'un ni l'autre.
+      if (!targetSlug && !isPlaceService(service) && !isPlanGlyph(glyph)) {
+        return null;
+      }
 
       return withoutUndefined({
         id: text(marker.id, 40),
         x: clampFraction(marker.x),
         y: clampFraction(marker.y),
         levelId: optionalText(marker.levelId, 40),
-        // Une cible l'emporte sur un service : c'est elle qui ouvre un plan.
-        service: targetSlug ? undefined : (service as PlaceService),
+        /*
+         * Une cible l'emporte sur un service, qui l'emporte sur un symbole :
+         * une seule des trois natures survit, dans cet ordre.
+         *
+         * Chaque champ est gardé par son propre validateur, et pas seulement
+         * par l'ordre. Tant que la garde ci-dessus exigeait un service valide
+         * faute de cible, la conversion allait de soi ; depuis qu'un symbole
+         * suffit, un repère pouvait arriver avec un symbole correct **et** un
+         * service inventé, et ce dernier partait en base tel quel.
+         */
+        service:
+          !targetSlug && isPlaceService(service)
+            ? (service as PlaceService)
+            : undefined,
         targetSlug: targetSlug || undefined,
+        glyph:
+          !targetSlug && !isPlaceService(service) && isPlanGlyph(glyph)
+            ? (glyph as PlanGlyph)
+            : undefined,
         label: optionalText(marker.label, MAX_PLACE_NAME_LENGTH),
         note: optionalText(marker.note, MAX_PLACE_NAME_LENGTH),
       }) as PlacePlanMarker;

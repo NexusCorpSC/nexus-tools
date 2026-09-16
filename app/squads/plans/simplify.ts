@@ -1,3 +1,4 @@
+import { projectOnSegment } from "@/lib/plan-geometry";
 import { PLAN_GRID, STROKE_MAX_POINTS } from "@/types/plan";
 
 /**
@@ -19,31 +20,6 @@ import { PLAN_GRID, STROKE_MAX_POINTS } from "@/types/plan";
  * freehand arc comes out at twenty to sixty pairs.
  */
 const EPSILON = 6;
-
-/** Squared distance from `p` to the segment `a…b`, avoiding a square root. */
-function sqDistanceToSegment(
-  px: number,
-  py: number,
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
-): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-
-  if (dx === 0 && dy === 0) {
-    return (px - ax) ** 2 + (py - ay) ** 2;
-  }
-
-  // Where the foot of the perpendicular falls along the segment, clamped to it.
-  const t = Math.max(
-    0,
-    Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)),
-  );
-
-  return (px - (ax + t * dx)) ** 2 + (py - (ay + t * dy)) ** 2;
-}
 
 /**
  * Ramer–Douglas–Peucker, iteratively.
@@ -71,13 +47,10 @@ function rdp(points: number[], epsilon: number): number[] {
     let at = -1;
 
     for (let index = first + 1; index < last; index += 1) {
-      const distance = sqDistanceToSegment(
-        points[index * 2],
-        points[index * 2 + 1],
-        points[first * 2],
-        points[first * 2 + 1],
-        points[last * 2],
-        points[last * 2 + 1],
+      const { distSq: distance } = projectOnSegment(
+        { x: points[index * 2], y: points[index * 2 + 1] },
+        { x: points[first * 2], y: points[first * 2 + 1] },
+        { x: points[last * 2], y: points[last * 2 + 1] },
       );
 
       if (distance > worst) {

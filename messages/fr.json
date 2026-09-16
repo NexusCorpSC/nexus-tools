@@ -971,6 +971,15 @@
       "modeNavigate": "Naviguer",
       "modePlace": "Poser un repère",
       "modeHint": "En mode « poser », le clic dépose un repère et le plan ne se déplace plus.",
+      "doorTitle": "Porte",
+      "doorKind": "Nature",
+      "doorKinds": {
+        "single": "Simple",
+        "double": "Double",
+        "airlock": "Sas",
+        "opening": "Ouverture"
+      },
+      "doorDelete": "Supprimer cette porte",
       "markerTitle": "Repère",
       "markerNone": "Aucun repère sélectionné. Cliquez-en un, ou posez-en un nouveau.",
       "markerKindService": "Un service",
@@ -1122,11 +1131,34 @@
         "stairUp": "Escalier (montée)",
         "stairDown": "Escalier (descente)",
         "objective": "Objectif",
-        "terminal": "Repère"
+        "terminal": "Repère",
+        "lift": "Ascenseur",
+        "ladder": "Échelle",
+        "glazing": "Baie vitrée",
+        "spawn": "Point d’apparition",
+        "exit": "Sortie de secours",
+        "locker": "Casier",
+        "care": "Soins",
+        "hazard": "Danger",
+        "crate": "Caisse",
+        "key": "Clé de sécurité",
+        "camera": "Caméra",
+        "turret": "Tourelle",
+        "breaker": "Boîtier électrique",
+        "lockedDoor": "Porte verrouillée",
+        "listening": "Point d’écoute",
+        "deposit": "Gisement",
+        "wreck": "Épave",
+        "container": "Conteneur abandonné",
+        "supply": "Ravitaillement"
       },
       "plateHint": "Imprimez cette page pour en faire un PDF.",
       "platePrint": "Imprimer",
-      "levelFull": "Ce niveau a atteint sa limite."
+      "levelFull": "Ce niveau a atteint sa limite.",
+      "markerKind": {
+        "service": "Un service",
+        "glyph": "Un symbole"
+      }
     },
     "useAsBackground": "Fond de plan de vol",
     "useAsBackgroundHint": "Utiliser ce relevé comme fond d'un plan de vol.",

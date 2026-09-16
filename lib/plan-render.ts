@@ -18,11 +18,15 @@
 import {
   GLYPH_GRID,
   GLYPH_STROKE,
+  PLACE_SERVICE_GLYPHS,
   PLAN_GLYPHS,
   type PlanGlyph,
 } from "@/lib/plan-symbols";
+import { polygonCentroid, rotatePoint } from "@/lib/plan-geometry";
 import type {
   DrawnPlacePlan,
+  PlacePlanMarker,
+  PlanLabel,
   PlanLevel,
   PlanMeasure,
   PlanRoom,
@@ -111,6 +115,19 @@ function metres(value: number): string {
   return `${(value / 100).toFixed(2).replace(".", ",")} m`;
 }
 
+/**
+ * Un facteur d'échelle, avec assez de décimales pour ne pas mentir.
+ *
+ * `n()` arrondit au centième, ce qui convient à un centimètre de relevé mais
+ * ruine un rapport : à partir d'environ 2 528 m d'emprise — que
+ * `MAX_PLAN_EXTENT_CM` autorise largement — le rapport passait sous 0,005,
+ * s'arrondissait à zéro, et la planche sortait avec son titre, son échelle et
+ * un vide à la place du plan.
+ */
+function ratio(value: number): string {
+  return Number.isFinite(value) && value > 0 ? value.toPrecision(8) : "0";
+}
+
 /** La rotation d'un élément, autour de son propre centre. Vide quand nulle. */
 function spin(rot: number, cx: number, cy: number): string {
   return rot ? ` transform="rotate(${n(rot)} ${n(cx)} ${n(cy)})"` : "";
@@ -143,13 +160,47 @@ export type LevelOptions = {
   background?: boolean;
   /** Graver les noms de pièce. Faux pour une vignette, où ils seraient illisibles. */
   labels?: boolean;
+  /**
+   * Les repères de ce niveau, à graver. Absents, ils ne le sont pas — le
+   * visualiseur pose les siens en boutons focusables par-dessus le SVG.
+   */
+  markers?: PlacePlanMarker[];
+  /** L'emprise, pour convertir les fractions d'un repère en centimètres. */
+  extentCm?: { width: number; height: number };
 };
+
+/** Les sommets d'un contour, au format qu'attend `points`. */
+function roomPolygonPoints(points: number[]): string {
+  return points
+    .map((value, index) => (index % 2 ? `${n(value)} ` : `${n(value)},`))
+    .join("")
+    .trim();
+}
+
+/**
+ * L'inclinaison d'une étiquette, pour qu'elle ne se lise jamais à l'envers.
+ *
+ * Au-delà du quart de tour, le texte suivait la pièce jusqu'à se retrouver la
+ * tête en bas. Un demi-tour de plus le remet debout sans changer la ligne qu'il
+ * suit : c'est la convention des plans d'architecte.
+ */
+function readableAngle(rot: number): number {
+  return rot > 90 || rot < -90 ? rot + 180 : rot;
+}
 
 /**
  * Le hachurage d'un escalier : cinq marches dans la moitié basse de la pièce,
- * sous l'étiquette plutôt qu'à travers.
+ * sous l'étiquette plutôt qu'à travers, et le glyphe qui dit **où ça mène**.
+ *
+ * Le sens manquait. `room.stair` n'était testé qu'en vérité : « monte » et
+ * « descend » sortaient identiques, et le choix fait dans l'inspecteur — stocké,
+ * normalisé, relu — était jeté au moment de dessiner.
+ *
+ * Exporté parce que l'éditeur s'en sert : sa couche SVG partage le repère en
+ * centimètres du moteur, donc elle affiche la même hachure que la planche au
+ * lieu d'en réinventer une qui finirait par diverger.
  */
-function stairs(room: PlanRoom, theme: PlanTheme): string {
+export function stairs(room: PlanRoom, theme: PlanTheme): string {
   const inset = Math.min(room.w, room.h) * 0.14;
   const top = room.y + room.h * 0.45;
   const span = room.h * 0.42;
@@ -164,16 +215,56 @@ function stairs(room: PlanRoom, theme: PlanTheme): string {
       ` stroke="${theme.wall}" stroke-width="${n(Math.max(2, room.h * 0.012))}"` +
       ` opacity="0.65" />`;
   }
+
+  if (room.stair === "up" || room.stair === "down") {
+    const size = Math.min(room.w, room.h) * 0.22;
+    out += glyph(
+      room.stair === "up" ? "stairUp" : "stairDown",
+      room.x + room.w / 2 - size / 2,
+      top + span / 2 - size / 2,
+      size,
+      theme.accent,
+    );
+  }
+
   return out;
 }
 
-function roomLabel(room: PlanRoom, theme: PlanTheme): string {
+/**
+ * Le nom d'une pièce, posé dans la pièce.
+ *
+ * Exporté pour la même raison que `stairs` : l'éditeur ne dessinait pas le nom
+ * d'une pièce libre, et plutôt que d'écrire une troisième mise en page
+ * d'étiquette, il appelle celle-ci.
+ */
+export function roomLabel(room: PlanRoom, theme: PlanTheme): string {
   if (!room.label || !room.name) return "";
 
   const size = Math.max(45, Math.min(130, Math.min(room.w, room.h) / 5));
-  const cx = room.x + room.w / 2;
-  // Un escalier porte son hachurage en bas : son nom monte pour lui laisser la place.
-  const cy = room.stair ? room.y + room.h * 0.22 : room.y + room.h / 2;
+
+  /*
+   * Où poser le nom, en deux temps.
+   *
+   * D'abord dans le repère **non tourné** de la pièce : son centre de gravité
+   * s'il s'agit d'une pièce libre, parce que sur une pièce en L le centre de la
+   * boîte tombe dans l'échancrure, donc hors de la pièce ; et remonté à 22 %
+   * quand un escalier occupe le bas.
+   *
+   * Puis tourné autour du **même pivot que la forme** — le centre de la boîte.
+   * C'est l'étape qui manquait : la forme pivote là-bas, le centre de gravité
+   * voyage donc avec elle, et un nom laissé sur le centre non tourné dérivait
+   * d'autant. Un carré ne s'en apercevait pas, son centre de gravité étant le
+   * pivot ; un L de quatre mètres, oui.
+   */
+  const pivot = { x: room.x + room.w / 2, y: room.y + room.h / 2 };
+  const base = room.points?.length ? polygonCentroid(room.points) : pivot;
+  const anchor = rotatePoint(
+    { x: base.x, y: room.stair ? room.y + room.h * 0.22 : base.y },
+    pivot,
+    room.rot,
+  );
+  const cx = anchor.x;
+  const cy = anchor.y;
   const lines = twoLines(
     room.name,
     Math.max(10, Math.floor(room.w / size) * 2),
@@ -191,7 +282,26 @@ function roomLabel(room: PlanRoom, theme: PlanTheme): string {
     ` font-family="${DISPLAY_FACE}" font-size="${n(size)}"` +
     ` font-weight="600" letter-spacing="${n(size * 0.06)}"` +
     ` text-anchor="middle" dominant-baseline="central"` +
-    `${spin(room.rot, cx, room.y + room.h / 2)}>${tspans}</text>`
+    // L'ancre est déjà au bon endroit : cette rotation-ci ne fait qu'incliner
+    // les lettres, et le demi-tour de lisibilité les remet debout sur place.
+    `${spin(readableAngle(room.rot), cx, cy)}>${tspans}</text>`
+  );
+}
+
+/**
+ * Une mention libre posée sur le plan — « quai 3 », « accès restreint ».
+ *
+ * Exportée pour la même raison que `roomLabel` et `stairs` : l'éditeur ne les
+ * dessinait pas **du tout**. L'outil posait un texte que la barre des calques
+ * comptait et que personne ne voyait.
+ */
+export function planLabel(label: PlanLabel, theme: PlanTheme): string {
+  return (
+    `<text x="${n(label.x)}" y="${n(label.y)}" fill="${theme.muted}"` +
+    ` font-family="${TEXT_FACE}" font-size="90" text-anchor="middle"` +
+    ` dominant-baseline="central"` +
+    `${spin(readableAngle(label.rot), label.x, label.y)}>` +
+    `${esc(label.text)}</text>`
   );
 }
 
@@ -211,23 +321,34 @@ export function renderLevelBody(
     const stroke = Math.max(2, Math.min(room.w, room.h) * 0.02);
 
     // Une pièce libre est le même objet dessiné autrement : `x/y/w/h` restent sa
-    // boîte englobante, donc la rotation, le hachurage et l'étiquette ne savent
-    // rien de sa forme.
-    const shape = room.points?.length
-      ? `<polygon points="${room.points
-          .map((value, index) => (index % 2 ? `${n(value)} ` : `${n(value)},`))
-          .join("")
-          .trim()}"` +
+    // boîte englobante, donc la rotation et la sélection ne savent rien de sa
+    // forme. Le hachurage, lui, la connaît maintenant — voir plus bas.
+    const outline = room.points?.length ? roomPolygonPoints(room.points) : "";
+    const shape = outline
+      ? `<polygon points="${outline}"` +
         ` fill="${paint.fill}" stroke="${paint.stroke}" stroke-width="${n(stroke)}"` +
         ` stroke-linejoin="round" />`
       : `<rect x="${n(room.x)}" y="${n(room.y)}" width="${n(room.w)}" height="${n(room.h)}"` +
         ` fill="${paint.fill}" stroke="${paint.stroke}" stroke-width="${n(stroke)}" />`;
 
-    out +=
-      `<g${spin(room.rot, cx, cy)}>` +
-      shape +
-      (room.stair ? stairs(room, theme) : "") +
-      `</g>`;
+    /*
+     * Le hachurage d'escalier se calcule sur la boîte englobante. Dans une cage
+     * en L, il déborderait donc de la pièce : on le découpe au contour.
+     *
+     * C'est le seul `id` que ce moteur émette, et il vaut d'être justifié —
+     * un identifiant est global au document, donc deux rendus du même relevé
+     * sur une page se marcheraient dessus. Celui-ci porte l'identifiant de la
+     * pièce, un nanoid, et aucune de nos trois sorties n'affiche deux fois le
+     * même niveau.
+     */
+    const hatch = room.stair ? stairs(room, theme) : "";
+    const clipped =
+      hatch && outline
+        ? `<clipPath id="stair-${room.id}"><polygon points="${outline}" /></clipPath>` +
+          `<g clip-path="url(#stair-${room.id})">${hatch}</g>`
+        : hatch;
+
+    out += `<g${spin(room.rot, cx, cy)}>` + shape + clipped + `</g>`;
   }
 
   for (const wall of level.walls) {
@@ -248,16 +369,23 @@ export function renderLevelBody(
     out += measureLine(measure, theme, withLabels);
   }
 
+  // Les repères ne sont gravés que si on les demande : le visualiseur pose les
+  // siens en vrais boutons par-dessus, et les dessiner ici les doublerait.
+  if (options.markers?.length && options.extentCm) {
+    for (const marker of options.markers) {
+      out += markerBadge(
+        marker,
+        options.extentCm.width,
+        options.extentCm.height,
+        theme,
+      );
+    }
+  }
+
   if (withLabels) {
     for (const room of level.rooms) out += roomLabel(room, theme);
 
-    for (const label of level.labels) {
-      out +=
-        `<text x="${n(label.x)}" y="${n(label.y)}" fill="${theme.muted}"` +
-        ` font-family="${TEXT_FACE}" font-size="90" text-anchor="middle"` +
-        ` dominant-baseline="central"${spin(label.rot, label.x, label.y)}>` +
-        `${esc(label.text)}</text>`;
-    }
+    for (const label of level.labels) out += planLabel(label, theme);
   }
 
   return out;
@@ -363,6 +491,21 @@ export type PlateOptions = {
   fontCss?: string;
 };
 
+function glyphPath(
+  d: string,
+  x: number,
+  y: number,
+  size: number,
+  color: string,
+): string {
+  return (
+    `<g transform="translate(${n(x)} ${n(y)}) scale(${ratio(size / GLYPH_GRID)})"` +
+    ` fill="none" stroke="${color}" stroke-width="${GLYPH_STROKE}"` +
+    ` stroke-linecap="round" stroke-linejoin="round">` +
+    `<path d="${d}" /></g>`
+  );
+}
+
 function glyph(
   name: PlanGlyph,
   x: number,
@@ -370,12 +513,53 @@ function glyph(
   size: number,
   color: string,
 ): string {
-  const ratio = size / GLYPH_GRID;
+  return glyphPath(PLAN_GLYPHS[name], x, y, size, color);
+}
+
+/**
+ * Un repère, gravé sur la planche.
+ *
+ * Il n'y en avait aucun : `renderLevelBody` ne mentionnait pas les repères,
+ * alors que la légende annonçait une ligne « Repère » dès qu'il y en avait un.
+ * La planche promettait un symbole qu'elle ne traçait pas.
+ *
+ * Les repères sont en fractions de l'emprise, pas en centimètres — c'est ce qui
+ * leur permet de survivre à un changement de fond — donc ils se convertissent
+ * ici, et nulle part ailleurs.
+ */
+function markerBadge(
+  marker: PlacePlanMarker,
+  widthCm: number,
+  heightCm: number,
+  theme: PlanTheme,
+): string {
+  // Même ordre que la normalisation — cible, service, symbole — pour qu'un
+  // document qui en porterait deux se dessine comme la base le comprend.
+  const d = marker.targetSlug
+    ? PLAN_GLYPHS.spawn
+    : marker.service
+      ? PLACE_SERVICE_GLYPHS[marker.service]
+      : marker.glyph
+        ? PLAN_GLYPHS[marker.glyph]
+        : PLAN_GLYPHS.spawn;
+  if (!d) return "";
+
+  const box = Math.max(60, widthCm * 0.028);
+  const cx = marker.x * widthCm;
+  const cy = marker.y * heightCm;
+  const pad = box * 0.18;
+
   return (
-    `<g transform="translate(${n(x)} ${n(y)}) scale(${n(ratio)})"` +
-    ` fill="none" stroke="${color}" stroke-width="${GLYPH_STROKE}"` +
-    ` stroke-linecap="round" stroke-linejoin="round">` +
-    `<path d="${PLAN_GLYPHS[name]}" /></g>`
+    `<rect x="${n(cx - box / 2)}" y="${n(cy - box / 2)}" width="${n(box)}" height="${n(box)}"` +
+    ` rx="${n(box * 0.16)}" fill="${theme.field}" fill-opacity="0.9"` +
+    ` stroke="${theme.accent}" stroke-width="${n(Math.max(2, box * 0.06))}" />` +
+    glyphPath(
+      d,
+      cx - box / 2 + pad,
+      cy - box / 2 + pad,
+      box - pad * 2,
+      theme.accent,
+    )
   );
 }
 
@@ -387,12 +571,7 @@ function glyph(
  * plus haut, parce qu'une planche coupée est le seul défaut qu'on ne rattrape
  * pas après coup.
  */
-export function renderPlateSvg(
-  plan: DrawnPlacePlan,
-  options: PlateOptions,
-): string {
-  const theme = options.theme ?? PLAN_THEME;
-  const accent = options.accent ?? theme.accent;
+function plateLayout(plan: DrawnPlacePlan, options: PlateOptions) {
   const width = options.width ?? 1600;
   const pad = Math.round(width * 0.02);
 
@@ -417,13 +596,70 @@ export function renderPlateSvg(
   );
   const cellHeight = (cellWidth * plan.heightCm) / plan.widthCm;
   const titleHeight = Math.round(width * 0.022);
-  const bodyHeight = cellHeight + titleHeight;
   const height = Math.round(
-    headerHeight + bodyHeight + footerHeight + pad * 2.5,
+    headerHeight + cellHeight + titleHeight + footerHeight + pad * 2.5,
   );
 
-  const bodyTop = headerHeight + pad;
-  const bandLeft = pad + (legendWidth ? legendWidth + gutter : 0);
+  return {
+    width,
+    height,
+    pad,
+    levels,
+    legend,
+    legendWidth,
+    headerHeight,
+    footerHeight,
+    gutter,
+    cellWidth,
+    titleHeight,
+    bodyTop: headerHeight + pad,
+    bandLeft: pad + (legendWidth ? legendWidth + gutter : 0),
+    /**
+     * Combien de pixels de planche vaut un centimètre de relevé. C'est la
+     * seule échelle : le dessin et la barre d'échelle la partagent, sans quoi
+     * la barre mesurerait autre chose que ce qu'elle surmonte.
+     */
+    perCm: cellWidth / plan.widthCm,
+  };
+}
+
+/**
+ * Les dimensions d'une planche, sans la dessiner.
+ *
+ * Elles se calculent ; elles ne se relisent pas dans le SVG produit. L'export
+ * les cherchait à l'expression régulière dans l'attribut `height` et retombait
+ * sur la **largeur** quand la racine cessait d'y porter un entier — un PNG au
+ * mauvais rapport, et pas un mot pour le dire.
+ */
+export function plateSize(
+  plan: DrawnPlacePlan,
+  options: PlateOptions,
+): { width: number; height: number } {
+  const layout = plateLayout(plan, options);
+  return { width: layout.width, height: layout.height };
+}
+
+export function renderPlateSvg(
+  plan: DrawnPlacePlan,
+  options: PlateOptions,
+): string {
+  const theme = options.theme ?? PLAN_THEME;
+  const accent = options.accent ?? theme.accent;
+  const {
+    width,
+    height,
+    pad,
+    levels,
+    legend,
+    headerHeight,
+    footerHeight,
+    gutter,
+    cellWidth,
+    titleHeight,
+    bodyTop,
+    bandLeft,
+    perCm,
+  } = plateLayout(plan, options);
 
   let out =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"` +
@@ -467,15 +703,21 @@ export function renderPlateSvg(
       ` font-family="${DISPLAY_FACE}" font-size="${Math.round(width * 0.014)}"` +
       ` font-weight="700" letter-spacing="${n(width * 0.0012)}">${esc(level.name.toUpperCase())}</text>`;
 
-    const scale = cellWidth / plan.widthCm;
     out +=
-      `<g transform="translate(${n(left)} ${n(bodyTop + titleHeight)}) scale(${n(scale)})">` +
-      renderLevelBody(level, { theme }) +
+      `<g transform="translate(${n(left)} ${n(bodyTop + titleHeight)}) scale(${ratio(perCm)})">` +
+      renderLevelBody(level, {
+        theme,
+        // Un repère sans niveau vaut pour tous : c'est le cas d'un plan image
+        // dont le relevé a repris les repères.
+        markers: plan.markers.filter(
+          (marker) => !marker.levelId || marker.levelId === level.id,
+        ),
+        extentCm: { width: plan.widthCm, height: plan.heightCm },
+      }) +
       `</g>`;
   });
 
   // ── Échelle : dix mètres, mesurés sur la planche elle-même ──
-  const perCm = cellWidth / plan.widthCm;
   const barWidth = 1000 * perCm;
   const barY = height - footerHeight - pad * 0.5;
   out +=

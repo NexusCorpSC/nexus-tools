@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -27,17 +28,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
-import { PLAN_THEME, type PlateOptions } from "@/lib/plan-render";
-import { TOOL_GLYPHS, TOOL_KEYS } from "@/lib/plan-symbols";
 import {
+  PLAN_THEME,
+  planLabel,
+  roomLabel,
+  stairs,
+  type PlateOptions,
+} from "@/lib/plan-render";
+import {
+  PLACE_SERVICE_GLYPHS,
+  PLAN_GLYPHS,
+  TOOL_GLYPHS,
+  TOOL_KEYS,
+  type PlanGlyph,
+} from "@/lib/plan-symbols";
+import {
+  DOOR_KINDS,
+  PLACE_SERVICES,
   ROOM_FILLS,
   ROOM_KINDS,
   type DrawnPlacePlan,
+  type DoorKind,
   type PlacePlanMarker,
+  type PlanDoor,
   type PlanRoom,
   type RoomFill,
   type RoomKind,
 } from "@/types/places";
+import { nearestEdge } from "@/lib/plan-geometry";
 import { downloadPlatePng } from "./export";
 import {
   PLAN_TOOLS,
@@ -69,6 +87,13 @@ import {
 /** La taille d'une porte posée d'un clic, en centimètres. */
 const DOOR_CM = { w: 130, h: 40 };
 
+/**
+ * À quelle distance d'une paroi un clic compte encore comme « sur ce mur », en
+ * centimètres. Une demi-porte : au-delà, on visait manifestement autre chose, et
+ * accrocher quand même donnerait une porte posée de travers au milieu du vide.
+ */
+const DOOR_REACH_CM = DOOR_CM.w / 2;
+
 /** En deçà, un glisser est un clic qui a tremblé, pas une pièce. */
 const MIN_ROOM_CM = 50;
 
@@ -87,7 +112,24 @@ const UNDERLAY_EXTENSIONS: Record<string, string> = {
 
 type Drag =
   | { kind: "draw"; tool: PlanTool; x: number; y: number }
-  | { kind: "move"; id: string; dx: number; dy: number }
+  /*
+   * Un déplacement porte l'état de la pièce **au début du geste**, pas son
+   * état courant. Une pièce libre garde ses sommets en centimètres absolus :
+   * la bouger, c'est translater le contour autant que la boîte, et recalculer
+   * la translation depuis l'origine plutôt que de la cumuler à chaque
+   * correctif — un glissement en produit une soixantaine, et les cumuler
+   * dérive.
+   */
+  | {
+      kind: "move";
+      id: string;
+      dx: number;
+      dy: number;
+      x0: number;
+      y0: number;
+      points?: number[];
+    }
+  | { kind: "vertex"; id: string; index: number }
   | { kind: "resize"; id: string }
   | { kind: "rotate"; id: string; cx: number; cy: number }
   | null;
@@ -132,6 +174,22 @@ function rulerLabel(metresFromOrigin: number): string {
     : String(Math.round(metresFromOrigin));
 }
 
+/**
+ * Le tracé d'un repère, quelle que soit la nature de ce qu'il désigne.
+ *
+ * L'ordre est celui de la normalisation — cible, puis service, puis symbole —
+ * et pas l'inverse. La base ne garde qu'une seule nature, mais un document
+ * écrit avant ce lot, ou par une version plus ancienne, peut en porter deux :
+ * le dessin doit alors montrer celle qui compte, pas celle qui vient en
+ * dernier.
+ */
+function markerPath(marker: PlacePlanMarker): string {
+  if (marker.targetSlug) return PLAN_GLYPHS.spawn;
+  if (marker.service) return PLACE_SERVICE_GLYPHS[marker.service];
+  if (marker.glyph) return PLAN_GLYPHS[marker.glyph];
+  return PLAN_GLYPHS.spawn;
+}
+
 /** La boîte englobante d'une suite de sommets, pour une pièce libre. */
 function boundsOf(points: number[]) {
   const xs = points.filter((unused, index) => index % 2 === 0);
@@ -172,6 +230,11 @@ export function DrawnPlanEditor({
   const [poly, setPoly] = useState<number[]>([]);
   const [exporting, setExporting] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  /** Ce que désignait le dernier repère réglé : la nature du prochain posé. */
+  const [lastMarker, setLastMarker] = useState<
+    Pick<PlacePlanMarker, "service" | "glyph">
+  >({ service: "asop" });
 
   /**
    * L'origine du plan à l'écran et l'échelle mesurée, pour les règles. Les
@@ -216,6 +279,10 @@ export function DrawnPlanEditor({
   const selectedMarker =
     selection?.kind === "marker"
       ? (plan.markers.find((marker) => marker.id === selection.id) ?? null)
+      : null;
+  const selectedDoor =
+    selection?.kind === "door"
+      ? (level?.doors.find((door) => door.id === selection.id) ?? null)
       : null;
 
   const shows = useCallback(
@@ -298,6 +365,40 @@ export function DrawnPlanEditor({
 
   /* ── Le geste sur la scène ───────────────────────────────────────────── */
 
+  /**
+   * Prendre une pièce pour la déplacer — rectangle comme pièce libre.
+   *
+   * L'instantané des sommets est pris ici : la translation se calcule depuis
+   * l'origine du geste, jamais en la cumulant correctif après correctif.
+   *
+   * Le `updateRoom` non silencieux ouvre l'entrée d'historique. Sans lui, tout
+   * le glissement passait en silencieux et Ctrl+Z sautait par-dessus le
+   * déplacement entier — ce que l'en-tête de `use-plan-draft.ts` dit pourtant
+   * vouloir éviter.
+   */
+  const beginMove = (room: PlanRoom, event: React.PointerEvent<Element>) => {
+    if (readOnly || tool !== "select") return;
+    event.stopPropagation();
+    const point = toCm(event.clientX, event.clientY);
+    drag.current = {
+      kind: "move",
+      id: room.id,
+      dx: point.x - room.x,
+      dy: point.y - room.y,
+      x0: room.x,
+      y0: room.y,
+      points: room.points?.length ? [...room.points] : undefined,
+    };
+    setSelection({ kind: "room", id: room.id });
+    draft.updateRoom(room.id, {});
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const endDrag = (event: React.PointerEvent<Element>) => {
+    drag.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
   const onStagePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (readOnly) return;
 
@@ -324,7 +425,30 @@ export function DrawnPlanEditor({
       return;
     }
     if (tool === "door") {
-      if (!draft.addDoor({ kind: "single", x, y, ...DOOR_CM, rot: 0 })) {
+      /*
+       * Une porte s'accroche à la paroi qu'on vise. On cherche le segment le
+       * plus proche du point **non aimanté** : l'aimant de 25 cm tirerait le
+       * clic hors d'un mur en biais, donc hors de la paroi qu'on désigne.
+       *
+       * Et on pose la porte **centrée** sur la projection. Elle était posée par
+       * son coin haut gauche, donc déjà décalée d'une demi-porte avant même
+       * qu'on parle d'angle — un décalage que la rotation autour du centre
+       * rendait franchement visible.
+       */
+      const edge = nearestEdge(level.rooms, point);
+      const onWall = edge && edge.distSq <= DOOR_REACH_CM * DOOR_REACH_CM;
+      const cx = onWall ? edge.x : x;
+      const cy = onWall ? edge.y : y;
+
+      if (
+        !draft.addDoor({
+          kind: "single",
+          x: cx - DOOR_CM.w / 2,
+          y: cy - DOOR_CM.h / 2,
+          ...DOOR_CM,
+          rot: onWall ? wrapDegrees(Math.round(edge.angleDeg)) : 0,
+        })
+      ) {
         toast.error(t("Admin.levelFull"));
       }
       return;
@@ -341,7 +465,9 @@ export function DrawnPlanEditor({
         x: Number((point.x / plan.widthCm).toFixed(4)),
         y: Number((point.y / plan.heightCm).toFixed(4)),
         levelId: level?.id,
-        service: "asop",
+        // Le choix fait dans l'inspecteur tient pour les suivants : poser dix
+        // caméras d'affilée ne doit pas demander dix fois le même clic.
+        ...lastMarker,
       };
       draft.apply((current) => ({
         ...current,
@@ -386,14 +512,39 @@ export function DrawnPlanEditor({
     }
 
     if (current.kind === "move") {
+      const nx = snapTo(point.x - current.dx, SNAP_CM, snap);
+      const ny = snapTo(point.y - current.dy, SNAP_CM, snap);
       draft.updateRoom(
         current.id,
         {
-          x: snapTo(point.x - current.dx, SNAP_CM, snap),
-          y: snapTo(point.y - current.dy, SNAP_CM, snap),
+          x: nx,
+          y: ny,
+          // Le contour suit la boîte, sinon les deux se désaccordent et le
+          // pivot, l'étiquette et les poignées suivent un rectangle qui n'est
+          // plus celui de la pièce.
+          ...(current.points
+            ? {
+                points: current.points.map((value, index) =>
+                  index % 2
+                    ? value + (ny - current.y0)
+                    : value + (nx - current.x0),
+                ),
+              }
+            : {}),
         },
         true,
       );
+      return;
+    }
+
+    if (current.kind === "vertex") {
+      const room = level?.rooms.find((entry) => entry.id === current.id);
+      if (!room?.points?.length) return;
+      const points = [...room.points];
+      points[current.index * 2] = snapTo(point.x, SNAP_CM, snap);
+      points[current.index * 2 + 1] = snapTo(point.y, SNAP_CM, snap);
+      // La boîte englobante n'est pas saisie : elle se déduit du contour.
+      draft.updateRoom(current.id, { points, ...boundsOf(points) }, true);
       return;
     }
 
@@ -993,28 +1144,9 @@ export function DrawnPlanEditor({
                         role="button"
                         tabIndex={-1}
                         aria-label={room.name || t("Admin.roomUnnamed")}
-                        onPointerDown={(event) => {
-                          if (readOnly || tool !== "select") return;
-                          event.stopPropagation();
-                          const point = toCm(event.clientX, event.clientY);
-                          drag.current = {
-                            kind: "move",
-                            id: room.id,
-                            dx: point.x - room.x,
-                            dy: point.y - room.y,
-                          };
-                          setSelection({ kind: "room", id: room.id });
-                          event.currentTarget.setPointerCapture(
-                            event.pointerId,
-                          );
-                        }}
+                        onPointerDown={(event) => beginMove(room, event)}
                         onPointerMove={onStagePointerMove}
-                        onPointerUp={(event) => {
-                          drag.current = null;
-                          event.currentTarget.releasePointerCapture(
-                            event.pointerId,
-                          );
-                        }}
+                        onPointerUp={endDrag}
                         className="absolute flex items-center justify-center overflow-hidden text-center"
                         style={{
                           ...roomBox(room),
@@ -1025,16 +1157,7 @@ export function DrawnPlanEditor({
                             ? "0 0 0 2px rgba(143, 203, 255, 0.55)"
                             : undefined,
                         }}
-                      >
-                        {room.label && room.name ? (
-                          <span
-                            className="pointer-events-none px-1 text-[10px] font-semibold uppercase leading-tight tracking-wide"
-                            style={{ color: PLAN_THEME.fg }}
-                          >
-                            {room.name}
-                          </span>
-                        ) : null}
-                      </div>
+                      />
                     );
                   })}
 
@@ -1054,31 +1177,155 @@ export function DrawnPlanEditor({
                       const paint = fillStyle(room.fill);
                       const chosen =
                         selection?.kind === "room" && selection.id === room.id;
+                      const spin = room.rot
+                        ? `rotate(${room.rot} ${room.x + room.w / 2} ${room.y + room.h / 2})`
+                        : undefined;
                       return (
-                        <polygon
-                          key={room.id}
-                          points={(room.points ?? []).join(" ")}
-                          fill={paint.background}
-                          stroke={chosen ? PLAN_THEME.fg : paint.border}
-                          strokeWidth={Math.max(
-                            2,
-                            Math.min(room.w, room.h) * 0.02,
-                          )}
-                          strokeLinejoin="round"
-                          className="pointer-events-auto"
-                          transform={
-                            room.rot
-                              ? `rotate(${room.rot} ${room.x + room.w / 2} ${room.y + room.h / 2})`
-                              : undefined
-                          }
-                          onPointerDown={(event) => {
-                            if (readOnly || tool !== "select") return;
-                            event.stopPropagation();
-                            setSelection({ kind: "room", id: room.id });
-                          }}
-                        />
+                        <Fragment key={room.id}>
+                          {/*
+                            La forme et son hachurage tournent avec la pièce ;
+                            le nom, lui, porte déjà sa propre rotation — celle
+                            qui se retourne pour rester lisible — et le mettre
+                            dans ce groupe la lui appliquerait deux fois.
+                          */}
+                          <g transform={spin}>
+                            <polygon
+                              points={(room.points ?? []).join(" ")}
+                              fill={paint.background}
+                              stroke={chosen ? PLAN_THEME.fg : paint.border}
+                              strokeWidth={Math.max(
+                                2,
+                                Math.min(room.w, room.h) * 0.02,
+                              )}
+                              strokeLinejoin="round"
+                              className="pointer-events-auto"
+                              aria-label={room.name || t("Admin.roomUnnamed")}
+                              onPointerDown={(event) => beginMove(room, event)}
+                              onPointerMove={onStagePointerMove}
+                              onPointerUp={endDrag}
+                            />
+                            {room.stair ? (
+                              <g
+                                className="pointer-events-none"
+                                dangerouslySetInnerHTML={{
+                                  __html: stairs(room, PLAN_THEME),
+                                }}
+                              />
+                            ) : null}
+                          </g>
+                          {shows("labels") ? (
+                            <g
+                              className="pointer-events-none"
+                              dangerouslySetInnerHTML={{
+                                __html: roomLabel(room, PLAN_THEME),
+                              }}
+                            />
+                          ) : null}
+                        </Fragment>
                       );
                     })}
+
+                {/*
+                  Nom et hachurage des pièces rectangulaires. Elles sont
+                  dessinées en `<div>` dans la couche du dessous, qui ne sait
+                  tracer ni des marches ni un nom incliné ; cette couche-ci
+                  partage le repère du moteur et passe au-dessus, donc elle
+                  montre exactement ce que la planche montrera.
+
+                  Le nom était jusqu'ici un `<span>` centré dans le `<div>`.
+                  C'était une deuxième mise en page de l'étiquette, qui ignorait
+                  que le moteur remonte un nom au-dessus du hachurage d'un
+                  escalier — les deux se seraient chevauchés dès que l'éditeur
+                  s'est mis à dessiner les marches.
+                */}
+                {shows("rooms") &&
+                  level.rooms
+                    .filter((room) => !room.points?.length)
+                    .map((room) => (
+                      <Fragment key={`decor-${room.id}`}>
+                        {room.stair ? (
+                          <g
+                            className="pointer-events-none"
+                            transform={
+                              room.rot
+                                ? `rotate(${room.rot} ${room.x + room.w / 2} ${room.y + room.h / 2})`
+                                : undefined
+                            }
+                            dangerouslySetInnerHTML={{
+                              __html: stairs(room, PLAN_THEME),
+                            }}
+                          />
+                        ) : null}
+                        {shows("labels") ? (
+                          <g
+                            className="pointer-events-none"
+                            dangerouslySetInnerHTML={{
+                              __html: roomLabel(room, PLAN_THEME),
+                            }}
+                          />
+                        ) : null}
+                      </Fragment>
+                    ))}
+
+                {/*
+                  Les poignées d'une pièce libre sélectionnée : un sommet se
+                  reprend sans avoir à effacer et retracer toute la pièce.
+                */}
+                {!readOnly &&
+                tool === "select" &&
+                selectedRoom?.points?.length &&
+                selectedRoom.points.length >= 6
+                  ? Array.from(
+                      { length: selectedRoom.points.length / 2 },
+                      (unused, index) => (
+                        <circle
+                          key={`vertex-${index}`}
+                          cx={selectedRoom.points![index * 2]}
+                          cy={selectedRoom.points![index * 2 + 1]}
+                          r={Math.max(12, plan.widthCm * 0.006)}
+                          fill={PLAN_THEME.field}
+                          stroke={PLAN_THEME.accent}
+                          strokeWidth={Math.max(3, plan.widthCm * 0.0016)}
+                          className="pointer-events-auto cursor-move"
+                          onPointerDown={(event) => {
+                            event.stopPropagation();
+                            drag.current = {
+                              kind: "vertex",
+                              id: selectedRoom.id,
+                              index,
+                            };
+                            draft.updateRoom(selectedRoom.id, {});
+                            event.currentTarget.setPointerCapture(
+                              event.pointerId,
+                            );
+                          }}
+                          onPointerMove={onStagePointerMove}
+                          onPointerUp={endDrag}
+                        />
+                      ),
+                    )
+                  : null}
+
+                {/*
+                  Les mentions libres. L'outil « Étiquette » en posait, la barre
+                  des calques les comptait, et rien ne les dessinait : on
+                  écrivait du texte invisible.
+                */}
+                {shows("labels") &&
+                  level.labels.map((label) => (
+                    <g
+                      key={label.id}
+                      className="pointer-events-auto cursor-pointer"
+                      onPointerDown={(event) => {
+                        if (readOnly || tool !== "select") return;
+                        event.stopPropagation();
+                        setSelection({ kind: "label", id: label.id });
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: planLabel(label, PLAN_THEME),
+                      }}
+                    />
+                  ))}
 
                 {shows("measures") &&
                   level.measures.map((measure) => {
@@ -1181,11 +1428,12 @@ export function DrawnPlanEditor({
                       event.stopPropagation();
                       setSelection({ kind: "marker", id: marker.id });
                     }}
-                    className="absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border"
+                    className="absolute flex size-[22px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded border"
                     style={{
                       left: `${marker.x * 100}%`,
                       top: `${marker.y * 100}%`,
                       borderColor: PLAN_THEME.accent,
+                      color: PLAN_THEME.accent,
                       background: "rgba(6, 30, 47, 0.9)",
                       boxShadow:
                         selection?.kind === "marker" &&
@@ -1193,7 +1441,23 @@ export function DrawnPlanEditor({
                           ? "0 0 0 2px rgba(143, 203, 255, 0.55)"
                           : undefined,
                     }}
-                  />
+                  >
+                    {/*
+                      Le repère montre ce qu'il désigne. C'était un carré vide
+                      de 12 px : on posait des symboles qu'on ne voyait jamais.
+                    */}
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="size-3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d={markerPath(marker)} />
+                    </svg>
+                  </button>
                 ))}
 
               {sketch && tool !== "measure" ? (
@@ -1372,11 +1636,24 @@ export function DrawnPlanEditor({
             onPatch={(patch) => draft.updateRoom(selectedRoom.id, patch)}
             onDelete={draft.removeSelected}
           />
+        ) : selectedDoor ? (
+          <DoorInspector
+            door={selectedDoor}
+            readOnly={readOnly}
+            onPatch={(patch) => draft.updateDoor(selectedDoor.id, patch)}
+            onDelete={draft.removeSelected}
+          />
         ) : selectedMarker ? (
           <MarkerInspector
             marker={selectedMarker}
             readOnly={readOnly}
-            onPatch={(patch) =>
+            onPatch={(patch) => {
+              if ("service" in patch || "glyph" in patch) {
+                setLastMarker({
+                  service: patch.service,
+                  glyph: patch.glyph,
+                });
+              }
               draft.apply((current) => ({
                 ...current,
                 markers: current.markers.map((entry) =>
@@ -1384,8 +1661,8 @@ export function DrawnPlanEditor({
                     ? { ...entry, ...patch }
                     : entry,
                 ),
-              }))
-            }
+              }));
+            }}
             onDelete={draft.removeSelected}
           />
         ) : (
@@ -1407,6 +1684,134 @@ export function DrawnPlanEditor({
 /* ------------------------------------------------------------------ */
 /* Les trois visages de l'inspecteur                                   */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Le réglage d'orientation, commun à une pièce et à une porte.
+ *
+ * Une porte accrochée à un mur en biais en prend l'angle toute seule ; ce champ
+ * est là pour la reprendre quand l'accrochage a visé le mauvais mur, ou quand on
+ * veut une porte que rien ne porte.
+ */
+function OrientationField({
+  rot,
+  readOnly,
+  onChange,
+}: {
+  rot: number;
+  readOnly: boolean;
+  onChange: (rot: number) => void;
+}) {
+  const t = useTranslations("Places");
+
+  return (
+    <div className="space-y-1.5">
+      <Label>{t("Admin.orientation")}</Label>
+      <div className="grid grid-cols-[auto_1fr_auto] gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={readOnly}
+          onClick={() => onChange(wrapDegrees(rot - SNAP_DEG))}
+        >
+          −{SNAP_DEG}°
+        </Button>
+        <div className="flex h-8 items-center justify-center rounded-md border border-input bg-input/30 font-mono text-xs">
+          {rot}°
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={readOnly}
+          onClick={() => onChange(wrapDegrees(rot + SNAP_DEG))}
+        >
+          +{SNAP_DEG}°
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {[0, 15, 30, 45, 90].map((angle) => (
+          <button
+            key={angle}
+            type="button"
+            disabled={readOnly}
+            onClick={() => onChange(angle)}
+            className={`h-6 rounded border px-2 text-[11px] ${rot === angle ? "border-[#9ED0FF]/45 bg-white/10 text-foreground" : "border-[#9ED0FF]/15 text-muted-foreground"}`}
+          >
+            {angle}°
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        {t("Admin.orientationHint")}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Une porte : sa nature, et son angle.
+ *
+ * Il n'y en avait aucun. La sélection d'une porte existait déjà mais n'ouvrait
+ * rien, donc ni sa nature — simple, double, sas — ni son orientation n'étaient
+ * modifiables une fois posée.
+ */
+function DoorInspector({
+  door,
+  readOnly,
+  onPatch,
+  onDelete,
+}: {
+  door: PlanDoor;
+  readOnly: boolean;
+  onPatch: (patch: Partial<PlanDoor>) => void;
+  onDelete: () => void;
+}) {
+  const t = useTranslations("Places");
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold text-nexus-primary">
+        {t("Admin.doorTitle")}
+      </p>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="door-kind">{t("Admin.doorKind")}</Label>
+        <select
+          id="door-kind"
+          value={door.kind}
+          disabled={readOnly}
+          onChange={(event) =>
+            onPatch({ kind: event.target.value as DoorKind })
+          }
+          className="h-8 w-full rounded-md border border-input bg-input/30 px-2 text-sm"
+        >
+          {DOOR_KINDS.map((kind) => (
+            <option key={kind} value={kind}>
+              {t(`Admin.doorKinds.${kind}`)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <OrientationField
+        rot={door.rot}
+        readOnly={readOnly}
+        onChange={(rot) => onPatch({ rot })}
+      />
+
+      {!readOnly && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-red-400"
+          onClick={onDelete}
+        >
+          <TrashIcon className="size-4" />
+          {t("Admin.doorDelete")}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 function RoomInspector({
   room,
@@ -1511,46 +1916,11 @@ function RoomInspector({
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <Label>{t("Admin.orientation")}</Label>
-        <div className="grid grid-cols-[auto_1fr_auto] gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={readOnly}
-            onClick={() => onPatch({ rot: wrapDegrees(room.rot - SNAP_DEG) })}
-          >
-            −{SNAP_DEG}°
-          </Button>
-          <div className="flex h-8 items-center justify-center rounded-md border border-input bg-input/30 font-mono text-xs">
-            {room.rot}°
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={readOnly}
-            onClick={() => onPatch({ rot: wrapDegrees(room.rot + SNAP_DEG) })}
-          >
-            +{SNAP_DEG}°
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {[0, 15, 30, 45, 90].map((angle) => (
-            <button
-              key={angle}
-              type="button"
-              disabled={readOnly}
-              onClick={() => onPatch({ rot: angle })}
-              className={`h-6 rounded border px-2 text-[11px] ${room.rot === angle ? "border-[#9ED0FF]/45 bg-white/10 text-foreground" : "border-[#9ED0FF]/15 text-muted-foreground"}`}
-            >
-              {angle}°
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted-foreground">
-          {t("Admin.orientationHint")}
-        </p>
-      </div>
+      <OrientationField
+        rot={room.rot}
+        readOnly={readOnly}
+        onChange={(rot) => onPatch({ rot })}
+      />
 
       <div className="flex items-center justify-between text-sm">
         <span>{t("Admin.roomLabelShown")}</span>
@@ -1606,6 +1976,86 @@ function RoomInspector({
   );
 }
 
+type MarkerKind = "service" | "glyph";
+
+/**
+ * Les symboles qu'un repère peut porter quand il ne désigne pas un service.
+ *
+ * Tous les glyphes du plan n'ont pas leur place ici : une porte ou un escalier
+ * se dessinent, ils ne se piquent pas sur une carte. Ceux-ci marquent ce qu'on
+ * vient chercher dans un lieu, et ce qui s'y oppose.
+ */
+const MARKER_GLYPHS = [
+  "crate",
+  "container",
+  "locker",
+  "terminal",
+  "key",
+  "objective",
+  "supply",
+  "deposit",
+  "wreck",
+  "care",
+  "spawn",
+  "exit",
+  "ladder",
+  "lift",
+  "camera",
+  "turret",
+  "breaker",
+  "lockedDoor",
+  "listening",
+  "hazard",
+] as const satisfies readonly PlanGlyph[];
+
+/** Une grille de symboles cliquables, celle de la maquette. */
+function SymbolGrid({
+  entries,
+  readOnly,
+}: {
+  entries: {
+    key: string;
+    d: string;
+    title: string;
+    on: boolean;
+    pick: () => void;
+  }[];
+  readOnly: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-6 gap-1">
+      {entries.map((entry) => (
+        <button
+          key={entry.key}
+          type="button"
+          title={entry.title}
+          aria-label={entry.title}
+          aria-pressed={entry.on}
+          disabled={readOnly}
+          onClick={entry.pick}
+          className={`flex aspect-square items-center justify-center rounded border transition-colors disabled:opacity-40 ${
+            entry.on
+              ? "border-[#9ED0FF]/50 bg-white/10 text-foreground"
+              : "border-[#9ED0FF]/15 text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d={entry.d} />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function MarkerInspector({
   marker,
   readOnly,
@@ -1618,11 +2068,64 @@ function MarkerInspector({
   onDelete: () => void;
 }) {
   const t = useTranslations("Places");
+  const kind: MarkerKind = marker.glyph ? "glyph" : "service";
+
   return (
     <div className="space-y-3">
       <p className="text-sm font-semibold text-nexus-primary">
         {t("Admin.markerTitle")}
       </p>
+
+      {/*
+        Ce que le repère désigne. Il n'y avait pas de choix du tout : tout
+        repère naissait « terminal vaisseaux » et le restait.
+      */}
+      <div className="flex gap-1 rounded-md border border-input p-0.5">
+        {(["service", "glyph"] as const).map((entry) => (
+          <button
+            key={entry}
+            type="button"
+            aria-pressed={kind === entry}
+            disabled={readOnly}
+            onClick={() =>
+              onPatch(
+                entry === "service"
+                  ? { service: "asop", glyph: undefined }
+                  : { service: undefined, glyph: "crate" },
+              )
+            }
+            className={`h-7 flex-1 rounded text-[11px] font-medium transition-colors ${
+              kind === entry
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            {t(`Admin.markerKind.${entry}`)}
+          </button>
+        ))}
+      </div>
+
+      <SymbolGrid
+        readOnly={readOnly}
+        entries={
+          kind === "service"
+            ? PLACE_SERVICES.map((service) => ({
+                key: service,
+                d: PLACE_SERVICE_GLYPHS[service],
+                title: t(`services.${service}`),
+                on: marker.service === service,
+                pick: () => onPatch({ service, glyph: undefined }),
+              }))
+            : MARKER_GLYPHS.map((name) => ({
+                key: name,
+                d: PLAN_GLYPHS[name],
+                title: t(`Admin.glyphs.${name}`),
+                on: marker.glyph === name,
+                pick: () => onPatch({ glyph: name, service: undefined }),
+              }))
+        }
+      />
+
       <div className="space-y-1.5">
         <Label htmlFor="marker-label">{t("Admin.markerLabel")}</Label>
         <Input
@@ -1632,6 +2135,9 @@ function MarkerInspector({
           onChange={(event) => onPatch({ label: event.target.value })}
         />
       </div>
+      <p className="text-[10px] text-muted-foreground">
+        {t("Admin.markerLabelHint")}
+      </p>
       <p className="font-mono text-[11px] text-muted-foreground">
         {marker.x.toFixed(3)} · {marker.y.toFixed(3)}
       </p>
