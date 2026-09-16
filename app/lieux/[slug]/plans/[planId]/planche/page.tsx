@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getPlacePlans } from "@/lib/places";
-import { renderPlateSvg } from "@/lib/plan-render";
+import { plateOptions, renderPlateSvg } from "@/lib/plan-render";
 import { isDrawnPlan } from "@/types/places";
 import { PrintButton } from "./print-button";
 
@@ -33,12 +33,25 @@ export default async function PlatePage({
   if (!plan || !isDrawnPlan(plan)) notFound();
 
   const t = await getTranslations("Places.Admin");
-  const svg = renderPlateSvg(plan, {
-    title: place.name,
-    subtitle: plan.name,
-    credits: t("plateCredits"),
-    legend: [],
-  });
+  // La même composition que l'aperçu et que le téléchargement : cette page
+  // passait une légende vide, donc la planche qu'on partage n'expliquait aucun
+  // de ses symboles alors que le PNG du même relevé les listait tous.
+  const svg = renderPlateSvg(
+    plan,
+    plateOptions(plan, {
+      placeName: place.name,
+      glyphs: {
+        door: t("glyphs.door"),
+        doubleDoor: t("glyphs.doubleDoor"),
+        airlock: t("glyphs.airlock"),
+        stairUp: t("glyphs.stairUp"),
+        stairDown: t("glyphs.stairDown"),
+        objective: t("glyphs.objective"),
+        terminal: t("glyphs.terminal"),
+      },
+      credits: t("plateCredits"),
+    }),
+  );
 
   return (
     <div className="min-h-screen bg-[#05192A] p-4 print:p-0">

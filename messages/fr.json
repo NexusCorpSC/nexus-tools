@@ -1169,7 +1169,12 @@
     "backgroundNoPlans": "Votre escouade n'a aucun plan de vol en cours.",
     "backgroundAlready": "Fond actuel",
     "backgroundSet": "Fond posé sur « {plan} ».",
-    "backgroundFailed": "Le fond n'a pas pu être posé."
+    "backgroundFailed": "Le fond n'a pas pu être posé.",
+    "planInteractive": "Interactif",
+    "planPlate": "Planche",
+    "planPlateDownload": "Télécharger en PNG",
+    "planPlateExporting": "Export…",
+    "planPlateFailed": "L’export a échoué."
   },
   "Industry": {
     "home": "Accueil",

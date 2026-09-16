@@ -56,7 +56,7 @@ import {
   type RoomKind,
 } from "@/types/places";
 import { nearestEdge } from "@/lib/plan-geometry";
-import { downloadPlatePng } from "./export";
+import { downloadPlatePng } from "@/lib/plan-export";
 import {
   PLAN_TOOLS,
   SNAP_CM,

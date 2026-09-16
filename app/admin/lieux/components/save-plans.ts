@@ -11,7 +11,8 @@ import {
   type PlacePlan,
   type StoredPlacePlan,
 } from "@/types/places";
-import { plateLegend, renderPreview } from "./drawn-plan-editor/export";
+import { plateOptions } from "@/lib/plan-render";
+import { renderPreview } from "./drawn-plan-editor/export";
 
 /**
  * L'enregistrement des plans d'un lieu, partagé par les deux écrans qui le
@@ -57,20 +58,20 @@ export function usePlanSaver(slug: string, placeName: string) {
   const t = useTranslations("Places");
 
   const plate = useCallback(
-    (entry: DrawnPlacePlan): Omit<PlateOptions, "fontCss"> => ({
-      title: placeName,
-      subtitle: entry.name,
-      legend: plateLegend(entry, {
-        door: t("Admin.glyphs.door"),
-        doubleDoor: t("Admin.glyphs.doubleDoor"),
-        airlock: t("Admin.glyphs.airlock"),
-        stairUp: t("Admin.glyphs.stairUp"),
-        stairDown: t("Admin.glyphs.stairDown"),
-        objective: t("Admin.glyphs.objective"),
-        terminal: t("Admin.glyphs.terminal"),
+    (entry: DrawnPlacePlan): Omit<PlateOptions, "fontCss"> =>
+      plateOptions(entry, {
+        placeName,
+        glyphs: {
+          door: t("Admin.glyphs.door"),
+          doubleDoor: t("Admin.glyphs.doubleDoor"),
+          airlock: t("Admin.glyphs.airlock"),
+          stairUp: t("Admin.glyphs.stairUp"),
+          stairDown: t("Admin.glyphs.stairDown"),
+          objective: t("Admin.glyphs.objective"),
+          terminal: t("Admin.glyphs.terminal"),
+        },
+        credits: t("Admin.plateCredits"),
       }),
-      credits: t("Admin.plateCredits"),
-    }),
     [placeName, t],
   );
 

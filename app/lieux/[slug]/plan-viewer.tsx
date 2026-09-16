@@ -5,17 +5,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import {
+  ArrowDownTrayIcon,
   ArrowLeftIcon,
   ArrowsPointingOutIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
-import { renderLevelSvg } from "@/lib/plan-render";
+import { downloadPlatePng } from "@/lib/plan-export";
+import {
+  plateOptions,
+  renderLevelSvg,
+  renderPlateSvg,
+} from "@/lib/plan-render";
 import {
   isDrawnPlan,
   planImage,
+  toPlaceSlug,
   type PlacePlansResponse,
   type PlaceSummary,
 } from "@/types/places";
@@ -54,6 +62,16 @@ export function PlanViewer({
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [levelId, setLevelId] = useState<string | null>(null);
+  /**
+   * Ce qu'on regarde : le plan qu'on parcourt, ou la planche qu'on emporte.
+   *
+   * Les deux montrent le même relevé, par le même moteur. La planche y ajoute
+   * ce qu'un document doit porter pour vivre hors du site — titre, niveaux
+   * côte à côte, légende, échelle, mentions — et retire ce qui n'a de sens
+   * qu'ici : le zoom, les repères cliquables, la descente dans les lieux.
+   */
+  const [mode, setMode] = useState<"plan" | "plate">("plan");
+  const [exporting, setExporting] = useState(false);
 
   const plan =
     data.plans.find((entry) => entry.id === activePlanId) ?? data.plans[0];
@@ -103,6 +121,40 @@ export function PlanViewer({
    * sert aux autres écrans n'a pas encore abouti.
    */
   const levelSvg = drawn && level ? renderLevelSvg(drawn, level) : null;
+
+  /** L'habillage de la planche, le même que celui du PNG et de la page partagée. */
+  const plate = drawn
+    ? plateOptions(drawn, {
+        placeName: data.name,
+        glyphs: {
+          door: t("Admin.glyphs.door"),
+          doubleDoor: t("Admin.glyphs.doubleDoor"),
+          airlock: t("Admin.glyphs.airlock"),
+          stairUp: t("Admin.glyphs.stairUp"),
+          stairDown: t("Admin.glyphs.stairDown"),
+          objective: t("Admin.glyphs.objective"),
+          terminal: t("Admin.glyphs.terminal"),
+        },
+        credits: t("Admin.plateCredits"),
+      })
+    : null;
+  /*
+   * La planche est dessinée ici, pas reprise de l'aperçu stocké : elle suit le
+   * relevé au caractère près, y compris entre deux enregistrements, et elle
+   * reste nette à n'importe quel agrandissement.
+   */
+  /*
+   * La planche à l'écran, ou rien — et c'est la seule vérité sur ce qu'on
+   * regarde. Le mode seul ne suffisait pas à le dire : il survit au changement
+   * de plan, et un plan image n'a pas de planche. S'en remettre à lui laissait
+   * le panneau d'un repère caché sans retour possible, la bascule ayant
+   * disparu en même temps que le relevé dessiné.
+   *
+   * La replier ici évite au passage de composer une planche que personne ne
+   * regarde, à chaque rendu.
+   */
+  const plateSvg =
+    mode === "plate" && drawn && plate ? renderPlateSvg(drawn, plate) : null;
 
   /**
    * Les repères de l'étage regardé. Ceux d'un plan image n'ont pas de niveau et
@@ -184,6 +236,60 @@ export function PlanViewer({
 
         <div className="flex items-center gap-2">
           {/*
+            La bascule n'a de sens que pour un relevé dessiné : un plan image
+            *est* déjà son propre document, il n'y a pas de planche à en tirer.
+          */}
+          {drawn && (
+            <div className="flex items-center gap-0.5 rounded-md border border-input p-0.5">
+              {(["plan", "plate"] as const).map((entry) => (
+                <button
+                  key={entry}
+                  type="button"
+                  aria-pressed={mode === entry}
+                  onClick={() => setMode(entry)}
+                  className={`h-7 rounded px-2.5 text-sm font-medium transition-colors ${
+                    mode === entry
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  {t(entry === "plan" ? "planInteractive" : "planPlate")}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {drawn && mode === "plate" && (
+            <Button
+              size="sm"
+              disabled={exporting}
+              onClick={async () => {
+                if (!plate) return;
+                setExporting(true);
+                try {
+                  await downloadPlatePng(
+                    drawn,
+                    // Le nom du relevé est du texte libre : une barre oblique
+                    // ou un deux-points en ferait un nom de fichier que le
+                    // système refuse ou réécrit. On le passe par le même
+                    // normalisateur que les adresses, et l'identifiant prend le
+                    // relais si le nom se réduit à rien.
+                    `${data.slug}-${toPlaceSlug(drawn.name) || drawn.id}.png`,
+                    plate,
+                  );
+                } catch {
+                  toast.error(t("planPlateFailed"));
+                } finally {
+                  setExporting(false);
+                }
+              }}
+            >
+              <ArrowDownTrayIcon className="size-4" />
+              {exporting ? t("planPlateExporting") : t("planPlateDownload")}
+            </Button>
+          )}
+
+          {/*
             Un relevé dessiné dont l'aperçu n'a pas abouti n'a pas d'image à
             poser en fond : la route du plan de vol répondrait 409. Mieux vaut
             ne rien proposer que proposer ce qui va échouer.
@@ -244,109 +350,129 @@ export function PlanViewer({
         </div>
       </div>
 
-      <div
-        ref={containerRef}
-        {...keyboardProps}
-        tabIndex={0}
-        role="group"
-        aria-label={`${t("planTitle")} — ${data.name}`}
-        className="relative h-[420px] overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-[560px]"
-      >
+      {plateSvg ? (
+        /*
+          La planche se lit, elle ne se manipule pas : pas de zoom, pas de
+          repères cliquables, pas de hauteur fixe. Elle prend la largeur
+          disponible et se déroule, comme le ferait la feuille qu'elle imite.
+        */
         <div
-          {...stageProps}
-          className={`absolute inset-0 flex items-center justify-center ${
-            isPanning ? "cursor-grabbing" : "cursor-grab"
-          }`}
+          role="img"
+          aria-label={`${t("planPlate")} — ${data.name}`}
+          className="overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#05192A] [&>svg]:h-auto [&>svg]:w-full"
+          // Chaîne produite par `lib/plan-render.ts` à partir de données déjà
+          // normalisées, et dont chaque texte passe par `esc()`.
+          dangerouslySetInnerHTML={{ __html: plateSvg }}
+        />
+      ) : (
+        <div
+          ref={containerRef}
+          {...keyboardProps}
+          tabIndex={0}
+          role="group"
+          aria-label={`${t("planTitle")} — ${data.name}`}
+          className="relative h-[420px] overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-[560px]"
         >
-          {/*
+          <div
+            {...stageProps}
+            className={`absolute inset-0 flex items-center justify-center ${
+              isPanning ? "cursor-grabbing" : "cursor-grab"
+            }`}
+          >
+            {/*
             La boîte porte le rapport d'aspect de l'image et l'image la remplit
             exactement : sans elle, `object-contain` laisserait des marges et
             « 50 % » désignerait le centre du cadre, pas celui de l'image — tous
             les repères dériveraient dès que les proportions diffèrent.
           */}
-          <div
-            ref={imageRef}
-            className="relative max-h-full max-w-full"
-            style={{
-              aspectRatio: `${frame.width} / ${frame.height}`,
-              height: "100%",
-            }}
-          >
-            {image ? (
-              <Image
-                src={image.url}
-                alt={`${t("planTitle")} — ${data.name}`}
-                fill
-                sizes="(max-width: 768px) 100vw, 960px"
-                className="select-none object-contain"
-                draggable={false}
-                priority
-              />
-            ) : null}
+            <div
+              ref={imageRef}
+              className="relative max-h-full max-w-full"
+              style={{
+                aspectRatio: `${frame.width} / ${frame.height}`,
+                height: "100%",
+              }}
+            >
+              {image ? (
+                <Image
+                  src={image.url}
+                  alt={`${t("planTitle")} — ${data.name}`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 960px"
+                  className="select-none object-contain"
+                  draggable={false}
+                  priority
+                />
+              ) : null}
 
-            {levelSvg ? (
-              <div
-                className="pointer-events-none absolute inset-0 [&>svg]:size-full"
-                // Chaîne produite par `lib/plan-render.ts` à partir de données
-                // déjà normalisées, et dont chaque texte passe par `esc()`.
-                dangerouslySetInnerHTML={{ __html: levelSvg }}
-              />
-            ) : null}
+              {levelSvg ? (
+                <div
+                  className="pointer-events-none absolute inset-0 [&>svg]:size-full"
+                  // Chaîne produite par `lib/plan-render.ts` à partir de données
+                  // déjà normalisées, et dont chaque texte passe par `esc()`.
+                  dangerouslySetInnerHTML={{ __html: levelSvg }}
+                />
+              ) : null}
 
-            {markers.map((marker) => (
-              <PlanMarker
-                key={marker.id}
-                marker={marker}
-                target={
-                  marker.targetSlug ? targets.get(marker.targetSlug) : undefined
-                }
-                scale={view.scale}
-                selected={marker.id === selectedId}
-                onSelect={() =>
-                  setSelectedId((current) =>
-                    current === marker.id ? null : marker.id,
-                  )
-                }
-              />
-            ))}
+              {markers.map((marker) => (
+                <PlanMarker
+                  key={marker.id}
+                  marker={marker}
+                  target={
+                    marker.targetSlug
+                      ? targets.get(marker.targetSlug)
+                      : undefined
+                  }
+                  scale={view.scale}
+                  selected={marker.id === selectedId}
+                  onSelect={() =>
+                    setSelectedId((current) =>
+                      current === marker.id ? null : marker.id,
+                    )
+                  }
+                />
+              ))}
+            </div>
           </div>
+
+          <div className="absolute right-3 top-3 z-10 flex flex-col gap-1">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label={t("planZoomIn")}
+              onClick={() => zoomBy(1.2)}
+            >
+              <MagnifyingGlassPlusIcon className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label={t("planZoomOut")}
+              onClick={() => zoomBy(1 / 1.2)}
+            >
+              <MagnifyingGlassMinusIcon className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label={t("planReset")}
+              onClick={reset}
+            >
+              <ArrowsPointingOutIcon className="size-4" />
+            </Button>
+          </div>
+
+          {plan.note && (
+            <p className="absolute bottom-3 left-3 z-10 rounded-md border border-[#9ED0FF]/15 bg-[#0B3A5A]/80 px-2.5 py-1 text-xs text-nexus">
+              {plan.note}
+            </p>
+          )}
         </div>
+      )}
 
-        <div className="absolute right-3 top-3 z-10 flex flex-col gap-1">
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label={t("planZoomIn")}
-            onClick={() => zoomBy(1.2)}
-          >
-            <MagnifyingGlassPlusIcon className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label={t("planZoomOut")}
-            onClick={() => zoomBy(1 / 1.2)}
-          >
-            <MagnifyingGlassMinusIcon className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label={t("planReset")}
-            onClick={reset}
-          >
-            <ArrowsPointingOutIcon className="size-4" />
-          </Button>
-        </div>
-
-        {plan.note && (
-          <p className="absolute bottom-3 left-3 z-10 rounded-md border border-[#9ED0FF]/15 bg-[#0B3A5A]/80 px-2.5 py-1 text-xs text-nexus">
-            {plan.note}
-          </p>
-        )}
-      </div>
-
-      {selected && (
+      {/* Un repère sélectionné n'a pas de sens sur une planche : elle n'en a
+          pas de cliquables. */}
+      {!plateSvg && selected && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold">

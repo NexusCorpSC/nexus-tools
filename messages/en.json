@@ -1174,7 +1174,12 @@
     "backgroundNoPlans": "Your squad has no active flight plan.",
     "backgroundAlready": "Current background",
     "backgroundSet": "Background set on “{plan}”.",
-    "backgroundFailed": "The background could not be set."
+    "backgroundFailed": "The background could not be set.",
+    "planInteractive": "Interactive",
+    "planPlate": "Plate",
+    "planPlateDownload": "Download as PNG",
+    "planPlateExporting": "Exporting…",
+    "planPlateFailed": "The export failed."
   },
   "Shopping": {
     "home": "Home",
