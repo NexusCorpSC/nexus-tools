@@ -26,6 +26,7 @@ import { polygonCentroid } from "@/lib/plan-geometry";
 import type {
   DrawnPlacePlan,
   PlacePlanMarker,
+  PlanLabel,
   PlanLevel,
   PlanMeasure,
   PlanRoom,
@@ -272,6 +273,23 @@ export function roomLabel(room: PlanRoom, theme: PlanTheme): string {
   );
 }
 
+/**
+ * Une mention libre posée sur le plan — « quai 3 », « accès restreint ».
+ *
+ * Exportée pour la même raison que `roomLabel` et `stairs` : l'éditeur ne les
+ * dessinait pas **du tout**. L'outil posait un texte que la barre des calques
+ * comptait et que personne ne voyait.
+ */
+export function planLabel(label: PlanLabel, theme: PlanTheme): string {
+  return (
+    `<text x="${n(label.x)}" y="${n(label.y)}" fill="${theme.muted}"` +
+    ` font-family="${TEXT_FACE}" font-size="90" text-anchor="middle"` +
+    ` dominant-baseline="central"` +
+    `${spin(readableAngle(label.rot), label.x, label.y)}>` +
+    `${esc(label.text)}</text>`
+  );
+}
+
 /** Le contenu d'un niveau, sans `<svg>` autour : pièces, murs, portes, textes. */
 export function renderLevelBody(
   level: PlanLevel,
@@ -352,13 +370,7 @@ export function renderLevelBody(
   if (withLabels) {
     for (const room of level.rooms) out += roomLabel(room, theme);
 
-    for (const label of level.labels) {
-      out +=
-        `<text x="${n(label.x)}" y="${n(label.y)}" fill="${theme.muted}"` +
-        ` font-family="${TEXT_FACE}" font-size="90" text-anchor="middle"` +
-        ` dominant-baseline="central"${spin(label.rot, label.x, label.y)}>` +
-        `${esc(label.text)}</text>`;
-    }
+    for (const label of level.labels) out += planLabel(label, theme);
   }
 
   return out;

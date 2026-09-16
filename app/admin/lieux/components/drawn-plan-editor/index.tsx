@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
 import {
   PLAN_THEME,
+  planLabel,
   roomLabel,
   stairs,
   type PlateOptions,
@@ -1295,6 +1296,27 @@ export function DrawnPlanEditor({
                       ),
                     )
                   : null}
+
+                {/*
+                  Les mentions libres. L'outil « Étiquette » en posait, la barre
+                  des calques les comptait, et rien ne les dessinait : on
+                  écrivait du texte invisible.
+                */}
+                {shows("labels") &&
+                  level.labels.map((label) => (
+                    <g
+                      key={label.id}
+                      className="pointer-events-auto cursor-pointer"
+                      onPointerDown={(event) => {
+                        if (readOnly || tool !== "select") return;
+                        event.stopPropagation();
+                        setSelection({ kind: "label", id: label.id });
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: planLabel(label, PLAN_THEME),
+                      }}
+                    />
+                  ))}
 
                 {shows("measures") &&
                   level.measures.map((measure) => {
