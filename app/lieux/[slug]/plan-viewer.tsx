@@ -57,20 +57,35 @@ export function PlanViewer({
 
   const plan =
     data.plans.find((entry) => entry.id === activePlanId) ?? data.plans[0];
+  const drawn = plan && isDrawnPlan(plan) ? plan : null;
+
   /**
-   * Le fond, quand il y en a un. Un plan dessiné dont le rendu n'a pas encore
-   * abouti n'a pas d'image : le cadre reste, et les repères avec lui.
+   * Le fond, quand il y en a un — c'est-à-dire pour un plan **image** seulement.
+   *
+   * Un relevé dessiné n'en a pas ici : il se dessine en vecteurs juste en
+   * dessous, et poser son aperçu rastérisé par-dessus le montrerait deux fois.
+   * C'est ce qui arrivait, et qui restait invisible tant que cet aperçu était
+   * celui d'un relevé vide — un cadre sans géométrie ne double rien.
+   *
+   * L'aperçu garde son emploi : il est ce que lisent les écrans qui ne savent
+   * pas dessiner une géométrie, l'overlay de `nexus-app` et le fond d'un plan
+   * de vol, qui le prennent directement sur le plan.
    */
-  const image = plan ? planImage(plan) : null;
+  const image = plan && !drawn ? planImage(plan) : null;
   /**
    * Les proportions du cadre : celles de l'image, ou celles de l'emprise pour un
    * relevé dessiné. Les repères étant des fractions, c'est ce rapport qui décide
    * où ils tombent — le fausser les décale tous d'un coup.
+   *
+   * Et il était faussé : pour un relevé dessiné, le cadre prenait les
+   * proportions de l'aperçu, qui sont celles d'une **planche** — en-tête,
+   * légende et marges comprises — et non celles de l'emprise. Tous les repères
+   * tombaient donc à côté.
    */
   const frame = image
     ? { width: image.width, height: image.height }
-    : plan && isDrawnPlan(plan)
-      ? { width: plan.widthCm, height: plan.heightCm }
+    : drawn
+      ? { width: drawn.widthCm, height: drawn.heightCm }
       : { width: 16, height: 9 };
 
   /**
@@ -78,7 +93,6 @@ export function PlanViewer({
    * l'identifiant gardé en état vient du plan d'avant : changer de plan ne doit
    * pas vider le cadre.
    */
-  const drawn = plan && isDrawnPlan(plan) ? plan : null;
   const level = drawn
     ? (drawn.levels.find((entry) => entry.id === levelId) ?? drawn.levels[0])
     : null;
