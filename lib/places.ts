@@ -230,14 +230,25 @@ function normalizeMarkers(value: unknown): PlacePlanMarker[] {
         x: clampFraction(marker.x),
         y: clampFraction(marker.y),
         levelId: optionalText(marker.levelId, 40),
-        // Une cible l'emporte sur un service, qui l'emporte sur un symbole :
-        // une seule des trois natures survit, dans cet ordre.
-        service: targetSlug ? undefined : (service as PlaceService),
+        /*
+         * Une cible l'emporte sur un service, qui l'emporte sur un symbole :
+         * une seule des trois natures survit, dans cet ordre.
+         *
+         * Chaque champ est gardé par son propre validateur, et pas seulement
+         * par l'ordre. Tant que la garde ci-dessus exigeait un service valide
+         * faute de cible, la conversion allait de soi ; depuis qu'un symbole
+         * suffit, un repère pouvait arriver avec un symbole correct **et** un
+         * service inventé, et ce dernier partait en base tel quel.
+         */
+        service:
+          !targetSlug && isPlaceService(service)
+            ? (service as PlaceService)
+            : undefined,
         targetSlug: targetSlug || undefined,
         glyph:
-          targetSlug || isPlaceService(service)
-            ? undefined
-            : (glyph as PlanGlyph),
+          !targetSlug && !isPlaceService(service) && isPlanGlyph(glyph)
+            ? (glyph as PlanGlyph)
+            : undefined,
         label: optionalText(marker.label, MAX_PLACE_NAME_LENGTH),
         note: optionalText(marker.note, MAX_PLACE_NAME_LENGTH),
       }) as PlacePlanMarker;

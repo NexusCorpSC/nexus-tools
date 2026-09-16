@@ -22,7 +22,7 @@ import {
   PLAN_GLYPHS,
   type PlanGlyph,
 } from "@/lib/plan-symbols";
-import { polygonCentroid } from "@/lib/plan-geometry";
+import { polygonCentroid, rotatePoint } from "@/lib/plan-geometry";
 import type {
   DrawnPlacePlan,
   PlacePlanMarker,
@@ -241,17 +241,30 @@ export function roomLabel(room: PlanRoom, theme: PlanTheme): string {
   if (!room.label || !room.name) return "";
 
   const size = Math.max(45, Math.min(130, Math.min(room.w, room.h) / 5));
+
   /*
-   * Le centre d'une pièce libre est son centre de gravité, pas celui de sa
-   * boîte : sur une pièce en L, le centre de la boîte tombe dans l'échancrure,
-   * donc hors de la pièce, et le nom avec lui.
+   * Où poser le nom, en deux temps.
+   *
+   * D'abord dans le repère **non tourné** de la pièce : son centre de gravité
+   * s'il s'agit d'une pièce libre, parce que sur une pièce en L le centre de la
+   * boîte tombe dans l'échancrure, donc hors de la pièce ; et remonté à 22 %
+   * quand un escalier occupe le bas.
+   *
+   * Puis tourné autour du **même pivot que la forme** — le centre de la boîte.
+   * C'est l'étape qui manquait : la forme pivote là-bas, le centre de gravité
+   * voyage donc avec elle, et un nom laissé sur le centre non tourné dérivait
+   * d'autant. Un carré ne s'en apercevait pas, son centre de gravité étant le
+   * pivot ; un L de quatre mètres, oui.
    */
-  const middle = room.points?.length
-    ? polygonCentroid(room.points)
-    : { x: room.x + room.w / 2, y: room.y + room.h / 2 };
-  const cx = middle.x;
-  // Un escalier porte son hachurage en bas : son nom monte pour lui laisser la place.
-  const cy = room.stair ? room.y + room.h * 0.22 : middle.y;
+  const pivot = { x: room.x + room.w / 2, y: room.y + room.h / 2 };
+  const base = room.points?.length ? polygonCentroid(room.points) : pivot;
+  const anchor = rotatePoint(
+    { x: base.x, y: room.stair ? room.y + room.h * 0.22 : base.y },
+    pivot,
+    room.rot,
+  );
+  const cx = anchor.x;
+  const cy = anchor.y;
   const lines = twoLines(
     room.name,
     Math.max(10, Math.floor(room.w / size) * 2),
@@ -269,7 +282,9 @@ export function roomLabel(room: PlanRoom, theme: PlanTheme): string {
     ` font-family="${DISPLAY_FACE}" font-size="${n(size)}"` +
     ` font-weight="600" letter-spacing="${n(size * 0.06)}"` +
     ` text-anchor="middle" dominant-baseline="central"` +
-    `${spin(readableAngle(room.rot), cx, middle.y)}>${tspans}</text>`
+    // L'ancre est déjà au bon endroit : cette rotation-ci ne fait qu'incliner
+    // les lettres, et le demi-tour de lisibilité les remet debout sur place.
+    `${spin(readableAngle(room.rot), cx, cy)}>${tspans}</text>`
   );
 }
 
@@ -518,11 +533,15 @@ function markerBadge(
   heightCm: number,
   theme: PlanTheme,
 ): string {
-  const d = marker.glyph
-    ? PLAN_GLYPHS[marker.glyph]
+  // Même ordre que la normalisation — cible, service, symbole — pour qu'un
+  // document qui en porterait deux se dessine comme la base le comprend.
+  const d = marker.targetSlug
+    ? PLAN_GLYPHS.spawn
     : marker.service
       ? PLACE_SERVICE_GLYPHS[marker.service]
-      : PLAN_GLYPHS.spawn;
+      : marker.glyph
+        ? PLAN_GLYPHS[marker.glyph]
+        : PLAN_GLYPHS.spawn;
   if (!d) return "";
 
   const box = Math.max(60, widthCm * 0.028);

@@ -174,10 +174,19 @@ function rulerLabel(metresFromOrigin: number): string {
     : String(Math.round(metresFromOrigin));
 }
 
-/** Le tracé d'un repère, quelle que soit la nature de ce qu'il désigne. */
+/**
+ * Le tracé d'un repère, quelle que soit la nature de ce qu'il désigne.
+ *
+ * L'ordre est celui de la normalisation — cible, puis service, puis symbole —
+ * et pas l'inverse. La base ne garde qu'une seule nature, mais un document
+ * écrit avant ce lot, ou par une version plus ancienne, peut en porter deux :
+ * le dessin doit alors montrer celle qui compte, pas celle qui vient en
+ * dernier.
+ */
 function markerPath(marker: PlacePlanMarker): string {
-  if (marker.glyph) return PLAN_GLYPHS[marker.glyph];
+  if (marker.targetSlug) return PLAN_GLYPHS.spawn;
   if (marker.service) return PLACE_SERVICE_GLYPHS[marker.service];
+  if (marker.glyph) return PLAN_GLYPHS[marker.glyph];
   return PLAN_GLYPHS.spawn;
 }
 
