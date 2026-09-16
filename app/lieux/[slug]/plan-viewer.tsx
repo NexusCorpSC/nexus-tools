@@ -23,6 +23,7 @@ import {
 import {
   isDrawnPlan,
   planImage,
+  toPlaceSlug,
   type PlacePlansResponse,
   type PlaceSummary,
 } from "@/types/places";
@@ -142,7 +143,18 @@ export function PlanViewer({
    * relevé au caractère près, y compris entre deux enregistrements, et elle
    * reste nette à n'importe quel agrandissement.
    */
-  const plateSvg = drawn && plate ? renderPlateSvg(drawn, plate) : null;
+  /*
+   * La planche à l'écran, ou rien — et c'est la seule vérité sur ce qu'on
+   * regarde. Le mode seul ne suffisait pas à le dire : il survit au changement
+   * de plan, et un plan image n'a pas de planche. S'en remettre à lui laissait
+   * le panneau d'un repère caché sans retour possible, la bascule ayant
+   * disparu en même temps que le relevé dessiné.
+   *
+   * La replier ici évite au passage de composer une planche que personne ne
+   * regarde, à chaque rendu.
+   */
+  const plateSvg =
+    mode === "plate" && drawn && plate ? renderPlateSvg(drawn, plate) : null;
 
   /**
    * Les repères de l'étage regardé. Ceux d'un plan image n'ont pas de niveau et
@@ -257,7 +269,12 @@ export function PlanViewer({
                 try {
                   await downloadPlatePng(
                     drawn,
-                    `${data.slug}-${drawn.name}.png`,
+                    // Le nom du relevé est du texte libre : une barre oblique
+                    // ou un deux-points en ferait un nom de fichier que le
+                    // système refuse ou réécrit. On le passe par le même
+                    // normalisateur que les adresses, et l'identifiant prend le
+                    // relais si le nom se réduit à rien.
+                    `${data.slug}-${toPlaceSlug(drawn.name) || drawn.id}.png`,
                     plate,
                   );
                 } catch {
@@ -333,7 +350,7 @@ export function PlanViewer({
         </div>
       </div>
 
-      {mode === "plate" && plateSvg ? (
+      {plateSvg ? (
         /*
           La planche se lit, elle ne se manipule pas : pas de zoom, pas de
           repères cliquables, pas de hauteur fixe. Elle prend la largeur
@@ -455,7 +472,7 @@ export function PlanViewer({
 
       {/* Un repère sélectionné n'a pas de sens sur une planche : elle n'en a
           pas de cliquables. */}
-      {mode === "plan" && selected && (
+      {!plateSvg && selected && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold">
