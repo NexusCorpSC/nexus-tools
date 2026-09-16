@@ -1040,7 +1040,7 @@
       "drawnReadOnly": "Borrowed, read-only",
       "drawnOpen": "Open the drawing board",
       "drawnOpenBorrowed": "View the survey",
-      "drawnSummary": "{levels, plural, =0 {No level} one {# level} other {# levels}}, {rooms, plural, =0 {no room} one {# room} other {# rooms}}.",
+      "drawnSummary": "{levels, plural, =0 {No levels} one {# level} other {# levels}}, {rooms, plural, =0 {no rooms} one {# room} other {# rooms}}.",
       "drawnNoPreview": "This survey has no preview yet. Open the drawing board, draw, then save.",
       "layers": "Layers",
       "layer": {
@@ -1118,6 +1118,7 @@
       "exporting": "Exporting…",
       "exportFailed": "The export failed.",
       "previewFailed": "The preview could not be produced; the survey was saved anyway.",
+      "imageTypeRejected": "Unsupported format. JPEG, PNG or WebP only.",
       "plateCredits": "Made by the Nexus Corporation community. Not endorsed by or affiliated with Cloud Imperium.",
       "glyphs": {
         "door": "Door",

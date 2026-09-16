@@ -75,6 +75,16 @@ const MIN_ROOM_CM = 50;
 /** La graduation des règles, en pixels d'écran à l'échelle 1. */
 const RULER_STEP = 60;
 
+/**
+ * Les types d'image que `app/api/lieux/upload/route.ts` accepte, et
+ * l'extension que chacun donne au fichier déposé.
+ */
+const UNDERLAY_EXTENSIONS: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+
 type Drag =
   | { kind: "draw"; tool: PlanTool; x: number; y: number }
   | { kind: "move"; id: string; dx: number; dy: number }
@@ -217,7 +227,7 @@ export function DrawnPlanEditor({
   const closePoly = useCallback(() => {
     if (poly.length >= 6) {
       const box = boundsOf(poly);
-      draft.addRoom({
+      const added = draft.addRoom({
         name: "",
         kind: "technical",
         ...box,
@@ -226,9 +236,12 @@ export function DrawnPlanEditor({
         label: true,
         points: poly,
       });
+      // Un niveau plein refuse la pièce : le dire, sinon le tracé disparaît
+      // sans que rien ne l'explique.
+      if (!added) toast.error(t("Admin.levelFull"));
     }
     setPoly([]);
-  }, [draft, poly]);
+  }, [draft, poly, t]);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -462,21 +475,45 @@ export function DrawnPlanEditor({
     event.target.value = "";
     if (!picked) return;
 
+    // L'extension vient du type du fichier, jamais de son nom : un nom sans
+    // point donnerait le nom entier pour extension, et la route d'envoi
+    // refuserait le chemin sans pouvoir dire pourquoi.
+    const extension = UNDERLAY_EXTENSIONS[picked.type];
+    if (!extension) {
+      toast.error(t("Admin.imageTypeRejected"));
+      return;
+    }
+
     setUploading(true);
     try {
-      const extension = picked.name.split(".").pop()?.toLowerCase() ?? "png";
       const size = await new Promise<{ width: number; height: number }>(
         (resolve, reject) => {
           const url = URL.createObjectURL(picked);
           const image = new window.Image();
-          image.onload = () => {
+          // L'URL se libère sur les deux issues : la garder après un échec
+          // retient le fichier en mémoire jusqu'au rechargement de la page.
+          const settle = (finish: () => void) => {
             URL.revokeObjectURL(url);
-            resolve({ width: image.naturalWidth, height: image.naturalHeight });
+            finish();
           };
-          image.onerror = reject;
+          image.onload = () =>
+            settle(() =>
+              resolve({
+                width: image.naturalWidth,
+                height: image.naturalHeight,
+              }),
+            );
+          image.onerror = () =>
+            settle(() => reject(new Error("fond de calque illisible")));
           image.src = url;
         },
       );
+      // Une image que le navigateur décode sans lui trouver de dimensions
+      // donnerait une échelle infinie.
+      if (!size.width || !size.height) {
+        throw new Error("fond de calque sans dimensions");
+      }
+
       const blob = await upload(
         `lieux/${slug}/plans/${plan.id}-calque.${extension}`,
         picked,

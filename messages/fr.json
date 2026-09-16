@@ -1113,6 +1113,7 @@
       "exporting": "Export…",
       "exportFailed": "L'export a échoué.",
       "previewFailed": "L'aperçu n'a pas pu être produit ; le relevé est enregistré quand même.",
+      "imageTypeRejected": "Format non géré. JPEG, PNG ou WebP seulement.",
       "plateCredits": "Fait par la communauté Nexus Corporation. Ni approuvé, ni affilié à Cloud Imperium.",
       "glyphs": {
         "door": "Porte",
