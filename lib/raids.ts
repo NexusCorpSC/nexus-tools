@@ -20,6 +20,8 @@ export interface DbRaid {
   name: string;
   code: string;
   announcement: string;
+  /** Absent until the announcement is first written. */
+  announcedAt?: string | null;
   leadSquadId: string;
   /** Absent on every raid created before ready checks existed. */
   readyCheck?: ReadyCheck | null;
@@ -38,6 +40,7 @@ function toRaid(doc: DbRaid): Raid {
     name: doc.name,
     code: doc.code,
     announcement: doc.announcement,
+    announcedAt: doc.announcedAt ?? null,
     leadSquadId: doc.leadSquadId,
     readyCheck: doc.readyCheck ?? null,
     updatedAt: doc.updatedAt,
@@ -101,9 +104,14 @@ export async function updateRaid(
 ): Promise<Raid | null> {
   if (!ObjectId.isValid(raidId)) return null;
 
-  const set: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  const now = new Date().toISOString();
+  const set: Record<string, unknown> = { updatedAt: now };
   if (patch.name !== undefined) set.name = patch.name;
-  if (patch.announcement !== undefined) set.announcement = patch.announcement;
+  if (patch.announcement !== undefined) {
+    // Stamped even when the words are the same — see `Squad.announcedAt`.
+    set.announcement = patch.announcement;
+    set.announcedAt = now;
+  }
 
   const updated = await collection().findOneAndUpdate(
     { _id: new ObjectId(raidId) },

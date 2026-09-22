@@ -53,6 +53,8 @@ export interface DbSquad {
   code: string;
   leaderId: string;
   announcements: string;
+  /** Absent until the announcements are first written. */
+  announcedAt?: string | null;
   members: StoredMember[];
   /** Absent on every squad created before roles existed — see `toSquad`. */
   roles?: SquadRole[];
@@ -92,6 +94,7 @@ function toSquad(doc: DbSquad): Squad {
     code: doc.code,
     leaderId: doc.leaderId,
     announcements: doc.announcements,
+    announcedAt: doc.announcedAt ?? null,
     // The one place the stored shape becomes the promised one, so no caller —
     // route, client or overlay — has to know that «absent» meant «no», nor that
     // a squad older than the feature carries no roles of its own.
@@ -783,10 +786,13 @@ export async function setSquadAnnouncements(
   squadId: string,
   announcements: string,
 ): Promise<Squad | null> {
+  const now = new Date().toISOString();
   const updated = await collection().findOneAndUpdate(
     { _id: new ObjectId(squadId) },
     {
-      $set: { announcements, updatedAt: new Date().toISOString() },
+      // Stamped even when the words are the same: that is a message sent
+      // again, and the stamp is what the overlays ring on.
+      $set: { announcements, announcedAt: now, updatedAt: now },
       $inc: { version: 1 },
     },
     { returnDocument: "after" },

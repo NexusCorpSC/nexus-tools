@@ -104,6 +104,12 @@ un client qui y voit un `readyCheck` qu'il ne connaissait pas affiche une
 notification avec un bouton « Prêt », qui n'est rien d'autre que le `PATCH` de
 sa propre ligne.
 
+**Annonces.** Chaque écriture d'une annonce — celle d'une escouade
+(`PATCH /api/squads/announcements`) comme celle du raid (`PATCH /api/squads/raid`)
+— pose `announcedAt`, même quand le texte n'a pas changé : c'est ainsi que
+Nexus App **renvoie** une annonce, et c'est ce tampon, pas le texte, qu'il
+compare pour sonner. La page n'enregistre donc pas un texte laissé intact.
+
 ## Flux d'événements
 
 `GET /api/events` tient **une connexion par client** (Server-Sent Events) et y
