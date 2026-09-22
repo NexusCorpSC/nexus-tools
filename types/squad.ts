@@ -257,6 +257,13 @@ export interface Squad {
   code: string;
   leaderId: string;
   announcements: string;
+  /**
+   * When `announcements` was last written — every write, the same words
+   * included: sending a message again is how a leader rings everybody a second
+   * time, and clients notify on this stamp rather than on the text. `null` for
+   * a squad whose announcements were never written.
+   */
+  announcedAt: string | null;
   members: SquadMember[];
   roles: SquadRole[];
   /** The raid this squad was linked into, or `null` when it runs alone. */
@@ -285,6 +292,8 @@ export interface Raid {
   /** Handed out to link a squad in, the same way a squad code lets a player in. */
   code: string;
   announcement: string;
+  /** As `Squad.announcedAt`, for the raid's announcement. */
+  announcedAt: string | null;
   /**
    * The squad that runs the raid: whoever commands it renames the raid, writes
    * its announcement and unlinks the others.

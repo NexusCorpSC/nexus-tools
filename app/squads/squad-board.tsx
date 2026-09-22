@@ -654,6 +654,13 @@ function Announcement({
         className={cn(frame, "space-y-2")}
         onSubmit={async (event) => {
           event.preventDefault();
+          // Every save rings the overlays of the squad, the same words
+          // included — that is how the overlay sends a message again — so
+          // «Enregistrer» on an untouched text only closes the field.
+          if (draft === value) {
+            setEditing(false);
+            return;
+          }
           setSaving(true);
           const saved = await onSave(draft);
           setSaving(false);
