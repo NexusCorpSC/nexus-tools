@@ -5,6 +5,7 @@ import { mongodbAdapter } from "better-auth/adapters/mongodb";
 
 import { Resend } from "resend";
 import db from "@/lib/db";
+import { desktopAuth } from "@/lib/desktop-auth";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -92,6 +93,7 @@ export const auth = betterAuth({
       rpID: "services.nexus",
       rpName: "Nexus Services",
     }),
+    desktopAuth(),
   ],
   databaseHooks: {
     user: {
