@@ -5,13 +5,31 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Où revenir après la connexion : un chemin du site, jamais une autre origine.
+ */
+function safeCallbackUrl(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  return value;
+}
+
 export default function Login() {
   const sParams = useSearchParams();
-  const callbackUrl = sParams.get("callbackUrl");
+  const callbackUrl = safeCallbackUrl(sParams.get("callbackUrl"));
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const router = useRouter();
+
+  function goBack() {
+    // La connexion de Nexus App finit par une redirection vers l'application,
+    // hors du site : une navigation complète, que le routeur ne ferait pas.
+    if (callbackUrl.startsWith("/desktop/")) {
+      window.location.assign(callbackUrl);
+    } else {
+      router.push(callbackUrl);
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
@@ -23,16 +41,12 @@ export default function Login() {
           <form
             className="space-y-4"
             action={async (formData) => {
-              await authClient.signIn.emailOtp({
+              const { error } = await authClient.signIn.emailOtp({
                 email,
                 otp: code,
               });
 
-              if (callbackUrl) {
-                router.push(callbackUrl);
-              } else {
-                router.push("/");
-              }
+              if (!error) goBack();
             }}
           >
             <div>
@@ -144,15 +158,7 @@ export default function Login() {
           onClick={async () => {
             await authClient.signIn.social({
               provider: "discord",
-              fetchOptions: {
-                onSuccess() {
-                  if (callbackUrl) {
-                    //router.push(callbackUrl);
-                  } else {
-                    //router.push("/");
-                  }
-                },
-              },
+              callbackURL: callbackUrl,
             });
           }}
         >
@@ -165,11 +171,7 @@ export default function Login() {
             await authClient.signIn.passkey({
               fetchOptions: {
                 onSuccess() {
-                  if (callbackUrl) {
-                    router.push(callbackUrl);
-                  } else {
-                    router.push("/");
-                  }
+                  goBack();
                 },
               },
             });
