@@ -56,7 +56,8 @@ export function desktopAuth() {
         async (ctx) => {
           const body = (ctx.body ?? {}) as { code?: unknown; verifier?: unknown };
 
-          if (typeof body.code !== "string" || !isPkceValue(body.verifier)) {
+          // Le code a la même forme qu'un verifier : 32 octets en base64url.
+          if (!isPkceValue(body.code) || !isPkceValue(body.verifier)) {
             throw ctx.error("BAD_REQUEST", { message: "Requête invalide." });
           }
 
@@ -131,6 +132,10 @@ export async function issueDesktopCode(
   userId: string,
   challenge: string,
 ): Promise<string> {
+  if (!isPkceValue(challenge)) {
+    throw new Error("PKCE challenge must be base64url, 43 to 128 characters");
+  }
+
   const code = randomBytes(32).toString("base64url");
 
   await context.internalAdapter.createVerificationValue({
