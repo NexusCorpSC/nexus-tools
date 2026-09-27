@@ -68,6 +68,9 @@ export async function addInventoryRows(
     if (typeof row.locationId !== "string" || !row.locationId.trim()) {
       return { ok: false, error: "locationId is required" };
     }
+    if (row.unit !== undefined && row.unit !== null && typeof row.unit !== "string") {
+      return { ok: false, error: "unit must be a string" };
+    }
   }
 
   const collection = db.db().collection("inventoryItems");
