@@ -28,7 +28,8 @@ export async function GET() {
  * Declares playing, or renews the declaration — it lapses on its own after
  * `PRESENCE_TTL_HOURS`, so a client that stays open renews it (Nexus App does).
  *
- * Body: { activity?: string | null }
+ * Body: { activity?: string | null } — `null` or "" clears the activity; an
+ * absent field keeps the current one.
  */
 export async function PUT(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -43,11 +44,13 @@ export async function PUT(request: NextRequest) {
     body = {};
   }
 
-  const activity = normalizeActivity(
-    (body as { activity?: unknown } | null)?.activity,
-  );
+  // Absent means «keep the current one»: a renewal need not repeat it.
+  const sent = body !== null && typeof body === "object" && "activity" in body;
+  const activity = sent
+    ? normalizeActivity((body as { activity: unknown }).activity)
+    : undefined;
 
-  if (activity === undefined) {
+  if (activity === false) {
     return NextResponse.json(
       {
         error: `\`activity\` must be a string of at most ${PRESENCE_ACTIVITY_MAX_LENGTH} characters`,

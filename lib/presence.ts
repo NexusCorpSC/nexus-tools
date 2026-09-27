@@ -31,13 +31,16 @@ function collection() {
   return db.db().collection<DbPresence>("presences");
 }
 
-/** Une activité propre : sans espaces superflus, vide ramené à `null`. */
-export function normalizeActivity(value: unknown): string | null | undefined {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "string") return undefined;
+/**
+ * Une activité propre : sans espaces superflus, vide ramené à `null`.
+ * `false` pour une valeur refusée — ni texte, ni `null`, ou trop longue.
+ */
+export function normalizeActivity(value: unknown): string | null | false {
+  if (value === null) return null;
+  if (typeof value !== "string") return false;
 
   const activity = value.replace(/\s+/g, " ").trim();
-  if (activity.length > PRESENCE_ACTIVITY_MAX_LENGTH) return undefined;
+  if (activity.length > PRESENCE_ACTIVITY_MAX_LENGTH) return false;
 
   return activity || null;
 }
@@ -68,10 +71,13 @@ export async function getMyPresence(userId: ObjectId): Promise<MyPresence> {
  * `since` ne bouge pas tant que la session court : changer d'activité, ou la
  * renouveler, n'est pas recommencer à jouer. Une déclaration déjà éteinte, en
  * revanche, ouvre une nouvelle session.
+ *
+ * `activity` absente (`undefined`) garde celle de la session en cours : un
+ * simple renouvellement n'a pas à la répéter, ni surtout à l'effacer.
  */
 export async function declarePlaying(
   userId: ObjectId,
-  activity: string | null,
+  requested: string | null | undefined,
 ): Promise<MyPresence> {
   const now = new Date();
   const updatedAt = now.toISOString();
@@ -82,6 +88,8 @@ export async function declarePlaying(
   const previous = await collection().findOne({ userId });
   const running = previous && new Date(previous.expiresAt) > now;
   const since = running ? previous.since : updatedAt;
+  const activity =
+    requested === undefined ? (running ? previous.activity : null) : requested;
 
   await collection().updateOne(
     { userId },
@@ -146,14 +154,18 @@ export async function getOrgPresence(
         .toArray()
     : [];
 
+  const usersById = new Map(users.map((user) => [user._id.toString(), user]));
+  const membersById = new Map(
+    members.map((member) => [member.userId.toString(), member]),
+  );
+
   const playing: MemberPresence[] = presences.map((presence) => {
-    const user = users.find((one) => one._id.equals(presence.userId));
-    const member = members.find((one) =>
-      new ObjectId(one.userId).equals(presence.userId),
-    );
+    const id = presence.userId.toString();
+    const user = usersById.get(id);
+    const member = membersById.get(id);
 
     return {
-      userId: presence.userId.toString(),
+      userId: id,
       name: user?.name ?? "Membre",
       avatar: user?.avatar ?? user?.image ?? null,
       rank: member?.rank || null,
