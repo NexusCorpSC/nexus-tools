@@ -22,6 +22,7 @@ import {
   JoinLinkSection,
   JoinRequestsSection,
 } from "@/app/orgs/(accredited)/[orgId]/components";
+import { OrgPresenceSection } from "@/app/orgs/(accredited)/[orgId]/presence";
 
 export async function generateMetadata({
   params,
@@ -229,6 +230,16 @@ export default async function OrganizationPage({
           <JoinRequestsSection orgId={orgId} requests={joinRequests} />
         </>
       )}
+
+      {session?.user &&
+        organization.members.some((member) =>
+          member.userId.equals(session.user?.id),
+        ) && (
+          <>
+            <OrgPresenceSection orgId={orgId} />
+            <hr />
+          </>
+        )}
 
       <div>
         <h2 className="text-xl font-semibold mb-2">{t("description")}</h2>
