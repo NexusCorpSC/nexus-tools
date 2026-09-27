@@ -24,6 +24,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { formatTimeRemaining } from "../utils";
+import WorkOrderImport from "./work-order-import";
 import { DateTime } from "luxon";
 import { useTranslations } from "next-intl";
 
@@ -132,6 +133,14 @@ export default function JobsList({ jobs }: JobsListProps) {
           </CardContent>
           
           <CardFooter className="justify-end space-x-2">
+            {job.isFinished && (
+              <WorkOrderImport
+                locationHint={job.location}
+                trigger={
+                  <Button size="sm">{t("workOrderCollect")}</Button>
+                }
+              />
+            )}
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" onClick={() => setEditingJob(job)}>

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import NewJobForm from "./components/new-job-form";
 import JobsList from "./components/jobs-list";
+import WorkOrderImport from "./components/work-order-import";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -70,6 +71,12 @@ export default async function RefinePage() {
           <div className="bg-nexus p-4 rounded-lg">
             <h2 className="text-xl font-semibold mb-4">{t("addNewJob")}</h2>
             <NewJobForm />
+          </div>
+
+          <div className="bg-nexus p-4 rounded-lg">
+            <h2 className="text-xl font-semibold mb-1">{t("workOrderImport")}</h2>
+            <p className="mb-4 text-sm">{t("workOrderSectionDescription")}</p>
+            <WorkOrderImport />
           </div>
 
           <div>
