@@ -1663,7 +1663,7 @@
     "quickAddStatusNewLot": "Nouveau lot",
     "quickAddStatusMerge": "Fusion : ×{from} → ×{to}",
     "quickAddErrorName": "Nom requis",
-    "quickAddErrorQuality": "Qualité : entier positif",
+    "quickAddErrorQuality": "Qualité : entier ≥ 0",
     "quickAddErrorQuantity": "Quantité invalide",
     "quickAddErrorLocation": "Lieu requis",
     "quickAddErrorLocationUnknown": "Lieu introuvable : {name}",

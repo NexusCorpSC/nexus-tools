@@ -1200,6 +1200,7 @@ type LocationSection = {
   key: string;
   location: Location | null;
   groups: ItemGroup[];
+  /** Cards, not lots: what the reader sees. */
   count: number;
   /** Sum of what is counted in SCU there, when anything is. */
   scu: number;
@@ -1221,7 +1222,6 @@ function groupByLocation(items: InventoryItemWithLocation[]): LocationSection[] 
       section = { key, location: item.location, groups: [], count: 0, scu: 0 };
       sections.set(key, section);
     }
-    section.count += 1;
     if (item.unit?.trim().toLowerCase() === "scu") section.scu += item.quantity;
 
     const groupKey = `${item.name.trim().toLowerCase()}|${(item.unit ?? "").trim().toLowerCase()}`;
@@ -1229,6 +1229,7 @@ function groupByLocation(items: InventoryItemWithLocation[]): LocationSection[] 
     if (!group) {
       group = { key: groupKey, name: item.name, unit: item.unit, lots: [] };
       section.groups.push(group);
+      section.count += 1;
     }
     group.lots.push(item);
   }
@@ -1577,7 +1578,11 @@ export function InventoryGrid() {
   );
 
   const chips = [
-    { key: "all", label: t("filterAll"), count: items.length },
+    {
+      key: "all",
+      label: t("filterAll"),
+      count: sections.reduce((sum, section) => sum + section.count, 0),
+    },
     ...sections.map((section) => ({
       key: section.key,
       label: section.location?.name ?? t("locationUnknown"),

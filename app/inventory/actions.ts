@@ -151,10 +151,25 @@ export async function quickAddItems(
   const collection = db.db().collection("inventoryItems");
   const now = new Date().toISOString();
 
-  // What the reader already holds at each place the rows name, kept up to
-  // date as rows land so that two identical rows make one lot.
-  const held = new Map<string, Record<string, unknown>[]>();
-  let created = 0;
+  // What the reader already holds at the places the rows name, read once.
+  // Rows are matched against it, and against the rows before them, in
+  // memory; the writes then go out together.
+  const locationIds = [...new Set(rows.map((row) => row.locationId.trim()))];
+  const held = await collection
+    .find({ userId, locationId: { $in: locationIds } })
+    .toArray();
+
+  type Lot = Record<string, unknown> & { _id: ObjectId };
+  const byPlace = new Map<string, Lot[]>();
+  for (const item of held) {
+    const here = byPlace.get(item.locationId as string) ?? [];
+    here.push(item as Lot);
+    byPlace.set(item.locationId as string, here);
+  }
+
+  const inserts: Lot[] = [];
+  // Added to existing lots, by id: `$inc` keeps a concurrent change.
+  const increments = new Map<string, { _id: ObjectId; by: number }>();
   let merged = 0;
 
   for (const row of rows) {
@@ -162,11 +177,8 @@ export async function quickAddItems(
     const name = row.name.trim();
     const unit = row.unit?.trim() || undefined;
 
-    let here = held.get(locationId);
-    if (!here) {
-      here = await collection.find({ userId, locationId }).toArray();
-      held.set(locationId, here);
-    }
+    const here = byPlace.get(locationId) ?? [];
+    byPlace.set(locationId, here);
 
     const match = here.find(
       (item) =>
@@ -176,17 +188,20 @@ export async function quickAddItems(
     );
 
     if (match) {
-      const quantity = roundQty((match.quantity as number) + row.quantity);
-      await collection.updateOne(
-        { _id: match._id as ObjectId },
-        { $set: { quantity, updatedAt: now } },
-      );
-      match.quantity = quantity;
       merged += 1;
+      const pending = inserts.find((doc) => doc._id.equals(match._id));
+      if (pending) {
+        pending.quantity = roundQty((pending.quantity as number) + row.quantity);
+        continue;
+      }
+      const key = match._id.toString();
+      const increment = increments.get(key) ?? { _id: match._id, by: 0 };
+      increment.by = roundQty(increment.by + row.quantity);
+      increments.set(key, increment);
       continue;
     }
 
-    const doc = {
+    const doc: Lot = {
       _id: new ObjectId(),
       name,
       quality: row.quality,
@@ -197,10 +212,23 @@ export async function quickAddItems(
       orgVisible: row.orgVisible === true,
       updatedAt: now,
     };
-    await collection.insertOne(doc);
+    inserts.push(doc);
     here.push(doc);
-    created += 1;
   }
 
+  await collection.bulkWrite(
+    [
+      ...inserts.map((document) => ({ insertOne: { document } })),
+      ...[...increments.values()].map(({ _id, by }) => ({
+        updateOne: {
+          filter: { _id, userId },
+          update: { $inc: { quantity: by }, $set: { updatedAt: now } },
+        },
+      })),
+    ],
+    { ordered: false },
+  );
+
+  const created = inserts.length;
   return { ok: true, created, merged };
 }
