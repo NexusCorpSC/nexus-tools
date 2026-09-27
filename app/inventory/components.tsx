@@ -37,6 +37,7 @@ import {
   SentParcelDialog,
 } from "./parcels";
 import { cn, roundQty } from "@/lib/utils";
+import { displayUnit, fromDisplayQty, toDisplayQty } from "@/lib/units";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -651,7 +652,9 @@ function AdjustQuantityPopover({
       setError(t("errorQuantityInvalid"));
       return;
     }
-    const delta = mode === "add" ? parsed : -parsed;
+    // Typed in the unit the card shows; stored in the lot's own.
+    const amount = fromDisplayQty(parsed, item.unit);
+    const delta = mode === "add" ? amount : -amount;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/inventory/items/${item.id}`, {
@@ -906,15 +909,19 @@ function AddToPackagePopover({
       setError(t("errorQuantityInvalid"));
       return;
     }
-    if (parsed > availableOf(item)) {
+    // Typed in the unit the card shows; the parcel counts in the lot's own.
+    const amount = fromDisplayQty(parsed, item.unit);
+    if (amount > availableOf(item)) {
       setError(
         item.reserved
-          ? t("errorQuantityExceedsAvailable", { available: availableOf(item) })
+          ? t("errorQuantityExceedsAvailable", {
+              available: toDisplayQty(availableOf(item), item.unit),
+            })
           : t("errorQuantityExceedsStock"),
       );
       return;
     }
-    onAdd(parsed);
+    onAdd(amount);
     setOpen(false);
     setValue("");
     setError(null);
@@ -948,7 +955,7 @@ function AddToPackagePopover({
           <Input
             type="number"
             min={0.001}
-            max={availableOf(item)}
+            max={toDisplayQty(availableOf(item), item.unit)}
             step="any"
             autoFocus
             value={value}
@@ -1247,13 +1254,15 @@ function PackageSidebar({
 /**
  * The same thing held at the same place, in the same unit: one card. Each
  * quality stays its own lot inside it — Sadaryx at 688, 510 and 256 is one
- * card of three lots, not three cards that look alike.
+ * card of three lots, not three cards that look alike. Units of one measure
+ * count as one: lots in cSCU and in SCU make one card, shown in SCU.
  */
 export type ItemGroup<
   T extends InventoryItemWithLocation = InventoryItemWithLocation,
 > = {
   key: string;
   name: string;
+  /** The unit shown: each lot's quantity is converted to it. */
   unit?: string;
   lots: T[];
 };
@@ -1288,12 +1297,15 @@ export function groupByLocation<T extends InventoryItemWithLocation>(
       section = { key, location: item.location, groups: [], count: 0, scu: 0 };
       sections.set(key, section);
     }
-    if (item.unit?.trim().toLowerCase() === "scu") section.scu += item.quantity;
+    const { unit } = displayUnit(item.unit);
+    if (unit === "SCU") {
+      section.scu += toDisplayQty(item.quantity, item.unit);
+    }
 
-    const groupKey = `${item.name.trim().toLowerCase()}|${(item.unit ?? "").trim().toLowerCase()}`;
+    const groupKey = `${item.name.trim().toLowerCase()}|${(unit ?? "").toLowerCase()}`;
     let group = section.groups.find((g) => g.key === groupKey);
     if (!group) {
-      group = { key: groupKey, name: item.name, unit: item.unit, lots: [] };
+      group = { key: groupKey, name: item.name, unit, lots: [] };
       section.groups.push(group);
       section.count += 1;
     }
@@ -1397,7 +1409,12 @@ function InventoryGroupCard({
   const multi = group.lots.length > 1;
   // The lot the footer acts on: the one picked, or the first if it is gone.
   const active = group.lots.find((lot) => lot.id === activeId) ?? group.lots[0];
-  const total = roundQty(group.lots.reduce((sum, lot) => sum + lot.quantity, 0));
+  const total = roundQty(
+    group.lots.reduce(
+      (sum, lot) => sum + toDisplayQty(lot.quantity, lot.unit),
+      0,
+    ),
+  );
   const latest = group.lots.reduce((a, b) =>
     a.updatedAt > b.updatedAt ? a : b,
   );
@@ -1474,13 +1491,17 @@ function InventoryGroupCard({
                 <span
                   className="flex items-center gap-1 text-xs text-amber-300"
                   title={t("reservedInParcel", {
-                    quantity: number.format(lot.reserved),
+                    quantity: number.format(
+                      toDisplayQty(lot.reserved, lot.unit),
+                    ),
                   })}
                 >
                   <PaperAirplaneIcon className="size-3.5" aria-hidden />
                   <span className="sr-only">
                     {t("reservedInParcel", {
-                      quantity: number.format(lot.reserved),
+                      quantity: number.format(
+                        toDisplayQty(lot.reserved, lot.unit),
+                      ),
                     })}
                   </span>
                 </span>
@@ -1489,19 +1510,23 @@ function InventoryGroupCard({
                 <span
                   className="flex items-center gap-1 text-xs text-[#9ED0FF]"
                   title={t("inPackage", {
-                    quantity: number.format(inPackage),
+                    quantity: number.format(toDisplayQty(inPackage, lot.unit)),
                   })}
                 >
                   <ArchiveBoxIcon className="size-3.5" aria-hidden />
                   <span className="sr-only">
-                    {t("inPackage", { quantity: number.format(inPackage) })}
+                    {t("inPackage", {
+                      quantity: number.format(
+                        toDisplayQty(inPackage, lot.unit),
+                      ),
+                    })}
                   </span>
                 </span>
               )}
               <span className="flex-1" />
               {multi && (
                 <span className="font-mono text-[13px] font-semibold text-[#C9E4FF] tabular-nums">
-                  ×{number.format(lot.quantity)}
+                  ×{number.format(toDisplayQty(lot.quantity, lot.unit))}
                 </span>
               )}
             </>
