@@ -53,8 +53,12 @@ const CELL =
 const KBD =
   "rounded bg-[#0B3A5A] px-1.5 py-0.5 font-mono text-[11px] text-[#C9E4FF]";
 
+/**
+ * A number as a French spreadsheet writes it too: "1 234,5", thousands split
+ * by spaces (plain, non-breaking or narrow) and a decimal comma.
+ */
 function parseNumber(value: string) {
-  return Number(value.trim().replace(",", "."));
+  return Number(value.replace(/[\s\u00a0\u202f]/g, "").replace(",", "."));
 }
 
 function sameText(a: string | undefined, b: string | undefined) {
