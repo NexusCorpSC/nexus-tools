@@ -16,6 +16,7 @@
 
 import type { Collection, Db, Document } from "mongodb";
 import db from "@/lib/db";
+import { ATTEMPT_WINDOW_MS } from "@/lib/parcels";
 
 /** Codes d'erreur de Mongo, par leur nom : le pilote ne donne que le numéro. */
 const INDEX_OPTIONS_CONFLICT = 85;
@@ -236,6 +237,27 @@ async function ensureCargoShips(database: Db) {
     .createIndex({ id: 1 }, { unique: true, name: "cargoShips_id_unique" });
 }
 
+// ─── Colis ────────────────────────────────────────────────────────────────────
+
+/**
+ * Le code d'un colis, unique ; les envois et réceptions d'un joueur, que liste
+ * sa page ; et les codes erronés, que la base oublie d'elle-même passé la
+ * fenêtre qui les compte (`lib/parcels.ts`).
+ */
+async function ensureParcels(database: Db) {
+  const parcels = database.collection("parcels");
+  await parcels.createIndex({ code: 1 }, { unique: true });
+  await parcels.createIndex({ senderId: 1, createdAt: -1 });
+  await parcels.createIndex({ recipientId: 1, createdAt: -1 });
+
+  const attempts = database.collection("parcelCodeAttempts");
+  await attempts.createIndex({ userId: 1, at: -1 });
+  await attempts.createIndex(
+    { at: 1 },
+    { expireAfterSeconds: ATTEMPT_WINDOW_MS / 1000 },
+  );
+}
+
 // ─── Lancement ────────────────────────────────────────────────────────────────
 
 const STEPS: [string, (database: Db) => Promise<void>][] = [
@@ -248,6 +270,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["gameItems", ensureGameItems],
   ["gameLocations", ensureGameLocations],
   ["cargoShips", ensureCargoShips],
+  ["parcels", ensureParcels],
 ];
 
 async function main() {

@@ -10,6 +10,15 @@ import {
   type QuickAddResult,
   type QuickAddRow,
 } from "@/lib/inventory-quick-add";
+import {
+  acceptParcel,
+  cancelParcel,
+  createParcel,
+  listParcels,
+  ParcelError,
+  previewParcel,
+  type ParcelErrorCode,
+} from "@/lib/parcels";
 
 export type PackageEntry = { itemId: string; quantity: number };
 export type PackageOp =
@@ -91,4 +100,65 @@ export async function quickAddItems(
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return { ok: false, error: "Unauthorized" };
   return addInventoryRows(session.user.id, rows);
+}
+
+export type ParcelActionResult<T> =
+  | ({ ok: true } & T)
+  | { ok: false; error: ParcelErrorCode | "unauthorized"; item?: string };
+
+async function parcelAction<T>(
+  run: (user: { id: string; name?: string }) => Promise<T>,
+): Promise<ParcelActionResult<T>> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) return { ok: false, error: "unauthorized" };
+  try {
+    return {
+      ok: true,
+      ...(await run({ id: session.user.id, name: session.user.name })),
+    };
+  } catch (error) {
+    if (error instanceof ParcelError) {
+      return { ok: false, error: error.code, item: error.item };
+    }
+    throw error;
+  }
+}
+
+/** Seals the reader's package into a parcel: see `createParcel`. */
+export async function sendParcel(entries: PackageEntry[]) {
+  return parcelAction(async (user) => ({
+    parcel: await createParcel(user, entries),
+  }));
+}
+
+/** What a code holds, before accepting it: see `previewParcel`. */
+export async function lookupParcel(code: string) {
+  return parcelAction(async (user) => ({
+    parcel: await previewParcel(user.id, code),
+  }));
+}
+
+/** Takes a parcel into the reader's inventory: see `acceptParcel`. */
+export async function receiveParcel(
+  code: string,
+  locationId: string,
+  orgVisible: boolean,
+) {
+  return parcelAction((user) =>
+    acceptParcel(user, code, { locationId, orgVisible }),
+  );
+}
+
+/** Takes back a parcel the reader sent: see `cancelParcel`. */
+export async function withdrawParcel(code: string) {
+  return parcelAction(async (user) => ({
+    parcel: await cancelParcel(user.id, code),
+  }));
+}
+
+/** The reader's parcels, sent and received: see `listParcels`. */
+export async function myParcels() {
+  return parcelAction(async (user) => ({
+    parcels: await listParcels(user.id),
+  }));
 }

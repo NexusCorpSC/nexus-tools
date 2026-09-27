@@ -9,6 +9,7 @@ import {
   FormEvent,
 } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { InventoryItemWithLocation, Location } from "@/types/inventory";
 import {
@@ -24,8 +25,17 @@ import {
   ArrowsRightLeftIcon,
   ArchiveBoxIcon,
   BuildingOffice2Icon,
+  PaperAirplaneIcon,
+  ArrowDownTrayIcon,
+  InboxStackIcon,
 } from "@heroicons/react/24/outline";
-import { packageOperate } from "./actions";
+import { packageOperate, sendParcel } from "./actions";
+import type { ParcelView } from "@/lib/parcels";
+import {
+  PARCEL_PARAM,
+  ReceiveParcelDialog,
+  SentParcelDialog,
+} from "./parcels";
 import { cn, roundQty } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +64,11 @@ type PackageItem = {
   item: InventoryItemWithLocation;
   quantity: number;
 };
+
+/** What of a lot a new parcel may still take: not what one waiting holds. */
+function availableOf(item: InventoryItemWithLocation) {
+  return roundQty(item.quantity - (item.reserved ?? 0));
+}
 
 // ─── LocationCombobox ────────────────────────────────────────────────────────
 
@@ -888,8 +903,12 @@ function AddToPackagePopover({
       setError(t("errorQuantityInvalid"));
       return;
     }
-    if (parsed > item.quantity) {
-      setError(t("errorQuantityExceedsStock"));
+    if (parsed > availableOf(item)) {
+      setError(
+        item.reserved
+          ? t("errorQuantityExceedsAvailable", { available: availableOf(item) })
+          : t("errorQuantityExceedsStock"),
+      );
       return;
     }
     onAdd(parsed);
@@ -926,7 +945,7 @@ function AddToPackagePopover({
           <Input
             type="number"
             min={0.001}
-            max={item.quantity}
+            max={availableOf(item)}
             step="any"
             autoFocus
             value={value}
@@ -949,12 +968,16 @@ function PackageSidebar({
   items,
   onUpdate,
   onRefresh,
+  onSent,
 }: {
   items: PackageItem[];
   onUpdate: (items: PackageItem[]) => void;
   onRefresh: () => void;
+  /** The package became a parcel: its code is to be shown. */
+  onSent: (parcel: ParcelView) => void;
 }) {
   const t = useTranslations("Inventory");
+  const tParcels = useTranslations("Parcels");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveLocation, setMoveLocation] = useState<Location | null>(null);
@@ -970,6 +993,27 @@ function PackageSidebar({
         pi.item.id === itemId ? { ...pi, quantity: qty } : pi,
       ),
     );
+
+  const handleSend = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await sendParcel(
+        items.map((pi) => ({ itemId: pi.item.id, quantity: pi.quantity })),
+      );
+      if (!result.ok) {
+        setError(
+          tParcels(`error_${result.error}`, { item: result.item ?? "" }),
+        );
+        return;
+      }
+      onUpdate([]);
+      onRefresh();
+      onSent(result.parcel);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleDelete = async () => {
     setSubmitting(true);
@@ -1061,7 +1105,7 @@ function PackageSidebar({
             <Input
               type="number"
               min={0.001}
-              max={pi.item.quantity}
+              max={availableOf(pi.item)}
               step="any"
               value={pi.quantity}
               onChange={(e) => {
@@ -1091,6 +1135,19 @@ function PackageSidebar({
 
       {/* Actions */}
       <div className="space-y-2 pt-2 border-t border-[#9ED0FF]/15">
+        {/* Send to another player */}
+        <Button
+          type="button"
+          size="sm"
+          className="w-full"
+          disabled={submitting}
+          onClick={handleSend}
+        >
+          <PaperAirplaneIcon className="size-4 mr-1.5" />
+          {tParcels("send")}
+        </Button>
+        <p className="text-xs text-[#7E9FB7]">{tParcels("sendHint")}</p>
+
         {/* Delete */}
         <Popover
           open={deleteOpen}
@@ -1410,6 +1467,21 @@ function InventoryGroupCard({
               ) : (
                 <span className="text-xs text-[#7E9FB7]">{t("noQuality")}</span>
               )}
+              {lot.reserved !== undefined && (
+                <span
+                  className="flex items-center gap-1 text-xs text-amber-300"
+                  title={t("reservedInParcel", {
+                    quantity: number.format(lot.reserved),
+                  })}
+                >
+                  <PaperAirplaneIcon className="size-3.5" aria-hidden />
+                  <span className="sr-only">
+                    {t("reservedInParcel", {
+                      quantity: number.format(lot.reserved),
+                    })}
+                  </span>
+                </span>
+              )}
               {inPackage !== undefined && (
                 <span
                   className="flex items-center gap-1 text-xs text-[#9ED0FF]"
@@ -1526,6 +1598,20 @@ export function InventoryGrid() {
   const [qualityFilter, setQualityFilter] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
+  const [sentParcel, setSentParcel] = useState<ParcelView | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  // A parcel link (`/inventory?parcel=K7QM2X9A`) opens the receiving dialog
+  // with its code in; the address is cleaned, so a reload does not reopen it.
+  const linkedCode = searchParams.get(PARCEL_PARAM) ?? undefined;
+  const [receiveOpen, setReceiveOpen] = useState(linkedCode !== undefined);
+  const [receiveCode, setReceiveCode] = useState(linkedCode);
+  useEffect(() => {
+    if (linkedCode === undefined) return;
+    setReceiveCode(linkedCode);
+    setReceiveOpen(true);
+    router.replace("/inventory", { scroll: false });
+  }, [linkedCode, router]);
 
   const handleAddToPackage = useCallback(
     (item: InventoryItemWithLocation, quantity: number) => {
@@ -1533,7 +1619,10 @@ export function InventoryGrid() {
         const existing = prev.find((pi) => pi.item.id === item.id);
         if (existing) {
           // Accumulate, capped to available stock
-          const newQty = Math.min(existing.quantity + quantity, item.quantity);
+          const newQty = Math.min(
+            existing.quantity + quantity,
+            availableOf(item),
+          );
           return prev.map((pi) =>
             pi.item.id === item.id ? { ...pi, quantity: newQty } : pi,
           );
@@ -1651,6 +1740,28 @@ export function InventoryGrid() {
               {t("quickAddButton")}
             </Link>
           </Button>
+          <Button
+            variant="outline"
+            className="h-10 border-[#9ED0FF]/35 bg-transparent"
+            onClick={() => {
+              setReceiveCode(undefined);
+              setReceiveOpen(true);
+            }}
+          >
+            <ArrowDownTrayIcon className="size-4" />
+            {t("receiveParcel")}
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10"
+            title={t("parcelsLink")}
+          >
+            <Link href="/inventory/parcels" aria-label={t("parcelsLink")}>
+              <InboxStackIcon className="size-5" />
+            </Link>
+          </Button>
         </div>
 
         {/* Places */}
@@ -1741,8 +1852,21 @@ export function InventoryGrid() {
           items={packageItems}
           onUpdate={setPackageItems}
           onRefresh={fetchItems}
+          onSent={setSentParcel}
         />
       )}
+
+      <SentParcelDialog
+        parcel={sentParcel}
+        onClose={() => setSentParcel(null)}
+        onCancelled={fetchItems}
+      />
+      <ReceiveParcelDialog
+        open={receiveOpen}
+        initialCode={receiveCode}
+        onOpenChange={setReceiveOpen}
+        onReceived={fetchItems}
+      />
     </div>
   );
 }
