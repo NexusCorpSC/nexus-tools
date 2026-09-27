@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn, roundQty } from "@/lib/utils";
+import { toDisplayQty } from "@/lib/units";
 import {
   groupByLocation,
   ItemGroup,
@@ -272,7 +273,12 @@ function OrgInventoryGroupCard({
   );
 
   const multi = group.lots.length > 1;
-  const total = roundQty(group.lots.reduce((sum, lot) => sum + lot.quantity, 0));
+  const total = roundQty(
+    group.lots.reduce(
+      (sum, lot) => sum + toDisplayQty(lot.quantity, lot.unit),
+      0,
+    ),
+  );
   const latest = group.lots.reduce((a, b) =>
     a.updatedAt > b.updatedAt ? a : b,
   );
@@ -327,7 +333,7 @@ function OrgInventoryGroupCard({
             </span>
             {multi && (
               <span className="font-mono text-[13px] font-semibold text-[#C9E4FF] tabular-nums">
-                ×{number.format(lot.quantity)}
+                ×{number.format(toDisplayQty(lot.quantity, lot.unit))}
               </span>
             )}
           </li>
