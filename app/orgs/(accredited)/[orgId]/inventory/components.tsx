@@ -87,10 +87,15 @@ export function OrgInventoryGrid({ orgId }: { orgId: string }) {
   }, [fetchItems]);
 
   const sections = useMemo(() => groupByLocation(items), [items]);
+  // Un lieu choisi que les autres filtres ont vidé ne masque pas tout : on
+  // revient à « Tous ».
+  const activeLocation = sections.some((s) => s.key === locationFilter)
+    ? locationFilter
+    : "all";
   const shown =
-    locationFilter === "all"
+    activeLocation === "all"
       ? sections
-      : sections.filter((section) => section.key === locationFilter);
+      : sections.filter((section) => section.key === activeLocation);
 
   const number = useMemo(
     () => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }),
@@ -173,7 +178,7 @@ export function OrgInventoryGrid({ orgId }: { orgId: string }) {
       {!loading && items.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {chips.map((chip) => {
-            const on = locationFilter === chip.key;
+            const on = activeLocation === chip.key;
             return (
               <button
                 key={chip.key}
