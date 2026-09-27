@@ -1,7 +1,15 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, FormEvent } from "react";
-import { useTranslations } from "next-intl";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  FormEvent,
+} from "react";
+import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { InventoryItemWithLocation, Location } from "@/types/inventory";
 import {
   MagnifyingGlassIcon,
@@ -9,6 +17,7 @@ import {
   XMarkIcon,
   MapPinIcon,
   CubeIcon,
+  TableCellsIcon,
   TrashIcon,
   PencilIcon,
   MinusIcon,
@@ -17,17 +26,11 @@ import {
   BuildingOffice2Icon,
 } from "@heroicons/react/24/outline";
 import { packageOperate } from "./actions";
+import { cn, roundQty } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +46,10 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/** A small action next to a lot: quiet until pointed at. */
+const ICON_BUTTON =
+  "size-7 rounded-md text-[#7E9FB7] hover:bg-[#0B3A5A] hover:text-[#CCE7FF]";
+
 type PackageItem = {
   item: InventoryItemWithLocation;
   quantity: number;
@@ -50,14 +57,18 @@ type PackageItem = {
 
 // ─── LocationCombobox ────────────────────────────────────────────────────────
 
-function LocationCombobox({
+export function LocationCombobox({
   value,
   onChange,
   placeholder,
+  inputClassName,
+  "aria-label": ariaLabel,
 }: {
   value: Location | null;
   onChange: (loc: Location) => void;
   placeholder: string;
+  inputClassName?: string;
+  "aria-label"?: string;
 }) {
   const t = useTranslations("Inventory");
   const [inputValue, setInputValue] = useState(value?.name ?? "");
@@ -132,6 +143,8 @@ function LocationCombobox({
         ref={inputRef}
         value={inputValue}
         placeholder={placeholder}
+        aria-label={ariaLabel}
+        className={inputClassName}
         autoComplete="off"
         onChange={(e) => {
           setInputValue(e.target.value);
@@ -140,7 +153,7 @@ function LocationCombobox({
         onFocus={() => setOpen(true)}
       />
       {open && (inputValue.length > 0 || suggestions.length > 0) && (
-        <div className="absolute z-50 mt-1 w-full  border border-gray-200 rounded-md shadow-lg max-h-52 overflow-auto">
+        <div className="absolute z-50 mt-1 w-full min-w-64 max-h-60 overflow-auto rounded-lg border border-[#9ED0FF]/25 bg-popover text-popover-foreground shadow-xl shadow-black/40">
           {/*
             Deux groupes : les lieux du catalogue d'abord — ceux qui portent un
             `placeSlug` —, puis ceux que le joueur a nommés lui-même. « Hangar
@@ -168,7 +181,7 @@ function LocationCombobox({
                   <button
                     key={loc.id}
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[#9ED0FF]/10 flex items-center gap-2"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       onChange(loc);
@@ -176,7 +189,7 @@ function LocationCombobox({
                       setOpen(false);
                     }}
                   >
-                    <MapPinIcon className="size-4  shrink-0" />
+                    <MapPinIcon className="size-4 shrink-0 text-[#7E9FB7]" />
                     <span>{loc.name}</span>
                     {loc.system && (
                       <span className="ml-auto text-xs opacity-70">
@@ -184,7 +197,7 @@ function LocationCombobox({
                       </span>
                     )}
                     {!loc.placeSlug && loc.userId && (
-                      <span className="ml-auto text-xs ">
+                      <span className="ml-auto text-xs text-[#7E9FB7]">
                         {t("locationPersonal")}
                       </span>
                     )}
@@ -196,7 +209,7 @@ function LocationCombobox({
             <button
               type="button"
               disabled={creating}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 text-blue-600 flex items-center gap-2 border-t border-gray-100"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-[#9ED0FF]/10 text-[#9ED0FF] flex items-center gap-2 border-t border-[#9ED0FF]/15"
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleCreateLocation}
             >
@@ -205,7 +218,7 @@ function LocationCombobox({
             </button>
           )}
           {suggestions.length === 0 && !inputValue.trim() && (
-            <p className="px-3 py-2 text-sm">{t("locationEmpty")}</p>
+            <p className="px-3 py-2 text-sm text-[#7E9FB7]">{t("locationEmpty")}</p>
           )}
         </div>
       )}
@@ -442,10 +455,11 @@ function AddItemDialog({
           <button
             type="button"
             onClick={() => setOrgVisible((v) => !v)}
+            aria-pressed={orgVisible}
             className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
               orgVisible
-                ? "border-blue-300 bg-blue-50 text-blue-700"
-                : "border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-500"
+                ? "border-[#9ED0FF]/60 bg-[#9ED0FF]/12 text-[#CCE7FF]"
+                : "border-[#9ED0FF]/15 hover:bg-[#9ED0FF]/5 text-[#7E9FB7]"
             }`}
           >
             <div className="flex items-center gap-2">
@@ -454,18 +468,18 @@ function AddItemDialog({
             </div>
             <span
               className={`inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors ${
-                orgVisible ? "bg-blue-500" : "bg-gray-300"
+                orgVisible ? "bg-[#9ED0FF]" : "bg-[#9ED0FF]/20"
               }`}
             >
               <span
-                className={`pointer-events-none block h-4 w-4 rounded-full  shadow-sm transition-transform ${
+                className={`pointer-events-none block h-4 w-4 rounded-full bg-[#061E30] shadow-sm transition-transform ${
                   orgVisible ? "translate-x-4" : "translate-x-0"
                 }`}
               />
             </span>
           </button>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-300">{error}</p>}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
@@ -579,7 +593,7 @@ function EditItemDialog({
             location={location}
             setLocation={setLocation}
           />
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-300">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               {t("cancel")}
@@ -659,9 +673,9 @@ function AdjustQuantityPopover({
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="size-7"
+          className={ICON_BUTTON}
           title={label}
         >
           <Icon className="size-3.5" />
@@ -679,7 +693,7 @@ function AdjustQuantityPopover({
             onChange={(e) => setValue(e.target.value)}
             placeholder={t("quantityDeltaPlaceholder")}
           />
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-red-300">{error}</p>}
           <Button
             type="submit"
             size="sm"
@@ -756,9 +770,9 @@ function MoveItemPopover({
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="size-7"
+          className={ICON_BUTTON}
           title={t("actionMove")}
         >
           <ArrowsRightLeftIcon className="size-3.5" />
@@ -772,7 +786,7 @@ function MoveItemPopover({
             onChange={setLocation}
             placeholder={t("fieldLocationPlaceholder")}
           />
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-red-300">{error}</p>}
           <Button
             type="submit"
             size="sm"
@@ -816,9 +830,9 @@ function DeleteConfirmPopover({
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="size-7 text-red-500 hover:text-red-600 hover:border-red-300"
+          className={cn(ICON_BUTTON, "hover:bg-red-400/10 hover:text-red-300")}
           title={t("actionDelete")}
         >
           <TrashIcon className="size-3.5" />
@@ -898,9 +912,9 @@ function AddToPackagePopover({
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="size-7"
+          className={ICON_BUTTON}
           title={t("packageAdd")}
         >
           <ArchiveBoxIcon className="size-3.5" />
@@ -919,7 +933,7 @@ function AddToPackagePopover({
             onChange={(e) => setValue(e.target.value)}
             placeholder={t("quantityDeltaPlaceholder")}
           />
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-red-300">{error}</p>}
           <Button type="submit" size="sm" className="w-full">
             {t("confirm")}
           </Button>
@@ -1003,20 +1017,20 @@ function PackageSidebar({
   };
 
   return (
-    <div className="w-72 shrink-0 sticky top-4  border border-gray-200 rounded-xl shadow-sm p-4 space-y-3">
+    <aside className="w-72 shrink-0 sticky top-4 rounded-xl border border-[#9ED0FF]/25 bg-[#0A2A42] p-4 space-y-3 shadow-lg shadow-black/20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ArchiveBoxIcon className="size-5" />
-          <h2 className="font-semibold ">{t("packageTitle")}</h2>
-          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gray-100 ">
+          <ArchiveBoxIcon className="size-5 text-[#9ED0FF]" />
+          <h2 className="font-semibold text-[#CCE7FF]">{t("packageTitle")}</h2>
+          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#9ED0FF]/15 text-[#9ED0FF]">
             {items.length}
           </span>
         </div>
         <button
           type="button"
           onClick={() => onUpdate([])}
-          className="text-xs  transition-colors"
+          className="text-xs text-[#7E9FB7] hover:text-[#CCE7FF] transition-colors"
         >
           {t("packageClear")}
         </button>
@@ -1027,12 +1041,21 @@ function PackageSidebar({
         {items.map((pi) => (
           <div
             key={pi.item.id}
-            className="flex items-center gap-2 text-sm py-1.5 border-b border-gray-50 last:border-0"
+            className="flex items-center gap-2 text-sm py-1.5 border-b border-[#9ED0FF]/10 last:border-0"
           >
             <div className="flex-1 min-w-0">
-              <p className="truncate font-medium  text-xs">{pi.item.name}</p>
+              <p className="truncate font-medium text-xs text-[#CCE7FF]">
+                {pi.item.name}
+                {pi.item.quality != null && (
+                  <span className="ml-1.5 text-[#7E9FB7]">
+                    Q{pi.item.quality}
+                  </span>
+                )}
+              </p>
               {pi.item.location && (
-                <p className="text-xs  truncate">{pi.item.location.name}</p>
+                <p className="text-xs text-[#7E9FB7] truncate">
+                  {pi.item.location.name}
+                </p>
               )}
             </div>
             <Input
@@ -1048,12 +1071,15 @@ function PackageSidebar({
               className="w-16 h-7 text-xs px-2"
             />
             {pi.item.unit && (
-              <span className="text-xs  shrink-0">{pi.item.unit}</span>
+              <span className="text-xs text-[#7E9FB7] shrink-0">
+                {pi.item.unit}
+              </span>
             )}
             <button
               type="button"
               onClick={() => handleRemoveItem(pi.item.id)}
-              className=" hover:text-red-500 transition-colors shrink-0"
+              aria-label={t("packageRemoveItem")}
+              className="text-[#7E9FB7] hover:text-red-300 transition-colors shrink-0"
             >
               <XMarkIcon className="size-4" />
             </button>
@@ -1061,10 +1087,10 @@ function PackageSidebar({
         ))}
       </div>
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-red-300">{error}</p>}
 
       {/* Actions */}
-      <div className="space-y-2 pt-2 border-t border-gray-100">
+      <div className="space-y-2 pt-2 border-t border-[#9ED0FF]/15">
         {/* Delete */}
         <Popover
           open={deleteOpen}
@@ -1077,7 +1103,7 @@ function PackageSidebar({
             <Button
               variant="outline"
               size="sm"
-              className="w-full text-red-500 hover:text-red-600 hover:border-red-300"
+              className="w-full text-red-300 hover:text-red-200 hover:border-red-300/60"
             >
               <TrashIcon className="size-4 mr-1.5" />
               {t("packageDelete")}
@@ -1139,7 +1165,7 @@ function PackageSidebar({
                 onChange={setMoveLocation}
                 placeholder={t("fieldLocationPlaceholder")}
               />
-              {error && <p className="text-xs text-red-500">{error}</p>}
+              {error && <p className="text-xs text-red-300">{error}</p>}
               <Button
                 type="submit"
                 size="sm"
@@ -1152,128 +1178,332 @@ function PackageSidebar({
           </PopoverContent>
         </Popover>
       </div>
-    </div>
+    </aside>
   );
 }
 
-// ─── InventoryItemCard ────────────────────────────────────────────────────────
+// ─── Grouping ─────────────────────────────────────────────────────────────────
 
-function InventoryItemCard({
-  item,
+/**
+ * The same thing held at the same place, in the same unit: one card. Each
+ * quality stays its own lot inside it — Sadaryx at 688, 510 and 256 is one
+ * card of three lots, not three cards that look alike.
+ */
+type ItemGroup = {
+  key: string;
+  name: string;
+  unit?: string;
+  lots: InventoryItemWithLocation[];
+};
+
+type LocationSection = {
+  key: string;
+  location: Location | null;
+  groups: ItemGroup[];
+  /** Cards, not lots: what the reader sees. */
+  count: number;
+  /** Sum of what is counted in SCU there, when anything is. */
+  scu: number;
+};
+
+const NO_LOCATION = "none";
+
+function locationKey(item: InventoryItemWithLocation) {
+  return item.location?.id ?? NO_LOCATION;
+}
+
+function groupByLocation(items: InventoryItemWithLocation[]): LocationSection[] {
+  const sections = new Map<string, LocationSection>();
+
+  for (const item of items) {
+    const key = locationKey(item);
+    let section = sections.get(key);
+    if (!section) {
+      section = { key, location: item.location, groups: [], count: 0, scu: 0 };
+      sections.set(key, section);
+    }
+    if (item.unit?.trim().toLowerCase() === "scu") section.scu += item.quantity;
+
+    const groupKey = `${item.name.trim().toLowerCase()}|${(item.unit ?? "").trim().toLowerCase()}`;
+    let group = section.groups.find((g) => g.key === groupKey);
+    if (!group) {
+      group = { key: groupKey, name: item.name, unit: item.unit, lots: [] };
+      section.groups.push(group);
+      section.count += 1;
+    }
+    group.lots.push(item);
+  }
+
+  for (const section of sections.values()) {
+    for (const group of section.groups) {
+      group.lots.sort((a, b) => (b.quality ?? -1) - (a.quality ?? -1));
+    }
+  }
+
+  // Places by name; a missing place last.
+  return [...sections.values()].sort((a, b) => {
+    if (!a.location) return 1;
+    if (!b.location) return -1;
+    return a.location.name.localeCompare(b.location.name);
+  });
+}
+
+// ─── QualityBadge ─────────────────────────────────────────────────────────────
+
+/** Out of 1000: gold from 700, blue from 500, grey below. */
+function qualityTier(quality: number) {
+  if (quality >= 700) {
+    return { pill: "bg-amber-400/12 text-amber-300", bar: "bg-amber-300" };
+  }
+  if (quality >= 500) {
+    return { pill: "bg-[#9ED0FF]/12 text-[#9ED0FF]", bar: "bg-[#9ED0FF]" };
+  }
+  return { pill: "bg-[#7E9FB7]/15 text-[#A9BFD0]", bar: "bg-[#A9BFD0]" };
+}
+
+function QualityBadge({ quality }: { quality: number }) {
+  const t = useTranslations("Inventory");
+  const tier = qualityTier(quality);
+
+  return (
+    <span
+      className="flex items-center gap-2"
+      title={t("qualityTitle", { quality })}
+    >
+      <span
+        className={cn(
+          "rounded-md px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums",
+          tier.pill,
+        )}
+      >
+        Q {quality}
+      </span>
+      <span
+        aria-hidden
+        className="h-1 w-12 overflow-hidden rounded-full bg-[#9ED0FF]/12"
+      >
+        <span
+          className={cn("block h-full rounded-full", tier.bar)}
+          style={{ width: `${Math.min(100, Math.max(0, quality / 10))}%` }}
+        />
+      </span>
+    </span>
+  );
+}
+
+// ─── InventoryGroupCard ───────────────────────────────────────────────────────
+
+function InventoryGroupCard({
+  group,
+  packaged,
   onRefresh,
   onAddToPackage,
 }: {
-  item: InventoryItemWithLocation;
+  group: ItemGroup;
+  packaged: Map<string, number>;
   onRefresh: () => void;
   onAddToPackage: (item: InventoryItemWithLocation, quantity: number) => void;
 }) {
   const t = useTranslations("Inventory");
-  const [editOpen, setEditOpen] = useState(false);
-  const [orgVisible, setOrgVisible] = useState(item.orgVisible);
-  const [orgVisiblePending, setOrgVisiblePending] = useState(false);
+  const locale = useLocale();
+  const [editing, setEditing] = useState<InventoryItemWithLocation | null>(
+    null,
+  );
+  const [activeId, setActiveId] = useState(group.lots[0].id);
+  const [orgVisible, setOrgVisible] = useState<Record<string, boolean>>({});
+  const [orgPending, setOrgPending] = useState(false);
+
+  const number = useMemo(
+    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }),
+    [locale],
+  );
+  const date = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [locale],
+  );
+
+  const multi = group.lots.length > 1;
+  // The lot the footer acts on: the one picked, or the first if it is gone.
+  const active = group.lots.find((lot) => lot.id === activeId) ?? group.lots[0];
+  const total = roundQty(group.lots.reduce((sum, lot) => sum + lot.quantity, 0));
+  const latest = group.lots.reduce((a, b) =>
+    a.updatedAt > b.updatedAt ? a : b,
+  );
+
+  const visible = (lot: InventoryItemWithLocation) =>
+    orgVisible[lot.id] ?? lot.orgVisible;
+  const allVisible = group.lots.every(visible);
+  const someVisible = group.lots.some(visible);
 
   const handleToggleOrgVisible = async () => {
-    const next = !orgVisible;
-    setOrgVisible(next);
-    setOrgVisiblePending(true);
+    const next = !allVisible;
+    const before = orgVisible;
+    setOrgVisible(Object.fromEntries(group.lots.map((lot) => [lot.id, next])));
+    setOrgPending(true);
     try {
-      await fetch(`/api/inventory/items/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ op: "setOrgVisible", orgVisible: next }),
-      });
+      const results = await Promise.all(
+        group.lots.map((lot) =>
+          fetch(`/api/inventory/items/${lot.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ op: "setOrgVisible", orgVisible: next }),
+          }),
+        ),
+      );
+      if (results.some((res) => !res.ok)) setOrgVisible(before);
     } catch {
-      setOrgVisible(!next);
+      setOrgVisible(before);
     } finally {
-      setOrgVisiblePending(false);
+      setOrgPending(false);
     }
   };
 
   return (
-    <div className=" border border-gray-200 rounded-lg p-4 space-y-2 hover:shadow-sm transition-shadow">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <CubeIcon className="size-5  shrink-0" />
-          <h3 className="font-semibold  truncate">{item.name}</h3>
+    <article className="flex flex-col gap-3 rounded-xl border border-[#9ED0FF]/12 bg-[#0A2A42] p-4 pb-2.5 transition-colors hover:border-[#9ED0FF]/35">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="line-clamp-2 text-sm font-semibold break-words text-[#CCE7FF]">
+            {group.name}
+          </h3>
+          <p className="mt-1 text-xs text-[#7E9FB7]">
+            {multi && <>{t("lotsCount", { count: group.lots.length })} · </>}
+            {t("updatedAt", { date: date.format(new Date(latest.updatedAt)) })}
+          </p>
         </div>
-        {item.quality !== undefined && item.quality !== null && (
-          <span className="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-            {t("qualityLabel")}: {item.quality}
+        <p className="shrink-0 text-right leading-none whitespace-nowrap">
+          <span className="font-mono text-xl font-bold tracking-tight text-[#9ED0FF] tabular-nums">
+            ×{number.format(total)}
           </span>
-        )}
-      </div>
+          {group.unit && (
+            <span className="ml-1 text-xs font-semibold text-[#7E9FB7]">
+              {group.unit}
+            </span>
+          )}
+        </p>
+      </header>
 
-      {item.description && (
-        <p className="text-sm line-clamp-2">{item.description}</p>
+      {!multi && active.description && (
+        <p className="line-clamp-2 text-xs text-[#A9BFD0]">
+          {active.description}
+        </p>
       )}
 
-      <div className="flex items-center justify-between text-sm pt-1">
-        <span className="font-medium ">
-          {item.quantity}
-          {item.unit ? ` ${item.unit}` : ""}
-        </span>
-        {item.location ? (
-          <span className="flex items-center gap-1">
-            <MapPinIcon className="size-3.5" />
-            {item.location.name}
-          </span>
-        ) : (
-          <span className=" italic text-xs">{t("locationUnknown")}</span>
-        )}
-      </div>
+      <ul className="space-y-0.5">
+        {group.lots.map((lot) => {
+          const inPackage = packaged.get(lot.id);
+          const detail = (
+            <>
+              {lot.quality != null ? (
+                <QualityBadge quality={lot.quality} />
+              ) : (
+                <span className="text-xs text-[#7E9FB7]">{t("noQuality")}</span>
+              )}
+              {inPackage !== undefined && (
+                <span
+                  className="flex items-center gap-1 text-xs text-[#9ED0FF]"
+                  title={t("inPackage", {
+                    quantity: number.format(inPackage),
+                  })}
+                >
+                  <ArchiveBoxIcon className="size-3.5" aria-hidden />
+                  <span className="sr-only">
+                    {t("inPackage", { quantity: number.format(inPackage) })}
+                  </span>
+                </span>
+              )}
+              <span className="flex-1" />
+              {multi && (
+                <span className="font-mono text-[13px] font-semibold text-[#C9E4FF] tabular-nums">
+                  ×{number.format(lot.quantity)}
+                </span>
+              )}
+            </>
+          );
 
-      {/* Action buttons */}
-      <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-100">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className={`size-7 transition-colors ${
-            orgVisible
-              ? "text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100"
-              : " hover:text-blue-500"
-          }`}
-          title={orgVisible ? t("orgVisibleDisable") : t("orgVisibleEnable")}
-          onClick={handleToggleOrgVisible}
-          disabled={orgVisiblePending}
-        >
-          <BuildingOffice2Icon className="size-3.5" />
-        </Button>
+          return (
+            <li
+              key={lot.id}
+              className={cn(
+                "-mx-1.5 flex min-h-8 items-center gap-1 rounded-lg px-1.5",
+                multi && lot.id === active.id && "bg-[#9ED0FF]/8",
+              )}
+            >
+              {multi ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveId(lot.id)}
+                  aria-pressed={lot.id === active.id}
+                  title={t("lotSelect")}
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 text-left"
+                >
+                  {detail}
+                </button>
+              ) : (
+                <div className="flex min-w-0 flex-1 items-center gap-2 py-1">
+                  {detail}
+                </div>
+              )}
+              <AdjustQuantityPopover
+                item={lot}
+                mode="remove"
+                onUpdated={onRefresh}
+              />
+              <AdjustQuantityPopover item={lot} mode="add" onUpdated={onRefresh} />
+            </li>
+          );
+        })}
+      </ul>
+
+      <footer className="mt-auto flex items-center gap-0.5 border-t border-[#9ED0FF]/10 pt-2">
+        <label className="flex flex-1 cursor-pointer items-center gap-2 text-[13px] text-[#C9E4FF]">
+          <input
+            type="checkbox"
+            checked={allVisible}
+            ref={(el) => {
+              if (el) el.indeterminate = someVisible && !allVisible;
+            }}
+            disabled={orgPending}
+            onChange={handleToggleOrgVisible}
+            className="size-3.5 accent-[#9ED0FF]"
+          />
+          {t("orgVisibleShort")}
+        </label>
         <AddToPackagePopover
-          item={item}
-          onAdd={(qty) => onAddToPackage(item, qty)}
+          item={active}
+          onAdd={(qty) => onAddToPackage(active, qty)}
         />
-        <AdjustQuantityPopover item={item} mode="add" onUpdated={onRefresh} />
-        <AdjustQuantityPopover
-          item={item}
-          mode="remove"
-          onUpdated={onRefresh}
-        />
-        <MoveItemPopover item={item} onUpdated={onRefresh} />
+        <MoveItemPopover item={active} onUpdated={onRefresh} />
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="size-7"
+          className={ICON_BUTTON}
           title={t("actionEdit")}
-          onClick={() => setEditOpen(true)}
+          aria-label={t("actionEdit")}
+          onClick={() => setEditing(active)}
         >
           <PencilIcon className="size-3.5" />
         </Button>
-        <DeleteConfirmPopover item={item} onDeleted={onRefresh} />
-      </div>
+        <DeleteConfirmPopover item={active} onDeleted={onRefresh} />
+      </footer>
 
-      {editOpen && (
+      {editing && (
         <EditItemDialog
-          item={item}
-          onClose={() => setEditOpen(false)}
+          item={editing}
+          onClose={() => setEditing(null)}
           onUpdated={() => {
             onRefresh();
-            setEditOpen(false);
+            setEditing(null);
           }}
         />
       )}
-    </div>
+    </article>
   );
 }
 
@@ -1281,13 +1511,13 @@ function InventoryItemCard({
 
 export function InventoryGrid() {
   const t = useTranslations("Inventory");
+  const locale = useLocale();
 
   const [items, setItems] = useState<InventoryItemWithLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [qualityFilter, setQualityFilter] = useState("");
-  const [locations, setLocations] = useState<Location[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
 
@@ -1309,14 +1539,14 @@ export function InventoryGrid() {
   );
 
   const debouncedQuery = useDebounce(searchQuery, 300);
+  const debouncedQuality = useDebounce(qualityFilter, 300);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (debouncedQuery) params.set("query", debouncedQuery);
-      if (locationFilter !== "all") params.set("locationId", locationFilter);
-      if (qualityFilter.trim()) params.set("quality", qualityFilter.trim());
+      if (debouncedQuality.trim()) params.set("quality", debouncedQuality.trim());
 
       const res = await fetch(`/api/inventory/items?${params.toString()}`);
       if (!res.ok) return;
@@ -1325,123 +1555,169 @@ export function InventoryGrid() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedQuery, locationFilter, qualityFilter]);
-
-  const fetchLocations = useCallback(async () => {
-    try {
-      const res = await fetch("/api/inventory/locations");
-      if (!res.ok) return;
-      const data: Location[] = await res.json();
-      setLocations(data);
-    } catch {
-      // ignore
-    }
-  }, []);
+  }, [debouncedQuery, debouncedQuality]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
-  useEffect(() => {
-    fetchLocations();
-  }, [fetchLocations]);
+  const sections = useMemo(() => groupByLocation(items), [items]);
+  const shown =
+    locationFilter === "all"
+      ? sections
+      : sections.filter((section) => section.key === locationFilter);
 
-  const handleRefresh = useCallback(() => {
-    fetchItems();
-    fetchLocations();
-  }, [fetchItems, fetchLocations]);
+  const packaged = useMemo(
+    () => new Map(packageItems.map((pi) => [pi.item.id, pi.quantity])),
+    [packageItems],
+  );
+
+  const number = useMemo(
+    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }),
+    [locale],
+  );
+
+  const chips = [
+    {
+      key: "all",
+      label: t("filterAll"),
+      count: sections.reduce((sum, section) => sum + section.count, 0),
+    },
+    ...sections.map((section) => ({
+      key: section.key,
+      label: section.location?.name ?? t("locationUnknown"),
+      count: section.count,
+    })),
+  ];
 
   return (
     <div className="flex gap-6 items-start">
       <div className="flex-1 min-w-0 space-y-4">
         {/* Toolbar */}
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Search */}
-          <div className="relative flex-1 min-w-48">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4  pointer-events-none" />
+        <div className="flex flex-wrap gap-2.5 items-center">
+          <label className="relative flex-1 min-w-48">
+            <span className="sr-only">{t("searchPlaceholder")}</span>
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#7E9FB7] pointer-events-none" />
             <Input
-              className="pl-9"
+              className="h-10 pl-9 bg-[#0A2A42] border-[#9ED0FF]/20"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("searchPlaceholder")}
             />
-          </div>
+          </label>
 
-          {/* Location filter */}
-          <Select value={locationFilter} onValueChange={setLocationFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder={t("filterAllLocations")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("filterAllLocations")}</SelectItem>
-              {locations.map((loc) => (
-                <SelectItem key={loc.id} value={loc.id}>
-                  {loc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Quality filter */}
-          <div className="relative w-36">
+          <label className="flex h-10 items-center gap-2 rounded-md border border-[#9ED0FF]/20 bg-[#0A2A42] pl-3 pr-1.5 text-sm">
+            <span className="text-[#7E9FB7] whitespace-nowrap">
+              {t("filterQualityLabel")}
+            </span>
             <Input
               type="number"
               min={0}
               step={1}
               value={qualityFilter}
               onChange={(e) => setQualityFilter(e.target.value)}
-              placeholder={t("filterQualityPlaceholder")}
+              placeholder="0"
+              className="h-7 w-16 px-2 font-mono text-sm"
             />
             {qualityFilter && (
               <button
                 type="button"
                 onClick={() => setQualityFilter("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2"
+                aria-label={t("filterQualityClear")}
+                className="text-[#7E9FB7] hover:text-[#CCE7FF]"
               >
                 <XMarkIcon className="size-4" />
               </button>
             )}
-          </div>
+          </label>
 
-          {/* Add button */}
-          <Button onClick={() => setShowAddDialog(true)} size="sm">
-            <PlusIcon className="size-4 mr-1.5" />
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            variant="outline"
+            className="h-10 border-[#9ED0FF]/35 bg-transparent"
+          >
+            <PlusIcon className="size-4" />
             {t("addItemButton")}
+          </Button>
+          <Button asChild className="h-10">
+            <Link href="/inventory/quick-add">
+              <TableCellsIcon className="size-4" />
+              {t("quickAddButton")}
+            </Link>
           </Button>
         </div>
 
-        {/* Results count */}
-        {!loading && (
-          <p className="text-sm">
-            {t("resultsCount", { count: items.length })}
-          </p>
+        {/* Places */}
+        {!loading && items.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {chips.map((chip) => {
+              const on = locationFilter === chip.key;
+              return (
+                <button
+                  key={chip.key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setLocationFilter(chip.key)}
+                  className={cn(
+                    "flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-[13px] transition-colors",
+                    on
+                      ? "border-[#9ED0FF] bg-[#9ED0FF] font-semibold text-[#061E30]"
+                      : "border-[#9ED0FF]/25 text-[#C9E4FF] hover:border-[#9ED0FF]/55",
+                  )}
+                >
+                  {chip.label}
+                  <span className="font-mono text-xs opacity-70">
+                    {chip.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         )}
 
-        {/* Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="h-28  rounded-lg animate-pulse bg-nexus-bg/80"
+                className="h-36 rounded-xl animate-pulse bg-[#0A2A42]"
               />
             ))}
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-16">
-            <CubeIcon className="size-10 mx-auto mb-3" />
+            <CubeIcon className="size-10 mx-auto mb-3 text-[#7E9FB7]" />
             <p className="font-medium">{t("emptyTitle")}</p>
-            <p className="text-sm mt-1">{t("emptySubtitle")}</p>
+            <p className="text-sm mt-1 text-[#7E9FB7]">{t("emptySubtitle")}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((item) => (
-              <InventoryItemCard
-                key={item.id}
-                item={item}
-                onRefresh={handleRefresh}
-                onAddToPackage={handleAddToPackage}
-              />
+          <div className="space-y-7">
+            {shown.map((section) => (
+              <section key={section.key} className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <MapPinIcon className="size-4 shrink-0 text-[#7E9FB7]" />
+                  <h2 className="text-[15px] font-semibold text-[#CCE7FF]">
+                    {section.location?.name ?? t("locationUnknown")}
+                  </h2>
+                  <span className="font-mono text-xs text-[#7E9FB7]">
+                    {t("sectionCount", { count: section.count })}
+                    {section.scu > 0 &&
+                      ` · ${number.format(roundQty(section.scu))} SCU`}
+                  </span>
+                  <span className="h-px flex-1 bg-[#9ED0FF]/12" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
+                  {section.groups.map((group) => (
+                    <InventoryGroupCard
+                      key={group.key + group.lots.map((l) => l.id).join()}
+                      group={group}
+                      packaged={packaged}
+                      onRefresh={fetchItems}
+                      onAddToPackage={handleAddToPackage}
+                    />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         )}
@@ -1449,7 +1725,7 @@ export function InventoryGrid() {
         <AddItemDialog
           open={showAddDialog}
           onClose={() => setShowAddDialog(false)}
-          onCreated={handleRefresh}
+          onCreated={fetchItems}
         />
       </div>
       {/* end main column */}
@@ -1458,7 +1734,7 @@ export function InventoryGrid() {
         <PackageSidebar
           items={packageItems}
           onUpdate={setPackageItems}
-          onRefresh={handleRefresh}
+          onRefresh={fetchItems}
         />
       )}
     </div>
