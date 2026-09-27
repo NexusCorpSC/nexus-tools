@@ -249,6 +249,9 @@ async function ensureParcels(database: Db) {
   await parcels.createIndex({ code: 1 }, { unique: true });
   await parcels.createIndex({ senderId: 1, createdAt: -1 });
   await parcels.createIndex({ recipientId: 1, createdAt: -1 });
+  // Ce que les colis en attente d'un joueur réservent, lu à chaque lecture de
+  // son inventaire.
+  await parcels.createIndex({ senderId: 1, status: 1, expiresAt: 1 });
 
   const attempts = database.collection("parcelCodeAttempts");
   await attempts.createIndex({ userId: 1, at: -1 });

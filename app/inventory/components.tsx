@@ -65,9 +65,12 @@ type PackageItem = {
   quantity: number;
 };
 
-/** What of a lot a new parcel may still take: not what one waiting holds. */
+/**
+ * What of a lot a new parcel may still take: not what one waiting holds.
+ * Never below zero — the lot may have been used after a parcel was sealed.
+ */
 function availableOf(item: InventoryItemWithLocation) {
-  return roundQty(item.quantity - (item.reserved ?? 0));
+  return Math.max(0, roundQty(item.quantity - (item.reserved ?? 0)));
 }
 
 // ─── LocationCombobox ────────────────────────────────────────────────────────
