@@ -1400,6 +1400,20 @@
     "Edit": {
       "save": "Enregistrer les modifications",
       "forbidden": "Vous n'êtes pas autorisé à modifier cette organisation."
+    },
+    "Presence": {
+      "title": "En jeu maintenant",
+      "count": "{playing} sur {total}",
+      "youArePlaying": "Vous êtes en jeu",
+      "youAreNotPlaying": "Vous n'êtes pas en jeu",
+      "activityLabel": "Activité",
+      "activityPlaceholder": "Que faites-vous ? (facultatif)",
+      "start": "Je joue",
+      "update": "Mettre à jour",
+      "stop": "J'arrête",
+      "nobody": "Personne n'est en jeu pour le moment.",
+      "noActivity": "En jeu",
+      "error": "La mise à jour a échoué. Réessayez."
     }
   },
   "NewOrganization": {

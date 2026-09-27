@@ -1399,6 +1399,20 @@
     "Edit": {
       "save": "Save",
       "forbidden": "You are not allowed to edit this organization."
+    },
+    "Presence": {
+      "title": "Playing now",
+      "count": "{playing} of {total}",
+      "youArePlaying": "You are playing",
+      "youAreNotPlaying": "You are not playing",
+      "activityLabel": "Activity",
+      "activityPlaceholder": "What are you doing? (optional)",
+      "start": "I'm playing",
+      "update": "Update",
+      "stop": "I'm done",
+      "nobody": "Nobody is playing right now.",
+      "noActivity": "Playing",
+      "error": "The update failed. Please try again."
     }
   },
   "NewOrganization": {

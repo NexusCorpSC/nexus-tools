@@ -92,6 +92,18 @@ async function ensureNotes(database: Db) {
     .createIndex({ userId: 1 }, { unique: true });
 }
 
+// ─── Présence en jeu ──────────────────────────────────────────────────────────
+
+/**
+ * Une déclaration par utilisateur, tenue par la base ; et l'échéance, que
+ * chaque lecture d'une organisation filtre avec ses membres.
+ */
+async function ensurePresences(database: Db) {
+  const presences = database.collection("presences");
+  await presences.createIndex({ userId: 1 }, { unique: true });
+  await presences.createIndex({ expiresAt: 1 });
+}
+
 // ─── Plans de vol ─────────────────────────────────────────────────────────────
 
 /**
@@ -230,6 +242,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
   ["notes", ensureNotes],
+  ["presences", ensurePresences],
   ["plans", ensurePlans],
   ["planStrokes", ensurePlanStrokes],
   ["gameItems", ensureGameItems],
