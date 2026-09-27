@@ -25,7 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, roundQty } from "@/lib/utils";
 import { LocationCombobox } from "../components";
-import { quickAddItems, QuickAddRow } from "../actions";
+import { quickAddItems } from "../actions";
+import type { QuickAddRow } from "@/lib/inventory-quick-add";
 
 type Row = {
   key: number;
