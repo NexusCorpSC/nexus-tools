@@ -523,7 +523,6 @@ export default function WorkOrderImport({
                           return (
                             <tr
                               key={row.key}
-                              title={row.raw}
                               className={cn(
                                 "border-b border-[#9ED0FF]/10 [&>td+td]:border-l [&>td+td]:border-[#9ED0FF]/10",
                                 !result.ok && "bg-red-400/5",
@@ -539,6 +538,7 @@ export default function WorkOrderImport({
                                     })
                                   }
                                   aria-label={t("workOrderMaterial")}
+                                  title={row.raw}
                                   aria-invalid={field === "name" || undefined}
                                   className={cell}
                                 />
@@ -554,6 +554,7 @@ export default function WorkOrderImport({
                                   }
                                   placeholder="—"
                                   aria-label={t("workOrderQuality")}
+                                  title={row.raw}
                                   aria-invalid={
                                     field === "quality" || undefined
                                   }
@@ -576,6 +577,7 @@ export default function WorkOrderImport({
                                   }
                                   placeholder="?"
                                   aria-label={t("workOrderYield")}
+                                  title={row.raw}
                                   aria-invalid={
                                     field === "quantity" || undefined
                                   }

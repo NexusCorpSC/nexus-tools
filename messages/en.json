@@ -1461,7 +1461,11 @@
     "workOrderSubmit": "{count, plural, =0 {Add to inventory} one {Add # lot} other {Add # lots}}",
     "workOrderDone": "Materials added to {name}",
     "workOrderDoneDescription": "{created, plural, =0 {No lot created} one {# lot created} other {# lots created}}, {merged, plural, =0 {no lot topped up} one {# lot topped up} other {# lots topped up}}.",
-    "workOrderSeeInventory": "See inventory"
+    "workOrderSeeInventory": "See inventory",
+    "adding": "Adding...",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes"
   },
   "Cargo": {
     "home": "Home",

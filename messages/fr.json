@@ -1495,7 +1495,8 @@
     "workOrderSubmit": "{count, plural, =0 {Ajouter à l'inventaire} one {Ajouter # lot} other {Ajouter # lots}}",
     "workOrderDone": "Minerais ajoutés à {name}",
     "workOrderDoneDescription": "{created, plural, =0 {Aucun lot créé} one {# lot créé} other {# lots créés}}, {merged, plural, =0 {aucun lot complété} one {# lot complété} other {# lots complétés}}.",
-    "workOrderSeeInventory": "Voir l'inventaire"
+    "workOrderSeeInventory": "Voir l'inventaire",
+    "saving": "Enregistrement..."
   },
   "Cargo": {
     "home": "Accueil",

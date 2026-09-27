@@ -92,17 +92,26 @@ function readNumber(raw: string | undefined): number | undefined {
   return digits === "" ? undefined : Number(digits);
 }
 
+/** A word OCR made entirely of digit look-alikes, as "lSO" for 150. */
+const LOOKALIKE_NUMBER = new RegExp(`^${DIGIT}{2,}[^A-Za-z0-9]*$`);
+
 /**
  * Splits a line into the material's name and the numbers after it: the name
- * runs until the first word holding a real digit, and the numbers are the
- * words holding one — a column OCR turned into "TT)" is simply missing.
+ * runs until the first word read as a number — one holding a real digit, or,
+ * once the name has begun, one made only of digit look-alikes — and the
+ * numbers are the words read as one. A column OCR turned into "TT)" is simply
+ * missing.
  */
 function splitLine(body: string): { name: string; numbers: string[] } {
   const words = body.split(/\s+/).filter(Boolean);
-  const first = words.findIndex((word) => /[0-9]/.test(word));
+  const isNumber = (word: string, index: number) =>
+    /[0-9]/.test(word) || (index > 0 && LOOKALIKE_NUMBER.test(word));
+  const first = words.findIndex(isNumber);
   const nameWords = first === -1 ? words : words.slice(0, first);
   const numbers =
-    first === -1 ? [] : words.slice(first).filter((word) => /[0-9]/.test(word));
+    first === -1
+      ? []
+      : words.filter((word, index) => index >= first && isNumber(word, index));
   return { name: nameWords.join(" "), numbers };
 }
 
@@ -111,12 +120,14 @@ const HEADER = /(?:ualit|yielded|\(c?scu\))/i;
 
 /**
  * The total under the lines, "YIELD 1823", which OCR clips and mangles —
- * "IELD 1823", "[ELD 1823", "ELD 1823\"", "YIL_D 182 3". Told by its word, close enough to
- * "yield", followed by nothing but the number.
+ * "IELD 1823", "[ELD 1823", "ELD 1823\"", "YIL_D 182 3", "IELD l82 3". Told
+ * by its word, close enough to "yield", followed by nothing but the number.
  */
 function readTotal(line: string): number | undefined {
   const match = line.match(
-    new RegExp(`^([^0-9]{2,10}?)\\s+(${DIGIT}[0-9\\s]*?)[^A-Za-z0-9]*$`),
+    new RegExp(
+      `^([^0-9]{2,10}?)\\s+(${DIGIT}(?:${DIGIT}|\\s)*?)[^A-Za-z0-9]*$`,
+    ),
   );
   if (!match) return undefined;
   const word = match[1].toLowerCase().replace(/[^a-z]/g, "");
