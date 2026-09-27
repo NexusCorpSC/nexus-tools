@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import { reservedQuantities } from "@/lib/parcels";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -61,8 +62,12 @@ export async function GET(request: NextRequest) {
     ])
     .toArray();
 
+  // What parcels still waiting promise of each lot (`lib/parcels.ts`).
+  const reserved = await reservedQuantities(userId);
+
   const result = items.map((item) => ({
     id: item._id.toString(),
+    reserved: reserved.get(item._id.toString()),
     name: item.name,
     description: item.description,
     quality: item.quality,

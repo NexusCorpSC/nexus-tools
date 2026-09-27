@@ -22,6 +22,11 @@ export type InventoryItem = {
     quality?: number;
     quantity: number;
     unit?: string;
+    /**
+     * The part of `quantity` promised to a parcel still waiting
+     * (`lib/parcels.ts`): it cannot go in another one. Absent when none is.
+     */
+    reserved?: number;
 
     locationId: Location['id'];
     userId: string;

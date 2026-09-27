@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import type { ClientSession } from "mongodb";
 import { roundQty } from "@/lib/utils";
 
 export type QuickAddRow = {
@@ -36,10 +37,15 @@ function sameText(a: unknown, b: string | undefined) {
  *
  * Every row is checked before anything is written, so a bad row refuses the
  * whole batch rather than leaving half of it in.
+ *
+ * `session` runs the reads and writes inside a transaction — a parcel's
+ * delivery (`lib/parcels.ts`), which must take from one inventory and give to
+ * another in one go.
  */
 export async function addInventoryRows(
   userId: string,
   rows: unknown,
+  session?: ClientSession,
 ): Promise<QuickAddResult> {
   if (!Array.isArray(rows) || rows.length === 0) {
     return { ok: false, error: "Nothing to add" };
@@ -82,7 +88,7 @@ export async function addInventoryRows(
   const valid = rows as QuickAddRow[];
   const locationIds = [...new Set(valid.map((row) => row.locationId.trim()))];
   const held = await collection
-    .find({ userId, locationId: { $in: locationIds } })
+    .find({ userId, locationId: { $in: locationIds } }, { session })
     .toArray();
 
   type Lot = Record<string, unknown> & { _id: ObjectId };
@@ -152,7 +158,7 @@ export async function addInventoryRows(
         },
       })),
     ],
-    { ordered: false },
+    { ordered: false, session },
   );
 
   const created = inserts.length;
