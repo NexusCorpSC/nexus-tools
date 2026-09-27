@@ -77,7 +77,7 @@ export default async function OrgInventoryPage({
 
       <div>
         <h1 className="text-2xl font-bold mb-1">{t("orgInventoryTitle")}</h1>
-        <p className="text-gray-600">{t("orgInventoryHeader")}</p>
+        <p>{t("orgInventoryHeader")}</p>
       </div>
 
       <OrgInventoryGrid orgId={orgId} />

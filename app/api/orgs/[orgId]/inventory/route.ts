@@ -7,6 +7,11 @@ import { Organization } from "@/app/orgs/page";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+/**
+ * `all=1` : tout d'un coup, pour regrouper par lieu et par ressource côté
+ * client — une page de 20 couperait un groupe en deux. Borné quand même.
+ */
+const ALL_LIMIT = 5000;
 
 type Params = { params: Promise<{ orgId: string }> };
 
@@ -40,11 +45,14 @@ export async function GET(request: NextRequest, { params }: Params) {
   const query = sp.get("query") ?? "";
   const quality = sp.get("quality") ?? "";
   const userId = sp.get("userId") ?? "";
-  const page = Math.max(1, parseInt(sp.get("page") ?? "1", 10));
-  const limit = Math.min(
-    MAX_LIMIT,
-    Math.max(1, parseInt(sp.get("limit") ?? String(DEFAULT_LIMIT), 10))
-  );
+  const all = sp.get("all") === "1";
+  const page = all ? 1 : Math.max(1, parseInt(sp.get("page") ?? "1", 10) || 1);
+  const limit = all
+    ? ALL_LIMIT
+    : Math.min(
+        MAX_LIMIT,
+        Math.max(1, parseInt(sp.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT)
+      );
   const skip = (page - 1) * limit;
 
   // Member userIds

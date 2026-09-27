@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { InventoryItemWithLocation } from "@/types/inventory";
 import {
   MagnifyingGlassIcon,
@@ -11,7 +11,6 @@ import {
   UserIcon,
 } from "@heroicons/react/24/outline";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -19,6 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn, roundQty } from "@/lib/utils";
+import {
+  groupByLocation,
+  ItemGroup,
+  QualityBadge,
+} from "@/app/inventory/components";
 
 export type OrgInventoryItem = InventoryItemWithLocation & {
   ownerName: string;
@@ -27,13 +32,8 @@ export type OrgInventoryItem = InventoryItemWithLocation & {
 type ApiResponse = {
   items: OrgInventoryItem[];
   total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
   members: { id: string; name: string }[];
 };
-
-const DEFAULT_LIMIT = 20;
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -44,102 +44,96 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
+/**
+ * Le même inventaire que celui du joueur — par lieu, une carte par ressource,
+ * un lot par qualité — mais en lecture seule, et chaque lot dit à qui il est.
+ */
 export function OrgInventoryGrid({ orgId }: { orgId: string }) {
   const t = useTranslations("Inventory");
+  const locale = useLocale();
 
   const [items, setItems] = useState<OrgInventoryItem[]>([]);
   const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
-  const [total, setTotal] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [qualityFilter, setQualityFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
 
   const debouncedQuery = useDebounce(searchQuery, 300);
   const debouncedQuality = useDebounce(qualityFilter, 300);
 
-  const buildParams = useCallback(
-    (p: number) => {
-      const params = new URLSearchParams();
+  // Tout d'un coup : une page de 20 couperait une ressource en deux cartes.
+  const fetchItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ all: "1" });
       if (debouncedQuery.trim()) params.set("query", debouncedQuery.trim());
       if (debouncedQuality.trim()) params.set("quality", debouncedQuality.trim());
       if (ownerFilter !== "all") params.set("userId", ownerFilter);
-      params.set("page", String(p));
-      params.set("limit", String(DEFAULT_LIMIT));
-      return params;
-    },
-    [debouncedQuery, debouncedQuality, ownerFilter]
-  );
-
-  // Initial / filter-change fetch — resets to page 1
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
-    setPage(1);
-    try {
-      const res = await fetch(
-        `/api/orgs/${orgId}/inventory?${buildParams(1).toString()}`
-      );
+      const res = await fetch(`/api/orgs/${orgId}/inventory?${params}`);
       if (!res.ok) return;
       const data: ApiResponse = await res.json();
       setItems(data.items);
-      setTotal(data.total);
-      setHasMore(data.hasMore);
       setMembers(data.members);
     } finally {
       setLoading(false);
     }
-  }, [orgId, buildParams]);
+  }, [orgId, debouncedQuery, debouncedQuality, ownerFilter]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
-  // Load next page — appends to the list
-  const loadMore = async () => {
-    const nextPage = page + 1;
-    setLoadingMore(true);
-    try {
-      const res = await fetch(
-        `/api/orgs/${orgId}/inventory?${buildParams(nextPage).toString()}`
-      );
-      if (!res.ok) return;
-      const data: ApiResponse = await res.json();
-      setItems((prev) => [...prev, ...data.items]);
-      setTotal(data.total);
-      setHasMore(data.hasMore);
-      setPage(nextPage);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  const sections = useMemo(() => groupByLocation(items), [items]);
+  const shown =
+    locationFilter === "all"
+      ? sections
+      : sections.filter((section) => section.key === locationFilter);
+
+  const number = useMemo(
+    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }),
+    [locale],
+  );
+
+  const chips = [
+    {
+      key: "all",
+      label: t("filterAll"),
+      count: sections.reduce((sum, section) => sum + section.count, 0),
+    },
+    ...sections.map((section) => ({
+      key: section.key,
+      label: section.location?.name ?? t("locationUnknown"),
+      count: section.count,
+    })),
+  ];
 
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-3 items-center">
-        {/* Search */}
-        <div className="relative flex-1 min-w-48">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none" />
+      <div className="flex flex-wrap gap-2.5 items-center">
+        <label className="relative flex-1 min-w-48">
+          <span className="sr-only">{t("searchPlaceholder")}</span>
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#7E9FB7] pointer-events-none" />
           <Input
-            className="pl-9"
+            className="h-10 pl-9 bg-[#0A2A42] border-[#9ED0FF]/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t("searchPlaceholder")}
           />
-        </div>
+        </label>
 
-        {/* Owner filter */}
         {members.length > 1 && (
           <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="h-10 w-48 bg-[#0A2A42] border-[#9ED0FF]/20">
               <SelectValue placeholder={t("orgInventoryFilterAllMembers")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t("orgInventoryFilterAllMembers")}</SelectItem>
+              <SelectItem value="all">
+                {t("orgInventoryFilterAllMembers")}
+              </SelectItem>
               {members.map((m) => (
                 <SelectItem key={m.id} value={m.id}>
                   {m.name}
@@ -149,115 +143,191 @@ export function OrgInventoryGrid({ orgId }: { orgId: string }) {
           </Select>
         )}
 
-        {/* Quality filter */}
-        <div className="relative w-36">
+        <label className="flex h-10 items-center gap-2 rounded-md border border-[#9ED0FF]/20 bg-[#0A2A42] pl-3 pr-1.5 text-sm">
+          <span className="text-[#7E9FB7] whitespace-nowrap">
+            {t("filterQualityLabel")}
+          </span>
           <Input
             type="number"
             min={0}
             step={1}
             value={qualityFilter}
             onChange={(e) => setQualityFilter(e.target.value)}
-            placeholder={t("filterQualityPlaceholder")}
+            placeholder="0"
+            className="h-7 w-16 px-2 font-mono text-sm"
           />
           {qualityFilter && (
             <button
               type="button"
               onClick={() => setQualityFilter("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label={t("filterQualityClear")}
+              className="text-[#7E9FB7] hover:text-[#CCE7FF]"
             >
               <XMarkIcon className="size-4" />
             </button>
           )}
-        </div>
+        </label>
       </div>
 
-      {/* Results count */}
-      {!loading && (
-        <p className="text-sm text-gray-500">
-          {t("resultsCount", { count: total })}
-        </p>
+      {/* Places */}
+      {!loading && items.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {chips.map((chip) => {
+            const on = locationFilter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setLocationFilter(chip.key)}
+                className={cn(
+                  "flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-[13px] transition-colors",
+                  on
+                    ? "border-[#9ED0FF] bg-[#9ED0FF] font-semibold text-[#061E30]"
+                    : "border-[#9ED0FF]/25 text-[#C9E4FF] hover:border-[#9ED0FF]/55",
+                )}
+              >
+                {chip.label}
+                <span className="font-mono text-xs opacity-70">
+                  {chip.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       )}
 
-      {/* Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-28 bg-gray-100 rounded-lg animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-36 rounded-xl animate-pulse bg-[#0A2A42]"
+            />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <CubeIcon className="size-10 mx-auto mb-3 text-gray-300" />
+        <div className="text-center py-16">
+          <CubeIcon className="size-10 mx-auto mb-3 text-[#7E9FB7]" />
           <p className="font-medium">{t("orgInventoryEmpty")}</p>
-          <p className="text-sm mt-1">{t("orgInventoryEmptySubtitle")}</p>
+          <p className="text-sm mt-1 text-[#7E9FB7]">
+            {t("orgInventoryEmptySubtitle")}
+          </p>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((item) => (
-              <OrgInventoryItemCard key={item.id} item={item} />
-            ))}
-          </div>
-
-          {hasMore && (
-            <div className="flex justify-center pt-2">
-              <Button
-                variant="outline"
-                onClick={loadMore}
-                disabled={loadingMore}
-              >
-                {loadingMore ? t("saving") : t("orgInventoryLoadMore")}
-              </Button>
-            </div>
-          )}
-        </>
+        <div className="space-y-7">
+          {shown.map((section) => (
+            <section key={section.key} className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <MapPinIcon className="size-4 shrink-0 text-[#7E9FB7]" />
+                <h2 className="text-[15px] font-semibold text-[#CCE7FF]">
+                  {section.location?.name ?? t("locationUnknown")}
+                </h2>
+                <span className="font-mono text-xs text-[#7E9FB7]">
+                  {t("sectionCount", { count: section.count })}
+                  {section.scu > 0 &&
+                    ` · ${number.format(roundQty(section.scu))} SCU`}
+                </span>
+                <span className="h-px flex-1 bg-[#9ED0FF]/12" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
+                {section.groups.map((group) => (
+                  <OrgInventoryGroupCard key={group.key} group={group} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-function OrgInventoryItemCard({ item }: { item: OrgInventoryItem }) {
+function OrgInventoryGroupCard({
+  group,
+}: {
+  group: ItemGroup<OrgInventoryItem>;
+}) {
   const t = useTranslations("Inventory");
+  const locale = useLocale();
+
+  const number = useMemo(
+    () => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }),
+    [locale],
+  );
+  const date = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [locale],
+  );
+
+  const multi = group.lots.length > 1;
+  const total = roundQty(group.lots.reduce((sum, lot) => sum + lot.quantity, 0));
+  const latest = group.lots.reduce((a, b) =>
+    a.updatedAt > b.updatedAt ? a : b,
+  );
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2 hover:shadow-sm transition-shadow">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <CubeIcon className="size-5 text-gray-400 shrink-0" />
-          <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
+    <article className="flex flex-col gap-3 rounded-xl border border-[#9ED0FF]/12 bg-[#0A2A42] p-4 transition-colors hover:border-[#9ED0FF]/35">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="line-clamp-2 text-sm font-semibold break-words text-[#CCE7FF]">
+            {group.name}
+          </h3>
+          <p className="mt-1 text-xs text-[#7E9FB7]">
+            {multi && <>{t("lotsCount", { count: group.lots.length })} · </>}
+            {t("updatedAt", { date: date.format(new Date(latest.updatedAt)) })}
+          </p>
         </div>
-        {item.quality !== undefined && item.quality !== null && (
-          <span className="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-            {t("qualityLabel")}: {item.quality}
+        <p className="shrink-0 text-right leading-none whitespace-nowrap">
+          <span className="font-mono text-xl font-bold tracking-tight text-[#9ED0FF] tabular-nums">
+            ×{number.format(total)}
           </span>
-        )}
-      </div>
+          {group.unit && (
+            <span className="ml-1 text-xs font-semibold text-[#7E9FB7]">
+              {group.unit}
+            </span>
+          )}
+        </p>
+      </header>
 
-      {item.description && (
-        <p className="text-sm text-gray-500 line-clamp-2">{item.description}</p>
+      {!multi && group.lots[0].description && (
+        <p className="line-clamp-2 text-xs text-[#A9BFD0]">
+          {group.lots[0].description}
+        </p>
       )}
 
-      <div className="flex items-center justify-between text-sm pt-1">
-        <span className="font-medium text-gray-800">
-          {item.quantity}
-          {item.unit ? ` ${item.unit}` : ""}
-        </span>
-        {item.location ? (
-          <span className="flex items-center gap-1 text-gray-500">
-            <MapPinIcon className="size-3.5" />
-            {item.location.name}
-          </span>
-        ) : (
-          <span className="text-gray-400 italic text-xs">
-            {t("locationUnknown")}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center gap-1.5 pt-1 border-t border-gray-100 text-xs text-gray-500">
-        <UserIcon className="size-3.5 shrink-0" />
-        <span>{item.ownerName}</span>
-      </div>
-    </div>
+      <ul className="space-y-0.5">
+        {group.lots.map((lot) => (
+          <li
+            key={lot.id}
+            className="flex min-h-8 items-center gap-2 py-1"
+          >
+            {lot.quality != null ? (
+              <QualityBadge quality={lot.quality} />
+            ) : (
+              <span className="text-xs text-[#7E9FB7]">{t("noQuality")}</span>
+            )}
+            <span
+              className="flex min-w-0 flex-1 items-center gap-1 text-xs text-[#A9BFD0]"
+              title={t("orgInventoryOwner")}
+            >
+              <UserIcon className="size-3.5 shrink-0 text-[#7E9FB7]" />
+              <span className="truncate">{lot.ownerName}</span>
+            </span>
+            {multi && (
+              <span className="font-mono text-[13px] font-semibold text-[#C9E4FF] tabular-nums">
+                ×{number.format(lot.quantity)}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }

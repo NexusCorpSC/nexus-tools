@@ -1189,17 +1189,21 @@ function PackageSidebar({
  * quality stays its own lot inside it — Sadaryx at 688, 510 and 256 is one
  * card of three lots, not three cards that look alike.
  */
-type ItemGroup = {
+export type ItemGroup<
+  T extends InventoryItemWithLocation = InventoryItemWithLocation,
+> = {
   key: string;
   name: string;
   unit?: string;
-  lots: InventoryItemWithLocation[];
+  lots: T[];
 };
 
-type LocationSection = {
+export type LocationSection<
+  T extends InventoryItemWithLocation = InventoryItemWithLocation,
+> = {
   key: string;
   location: Location | null;
-  groups: ItemGroup[];
+  groups: ItemGroup<T>[];
   /** Cards, not lots: what the reader sees. */
   count: number;
   /** Sum of what is counted in SCU there, when anything is. */
@@ -1212,8 +1216,10 @@ function locationKey(item: InventoryItemWithLocation) {
   return item.location?.id ?? NO_LOCATION;
 }
 
-function groupByLocation(items: InventoryItemWithLocation[]): LocationSection[] {
-  const sections = new Map<string, LocationSection>();
+export function groupByLocation<T extends InventoryItemWithLocation>(
+  items: T[],
+): LocationSection<T>[] {
+  const sections = new Map<string, LocationSection<T>>();
 
   for (const item of items) {
     const key = locationKey(item);
@@ -1261,7 +1267,7 @@ function qualityTier(quality: number) {
   return { pill: "bg-[#7E9FB7]/15 text-[#A9BFD0]", bar: "bg-[#A9BFD0]" };
 }
 
-function QualityBadge({ quality }: { quality: number }) {
+export function QualityBadge({ quality }: { quality: number }) {
   const t = useTranslations("Inventory");
   const tier = qualityTier(quality);
 
