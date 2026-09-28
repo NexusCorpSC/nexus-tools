@@ -1,7 +1,7 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
@@ -58,6 +58,13 @@ export function AvatarUpdateComponent({
   const input = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  // Each preview holds the file in memory until its URL is let go: the
+  // previous one when a new picture replaces it, the last one on leaving.
+  useEffect(() => {
+    if (!preview) return;
+    return () => URL.revokeObjectURL(preview);
+  }, [preview]);
 
   async function handleFileSelection(
     event: React.ChangeEvent<HTMLInputElement>,
@@ -209,7 +216,13 @@ export function CopyButton({
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(value);
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // Refused, or no clipboard outside a secure context: the value stays on
+      // screen to be copied by hand.
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
