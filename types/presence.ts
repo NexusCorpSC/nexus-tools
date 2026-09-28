@@ -1,6 +1,6 @@
 /**
- * Ce que chacun déclare de sa session de jeu, et ce que ses organisations en
- * voient.
+ * Ce que chacun déclare de sa session de jeu, et ce que ses organisations et
+ * ses amis en voient.
  *
  * Auto-déclaré, jamais déduit : rien ne sait si quelqu'un joue, sinon lui. Une
  * déclaration s'éteint d'elle-même après `PRESENCE_TTL_HOURS` — quelqu'un qui
@@ -26,6 +26,15 @@ export const PRESENCE_ACTIVITY_SUGGESTIONS = [
   "Course",
   "Social",
 ] as const;
+
+/** « 1 h 20 », « 45 min » : depuis quand, à partir d'une date ISO. */
+export function formatElapsed(since: string, now: number): string {
+  const minutes = Math.max(0, Math.round((now - Date.parse(since)) / 60_000));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} h ${String(rest).padStart(2, "0")}` : `${hours} h`;
+}
 
 /** Ma déclaration, telle que je la relis. */
 export interface MyPresence {

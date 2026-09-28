@@ -109,6 +109,33 @@ export async function stopPlaying(userId: ObjectId): Promise<MyPresence> {
 }
 
 /**
+ * Qui, parmi `userIds`, est en jeu en ce moment : sa déclaration, par
+ * identifiant. Ceux qui ne jouent pas n'y sont pas.
+ */
+export async function playingAmong(
+  userIds: ObjectId[],
+): Promise<Map<string, Pick<DbPresence, "activity" | "since">>> {
+  if (userIds.length === 0) return new Map();
+
+  const presences = await collection()
+    .find(
+      {
+        userId: { $in: userIds },
+        expiresAt: { $gt: new Date().toISOString() },
+      },
+      { projection: { _id: 0, userId: 1, activity: 1, since: 1 } },
+    )
+    .toArray();
+
+  return new Map(
+    presences.map((presence) => [
+      presence.userId.toString(),
+      { activity: presence.activity, since: presence.since },
+    ]),
+  );
+}
+
+/**
  * Les membres d'une organisation en train de jouer, du plus ancien en jeu au
  * plus récent.
  *
@@ -144,9 +171,12 @@ export async function getOrgPresence(
   const users = presences.length
     ? await db
         .db()
-        .collection<{ _id: ObjectId; name?: string; avatar?: string; image?: string }>(
-          "users",
-        )
+        .collection<{
+          _id: ObjectId;
+          name?: string;
+          avatar?: string;
+          image?: string;
+        }>("users")
         .find(
           { _id: { $in: presences.map((presence) => presence.userId) } },
           { projection: { name: 1, avatar: 1, image: 1 } },

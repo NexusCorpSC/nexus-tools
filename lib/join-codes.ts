@@ -10,10 +10,11 @@ import { randomBytes } from "node:crypto";
  *
  * Shared by `lib/squads.ts` and `lib/raids.ts` rather than written twice: the
  * two collections hand out codes from the same alphabet, and a player typing a
- * code should not have to know which of the two they were given.
+ * code should not have to know which of the two they were given. Friend codes
+ * (`lib/friends.ts`) draw from it too, only longer.
  */
 
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+export const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 6;
 
 /** How many free codes to look for before giving up on a nearly-full space. */
@@ -23,9 +24,9 @@ export const CODE_ATTEMPTS = 5;
  * 256 divides evenly by 32, so taking each random byte modulo the alphabet
  * length is unbiased.
  */
-export function newCode(): string {
+export function newCode(length = CODE_LENGTH): string {
   return Array.from(
-    randomBytes(CODE_LENGTH),
+    randomBytes(length),
     (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length],
   ).join("");
 }

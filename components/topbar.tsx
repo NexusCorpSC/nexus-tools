@@ -23,6 +23,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Button } from "@/components/ui/button";
+import { countFriendsPlaying } from "@/lib/friends";
 
 const navigation = [
   { name: "dashboard", href: "/", current: true },
@@ -69,6 +70,7 @@ export default async function Topbar() {
         }>("users")
         .findOne({ _id: new ObjectId(session?.user?.id) })
     : null;
+  const friendsPlaying = user ? await countFriendsPlaying(user._id) : 0;
 
   return (
     <Disclosure
@@ -111,7 +113,16 @@ export default async function Topbar() {
             </div>
           </div>
           {user ? (
-            <div className="relative z-10 ml-auto flex items-center pr-2 lg:pr-0">
+            <div className="relative z-10 ml-auto flex items-center gap-2 pr-2 lg:pr-0">
+              {friendsPlaying > 0 ? (
+                <Link
+                  href="/profile#amis"
+                  className="hidden h-8 items-center gap-2 rounded-full bg-emerald-300/12 px-3 text-sm font-medium text-emerald-300 hover:bg-emerald-300/20 sm:flex"
+                >
+                  <span className="size-2 rounded-full bg-emerald-300" />
+                  {t("friendsPlaying", { count: friendsPlaying })}
+                </Link>
+              ) : null}
               {/* Scratch pad, opens a side panel from the right */}
               <ScratchPadPanel />
             </div>
