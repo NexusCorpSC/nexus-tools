@@ -20,9 +20,16 @@ const MAX_NAME_LENGTH = 200;
 export async function GET(request: NextRequest) {
   const name = request.nextUrl.searchParams.get("name")?.trim() ?? "";
 
-  if (!name || name.length > MAX_NAME_LENGTH) {
+  if (!name) {
     return NextResponse.json(
       { error: "`name` is required" },
+      { status: 400 },
+    );
+  }
+
+  if (name.length > MAX_NAME_LENGTH) {
+    return NextResponse.json(
+      { error: `\`name\` must be at most ${MAX_NAME_LENGTH} characters` },
       { status: 400 },
     );
   }
