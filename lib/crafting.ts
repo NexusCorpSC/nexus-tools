@@ -281,28 +281,61 @@ export async function getBlueprintById(id: string): Promise<Blueprint | null> {
   return blueprint;
 }
 
+function toBlueprint(
+  blueprint: Blueprint & { _id: { toString(): string } },
+): Blueprint {
+  return {
+    id: blueprint._id.toString(),
+    name: blueprint.name,
+    slug: blueprint.slug,
+    description: blueprint.description,
+    category: blueprint.category,
+    subcategory: blueprint.subcategory,
+    imageUrl: blueprint.imageUrl,
+    tier: blueprint.tier ?? 0,
+    craftingTime: blueprint.craftingTime,
+    statistics: blueprint.statistics,
+    recipe: blueprint.recipe,
+    obtention: blueprint.obtention,
+    isDefault: blueprint.isDefault,
+  };
+}
+
 export async function getBlueprintBySlug(
   slug: string,
 ): Promise<Blueprint | null> {
   const collection = db.db().collection<Blueprint>("blueprints");
   const blueprint = await collection.findOne({ slug });
-  return blueprint
-    ? {
-        id: blueprint._id.toString(),
-        name: blueprint.name,
-        slug: blueprint.slug,
-        description: blueprint.description,
-        category: blueprint.category,
-        subcategory: blueprint.subcategory,
-        imageUrl: blueprint.imageUrl,
-        tier: blueprint.tier ?? 0,
-        craftingTime: blueprint.craftingTime,
-        statistics: blueprint.statistics,
-        recipe: blueprint.recipe,
-        obtention: blueprint.obtention,
-        isDefault: blueprint.isDefault,
-      }
-    : null;
+  return blueprint ? toBlueprint(blueprint) : null;
+}
+
+/**
+ * Escapes regex metacharacters: the name comes from the caller, and blueprint
+ * names hold `(`, `+` or `.` often enough to change what an unescaped pattern
+ * matches.
+ */
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * The blueprint a name designates, exactly — case and spacing aside.
+ *
+ * Meant for names read from the game rather than typed in a search box (the
+ * desktop app hears them in `Game.log`), where a near match would add the
+ * wrong blueprint to an account: nothing is returned rather than a guess.
+ */
+export async function getBlueprintByName(
+  name: string,
+): Promise<Blueprint | null> {
+  const parts = name.trim().split(/\s+/).filter(Boolean).map(escapeRegex);
+  if (parts.length === 0) return null;
+
+  const collection = db.db().collection<Blueprint>("blueprints");
+  const blueprint = await collection.findOne({
+    name: { $regex: `^\\s*${parts.join("\\s+")}\\s*$`, $options: "i" },
+  });
+  return blueprint ? toBlueprint(blueprint) : null;
 }
 
 export async function getUserBlueprints(
