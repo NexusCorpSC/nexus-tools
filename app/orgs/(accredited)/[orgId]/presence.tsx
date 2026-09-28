@@ -7,6 +7,7 @@ import { GamepadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  formatElapsed,
   NOT_PLAYING,
   PRESENCE_ACTIVITY_MAX_LENGTH,
   PRESENCE_ACTIVITY_SUGGESTIONS,
@@ -16,15 +17,6 @@ import {
 
 /** Often enough to see a teammate arrive, rare enough to cost nothing. */
 const REFRESH_MS = 30_000;
-
-/** «depuis 1 h 20», from an ISO date. */
-function elapsed(since: string, now: number): string {
-  const minutes = Math.max(0, Math.round((now - Date.parse(since)) / 60_000));
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest ? `${hours} h ${String(rest).padStart(2, "0")}` : `${hours} h`;
-}
 
 /**
  * Who in the organization is playing right now, and the reader's own
@@ -183,7 +175,7 @@ export function OrgPresenceSection({ orgId }: { orgId: string }) {
                 </p>
               </div>
               <span className="shrink-0 text-xs text-[#9ED0FF]/50">
-                {elapsed(member.since, now)}
+                {formatElapsed(member.since, now)}
               </span>
             </li>
           ))}

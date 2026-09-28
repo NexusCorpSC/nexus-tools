@@ -1,10 +1,13 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { CameraIcon, CheckIcon, CopyIcon, PencilIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,8 +17,55 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { outlineButton } from "@/app/(auth)/profile/styles";
 
-export function AvatarUpdateComponent({ userId }: { userId: string }) {
+/** Round placeholder with the name's first letter, when there is no avatar. */
+export function Initial({
+  name,
+  className,
+}: {
+  name: string;
+  className: string;
+}) {
+  return (
+    <div
+      aria-hidden
+      className={`flex shrink-0 items-center justify-center rounded-full bg-[#1F5A86] font-semibold text-[#E3F1FF] ${className}`}
+    >
+      {name.slice(0, 1).toUpperCase()}
+    </div>
+  );
+}
+
+/**
+ * The avatar, with a camera button to replace it.
+ *
+ * The blob keeps the same path from one upload to the next, so its URL does
+ * not change: the new picture is shown from the local file rather than waiting
+ * for a cache that still holds the old one.
+ */
+export function AvatarUpdateComponent({
+  userId,
+  avatar,
+  name,
+}: {
+  userId: string;
+  avatar: string | null;
+  name: string;
+}) {
+  const t = useTranslations("Profile");
+  const input = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  // Each preview holds the file in memory until its URL is let go: the
+  // previous one when a new picture replaces it, the last one on leaving.
+  useEffect(() => {
+    if (!preview) return;
+    return () => URL.revokeObjectURL(preview);
+  }, [preview]);
+
   async function handleFileSelection(
     event: React.ChangeEvent<HTMLInputElement>,
   ) {
@@ -26,28 +76,62 @@ export function AvatarUpdateComponent({ userId }: { userId: string }) {
 
     const ext = file.name.split(".").pop();
 
-    await upload(`users/${userId}/avatar.${ext}`, file, {
-      access: "public",
-      handleUploadUrl: `/api/users/${userId}/avatar`,
-    });
+    setPending(true);
+    try {
+      await upload(`users/${userId}/avatar.${ext}`, file, {
+        access: "public",
+        handleUploadUrl: `/api/users/${userId}/avatar`,
+      });
+      setPreview(URL.createObjectURL(file));
+      toast.success(t("avatarUpdated"));
+    } catch {
+      toast.error(t("avatarError"));
+    } finally {
+      setPending(false);
+      event.target.value = "";
+    }
   }
 
+  const src = preview ?? avatar;
+
   return (
-    <input
-      type="file"
-      accept=".png,.jpg,.jpeg"
-      className="rounded-md bg-white font-medium text-indigo-600 hover:text-indigo-500"
-      onChange={handleFileSelection}
-    />
+    <div className="relative shrink-0">
+      {src ? (
+        <Image
+          src={src}
+          alt=""
+          width={88}
+          height={88}
+          unoptimized={Boolean(preview)}
+          className="size-20 rounded-full object-cover sm:size-22"
+        />
+      ) : (
+        <Initial name={name} className="size-20 text-3xl sm:size-22" />
+      )}
+      <button
+        type="button"
+        onClick={() => input.current?.click()}
+        disabled={pending}
+        aria-label={t("changeAvatar")}
+        title={t("changeAvatar")}
+        className="absolute -right-1 -bottom-1 flex size-9 items-center justify-center rounded-full border-3 border-[#0B3A5A] bg-[#CCE7FF] text-[#092F49] hover:bg-white disabled:opacity-60"
+      >
+        <CameraIcon className="size-4" />
+      </button>
+      <input
+        ref={input}
+        type="file"
+        accept=".png,.jpg,.jpeg"
+        className="hidden"
+        onChange={handleFileSelection}
+      />
+    </div>
   );
 }
 
-export function NameUpdateComponent({
-  currentName,
-}: {
-  currentName: string;
-}) {
+export function NameUpdateComponent({ currentName }: { currentName: string }) {
   const t = useTranslations("Profile");
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(currentName);
   const [loading, setLoading] = useState(false);
@@ -62,18 +146,23 @@ export function NameUpdateComponent({
     } else {
       toast.success(t("nameUpdateSuccess"));
       setOpen(false);
+      router.refresh();
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
-          className="rounded-md bg-white font-medium text-indigo-600 hover:text-indigo-500"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t("edit")}
+          title={t("edit")}
+          className="text-[#A9CDEE] hover:bg-[#9ED0FF]/10 hover:text-[#E3F1FF]"
         >
-          {t("edit")}
-        </button>
+          <PencilIcon />
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -91,23 +180,75 @@ export function NameUpdateComponent({
             />
           </div>
           <div className="flex justify-end gap-2">
-            <button
+            <Button
               type="button"
+              className={outlineButton}
               onClick={() => setOpen(false)}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               {t("nameUpdateCancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
-            >
-              {loading ? "..." : t("nameUpdateSave")}
-            </button>
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "…" : t("nameUpdateSave")}
+            </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Copies `value`, and says so for a moment. Icon only with `label` as its
+ * accessible name, or with the visible «Copier» when `withText`.
+ */
+export function CopyButton({
+  value,
+  label,
+  withText = false,
+  className = "",
+}: {
+  value: string;
+  label: string;
+  withText?: boolean;
+  className?: string;
+}) {
+  const t = useTranslations("Profile");
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // Refused, or no clipboard outside a secure context: the value stays on
+      // screen to be copied by hand.
+      return;
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const Icon = copied ? CheckIcon : CopyIcon;
+
+  return withText ? (
+    <Button
+      type="button"
+      onClick={() => void copy()}
+      className={`h-11 ${outlineButton} ${className}`}
+    >
+      <Icon />
+      {copied ? t("copied") : t("copy")}
+    </Button>
+  ) : (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      onClick={() => void copy()}
+      aria-label={label}
+      title={copied ? t("copied") : label}
+      className={`text-[#A9CDEE] hover:bg-[#9ED0FF]/10 hover:text-[#E3F1FF] ${className}`}
+    >
+      <Icon />
+    </Button>
   );
 }

@@ -17,6 +17,7 @@
 import type { Collection, Db, Document } from "mongodb";
 import db from "@/lib/db";
 import { ATTEMPT_WINDOW_MS } from "@/lib/parcels";
+import { FRIEND_ATTEMPT_WINDOW_MS } from "@/lib/friends";
 
 /** Codes d'erreur de Mongo, par leur nom : le pilote ne donne que le numéro. */
 const INDEX_OPTIONS_CONFLICT = 85;
@@ -261,6 +262,31 @@ async function ensureParcels(database: Db) {
   );
 }
 
+// ─── Amis ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Un code en attente par joueur, et un code n'appartient qu'à un joueur ; une
+ * amitié par paire, retrouvée par l'un ou l'autre ; et les codes erronés, que
+ * la base oublie d'elle-même passé la fenêtre qui les compte
+ * (`lib/friends.ts`).
+ */
+async function ensureFriends(database: Db) {
+  const friendCodes = database.collection("friendCodes");
+  await friendCodes.createIndex({ userId: 1 }, { unique: true });
+  await friendCodes.createIndex({ code: 1 }, { unique: true });
+
+  const friendships = database.collection("friendships");
+  await friendships.createIndex({ pair: 1 }, { unique: true });
+  await friendships.createIndex({ users: 1 });
+
+  const attempts = database.collection("friendCodeAttempts");
+  await attempts.createIndex({ userId: 1, at: -1 });
+  await attempts.createIndex(
+    { at: 1 },
+    { expireAfterSeconds: FRIEND_ATTEMPT_WINDOW_MS / 1000 },
+  );
+}
+
 // ─── Lancement ────────────────────────────────────────────────────────────────
 
 const STEPS: [string, (database: Db) => Promise<void>][] = [
@@ -274,6 +300,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["gameLocations", ensureGameLocations],
   ["cargoShips", ensureCargoShips],
   ["parcels", ensureParcels],
+  ["friends", ensureFriends],
 ];
 
 async function main() {
