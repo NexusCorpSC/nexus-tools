@@ -6,28 +6,110 @@
   },
   "TopBar": {
     "nav": {
-      "dashboard": "Dashboard",
-      "shopping": "Marketplace",
-      "crafting": "Crafting",
-      "inventory": "Inventory",
-      "industry": "Industry",
-      "reputation": "Reputation",
-      "organizations": "Organizations",
       "myProfile": "My Profile",
       "settings": "Settings",
       "signOut": "Sign Out",
-      "signIn": "Sign In",
-      "missions": "Missions",
-      "notes": "Scratch Pad",
-      "items": "Items",
-      "squads": "Squad",
-      "places": "Locations"
+      "signIn": "Sign In"
     },
     "openMenu": "Open menu",
     "openUserMenu": "Open user menu",
     "readNotifications": "Read notifications",
     "search": "Search",
-    "friendsPlaying": "{count, plural, one {# friend playing} other {# friends playing}}"
+    "friendsPlaying": "{count, plural, one {# friend playing} other {# friends playing}}",
+    "home": "Home",
+    "closeMenu": "Close menu",
+    "menu": {
+      "label": "Main navigation",
+      "playing": "{count} playing",
+      "categories": {
+        "database": {
+          "label": "Database",
+          "blurb": "The game's reference: what exists, where, and how to get it."
+        },
+        "economy": {
+          "label": "Economy",
+          "blurb": "Buy, sell and produce: from the market to the refinery."
+        },
+        "mySpace": {
+          "label": "My space",
+          "blurb": "What is yours: stock, parcels, progress and notes."
+        },
+        "community": {
+          "label": "Community",
+          "blurb": "Play together: friends, squad and organizations."
+        }
+      },
+      "items": {
+        "items": {
+          "label": "Items",
+          "description": "Catalogue, sheets and comparison"
+        },
+        "places": {
+          "label": "Locations",
+          "description": "Stations, cities and maps"
+        },
+        "missions": {
+          "label": "Missions",
+          "description": "Contracts, objectives and rewards"
+        },
+        "factions": {
+          "label": "Factions",
+          "description": "Who gives what, and at which rank"
+        },
+        "blueprints": {
+          "label": "Blueprints",
+          "description": "Crafting recipes and times"
+        },
+        "marketplace": {
+          "label": "Marketplace",
+          "description": "Listings from players"
+        },
+        "sell": {
+          "label": "Sell",
+          "description": "Put an item up for sale"
+        },
+        "orders": {
+          "label": "My orders",
+          "description": "Track purchases and deliveries"
+        },
+        "refine": {
+          "label": "Refining",
+          "description": "Refinery work orders"
+        },
+        "cargo": {
+          "label": "Cargo",
+          "description": "Ship loading and capacity"
+        },
+        "inventory": {
+          "label": "Inventory",
+          "description": "Your items, by location"
+        },
+        "parcels": {
+          "label": "Parcels",
+          "description": "Sent and received by code"
+        },
+        "reputations": {
+          "label": "Reputations",
+          "description": "Your progress by faction"
+        },
+        "notes": {
+          "label": "Scratch pad",
+          "description": "Your notes, everywhere with you"
+        },
+        "friends": {
+          "label": "Friends",
+          "description": "Who is playing, and what"
+        },
+        "squads": {
+          "label": "Squad",
+          "description": "Roles, flight plans and raids"
+        },
+        "organizations": {
+          "label": "Organizations",
+          "description": "Members, ranks and shared stock"
+        }
+      }
+    }
   },
   "Industry": {
     "home": "Home",

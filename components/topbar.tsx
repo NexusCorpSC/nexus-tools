@@ -1,58 +1,42 @@
-import {
-  Disclosure,
-  DisclosureButton,
-  DisclosurePanel,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
-} from "@headlessui/react";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { BellIcon } from "@heroicons/react/24/outline";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  TopBarNavItem,
-  TopBarNavMenuItem,
-} from "@/components/topbar-components";
 import { ScratchPadPanel } from "@/components/scratch-pad-panel";
+import { CategoryNav, MobileNav } from "@/components/nav/main-nav";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { Button } from "@/components/ui/button";
 import { countFriendsPlaying } from "@/lib/friends";
 
-const navigation = [
-  { name: "dashboard", href: "/", current: true },
-  { name: "shopping", href: "/shopping" },
-  { name: "crafting", href: "/crafting" },
-  { name: "items", href: "/items" },
-  { name: "places", href: "/lieux" },
-  { name: "inventory", href: "/inventory" },
-  { name: "industry", href: "/industry" },
-  { name: "missions", href: "/missions" },
-  { name: "notes", href: "/notes" },
-  { name: "squads", href: "/squads" },
-  { name: "organizations", href: "/orgs" },
-];
 const userNavigation = [
   { name: "myProfile", href: "/profile" },
   { name: "settings", href: "/settings" },
-  {
-    name: "signOut",
-    action: async () => {
-      "use server";
+] as const;
 
-      await auth.api.signOut({
-        headers: await headers(),
-      });
-    },
-  },
-];
+async function signOut() {
+  "use server";
 
+  await auth.api.signOut({
+    headers: await headers(),
+  });
+}
+
+const iconButton =
+  "relative flex size-10 shrink-0 items-center justify-center rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:text-[#CCE7FF] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#9ED0FF]/60";
+
+/**
+ * One row: the logo (the way home), the menu's four categories, then what is
+ * the reader's own. On a phone the categories fold into a drawer.
+ *
+ * No `backdrop-filter` on the header: it would make the header the containing
+ * block of the menu's fixed backdrop, which would then no longer cover the
+ * page.
+ */
 export default async function Topbar() {
   const t = await getTranslations("TopBar");
   const session = await auth.api.getSession({
@@ -70,244 +54,140 @@ export default async function Topbar() {
         }>("users")
         .findOne({ _id: new ObjectId(session?.user?.id) })
     : null;
+
   const friendsPlaying = user ? await countFriendsPlaying(user._id) : 0;
 
   return (
-    <Disclosure
-      as="header"
-      className="relative z-40 border-b border-[#9ED0FF]/15 bg-gray-800 backdrop-blur-md"
-    >
-      <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:divide-y lg:divide-[#9ED0FF]/10 lg:px-8">
-        <div className="relative flex h-16 justify-between">
-          <div className="relative z-10 flex px-2 lg:px-0">
-            <Link href="/" className="flex shrink-0 items-center">
-              <Image
-                alt="Nexus Tools"
-                src="/nexus_logo_square.png"
-                className="h-8 w-auto"
-                width={32}
-                height={32}
-              />
-            </Link>
-          </div>
-          <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
-            <div className="w-full sm:max-w-xs">
-              <label htmlFor="search" className="sr-only">
-                {t("search")}
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <MagnifyingGlassIcon
-                    aria-hidden="true"
-                    className="h-5 w-5 text-[#9ED0FF]/55"
-                  />
-                </div>
-                <input
-                  id="search"
-                  name="search"
-                  type="search"
-                  placeholder={t("search")}
-                  className="block w-full rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 py-1.5 pl-10 pr-3 text-[#CCE7FF] placeholder:text-[#9ED0FF]/45 focus:border-[#9ED0FF]/50 focus:bg-[#0B3A5A]/80 focus:ring-0 focus:placeholder:text-[#9ED0FF]/60 sm:text-sm/6"
-                />
-              </div>
-            </div>
-          </div>
-          {user ? (
-            <div className="relative z-10 ml-auto flex items-center gap-2 pr-2 lg:pr-0">
-              {friendsPlaying > 0 ? (
-                <Link
-                  href="/profile#amis"
-                  className="hidden h-8 items-center gap-2 rounded-full bg-emerald-300/12 px-3 text-sm font-medium text-emerald-300 hover:bg-emerald-300/20 sm:flex"
-                >
-                  <span className="size-2 rounded-full bg-emerald-300" />
-                  {t("friendsPlaying", { count: friendsPlaying })}
-                </Link>
-              ) : null}
-              {/* Scratch pad, opens a side panel from the right */}
-              <ScratchPadPanel />
-            </div>
-          ) : null}
-          <div className="relative z-10 flex items-center lg:hidden">
-            {/* Mobile menu button */}
-            <DisclosureButton className="group relative inline-flex items-center justify-center rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-2 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:bg-[#0B3A5A]/80 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-[#9ED0FF]/60">
-              <span className="absolute -inset-0.5" />
-              <span className="sr-only">{t("openMenu")}</span>
-              <Bars3Icon
-                aria-hidden="true"
-                className="block h-6 w-6 group-data-open:hidden"
-              />
-              <XMarkIcon
-                aria-hidden="true"
-                className="hidden h-6 w-6 group-data-open:block"
-              />
-            </DisclosureButton>
-          </div>
-          {user ? (
-            <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center">
-              <button
-                type="button"
-                className="relative shrink-0 rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-1 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-[#9ED0FF]/60 focus:ring-offset-2 focus:ring-offset-[#06243A]"
-              >
-                <span className="absolute -inset-1.5" />
-                <span className="sr-only">{t("readNotifications")}</span>
-                <BellIcon aria-hidden="true" className="h-6 w-6" />
-              </button>
-
-              {/* Profile dropdown */}
-              <Menu as="div" className="relative ml-4 shrink-0">
-                <div>
-                  <MenuButton className="relative flex rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 text-sm text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-[#9ED0FF]/60 focus:ring-offset-2 focus:ring-offset-[#06243A]">
-                    <span className="absolute -inset-1.5" />
-                    <span className="sr-only">{t("openUserMenu")}</span>
-                    <Image
-                      alt=""
-                      src={user.avatar ?? "/avatar_empty.png"}
-                      className="h-8 w-8 rounded-full"
-                      width={50}
-                      height={50}
-                    />
-                  </MenuButton>
-                </div>
-                <MenuItems
-                  transition
-                  className="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/95 py-1 shadow-xl shadow-black/20 ring-1 ring-[#9ED0FF]/10 backdrop-blur-md transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-leave:duration-75 data-enter:ease-out data-leave:ease-in"
-                >
-                  {userNavigation.map((item) => (
-                    <MenuItem key={item.name}>
-                      {item.href ? (
-                        <a
-                          href={item.href}
-                          className="block px-4 py-2 text-sm text-[#9ED0FF]/80 data-focus:bg-[#9ED0FF]/15 data-focus:text-[#CCE7FF]"
-                        >
-                          {t(`nav.${item.name}`)}
-                        </a>
-                      ) : (
-                        <form
-                          action={item.action}
-                          className="block px-4 py-2 text-sm text-[#9ED0FF]/80 data-focus:bg-[#9ED0FF]/15 data-focus:text-[#CCE7FF]"
-                        >
-                          <button>{t(`nav.${item.name}`)}</button>
-                        </form>
-                      )}
-                    </MenuItem>
-                  ))}
-                </MenuItems>
-              </Menu>
-            </div>
-          ) : (
-            <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center">
-              <Button asChild>
-                <Link
-                  href="/login"
-                  className="relative shrink-0 rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-1 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-[#9ED0FF]/60 focus:ring-offset-2 focus:ring-offset-[#06243A]"
-                >
-                  <span className="absolute -inset-1.5" />
-                  <span className="sr-only">{t("nav.signIn")}</span>
-                  <ArrowLeftEndOnRectangleIcon
-                    aria-hidden="true"
-                    className="h-6 w-6"
-                  />
-                </Link>
-              </Button>
-            </div>
-          )}
-        </div>
-        <nav
-          aria-label="Global"
-          className="hidden lg:flex lg:space-x-8 lg:py-2 lg:justify-center"
+    <header className="relative z-40 border-b border-[#9ED0FF]/15 bg-gray-800">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-3 sm:px-4 lg:px-8">
+        <Link
+          href="/"
+          aria-label={t("home")}
+          className="mr-1 flex shrink-0 items-center gap-2.5 rounded-lg p-1.5 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#9ED0FF]/60 lg:mr-4"
         >
-          {navigation.map((item) => (
-            <TopBarNavItem
-              name={t(`nav.${item.name}`)}
-              href={item.href}
-              key={item.name}
-            />
-          ))}
-        </nav>
-      </div>
+          <Image
+            alt=""
+            src="/nexus_logo_square.png"
+            className="size-8"
+            width={32}
+            height={32}
+          />
+          <span className="font-bold text-[#E3F1FF] md:hidden xl:inline">
+            Nexus Tools
+          </span>
+        </Link>
 
-      <DisclosurePanel
-        as="nav"
-        aria-label="Global"
-        className="border-t border-[#9ED0FF]/10 lg:hidden"
-      >
-        <div className="space-y-1 px-2 pb-3 pt-2">
-          {navigation.map((item) => (
-            <TopBarNavMenuItem
-              name={t(`nav.${item.name}`)}
-              href={item.href}
-              key={item.name}
+        <CategoryNav friendsPlaying={friendsPlaying} />
+
+        <div className="flex-1" />
+
+        <div className="hidden w-52 shrink-0 xl:block 2xl:w-64">
+          <label htmlFor="search" className="sr-only">
+            {t("search")}
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <MagnifyingGlassIcon
+                aria-hidden="true"
+                className="h-5 w-5 text-[#9ED0FF]/55"
+              />
+            </div>
+            <input
+              id="search"
+              name="search"
+              type="search"
+              placeholder={t("search")}
+              className="block w-full rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 py-1.5 pr-3 pl-10 text-[#CCE7FF] placeholder:text-[#9ED0FF]/45 focus:border-[#9ED0FF]/50 focus:bg-[#0B3A5A]/80 focus:ring-0 focus:placeholder:text-[#9ED0FF]/60 sm:text-sm/6"
             />
-          ))}
+          </div>
         </div>
-        <div className="border-t border-[#9ED0FF]/10 pb-3 pt-4">
-          {user ? (
-            <>
-              <div className="flex items-center px-4">
-                <div className="shrink-0">
-                  <Image
-                    alt=""
-                    src={user.avatar ?? "/avatar_empty.png"}
-                    className="h-10 w-10 rounded-full"
-                    width={50}
-                    height={50}
-                  />
-                </div>
-                <div className="ml-3">
-                  <div className="text-base font-medium text-[#CCE7FF]">
-                    {user.name}
-                  </div>
-                  <div className="text-sm font-medium text-[#9ED0FF]/60">
-                    {user.email}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="relative ml-auto shrink-0 rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 p-1 text-[#9ED0FF] hover:border-[#9ED0FF]/40 hover:text-[#CCE7FF] focus:outline-hidden focus:ring-2 focus:ring-[#9ED0FF]/60 focus:ring-offset-2 focus:ring-offset-[#06243A]"
-                >
-                  <span className="absolute -inset-1.5" />
-                  <span className="sr-only">Voir les notifications</span>
-                  <BellIcon aria-hidden="true" className="h-6 w-6" />
-                </button>
-              </div>
-              <div className="mt-3 space-y-1 px-2">
-                {userNavigation.map((item) =>
-                  item.href ? (
-                    <DisclosureButton
-                      key={item.name}
-                      as="a"
+
+        {user ? (
+          <>
+            {friendsPlaying > 0 ? (
+              <Link
+                href="/profile#amis"
+                className="hidden h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-300/12 px-3 text-sm font-medium text-emerald-300 hover:bg-emerald-300/20 2xl:flex"
+              >
+                <span className="size-2 rounded-full bg-emerald-300" />
+                {t("friendsPlaying", { count: friendsPlaying })}
+              </Link>
+            ) : null}
+
+            {/* Scratch pad, opens a side panel from the right */}
+            <ScratchPadPanel />
+
+            <button type="button" className={`${iconButton} max-lg:hidden`}>
+              <span className="sr-only">{t("readNotifications")}</span>
+              <BellIcon aria-hidden="true" className="size-5.5" />
+            </button>
+
+            <Menu as="div" className="relative hidden shrink-0 md:block">
+              <MenuButton className="relative flex rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 text-sm text-[#CCE7FF] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#9ED0FF]/60">
+                <span className="absolute -inset-1.5" />
+                <span className="sr-only">{t("openUserMenu")}</span>
+                <Image
+                  alt=""
+                  src={user.avatar ?? "/avatar_empty.png"}
+                  className="size-9 rounded-full"
+                  width={50}
+                  height={50}
+                />
+              </MenuButton>
+              <MenuItems
+                transition
+                className="absolute right-0 z-50 mt-2 w-52 origin-top-right rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/95 py-1 shadow-xl shadow-black/20 ring-1 ring-[#9ED0FF]/10 backdrop-blur-md transition focus:outline-hidden data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
+              >
+                {userNavigation.map((item) => (
+                  <MenuItem key={item.name}>
+                    <Link
                       href={item.href}
-                      className="block rounded-lg border border-transparent px-3 py-2 text-base font-medium text-[#9ED0FF]/75 transition-all duration-200 hover:border-[#9ED0FF]/25 hover:bg-[#9ED0FF]/10 hover:text-[#CCE7FF]"
+                      className="block px-4 py-2.5 text-sm text-[#9ED0FF]/80 data-focus:bg-[#9ED0FF]/15 data-focus:text-[#CCE7FF]"
                     >
                       {t(`nav.${item.name}`)}
-                    </DisclosureButton>
-                  ) : (
-                    <form
-                      key={item.name}
-                      action={item.action}
-                      className="rounded-lg border border-transparent px-3 py-2 text-base font-medium text-[#9ED0FF]/75 transition-all duration-200 hover:border-[#9ED0FF]/25 hover:bg-[#9ED0FF]/10 hover:text-[#CCE7FF]"
+                    </Link>
+                  </MenuItem>
+                ))}
+                <form action={signOut}>
+                  <MenuItem>
+                    <button
+                      type="submit"
+                      className="block w-full px-4 py-2.5 text-left text-sm text-[#9ED0FF]/80 data-focus:bg-[#9ED0FF]/15 data-focus:text-[#CCE7FF]"
                     >
-                      <button type="submit" className="w-full text-left">
-                        {t(`nav.${item.name}`)}
-                      </button>
-                    </form>
-                  ),
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="mt-3 space-y-1 px-2">
-              <Button
-                type="submit"
-                className="w-full rounded-lg border border-[#9ED0FF]/25 bg-[#9ED0FF]/10 px-3 py-2 text-left text-base font-medium text-[#CCE7FF] hover:bg-[#9ED0FF]/20"
-                asChild
-              >
-                <Link href={"/login"}>{t("nav.signIn")}</Link>
-              </Button>
-            </div>
-          )}
-        </div>
-      </DisclosurePanel>
-    </Disclosure>
+                      {t("nav.signOut")}
+                    </button>
+                  </MenuItem>
+                </form>
+              </MenuItems>
+            </Menu>
+          </>
+        ) : (
+          <Link
+            href="/login"
+            className={`${iconButton} max-md:hidden`}
+            aria-label={t("nav.signIn")}
+          >
+            <ArrowLeftEndOnRectangleIcon
+              aria-hidden="true"
+              className="size-5.5"
+            />
+          </Link>
+        )}
+
+        <MobileNav
+          friendsPlaying={friendsPlaying}
+          account={
+            user
+              ? {
+                  name: user.name,
+                  email: user.email,
+                  avatar: user.avatar ?? null,
+                }
+              : null
+          }
+          signOut={signOut}
+        />
+      </div>
+    </header>
   );
 }

@@ -6,28 +6,110 @@
   },
   "TopBar": {
     "nav": {
-      "dashboard": "Tableau de bord",
-      "shopping": "Marketplace",
-      "crafting": "Artisanat",
-      "inventory": "Inventaire",
-      "industry": "Industrie",
-      "reputation": "Réputation",
-      "organizations": "Organisations",
       "myProfile": "Mon Profil",
       "settings": "Paramètres",
       "signOut": "Déconnexion",
-      "signIn": "Connexion",
-      "missions": "Missions",
-      "notes": "Bloc-notes",
-      "items": "Objets",
-      "squads": "Escouade",
-      "places": "Lieux"
+      "signIn": "Connexion"
     },
     "openMenu": "Ouvrir le menu",
     "openUserMenu": "Ouvrir le menu utilisateur",
     "readNotifications": "Voir les notifications",
     "search": "Rechercher",
-    "friendsPlaying": "{count, plural, one {# ami en jeu} other {# amis en jeu}}"
+    "friendsPlaying": "{count, plural, one {# ami en jeu} other {# amis en jeu}}",
+    "home": "Accueil",
+    "closeMenu": "Fermer le menu",
+    "menu": {
+      "label": "Navigation principale",
+      "playing": "{count} en jeu",
+      "categories": {
+        "database": {
+          "label": "Base de données",
+          "blurb": "Les références du jeu : ce qui existe, où, et comment l'obtenir."
+        },
+        "economy": {
+          "label": "Économie",
+          "blurb": "Acheter, vendre et produire : du marché à la raffinerie."
+        },
+        "mySpace": {
+          "label": "Mon espace",
+          "blurb": "Ce qui est à vous : stocks, colis, progression et notes."
+        },
+        "community": {
+          "label": "Communauté",
+          "blurb": "Jouer ensemble : amis, escouade et organisations."
+        }
+      },
+      "items": {
+        "items": {
+          "label": "Objets",
+          "description": "Catalogue, fiches et comparateur"
+        },
+        "places": {
+          "label": "Lieux",
+          "description": "Stations, villes et plans"
+        },
+        "missions": {
+          "label": "Missions",
+          "description": "Contrats, objectifs et récompenses"
+        },
+        "factions": {
+          "label": "Factions",
+          "description": "Qui donne quoi, et à quel rang"
+        },
+        "blueprints": {
+          "label": "Blueprints",
+          "description": "Recettes d'artisanat et temps de fabrication"
+        },
+        "marketplace": {
+          "label": "Marketplace",
+          "description": "Les annonces des joueurs"
+        },
+        "sell": {
+          "label": "Vendre",
+          "description": "Mettre un objet en vente"
+        },
+        "orders": {
+          "label": "Mes commandes",
+          "description": "Suivre achats et livraisons"
+        },
+        "refine": {
+          "label": "Raffinage",
+          "description": "Ordres de travail en raffinerie"
+        },
+        "cargo": {
+          "label": "Cargo",
+          "description": "Chargement et capacité des vaisseaux"
+        },
+        "inventory": {
+          "label": "Inventaire",
+          "description": "Vos objets, rangés par lieu"
+        },
+        "parcels": {
+          "label": "Colis",
+          "description": "Envois et réceptions par code"
+        },
+        "reputations": {
+          "label": "Réputations",
+          "description": "Votre progression par faction"
+        },
+        "notes": {
+          "label": "Bloc-notes",
+          "description": "Vos notes, partout avec vous"
+        },
+        "friends": {
+          "label": "Amis",
+          "description": "Qui est en jeu, et à quoi"
+        },
+        "squads": {
+          "label": "Escouade",
+          "description": "Rôles, plans de vol et raids"
+        },
+        "organizations": {
+          "label": "Organisations",
+          "description": "Membres, rangs et stocks partagés"
+        }
+      }
+    }
   },
   "HomePage": {
     "title": "Bienvenue !",
