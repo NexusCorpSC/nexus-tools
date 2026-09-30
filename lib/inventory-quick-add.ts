@@ -31,11 +31,12 @@ function sameText(a: unknown, b: string | undefined) {
  * Adds the rows of a quick-add table in one go — the web page's server
  * action and `POST /api/inventory/items/bulk`, which the desktop app calls.
  *
- * A row naming something already held — same name, quality and unit, at the
- * same place — tops that lot up instead of making a second one: typing in
- * what came back from a run should not split a stack in two. Its sharing with
- * the org and its description are left as they were. Anything else becomes a
- * new item.
+ * A row naming something already held — same name, quality, unit and note
+ * (description), at the same place — tops that lot up instead of making a
+ * second one: typing in what came back from a run should not split a stack in
+ * two. A note sets a lot apart: a row with one never tops up a lot without,
+ * nor one with another, and a row without none that has one. The lot's
+ * sharing with the org is left as it was. Anything else becomes a new item.
  *
  * Every row is checked before anything is written, so a bad row refuses the
  * whole batch rather than leaving half of it in.
@@ -117,6 +118,7 @@ export async function addInventoryRows(
     const locationId = row.locationId.trim();
     const name = row.name.trim();
     const unit = row.unit?.trim() || undefined;
+    const description = row.description?.trim() || undefined;
 
     const here = byPlace.get(locationId) ?? [];
     byPlace.set(locationId, here);
@@ -125,6 +127,7 @@ export async function addInventoryRows(
       (item) =>
         sameText(item.name, name) &&
         sameText(item.unit, unit) &&
+        sameText(item.description, description) &&
         (item.quality ?? undefined) === row.quality,
     );
 
@@ -145,7 +148,7 @@ export async function addInventoryRows(
     const doc: Lot = {
       _id: new ObjectId(),
       name,
-      description: row.description?.trim() || undefined,
+      description,
       quality: row.quality,
       quantity: row.quantity,
       unit,
