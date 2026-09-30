@@ -5,6 +5,7 @@ import { roundQty } from "@/lib/utils";
 
 export type QuickAddRow = {
   name: string;
+  description?: string;
   quality?: number;
   quantity: number;
   unit?: string;
@@ -33,7 +34,8 @@ function sameText(a: unknown, b: string | undefined) {
  * A row naming something already held — same name, quality and unit, at the
  * same place — tops that lot up instead of making a second one: typing in
  * what came back from a run should not split a stack in two. Its sharing with
- * the org is left as it was. Anything else becomes a new item.
+ * the org and its description are left as they were. Anything else becomes a
+ * new item.
  *
  * Every row is checked before anything is written, so a bad row refuses the
  * whole batch rather than leaving half of it in.
@@ -76,6 +78,13 @@ export async function addInventoryRows(
     }
     if (row.unit !== undefined && row.unit !== null && typeof row.unit !== "string") {
       return { ok: false, error: "unit must be a string" };
+    }
+    if (
+      row.description !== undefined &&
+      row.description !== null &&
+      typeof row.description !== "string"
+    ) {
+      return { ok: false, error: "description must be a string" };
     }
   }
 
@@ -136,6 +145,7 @@ export async function addInventoryRows(
     const doc: Lot = {
       _id: new ObjectId(),
       name,
+      description: row.description?.trim() || undefined,
       quality: row.quality,
       quantity: row.quantity,
       unit,

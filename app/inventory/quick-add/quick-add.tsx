@@ -97,6 +97,7 @@ export function QuickAddTable() {
   const [defaultLocation, setDefaultLocation] = useState<Location | null>(null);
   const [defaultUnit, setDefaultUnit] = useState("");
   const [defaultQuality, setDefaultQuality] = useState("");
+  const [defaultDescription, setDefaultDescription] = useState("");
   const [defaultOrg, setDefaultOrg] = useState(false);
   const [rows, setRows] = useState<Row[]>(() => [
     blankRow(false),
@@ -198,6 +199,7 @@ export function QuickAddTable() {
     const unit = unitOf(row);
     const payload: QuickAddRow = {
       name,
+      description: defaultDescription.trim() || undefined,
       quality,
       quantity,
       unit,
@@ -440,6 +442,15 @@ export function QuickAddTable() {
             onChange={(e) => setDefaultUnit(e.target.value)}
             placeholder={t("fieldUnitPlaceholder")}
             className="h-8 w-28 bg-[#092F49]"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-[#7E9FB7]">
+          {t("fieldDescription")}
+          <Input
+            value={defaultDescription}
+            onChange={(e) => setDefaultDescription(e.target.value)}
+            placeholder={t("fieldDescriptionPlaceholder")}
+            className="h-8 w-72 bg-[#092F49]"
           />
         </label>
         <label className="flex cursor-pointer items-center gap-2 text-sm text-[#C9E4FF]">
