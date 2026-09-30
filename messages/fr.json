@@ -1829,6 +1829,8 @@
     "quickAddStatusMerge": "Fusion : ×{from} → ×{to}",
     "quickAddErrorName": "Nom requis",
     "quickAddErrorQuality": "Qualité : entier ≥ 0",
+    "quickAddErrorQualityDefault": "Qualité par défaut : entier ≥ 0",
+    "itemNameHeld": "En stock",
     "quickAddErrorQuantity": "Quantité invalide",
     "quickAddErrorLocation": "Lieu requis",
     "quickAddErrorLocationUnknown": "Lieu introuvable : {name}",

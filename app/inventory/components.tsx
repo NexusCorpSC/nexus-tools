@@ -37,6 +37,7 @@ import {
   SentParcelDialog,
 } from "./parcels";
 import { cn, roundQty } from "@/lib/utils";
+import { ItemNameCombobox } from "./item-name-combobox";
 import { displayUnit, fromDisplayQty, toDisplayQty } from "@/lib/units";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -261,6 +262,7 @@ function ItemFormFields({
   setUnit,
   location,
   setLocation,
+  heldNames,
 }: {
   name: string;
   setName: (v: string) => void;
@@ -274,17 +276,20 @@ function ItemFormFields({
   setUnit: (v: string) => void;
   location: Location | null;
   setLocation: (v: Location) => void;
+  /** Names of what the reader already holds, offered first. */
+  heldNames?: string[];
 }) {
   const t = useTranslations("Inventory");
   return (
     <>
       <div className="space-y-1.5">
         <Label htmlFor="item-name">{t("fieldName")}</Label>
-        <Input
+        <ItemNameCombobox
           id="item-name"
           required
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          held={heldNames}
+          onChange={setName}
           placeholder={t("fieldNamePlaceholder")}
         />
       </div>
@@ -361,10 +366,12 @@ function AddItemDialog({
   open,
   onClose,
   onCreated,
+  heldNames,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  heldNames: string[];
 }) {
   const t = useTranslations("Inventory");
   const [name, setName] = useState("");
@@ -469,6 +476,7 @@ function AddItemDialog({
             setUnit={setUnit}
             location={location}
             setLocation={setLocation}
+            heldNames={heldNames}
           />
 
           <button
@@ -1661,6 +1669,14 @@ export function InventoryGrid() {
     [],
   );
 
+  const heldNames = useMemo(
+    () =>
+      [...new Set(items.map((item) => item.name))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [items],
+  );
+
   const debouncedQuery = useDebounce(searchQuery, 300);
   const debouncedQuality = useDebounce(qualityFilter, 300);
 
@@ -1871,6 +1887,7 @@ export function InventoryGrid() {
           open={showAddDialog}
           onClose={() => setShowAddDialog(false)}
           onCreated={fetchItems}
+          heldNames={heldNames}
         />
       </div>
       {/* end main column */}

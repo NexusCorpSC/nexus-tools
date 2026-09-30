@@ -1798,6 +1798,8 @@
     "quickAddStatusMerge": "Merge: ×{from} → ×{to}",
     "quickAddErrorName": "Name required",
     "quickAddErrorQuality": "Quality: whole number ≥ 0",
+    "quickAddErrorQualityDefault": "Default quality: whole number ≥ 0",
+    "itemNameHeld": "In stock",
     "quickAddErrorQuantity": "Invalid quantity",
     "quickAddErrorLocation": "Location required",
     "quickAddErrorLocationUnknown": "Unknown location: {name}",
