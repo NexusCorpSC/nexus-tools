@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, roundQty } from "@/lib/utils";
 import { LocationCombobox } from "../components";
+import { ItemNameCombobox } from "../item-name-combobox";
 import { quickAddItems } from "../actions";
 import type { QuickAddRow } from "@/lib/inventory-quick-add";
 
@@ -95,6 +96,7 @@ export function QuickAddTable() {
 
   const [defaultLocation, setDefaultLocation] = useState<Location | null>(null);
   const [defaultUnit, setDefaultUnit] = useState("");
+  const [defaultQuality, setDefaultQuality] = useState("");
   const [defaultOrg, setDefaultOrg] = useState(false);
   const [rows, setRows] = useState<Row[]>(() => [
     blankRow(false),
@@ -160,12 +162,20 @@ export function QuickAddTable() {
     const name = row.name.trim();
     if (!name) return { kind: "error", message: t("quickAddErrorName"), field: "name" };
 
+    // A blank quality takes the default one, if any.
+    const qualityText = row.quality.trim() || defaultQuality.trim();
     let quality: number | undefined;
-    if (row.quality.trim()) {
-      if (!/^\d+$/.test(row.quality.trim())) {
-        return { kind: "error", message: t("quickAddErrorQuality"), field: "quality" };
+    if (qualityText) {
+      if (!/^\d+$/.test(qualityText)) {
+        return {
+          kind: "error",
+          message: row.quality.trim()
+            ? t("quickAddErrorQuality")
+            : t("quickAddErrorQualityDefault"),
+          field: "quality",
+        };
       }
-      quality = parseInt(row.quality.trim(), 10);
+      quality = parseInt(qualityText, 10);
     }
 
     const quantity = row.quantity.trim() ? parseNumber(row.quantity) : 1;
@@ -386,6 +396,9 @@ export function QuickAddTable() {
     resolveLocations(pasted);
   };
 
+  const defaultQualityValid =
+    !defaultQuality.trim() || /^\d+$/.test(defaultQuality.trim());
+
   const defaultLocationLabel = defaultLocation
     ? t("quickAddLocationDefault", { name: defaultLocation.name })
     : t("fieldLocationPlaceholder");
@@ -409,6 +422,17 @@ export function QuickAddTable() {
             />
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm text-[#7E9FB7]">
+          {t("fieldQuality")}
+          <Input
+            inputMode="numeric"
+            value={defaultQuality}
+            onChange={(e) => setDefaultQuality(e.target.value)}
+            placeholder="—"
+            aria-invalid={!defaultQualityValid || undefined}
+            className="h-8 w-20 bg-[#092F49] text-right font-mono"
+          />
+        </label>
         <label className="flex items-center gap-2 text-sm text-[#7E9FB7]">
           {t("fieldUnit")}
           <Input
@@ -498,19 +522,19 @@ export function QuickAddTable() {
                     {index + 1}
                   </td>
                   <td>
-                    <Input
-                      ref={(el) => {
+                    <ItemNameCombobox
+                      inputRef={(el) => {
                         if (el) nameInputs.current.set(row.key, el);
                         else nameInputs.current.delete(row.key);
                       }}
                       autoFocus={index === 0}
                       value={row.name}
-                      list="quick-add-names"
-                      onChange={(e) => update(row.key, { name: e.target.value })}
+                      held={knownNames}
+                      onChange={(name) => update(row.key, { name })}
                       onPaste={handlePaste(row)}
                       placeholder={t("fieldNamePlaceholder")}
                       aria-label={t("fieldName")}
-                      aria-invalid={errorField === "name" || undefined}
+                      invalid={errorField === "name"}
                       className={CELL}
                     />
                   </td>
@@ -519,7 +543,7 @@ export function QuickAddTable() {
                       inputMode="numeric"
                       value={row.quality}
                       onChange={(e) => update(row.key, { quality: e.target.value })}
-                      placeholder="—"
+                      placeholder={defaultQuality.trim() || "—"}
                       aria-label={t("fieldQuality")}
                       aria-invalid={errorField === "quality" || undefined}
                       className={cn(
@@ -596,11 +620,6 @@ export function QuickAddTable() {
             })}
           </tbody>
         </table>
-        <datalist id="quick-add-names">
-          {knownNames.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
         <button
           type="button"
           onClick={addRow}
