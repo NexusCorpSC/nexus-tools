@@ -2089,7 +2089,7 @@
     "storeAt": "Store at",
     "storeAtPlaceholder": "Where to store the parcel?",
     "orgVisible": "Visible to the org",
-    "mergeHint": "A matching lot already stored there will be topped up.",
+    "mergeHint": "A matching lot (note included) already stored there will be topped up.",
     "accept": "Accept the parcel",
     "accepting": "Receiving…",
     "receivedTitle": "Parcel from {sender} received at {location}",

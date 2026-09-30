@@ -2120,7 +2120,7 @@
     "storeAt": "Ranger à",
     "storeAtPlaceholder": "Où ranger le colis ?",
     "orgVisible": "Visible par l'org",
-    "mergeHint": "Un lot identique déjà rangé à cet endroit sera complété.",
+    "mergeHint": "Un lot identique (note comprise) déjà rangé à cet endroit sera complété.",
     "accept": "Accepter le colis",
     "accepting": "Réception…",
     "receivedTitle": "Colis de {sender} reçu à {location}",

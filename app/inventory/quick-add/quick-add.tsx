@@ -72,7 +72,8 @@ function sameText(a: string | undefined, b: string | undefined) {
  *
  * Each row says, before anything is sent, what will become of it: a new item,
  * a new lot of something already held, or a top-up of an existing lot (same
- * name, quality and unit at the same place — the rule `quickAddItems` applies).
+ * name, quality, unit and note at the same place — the rule `quickAddItems`
+ * applies).
  * Rows in error stay in the table after the others are added.
  */
 export function QuickAddTable() {
@@ -212,6 +213,7 @@ export function QuickAddTable() {
         item.location?.id === location.id &&
         sameText(item.name, name) &&
         sameText(item.unit, unit) &&
+        sameText(item.description, payload.description) &&
         (item.quality ?? undefined) === quality,
     );
     if (match) {
