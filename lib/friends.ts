@@ -2,6 +2,7 @@ import "server-only";
 import { ObjectId } from "mongodb";
 import db from "@/lib/db";
 import { CODE_ALPHABET, CODE_ATTEMPTS, newCode } from "@/lib/join-codes";
+import { displayOrgsOf } from "@/lib/display-org";
 import { plannedAmong, playingAmong } from "@/lib/presence";
 import {
   FRIEND_CODE_LENGTH,
@@ -209,8 +210,8 @@ export async function addFriendByCode(
 // ─── Liste ────────────────────────────────────────────────────────────────────
 
 /**
- * Les amis vus par `readerId` : nom, avatar, organisation partagée et, pour
- * ceux en jeu, leur déclaration ; pour les autres, leur session prévue.
+ * Les amis vus par `readerId` : nom, avatar, organisation — celle qu'ils ont
+ * choisi d'afficher, sinon la première partagée — et, pour ceux en jeu, leur déclaration ; pour les autres, leur session prévue.
  */
 async function describe(
   readerId: ObjectId,
@@ -219,7 +220,7 @@ async function describe(
   if (entries.length === 0) return [];
   const ids = entries.map((entry) => entry.userId);
 
-  const [found, playing, planned, orgs] = await Promise.all([
+  const [found, playing, planned, chosenOrg, orgs] = await Promise.all([
     users()
       .find(
         { _id: { $in: ids } },
@@ -228,6 +229,7 @@ async function describe(
       .toArray(),
     playingAmong(ids),
     plannedAmong(ids),
+    displayOrgsOf(ids),
     db
       .db()
       .collection<{ name: string; members?: { userId: ObjectId }[] }>(
@@ -261,7 +263,7 @@ async function describe(
       userId: id,
       name: user?.name || "Joueur",
       avatar: user?.avatar ?? user?.image ?? null,
-      sharedOrg: sharedOrg.get(id) ?? null,
+      sharedOrg: chosenOrg.get(id) ?? sharedOrg.get(id) ?? null,
       friendsSince: createdAt.toISOString(),
       playing: presence
         ? { activity: presence.activity, since: presence.since }

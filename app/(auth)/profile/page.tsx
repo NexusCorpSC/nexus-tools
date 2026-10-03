@@ -13,6 +13,7 @@ import {
 import { outlineButton } from "@/app/(auth)/profile/styles";
 import { PresenceCard } from "@/app/(auth)/profile/presence-card";
 import { FriendsSection } from "@/app/(auth)/profile/friends";
+import { DisplayOrgPicker } from "@/app/(auth)/profile/display-org";
 import { Button } from "@/components/ui/button";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
@@ -20,6 +21,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getMyPresence } from "@/lib/presence";
 import { getMyFriendCode, listFriends } from "@/lib/friends";
+import { getMyDisplayOrg } from "@/lib/display-org";
 
 export const metadata: Metadata = {
   title: "Mon profil",
@@ -54,23 +56,25 @@ export default async function ProfilePage() {
     return <>User not found.</>;
   }
 
-  const [organizations, presence, friends, friendCode] = await Promise.all([
-    db
-      .db()
-      .collection<Organization>("organizations")
-      .find({ "members.userId": userId })
-      .project<Pick<Organization, "_id" | "name" | "image" | "members">>({
-        _id: 1,
-        name: 1,
-        image: 1,
-        members: { $elemMatch: { userId } },
-      })
-      .limit(20)
-      .toArray(),
-    getMyPresence(userId),
-    listFriends(userId),
-    getMyFriendCode(userId),
-  ]);
+  const [organizations, presence, friends, friendCode, displayOrg] =
+    await Promise.all([
+      db
+        .db()
+        .collection<Organization>("organizations")
+        .find({ "members.userId": userId })
+        .project<Pick<Organization, "_id" | "name" | "image" | "members">>({
+          _id: 1,
+          name: 1,
+          image: 1,
+          members: { $elemMatch: { userId } },
+        })
+        .limit(20)
+        .toArray(),
+      getMyPresence(userId),
+      listFriends(userId),
+      getMyFriendCode(userId),
+      getMyDisplayOrg(userId),
+    ]);
 
   const userIdText = user._id.toString();
 
@@ -177,6 +181,14 @@ export default async function ProfilePage() {
                 ))}
               </ul>
             )}
+            {displayOrg.organizations.length > 0 ? (
+              <div className="border-t border-[#9ED0FF]/12 pt-4">
+                <DisplayOrgPicker
+                  initialOrgId={displayOrg.orgId}
+                  organizations={displayOrg.organizations}
+                />
+              </div>
+            ) : null}
           </section>
         </div>
 

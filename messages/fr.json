@@ -1540,6 +1540,13 @@
       "empty": "Pas encore d'amis. Partagez votre code ou saisissez celui d'un ami.",
       "nobodyPlaying": "Aucun ami en jeu pour le moment.",
       "planned": "Session prévue · <time></time>"
+    },
+    "DisplayOrg": {
+      "label": "Affichée avec mon pseudo",
+      "auto": "Automatique : la première en commun",
+      "hint": "Vos amis la voient à côté de votre pseudo. En automatique, ou si vous quittez l'organisation choisie, chacun voit la première organisation que vous avez en commun.",
+      "saved": "Organisation affichée mise à jour.",
+      "error": "L'enregistrement a échoué. Réessayez."
     }
   },
   "Organizations": {
