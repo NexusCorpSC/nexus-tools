@@ -416,8 +416,7 @@ export function planBlueprints(
   }
 
   // Les slugs, en deux temps : ceux qui restent d'abord, puis ceux qui
-  // bougent ou naissent. Un renommage en chaîne (A prend le nom de B, B
-  // celui de C) libère ainsi chaque slug avant que le suivant ne le demande.
+  // bougent ou naissent.
   const claimed = new Set<string>();
   const movers: BlueprintDoc[] = [];
   // Ceux qui bougent parce que le jeu les a renommés : leur ancien slug
@@ -441,14 +440,27 @@ export function planBlueprints(
     else claimed.add(doc.slug);
   }
 
+  // Un slug qui redirige vers une fiche (son ancien slug, ou celui qu'elle
+  // quitte maintenant) lui reste réservé : les liens partagés vers elle ne
+  // doivent pas mener à une autre, même si celle-ci prend son ancien nom.
+  const redirects = new Map<string, BlueprintDoc>();
+  for (const doc of docs) {
+    for (const old of doc.previousSlugs ?? []) {
+      if (!redirects.has(old)) redirects.set(old, doc);
+    }
+  }
+  for (const doc of renamed) redirects.set(doc.slug, doc);
+  const isFree = (candidate: string, doc: BlueprintDoc) =>
+    !claimed.has(candidate) && (redirects.get(candidate) ?? doc) === doc;
+
   const slugMoves = new Map<string, string>();
   const place = (doc: BlueprintDoc) => {
     const base =
       toBlueprintSlug(doc.name) || tagSuffix(doc.gameTag ?? "") || "blueprint";
     const suffixed = doc.gameTag ? `${base}-${tagSuffix(doc.gameTag)}` : base;
-    let slug = [base, suffixed].find((candidate) => !claimed.has(candidate));
+    let slug = [base, suffixed].find((candidate) => isFree(candidate, doc));
     for (let i = 2; !slug; i++) {
-      if (!claimed.has(`${suffixed}-${i}`)) slug = `${suffixed}-${i}`;
+      if (isFree(`${suffixed}-${i}`, doc)) slug = `${suffixed}-${i}`;
     }
     claimed.add(slug);
     return slug;
@@ -714,9 +726,9 @@ export function planMissions(
   const missingBlueprints = new Set<string>();
   let withoutFaction = 0;
   /**
-   * La faction par son identifiant, sinon par le nom du donneur de mission.
-   * `null` si la source en cite une qu'on ne connaît pas, `undefined` si elle
-   * n'en dit rien : la fiche garde alors la sienne.
+   * La faction par son identifiant, sinon par le nom du donneur de mission ;
+   * `undefined` si elle reste introuvable (faction absente de la source ou au
+   * nom provisoire) : la fiche garde alors la sienne.
    */
   const factionOf = (mission: GameMission) => {
     const found =
@@ -728,11 +740,19 @@ export function planMissions(
         : undefined);
     if (found) return found._id;
     withoutFaction += 1;
-    return mission.factionGameId ? null : undefined;
+    return undefined;
   };
+  // Les blueprints que l'import suit (par GUID). Un lien vers un autre — saisi
+  // à la main, ou une fiche ancienne qu'il n'a pas pu rattacher — n'est pas le
+  // sien : il le garde.
+  const followed = new Set(
+    [...blueprints.values()].map((blueprint) => blueprint._id.toHexString()),
+  );
   // Une clé `undefined` : la source ne sait pas, la fiche garde sa valeur.
-  const fields = (mission: GameMission) => {
-    const blueprintIds: ObjectId[] = [];
+  const fields = (mission: GameMission, doc?: MissionDoc) => {
+    const blueprintIds: ObjectId[] = (doc?.blueprints ?? []).filter(
+      (id) => !followed.has(id.toHexString()),
+    );
     for (const gameId of mission.blueprintGameIds) {
       const blueprint = blueprints.get(gameId);
       if (blueprint) blueprintIds.push(blueprint._id);
@@ -779,7 +799,7 @@ export function planMissions(
       note(report, "créées", mission.title);
       continue;
     }
-    for (const [key, value] of Object.entries(fields(mission))) {
+    for (const [key, value] of Object.entries(fields(mission, doc))) {
       if (value !== undefined) tracker.change(doc, key, value);
     }
     if (doc.removedInVersion) {

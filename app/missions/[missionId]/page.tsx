@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
   Breadcrumb,
@@ -121,8 +121,10 @@ export default async function MissionDetailPage({ params }: Props) {
   const mission = await getMission(missionId, userId);
 
   if (!mission) notFound();
-  // Fusionnée par la source dans une autre mission : le lien suit.
-  if (mission.replacedBy) permanentRedirect(`/missions/${mission.replacedBy}`);
+  // Fusionnée par la source dans une autre mission : le lien suit. Pas de
+  // redirection permanente, que les navigateurs gardent en cache : un patch
+  // suivant peut ramener la mission.
+  if (mission.replacedBy) redirect(`/missions/${mission.replacedBy}`);
 
   return (
     <div className="m-2 mx-auto max-w-4xl space-y-6 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">

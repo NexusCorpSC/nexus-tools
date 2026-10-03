@@ -311,9 +311,13 @@ export async function getBlueprintBySlug(
   slug: string,
 ): Promise<Blueprint | null> {
   const collection = db.db().collection<Blueprint>("blueprints");
+  // Une seule requête ; le slug actuel l'emporte sur un ancien slug.
+  const candidates = await collection
+    .find({ $or: [{ slug }, { previousSlugs: slug }] })
+    .limit(2)
+    .toArray();
   const blueprint =
-    (await collection.findOne({ slug })) ??
-    (await collection.findOne({ previousSlugs: slug }));
+    candidates.find((candidate) => candidate.slug === slug) ?? candidates[0];
   return blueprint ? toBlueprint(blueprint) : null;
 }
 

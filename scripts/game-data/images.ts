@@ -15,9 +15,9 @@
 
 import type { BlueprintDoc } from "./plan";
 import { newReport, note, type Report } from "./plan";
+import { fetchJson } from "./source";
 
 const WIKI_API = "https://starcitizen.tools/api.php";
-const USER_AGENT = "nexus-tools-import/0.1 (+https://tools.services.nexus)";
 const TITLES_PER_REQUEST = 50;
 /** Assez pour une fiche, sans les originaux en 4K. */
 const THUMBNAIL_WIDTH = 1200;
@@ -43,9 +43,7 @@ type WikiQuery = {
   };
 };
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function queryWiki(titles: string[], attempts = 4): Promise<WikiQuery> {
+function queryWiki(titles: string[]): Promise<WikiQuery> {
   const params = new URLSearchParams({
     action: "query",
     format: "json",
@@ -56,22 +54,10 @@ async function queryWiki(titles: string[], attempts = 4): Promise<WikiQuery> {
     pithumbsize: String(THUMBNAIL_WIDTH),
     titles: titles.join("|"),
   });
-  for (let attempt = 1; ; attempt++) {
-    try {
-      const response = await fetch(`${WIKI_API}?${params}`, {
-        headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-        signal: AbortSignal.timeout(60_000),
-      });
-      if (response.ok) return (await response.json()) as WikiQuery;
-      if (response.status !== 429 && response.status < 500) {
-        throw new Error(`starcitizen.tools ${response.status}`);
-      }
-    } catch (error) {
-      if (attempt >= attempts) throw error;
-    }
-    if (attempt >= attempts) throw new Error("starcitizen.tools injoignable");
-    await sleep(2000 * attempt);
-  }
+  return fetchJson(
+    `${WIKI_API}?${params}`,
+    "l'API de starcitizen.tools a peut-être changé d'adresse.",
+  ) as Promise<WikiQuery>;
 }
 
 /** L'image de la page de chaque titre, en suivant normalisation et redirections. */
@@ -104,16 +90,21 @@ async function wikiImages(titles: string[]): Promise<Map<string, string>> {
   return found;
 }
 
+/**
+ * `docs` : les blueprints sans image ; `allNames` : le nom de tous les
+ * blueprints, illustrés ou non, pour reconnaître un homonyme même quand les
+ * autres ont déjà leur image.
+ */
 export async function planBlueprintImages(
   docs: BlueprintDoc[],
   catalogueImages: Map<string, string>,
+  allNames: string[],
 ): Promise<{ choices: ImageChoice[]; report: Report }> {
   const report = newReport();
   const choices: ImageChoice[] = [];
 
   const sharedNames = new Map<string, number>();
-  for (const doc of docs) {
-    const name = doc.gameName ?? doc.name;
+  for (const name of allNames) {
     sharedNames.set(name, (sharedNames.get(name) ?? 0) + 1);
   }
 

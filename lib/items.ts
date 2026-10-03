@@ -662,9 +662,16 @@ export async function getBlueprintsForItem(
   const blueprints = db.db().collection(BLUEPRINTS_COLLECTION);
 
   if (item.blueprintSlugs && item.blueprintSlugs.length > 0) {
+    // Un slug déplacé par un renommage en jeu reste dans `previousSlugs` :
+    // le lien tient même si l'import n'a pas pu réécrire celui de l'objet.
     const docs = await blueprints
       .find(
-        { slug: { $in: item.blueprintSlugs } },
+        {
+          $or: [
+            { slug: { $in: item.blueprintSlugs } },
+            { previousSlugs: { $in: item.blueprintSlugs } },
+          ],
+        },
         { projection: BLUEPRINT_PROJECTION },
       )
       .toArray();

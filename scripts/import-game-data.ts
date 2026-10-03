@@ -85,7 +85,11 @@ import {
   type Report,
 } from "./game-data/plan";
 import { planBlueprintImages } from "./game-data/images";
-import { SourceFormatError, type GameData } from "./game-data/source";
+import {
+  SourceFormatError,
+  USER_AGENT,
+  type GameData,
+} from "./game-data/source";
 
 // ─── Ligne de commande ────────────────────────────────────────────────────────
 
@@ -266,8 +270,9 @@ function printReport(title: string, report: Report) {
 const BATCH = 500;
 
 /**
- * Écrit par lots, sans s'arrêter au premier échec d'un lot : chaque écriture
- * est idempotente, relancer l'import termine ce qu'un échec a laissé.
+ * Écrit par lots. Un lot en échec arrête l'import (les autres écritures du
+ * lot, non ordonnées, sont faites) : chaque écriture est idempotente, et
+ * relancer l'import termine ce qu'un échec a laissé.
  */
 async function write<T extends Document>(
   collection: Collection<T>,
@@ -336,13 +341,15 @@ async function planItemSlugs(moves: Map<string, string>): Promise<DocUpdate[]> {
 /** Recopie une image dans le blob storage, au chemin qu'utilise l'upload d'administration. */
 async function mirrorImage(url: string, slug: string): Promise<string> {
   const response = await fetch(url, {
-    headers: {
-      "User-Agent": "nexus-tools-import/0.1 (+https://tools.services.nexus)",
-    },
+    headers: { "User-Agent": USER_AGENT },
     signal: AbortSignal.timeout(60_000),
   });
   if (!response.ok) throw new Error(`${response.status} — ${url}`);
-  const contentType = response.headers.get("content-type") ?? "image/jpeg";
+  // `image/png; charset=binary` et autres paramètres : seul le type compte.
+  const contentType = (response.headers.get("content-type") ?? "image/jpeg")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
   const extension =
     { "image/png": "png", "image/webp": "webp" }[contentType] ?? "jpg";
   const blob = await put(
@@ -394,7 +401,19 @@ async function importImages(options: Options) {
     items.map((item) => [item.source.id as string, item.imageUrl as string]),
   );
 
-  const { choices, report } = await planBlueprintImages(docs, catalogueImages);
+  const allNames = (
+    await blueprints
+      .find(
+        { removedInVersion: { $exists: false } },
+        { projection: { name: 1, gameName: 1 } },
+      )
+      .toArray()
+  ).map((doc) => doc.gameName ?? doc.name);
+  const { choices, report } = await planBlueprintImages(
+    docs,
+    catalogueImages,
+    allNames,
+  );
   printReport("Images", report);
 
   if (options.dryRun) {

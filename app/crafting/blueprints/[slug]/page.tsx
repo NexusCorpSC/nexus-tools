@@ -20,7 +20,7 @@ import {
 } from "./server-components";
 import { BlueprintImageCover } from "@/app/crafting/blueprints/[slug]/components";
 import type { Metadata } from "next";
-import { permanentRedirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export async function generateMetadata({
   params,
@@ -70,9 +70,10 @@ export default async function BlueprintDetailPage({
 
   const blueprint = await getBlueprintBySlug(slug);
 
-  // Un ancien slug, d'avant un renommage en jeu : la fiche a déménagé.
+  // Un ancien slug, d'avant un renommage en jeu : la fiche a déménagé. Pas
+  // de redirection permanente : un renommage suivant peut rendre ce slug.
   if (blueprint && blueprint.slug !== slug) {
-    permanentRedirect(`/crafting/blueprints/${blueprint.slug}`);
+    redirect(`/crafting/blueprints/${blueprint.slug}`);
   }
 
   if (!blueprint) {
