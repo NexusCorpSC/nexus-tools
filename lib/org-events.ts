@@ -276,6 +276,13 @@ export async function listPastOrgEvents(
 /** Jusqu'où regarde le calendrier de la communauté : trois mois devant soi. */
 export const COMMUNITY_DAYS = 92;
 
+/**
+ * Le plafond des évènements publics des autres organisations sur cette
+ * période, bien au-dessus de `LIST_LIMIT` qui vaut pour une seule orga. Au-delà,
+ * les plus lointains manquent : le lecteur les retrouve en s'en approchant.
+ */
+const COMMUNITY_LIMIT = 1_000;
+
 function toCommunityOrg(
   org: Pick<Organization, "_id" | "name" | "tag" | "image">,
   isMember: boolean,
@@ -325,20 +332,35 @@ export async function listCommunityEvents(
   );
 
   const now = Date.now();
-  const docs = await collection()
-    .find({
-      $or: [
-        { visibility: "public" },
-        { orgId: { $in: [...accessByOrg.keys()] } },
-      ],
-      endsAt: { $gt: new Date(now - DEFAULT_LOOKBACK_MS).toISOString() },
-      startsAt: {
-        $lt: new Date(now + COMMUNITY_DAYS * 86_400_000).toISOString(),
-      },
-    })
-    .sort({ startsAt: 1 })
-    .limit(LIST_LIMIT)
-    .toArray();
+  const window = {
+    endsAt: { $gt: new Date(now - DEFAULT_LOOKBACK_MS).toISOString() },
+    startsAt: {
+      $lt: new Date(now + COMMUNITY_DAYS * 86_400_000).toISOString(),
+    },
+  };
+  // Deux lectures, chacune son plafond : les évènements publics de toute la
+  // communauté ne doivent pas évincer ceux des organisations du lecteur.
+  const [ownDocs, publicDocs] = await Promise.all([
+    accessByOrg.size > 0
+      ? collection()
+          .find({ ...window, orgId: { $in: [...accessByOrg.keys()] } })
+          .sort({ startsAt: 1 })
+          .limit(LIST_LIMIT)
+          .toArray()
+      : Promise.resolve([]),
+    collection()
+      .find({
+        ...window,
+        visibility: "public",
+        orgId: { $nin: [...accessByOrg.keys()] },
+      })
+      .sort({ startsAt: 1 })
+      .limit(COMMUNITY_LIMIT)
+      .toArray(),
+  ]);
+  const docs = [...ownDocs, ...publicDocs].sort((a, b) =>
+    a.startsAt.localeCompare(b.startsAt),
+  );
 
   const myOrgs = mine.map((org) => toCommunityOrg(org, true));
   const orgs = new Map(myOrgs.map((org) => [org.id, org]));
