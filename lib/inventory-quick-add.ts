@@ -34,9 +34,10 @@ function sameText(a: unknown, b: string | undefined) {
  * A row naming something already held — same name, quality, unit and note
  * (description), at the same place — tops that lot up instead of making a
  * second one: typing in what came back from a run should not split a stack in
- * two. A note sets a lot apart: a row with one never tops up a lot without,
- * nor one with another, and a row without none that has one. The lot's
- * sharing with the org is left as it was. Anything else becomes a new item.
+ * two. A note sets a lot apart: a row with a note never tops up a lot that has
+ * none or a different one, and a row without a note never tops up a lot that
+ * has one. The lot's sharing with the org is left as it was. Anything else
+ * becomes a new item.
  *
  * Every row is checked before anything is written, so a bad row refuses the
  * whole batch rather than leaving half of it in.
