@@ -649,24 +649,48 @@ const BLUEPRINT_PROJECTION = {
 } as const;
 
 /**
- * Blueprints crafting this item. Declared slugs win; without any, blueprints
- * carrying exactly the same name are proposed, which covers the items imported
- * before anyone linked them by hand.
+ * Blueprints crafting this item. Declared slugs win; then the blueprints the
+ * game itself says make this item — an item imported from the wiki carries the
+ * game's uuid as `source.id`, the very id a blueprint names as its product
+ * (`productEntityClass`), so the link holds whatever either is called. Without
+ * either, blueprints carrying exactly the same name are proposed, which covers
+ * the items imported before anyone linked them by hand.
  */
 export async function getBlueprintsForItem(
-  item: Pick<Item, "name" | "blueprintSlugs">,
+  item: Pick<Item, "name" | "blueprintSlugs" | "source">,
 ): Promise<{ blueprints: ItemBlueprintLink[]; inferred: boolean }> {
   const blueprints = db.db().collection(BLUEPRINTS_COLLECTION);
 
   if (item.blueprintSlugs && item.blueprintSlugs.length > 0) {
+    // Un slug déplacé par un renommage en jeu reste dans `previousSlugs` :
+    // le lien tient même si l'import n'a pas pu réécrire celui de l'objet.
     const docs = await blueprints
       .find(
-        { slug: { $in: item.blueprintSlugs } },
+        {
+          $or: [
+            { slug: { $in: item.blueprintSlugs } },
+            { previousSlugs: { $in: item.blueprintSlugs } },
+          ],
+        },
         { projection: BLUEPRINT_PROJECTION },
       )
       .toArray();
 
     return { blueprints: docs.map(toBlueprintLink), inferred: false };
+  }
+
+  if (item.source?.name === "scwiki" && item.source.id) {
+    const docs = await blueprints
+      .find(
+        { productEntityClass: item.source.id },
+        { projection: BLUEPRINT_PROJECTION },
+      )
+      .limit(10)
+      .toArray();
+
+    if (docs.length > 0) {
+      return { blueprints: docs.map(toBlueprintLink), inferred: false };
+    }
   }
 
   const docs = await blueprints

@@ -10,6 +10,7 @@ import {
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import db from "@/lib/db";
+import { ACTIVE_MISSION } from "@/lib/data/missions";
 import { FactionsExplorer } from "@/app/missions/factions/components";
 
 export const metadata: Metadata = {
@@ -36,6 +37,7 @@ export default async function MissionsFactionsPage() {
           from: "missions",
           localField: "_id",
           foreignField: "factionId",
+          pipeline: [{ $match: ACTIVE_MISSION }],
           as: "missions",
         },
       },

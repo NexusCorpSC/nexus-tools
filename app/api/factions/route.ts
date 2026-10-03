@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
+import { ACTIVE_MISSION } from "@/lib/data/missions";
 
 export async function GET() {
   const factionsWithBlueprints = await db
@@ -11,6 +12,7 @@ export async function GET() {
           from: "missions",
           localField: "_id",
           foreignField: "factionId",
+          pipeline: [{ $match: ACTIVE_MISSION }],
           as: "missions",
         },
       },

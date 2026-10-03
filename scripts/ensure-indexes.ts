@@ -204,6 +204,56 @@ async function ensureGameItems(database: Db) {
   );
 }
 
+// ─── Blueprints, factions et missions ─────────────────────────────────────────
+
+/**
+ * Les clés que l'import des données du jeu (`npm run import:game-data`)
+ * retrouve à chaque passage. Le GUID est unique, pour que deux imports
+ * concurrents ne créent pas deux fois le même blueprint ; partiel, pour que
+ * les fiches saisies à la main (sans GUID) restent libres.
+ *
+ * Le slug des blueprints n'est pas (encore) unique en base : les premiers
+ * imports ont pu laisser des doublons, que l'import ne corrige pas tout seul.
+ */
+async function ensureGameData(database: Db) {
+  const blueprints = database.collection("blueprints");
+  await blueprints.createIndex({ slug: 1 }, { name: "blueprints_slug" });
+  await blueprints.createIndex(
+    { gameId: 1 },
+    {
+      unique: true,
+      name: "blueprints_gameId_unique",
+      partialFilterExpression: { gameId: { $exists: true } },
+    },
+  );
+  // L'ancien slug d'un blueprint renommé en jeu, qui redirige.
+  await blueprints.createIndex(
+    { previousSlugs: 1 },
+    { name: "blueprints_previousSlugs" },
+  );
+  // L'objet fabriqué, que la fiche d'un objet du catalogue cherche.
+  await blueprints.createIndex(
+    { productEntityClass: 1 },
+    { name: "blueprints_product" },
+  );
+
+  await database.collection("factions").createIndex(
+    { gameId: 1 },
+    {
+      unique: true,
+      name: "factions_gameId_unique",
+      partialFilterExpression: { gameId: { $exists: true } },
+    },
+  );
+
+  const missions = database.collection("missions");
+  await missions.createIndex({ factionId: 1 }, { name: "missions_faction" });
+  await missions.createIndex(
+    { blueprints: 1 },
+    { name: "missions_blueprints" },
+  );
+}
+
 // ─── Lieux du 'verse ──────────────────────────────────────────────────────────
 
 /**
@@ -326,6 +376,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["plans", ensurePlans],
   ["planStrokes", ensurePlanStrokes],
   ["gameItems", ensureGameItems],
+  ["gameData", ensureGameData],
   ["gameLocations", ensureGameLocations],
   ["cargoShips", ensureCargoShips],
   ["parcels", ensureParcels],

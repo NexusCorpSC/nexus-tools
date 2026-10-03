@@ -256,3 +256,74 @@ s'importent avec `scwiki --types Turret,MissileLauncher`.
 > Le script lit `MONGODB_URI` dans `.env.local`. Il s'exécute hors de Next
 > (`tsx`) : aucune permission applicative n'est vérifiée, réservez-le aux
 > opérateurs.
+
+## Import des blueprints, factions et missions
+
+Les blueprints de `/crafting`, les factions et les missions de `/missions`
+viennent de l'[API du Star Citizen Wiki](https://api.star-citizen.wiki).
+[scmdb.net](https://scmdb.net) reste branché en secours (`--source scmdb`) :
+les deux partagent les GUID des blueprints, tirés des fichiers du jeu.
+
+```bash
+npm run import:game-data -- all --dry-run    # le rapport de ce qui changerait, sans rien écrire
+npm run import:game-data -- all              # dernière version LIVE : blueprints, factions, missions
+npm run import:game-data -- images           # illustrations des blueprints qui n'en ont pas
+```
+
+Le wiki est lu par ses listes, à 200 lignes par page : une cinquantaine de
+requêtes pour tout. La recette complète d'un blueprint n'est qu'à son détail ;
+elle n'est demandée que pour les blueprints nouveaux ou dont les ingrédients
+ont changé (`--refresh-recipes` pour toutes les redemander).
+
+Ce que le wiki n'a pas :
+
+- **Le montant de la récompense** de beaucoup de missions : une mission déjà
+  en base garde le sien.
+- **Le type de mission du jeu** (Mercenary, Delivery…) : sa liste n'a que la
+  famille de la mission (Security, Hauling…), qui sert de type. La catégorie
+  (career, story, event) reste celle déjà en base.
+- **La sous-catégorie des blueprints** : une fiche garde la sienne.
+- **Certains titres** que le jeu remplit à l'affichage
+  (`[Contractor|BountyTitle]`) : ils ne remplacent pas le titre en base et ne
+  créent pas de mission.
+
+Le wiki regroupe aussi les variantes d'une mission sous une seule fiche, là où
+les premiers imports (scmdb) en faisaient plusieurs : au passage au wiki, ces
+fiches sont fusionnées et leurs liens redirigent vers la mission qui les
+regroupe.
+
+`--blueprints-source` et `--missions-source` choisissent la source de chaque
+partie.
+
+Options utiles : `--version 4.10.1-LIVE.12660092` (une version précise),
+`--dir dossier` (avec scmdb, des fichiers `merged-<V>.json` et
+`crafting_blueprints-<V>.json` déjà téléchargés), `--mirror-images` (avec
+`images`, recopie dans le blob storage), `--allow-mass-removal`.
+
+Les fichiers de scmdb sont gardés dans `.cache/game-data/scmdb/` : un second
+import ne les retélécharge pas.
+
+Ce que l'import garantit :
+
+- **Un blueprint est suivi par son GUID**, une mission par ses identifiants de
+  contrat et ses noms techniques, jamais par leur nom. Quand le jeu renomme un
+  blueprint, sa fiche est mise à jour : son `_id` ne change pas, les joueurs
+  qui le possèdent le gardent, et l'ancien slug redirige vers le nouveau. Les
+  homonymes (quatre refroidisseurs « Cryo-Star SL ») ont chacun leur fiche.
+- **Rien n'est supprimé.** Ce qui disparaît du jeu est marqué
+  `removedInVersion` : la mission sort des listes mais sa page reste, avec un
+  avertissement ; une mission que la source a fusionnée dans une autre
+  redirige vers elle.
+- **Les saisies des administrateurs sont gardées** : nom, description, slug,
+  image, statistiques, et le texte « Obtention » dès qu'il n'est plus celui que
+  l'import avait écrit.
+- **La source est vérifiée avant toute écriture.** Un champ renommé par la
+  source, une réponse qui n'est plus du JSON, ou un import qui retirerait d'un
+  coup plus de 20 % du catalogue arrêtent l'import sans rien toucher.
+
+Une fiche d'objet du catalogue importée du wiki retrouve aussi ses blueprints
+par l'identifiant d'entité du jeu, quel que soit leur nom.
+
+Le premier passage rattache les fiches des anciens imports à leur GUID grâce à
+l'export qui leur a servi (`assets/blueprints.json` et `assets/missions.json`,
+lus automatiquement s'ils sont là). Lancer ensuite `npm run ensure:indexes`.

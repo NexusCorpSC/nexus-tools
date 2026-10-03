@@ -2116,7 +2116,8 @@
     "factionsCount": "{count, plural, one {# faction} other {# factions}}",
     "factionsNoResults": "Aucune faction trouvée.",
     "blueprintOwned": "Possédé",
-    "blueprintNotOwned": "Non possédé"
+    "blueprintNotOwned": "Non possédé",
+    "removedFromGame": "Cette mission n'est plus proposée en jeu depuis la version {version}."
   },
   "Notes": {
     "home": "Accueil",
