@@ -238,6 +238,32 @@ export async function listOrgEvents(
   return docs.map((doc) => toView(doc, access, readerId));
 }
 
+/**
+ * Les évènements terminés, du plus récent au plus ancien : l'onglet « Passés »
+ * du calendrier.
+ */
+export async function listPastOrgEvents(
+  orgId: string,
+  readerId: string | null,
+): Promise<OrgEventView[] | null> {
+  const access = await getOrgAccess(orgId, readerId);
+  if (!access) return null;
+
+  const filter: Record<string, unknown> = {
+    orgId,
+    endsAt: { $lte: new Date().toISOString() },
+  };
+  if (!access.isMember) filter.visibility = "public";
+
+  const docs = await collection()
+    .find(filter)
+    .sort({ startsAt: -1 })
+    .limit(LIST_LIMIT)
+    .toArray();
+
+  return docs.map((doc) => toView(doc, access, readerId));
+}
+
 /** `null` quand l'évènement n'existe pas ou que le lecteur ne peut pas le voir. */
 export async function getOrgEventView(
   orgId: string,

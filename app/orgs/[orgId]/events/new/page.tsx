@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getOrgAccess } from "@/lib/org-events";
-import { EventForm } from "../components";
+import { EventForm } from "../form";
 import { EventsShell, orgName, readerIdFromSession } from "../shell";
 
 type Params = { params: Promise<{ orgId: string }> };
@@ -23,9 +23,11 @@ export default async function NewOrgEventPage({ params }: Params) {
       name={name}
       trail={[{ label: t("Form.newTitle") }]}
     >
-      <h1 className="text-2xl font-bold">{t("Form.newTitle")}</h1>
+      <h1 className="text-3xl font-bold tracking-tight">
+        {t("Form.newTitle")}
+      </h1>
       {access.isMember ? (
-        <EventForm orgId={orgId} />
+        <EventForm orgId={orgId} orgName={name} />
       ) : (
         <p className="text-white/70">{t("notMember")}</p>
       )}

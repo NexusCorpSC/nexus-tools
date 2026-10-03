@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getOrgEventView } from "@/lib/org-events";
-import { EventDetail } from "../components";
+import { EventDetail } from "../detail";
 import { EventsShell, orgName, readerIdFromSession } from "../shell";
 
 type Params = { params: Promise<{ orgId: string; eventId: string }> };
@@ -33,7 +33,7 @@ export default async function OrgEventPage({ params }: Params) {
 
   return (
     <EventsShell orgId={orgId} name={name} trail={[{ label: event.title }]}>
-      <EventDetail initial={event} signedIn={!!readerId} />
+      <EventDetail initial={event} signedIn={!!readerId} orgName={name} />
     </EventsShell>
   );
 }

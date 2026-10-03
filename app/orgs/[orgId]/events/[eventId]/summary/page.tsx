@@ -1,19 +1,27 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { getOrgEventView } from "@/lib/org-events";
-import { EventForm } from "../../form";
+import { getOrgEventSummary, getOrgEventView } from "@/lib/org-events";
+import { OrganizerSummary } from "../../organizer";
 import { EventsShell, orgName, readerIdFromSession } from "../../shell";
 
 type Params = { params: Promise<{ orgId: string; eventId: string }> };
 
-export default async function EditOrgEventPage({ params }: Params) {
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("OrgEvents.Summary");
+  return { title: t("title") };
+}
+
+export default async function OrgEventSummaryPage({ params }: Params) {
   const { orgId, eventId } = await params;
   const t = await getTranslations("OrgEvents");
   const readerId = await readerIdFromSession();
+  if (!readerId) notFound();
 
-  const [name, event] = await Promise.all([
+  const [name, event, outcome] = await Promise.all([
     orgName(orgId),
     getOrgEventView(orgId, eventId, readerId),
+    getOrgEventSummary(orgId, eventId, readerId),
   ]);
   if (!name || !event) notFound();
 
@@ -23,14 +31,11 @@ export default async function EditOrgEventPage({ params }: Params) {
       name={name}
       trail={[
         { label: event.title, href: `/orgs/${orgId}/events/${eventId}` },
-        { label: t("Form.editTitle") },
+        { label: t("Summary.title") },
       ]}
     >
-      <h1 className="text-3xl font-bold tracking-tight">
-        {t("Form.editTitle")}
-      </h1>
-      {event.canManage ? (
-        <EventForm orgId={orgId} orgName={name} initial={event} />
+      {"summary" in outcome ? (
+        <OrganizerSummary event={event} summary={outcome.summary} />
       ) : (
         <p className="text-white/70">{t("forbidden")}</p>
       )}
