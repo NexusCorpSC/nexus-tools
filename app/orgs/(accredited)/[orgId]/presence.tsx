@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { GamepadIcon } from "lucide-react";
+import { CalendarClock, GamepadIcon } from "lucide-react";
+import { PlannedTime } from "@/components/planned-time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,9 +13,33 @@ import {
   NOT_PLAYING,
   PRESENCE_ACTIVITY_MAX_LENGTH,
   PRESENCE_ACTIVITY_SUGGESTIONS,
+  type MemberPlanned,
   type MyPresence,
   type OrgPresence,
 } from "@/types/presence";
+
+/**
+ * Planned sessions at the same time for the same thing read as one line:
+ * «21:00 · Kaelen, Isha, Tarn — Minage sur Nyx».
+ */
+function groupPlanned(planned: MemberPlanned[]) {
+  const groups = new Map<
+    string,
+    { at: string; members: MemberPlanned[]; head: MemberPlanned }
+  >();
+  for (const member of planned) {
+    const key = `${member.planned.at}|${member.planned.event?.eventId ?? member.planned.activity ?? ""}`;
+    const group = groups.get(key);
+    if (group) group.members.push(member);
+    else
+      groups.set(key, {
+        at: member.planned.at,
+        members: [member],
+        head: member,
+      });
+  }
+  return [...groups.values()];
+}
 
 /** Often enough to see a teammate arrive, rare enough to cost nothing. */
 const REFRESH_MS = 30_000;
@@ -74,6 +100,7 @@ export function OrgPresenceSection({ orgId }: { orgId: string }) {
   }
 
   const playing = org?.playing ?? [];
+  const planned = groupPlanned(org?.planned ?? []);
 
   return (
     <section className="space-y-4">
@@ -140,6 +167,13 @@ export function OrgPresenceSection({ orgId }: { orgId: string }) {
             {t("stop")}
           </Button>
         ) : null}
+        <Link
+          href="/profile"
+          className="inline-flex items-center gap-1.5 text-sm text-[#9ED0FF] hover:text-[#CFE8FF]"
+        >
+          <CalendarClock className="size-4" />
+          {t("plan")}
+        </Link>
         {error ? <p className="w-full text-sm text-red-300">{error}</p> : null}
       </form>
 
@@ -181,6 +215,49 @@ export function OrgPresenceSection({ orgId }: { orgId: string }) {
           ))}
         </ul>
       )}
+      {planned.length > 0 ? (
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <h3 className="text-lg font-semibold">{t("plannedTitle")}</h3>
+            <span className="text-sm text-[#9ED0FF]/60">
+              {org?.planned.length}
+            </span>
+          </div>
+          <ul className="space-y-2">
+            {planned.map(({ at, members, head }) => (
+              <li
+                key={`${at}-${head.userId}`}
+                className="flex items-center gap-3 rounded-xl border border-[#F2B880]/15 bg-[#071E30]/60 p-3"
+              >
+                <PlannedTime
+                  at={at}
+                  className="shrink-0 rounded-md bg-[#F2B880]/15 px-2 py-0.5 font-mono text-sm text-[#F7D2AE]"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">
+                    {members.map((member) => member.name).join(", ")}
+                  </p>
+                  {head.planned.event ? (
+                    <Link
+                      href={`/orgs/${head.planned.event.orgId}/events/${head.planned.event.eventId}`}
+                      className="block truncate text-xs text-[#9ED0FF] hover:text-[#CFE8FF]"
+                    >
+                      {t("plannedEvent", {
+                        title:
+                          head.planned.activity ?? head.planned.event.title,
+                      })}
+                    </Link>
+                  ) : (
+                    <p className="truncate text-xs text-[#9ED0FF]/70">
+                      {head.planned.activity ?? t("noPlannedActivity")}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }

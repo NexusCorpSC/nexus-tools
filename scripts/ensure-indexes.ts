@@ -97,13 +97,37 @@ async function ensureNotes(database: Db) {
 // ─── Présence en jeu ──────────────────────────────────────────────────────────
 
 /**
- * Une déclaration par utilisateur, tenue par la base ; et l'échéance, que
- * chaque lecture d'une organisation filtre avec ses membres.
+ * Une déclaration et une session prévue par utilisateur, tenues par la base ;
+ * et leur échéance, que chaque lecture d'une organisation filtre avec ses
+ * membres.
  */
 async function ensurePresences(database: Db) {
   const presences = database.collection("presences");
   await presences.createIndex({ userId: 1 }, { unique: true });
   await presences.createIndex({ expiresAt: 1 });
+
+  const planned = database.collection("plannedSessions");
+  await planned.createIndex({ userId: 1 }, { unique: true });
+  await planned.createIndex({ expiresAt: 1 });
+}
+
+// ─── Évènements d'organisation ───────────────────────────────────────────────
+
+/**
+ * Le calendrier d'une organisation se lit par période : l'orga d'abord, puis
+ * la date de début.
+ */
+async function ensureOrgEvents(database: Db) {
+  await database
+    .collection("orgEvents")
+    .createIndex({ orgId: 1, startsAt: 1 }, { name: "orgEvents_calendar" });
+  // « Mes évènements à venir », que reprend une session prévue.
+  await database
+    .collection("orgEvents")
+    .createIndex(
+      { "registrations.userId": 1, startsAt: 1 },
+      { name: "orgEvents_registrant" },
+    );
 }
 
 // ─── Plans de vol ─────────────────────────────────────────────────────────────
@@ -294,6 +318,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["raids", ensureRaids],
   ["notes", ensureNotes],
   ["presences", ensurePresences],
+  ["orgEvents", ensureOrgEvents],
   ["plans", ensurePlans],
   ["planStrokes", ensurePlanStrokes],
   ["gameItems", ensureGameItems],

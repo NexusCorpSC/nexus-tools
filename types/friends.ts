@@ -1,3 +1,5 @@
+import type { PlannedSession } from "@/types/presence";
+
 /**
  * Les amis d'un joueur, et le code qui en fait.
  *
@@ -32,9 +34,18 @@ export interface Friend {
   /** Depuis quand vous êtes amis, ISO. */
   friendsSince: string;
   playing: FriendPlaying | null;
+  /**
+   * Sa prochaine session quand il ne joue pas ; `null` sinon. `event` y est
+   * toujours `null` : un ami n'est pas forcément de l'organisation.
+   */
+  planned: PlannedSession | null;
 }
 
-/** La liste : ceux en jeu d'abord, du plus ancien en jeu au plus récent, puis les autres par nom. */
+/**
+ * La liste : ceux en jeu d'abord, du plus ancien en jeu au plus récent ; puis
+ * ceux qui ont prévu une session, de la plus proche à la plus lointaine ;
+ * puis les autres par nom.
+ */
 export interface FriendList {
   friends: Friend[];
 }
