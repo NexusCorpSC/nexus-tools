@@ -106,6 +106,18 @@ async function ensurePresences(database: Db) {
   await presences.createIndex({ expiresAt: 1 });
 }
 
+// ─── Évènements d'organisation ───────────────────────────────────────────────
+
+/**
+ * Le calendrier d'une organisation se lit par période : l'orga d'abord, puis
+ * la date de début.
+ */
+async function ensureOrgEvents(database: Db) {
+  await database
+    .collection("orgEvents")
+    .createIndex({ orgId: 1, startsAt: 1 }, { name: "orgEvents_calendar" });
+}
+
 // ─── Plans de vol ─────────────────────────────────────────────────────────────
 
 /**
@@ -294,6 +306,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["raids", ensureRaids],
   ["notes", ensureNotes],
   ["presences", ensurePresences],
+  ["orgEvents", ensureOrgEvents],
   ["plans", ensurePlans],
   ["planStrokes", ensurePlanStrokes],
   ["gameItems", ensureGameItems],
