@@ -172,3 +172,16 @@ export interface OrgEventRegistrationInput {
   role?: string;
   answers?: Record<string, string>;
 }
+
+/**
+ * Un évènement à venir où je suis inscrit : de quoi le reprendre comme
+ * prochaine session.
+ */
+export interface MyUpcomingEvent {
+  orgId: string;
+  orgName: string;
+  eventId: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+}

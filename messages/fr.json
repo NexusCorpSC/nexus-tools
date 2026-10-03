@@ -1482,7 +1482,25 @@
       "update": "Mettre à jour",
       "stop": "Arrêter",
       "hint": "Visible par vos amis et vos organisations. S'éteint d'elle-même après {hours} h sans renouvellement — Nexus App la renouvelle tant qu'elle tourne.",
-      "error": "La mise à jour a échoué. Réessayez."
+      "error": "La mise à jour a échoué. Réessayez.",
+      "modeLabel": "État",
+      "modes": {
+        "playing": "En jeu",
+        "planned": "Session prévue",
+        "off": "Hors jeu"
+      },
+      "plannedAt": "Session prévue · <time></time>",
+      "nextPlanned": "Prochaine session prévue · <time></time> · {activity}",
+      "noActivity": "sans activité précisée",
+      "plannedTime": "À",
+      "plannedActivity": "Pour faire",
+      "fromEvent": "Ou reprendre un évènement où vous êtes inscrit :",
+      "plan": "Enregistrer",
+      "cancelPlanned": "Annuler",
+      "plannedHint": "Vos amis et vos organisations la voient. Elle s'efface {hours} h après l'heure prévue, ou dès que vous passez « En jeu » : son activité est reprise.",
+      "offNow": "Vous êtes hors jeu, sans session prévue.",
+      "offHint": "Arrête la session en cours et annule la session prévue.",
+      "goOff": "Passer hors jeu"
     },
     "Friends": {
       "title": "Amis",
@@ -1516,7 +1534,8 @@
       "removed": "{name} a été retiré de vos amis.",
       "removeError": "Le retrait a échoué. Réessayez.",
       "empty": "Pas encore d'amis. Partagez votre code ou saisissez celui d'un ami.",
-      "nobodyPlaying": "Aucun ami en jeu pour le moment."
+      "nobodyPlaying": "Aucun ami en jeu pour le moment.",
+      "planned": "Session prévue · <time></time>"
     }
   },
   "Organizations": {
@@ -1551,7 +1570,11 @@
       "stop": "J'arrête",
       "nobody": "Personne n'est en jeu pour le moment.",
       "noActivity": "En jeu",
-      "error": "La mise à jour a échoué. Réessayez."
+      "error": "La mise à jour a échoué. Réessayez.",
+      "plan": "Prévoir une session",
+      "plannedTitle": "Sessions prévues",
+      "plannedEvent": "{title} · évènement",
+      "noPlannedActivity": "Session prévue"
     }
   },
   "OrgEvents": {
@@ -1695,7 +1718,9 @@
       "cancel": "Annuler",
       "openUntilEnd": "Inscriptions ouvertes",
       "error": "L'inscription a échoué : {message}",
-      "signIn": "Connectez-vous pour vous inscrire."
+      "signIn": "Connectez-vous pour vous inscrire.",
+      "showAsPlanned": "L'afficher comme ma prochaine session",
+      "shownAsPlanned": "Ajouté à votre statut comme session prévue. Vos amis et l'orga le voient."
     },
     "Summary": {
       "title": "Résumé de l'organisateur",
@@ -2316,5 +2341,9 @@
     "error_expired": "Ce code a expiré.",
     "error_unavailable": "{item} : la quantité n'est plus disponible chez l'expéditeur.",
     "error_unauthorized": "Connectez-vous pour échanger des colis."
+  },
+  "PlannedSession": {
+    "tomorrow": "demain {time}",
+    "onDay": "{day} {time}"
   }
 }

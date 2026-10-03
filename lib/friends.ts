@@ -2,7 +2,7 @@ import "server-only";
 import { ObjectId } from "mongodb";
 import db from "@/lib/db";
 import { CODE_ALPHABET, CODE_ATTEMPTS, newCode } from "@/lib/join-codes";
-import { playingAmong } from "@/lib/presence";
+import { plannedAmong, playingAmong } from "@/lib/presence";
 import {
   FRIEND_CODE_LENGTH,
   type Friend,
@@ -210,7 +210,7 @@ export async function addFriendByCode(
 
 /**
  * Les amis vus par `readerId` : nom, avatar, organisation partagée et, pour
- * ceux en jeu, leur déclaration.
+ * ceux en jeu, leur déclaration ; pour les autres, leur session prévue.
  */
 async function describe(
   readerId: ObjectId,
@@ -219,7 +219,7 @@ async function describe(
   if (entries.length === 0) return [];
   const ids = entries.map((entry) => entry.userId);
 
-  const [found, playing, orgs] = await Promise.all([
+  const [found, playing, planned, orgs] = await Promise.all([
     users()
       .find(
         { _id: { $in: ids } },
@@ -227,6 +227,7 @@ async function describe(
       )
       .toArray(),
     playingAmong(ids),
+    plannedAmong(ids),
     db
       .db()
       .collection<{ name: string; members?: { userId: ObjectId }[] }>(
@@ -254,6 +255,7 @@ async function describe(
     const id = userId.toString();
     const user = usersById.get(id);
     const presence = playing.get(id);
+    const session = presence ? undefined : planned.get(id);
 
     return {
       userId: id,
@@ -264,16 +266,24 @@ async function describe(
       playing: presence
         ? { activity: presence.activity, since: presence.since }
         : null,
+      // Sans l'évènement : un ami n'est pas forcément de l'organisation.
+      planned: session ? { ...session, event: null } : null,
     };
   });
 }
 
-/** En jeu d'abord, du plus ancien en jeu au plus récent ; puis les autres par nom. */
+/**
+ * En jeu d'abord, du plus ancien en jeu au plus récent ; puis les sessions
+ * prévues, de la plus proche à la plus lointaine ; puis les autres par nom.
+ */
 function byPresenceThenName(a: Friend, b: Friend): number {
   if (a.playing && b.playing)
     return a.playing.since.localeCompare(b.playing.since);
   if (a.playing) return -1;
   if (b.playing) return 1;
+  if (a.planned && b.planned) return a.planned.at.localeCompare(b.planned.at);
+  if (a.planned) return -1;
+  if (b.planned) return 1;
   return a.name.localeCompare(b.name, "fr", { sensitivity: "base" });
 }
 

@@ -1481,7 +1481,25 @@
       "update": "Update",
       "stop": "Stop",
       "hint": "Visible to your friends and organizations. Lapses on its own after {hours} h without renewal — Nexus App renews it while it runs.",
-      "error": "The update failed. Try again."
+      "error": "The update failed. Try again.",
+      "modeLabel": "Status",
+      "modes": {
+        "playing": "Playing",
+        "planned": "Planned session",
+        "off": "Offline"
+      },
+      "plannedAt": "Planned session · <time></time>",
+      "nextPlanned": "Next planned session · <time></time> · {activity}",
+      "noActivity": "no activity given",
+      "plannedTime": "At",
+      "plannedActivity": "To do",
+      "fromEvent": "Or pick up an event you registered to:",
+      "plan": "Save",
+      "cancelPlanned": "Cancel",
+      "plannedHint": "Your friends and organizations see it. It clears {hours} h after the planned time, or as soon as you switch to “Playing”: its activity carries over.",
+      "offNow": "You're offline, with no planned session.",
+      "offHint": "Ends the current session and cancels the planned one.",
+      "goOff": "Go offline"
     },
     "Friends": {
       "title": "Friends",
@@ -1515,7 +1533,8 @@
       "removed": "{name} was removed from your friends.",
       "removeError": "Removing failed. Try again.",
       "empty": "No friends yet. Share your code or enter a friend's.",
-      "nobodyPlaying": "No friend is playing right now."
+      "nobodyPlaying": "No friend is playing right now.",
+      "planned": "Planned session · <time></time>"
     }
   },
   "Organizations": {
@@ -1550,7 +1569,11 @@
       "stop": "I'm done",
       "nobody": "Nobody is playing right now.",
       "noActivity": "Playing",
-      "error": "The update failed. Please try again."
+      "error": "The update failed. Please try again.",
+      "plan": "Plan a session",
+      "plannedTitle": "Planned sessions",
+      "plannedEvent": "{title} · event",
+      "noPlannedActivity": "Planned session"
     }
   },
   "OrgEvents": {
@@ -1694,7 +1717,9 @@
       "cancel": "Cancel",
       "openUntilEnd": "Registration open",
       "error": "Registration failed: {message}",
-      "signIn": "Sign in to register."
+      "signIn": "Sign in to register.",
+      "showAsPlanned": "Show it as my next session",
+      "shownAsPlanned": "Added to your status as a planned session. Your friends and the organization see it."
     },
     "Summary": {
       "title": "Organizer summary",
@@ -2285,5 +2310,9 @@
     "error_expired": "This code has expired.",
     "error_unavailable": "{item}: the quantity is no longer available from the sender.",
     "error_unauthorized": "Sign in to exchange parcels."
+  },
+  "PlannedSession": {
+    "tomorrow": "tomorrow {time}",
+    "onDay": "{day} {time}"
   }
 }

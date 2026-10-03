@@ -26,6 +26,7 @@ import {
   type MyFriendCode,
 } from "@/types/friends";
 import { formatElapsed } from "@/types/presence";
+import { PlannedTime } from "@/components/planned-time";
 
 /** As the organization pages: often enough to see a friend arrive. */
 const REFRESH_MS = 30_000;
@@ -329,6 +330,7 @@ function FriendRow({
 }) {
   const t = useTranslations("Profile.Friends");
   const playing = friend.playing;
+  const planned = playing ? null : friend.planned;
 
   return (
     <li
@@ -358,6 +360,8 @@ function FriendRow({
         )}
         {playing ? (
           <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full border-2 border-[#061E30] bg-emerald-300" />
+        ) : planned ? (
+          <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full border-2 border-[#F2B880] bg-[#061E30]" />
         ) : null}
       </div>
 
@@ -373,9 +377,18 @@ function FriendRow({
               {playing.activity ?? t("noActivity")}
             </span>
           ) : null}
-          <span className={playing ? "hidden sm:inline" : ""}>
-            {friend.sharedOrg ?? t("noSharedOrg")}
-          </span>
+          {planned ? (
+            <span className="text-[#F7D2AE]">
+              {t.rich("planned", {
+                time: () => <PlannedTime at={planned.at} />,
+              })}
+              {planned.activity ? ` · ${planned.activity}` : null}
+            </span>
+          ) : (
+            <span className={playing ? "hidden sm:inline" : ""}>
+              {friend.sharedOrg ?? t("noSharedOrg")}
+            </span>
+          )}
         </p>
       </div>
 

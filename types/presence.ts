@@ -12,6 +12,15 @@ export const PRESENCE_ACTIVITY_MAX_LENGTH = 80;
 
 export const PRESENCE_TTL_HOURS = 4;
 
+/**
+ * Une session prévue reste affichée jusqu'à une heure après l'heure dite :
+ * quelqu'un en retard est encore « prévu », pas « hors jeu ».
+ */
+export const PLANNED_SESSION_GRACE_HOURS = 1;
+
+/** Au-delà, ce n'est plus « ma prochaine session » mais un agenda. */
+export const PLANNED_SESSION_MAX_DAYS_AHEAD = 14;
+
 /** Des idées d'activité, proposées à la saisie : le champ reste libre. */
 export const PRESENCE_ACTIVITY_SUGGESTIONS = [
   "Minage",
@@ -36,6 +45,30 @@ export function formatElapsed(since: string, now: number): string {
   return rest ? `${hours} h ${String(rest).padStart(2, "0")}` : `${hours} h`;
 }
 
+/** L'évènement d'organisation d'où vient une session prévue. */
+export interface PlannedEventRef {
+  orgId: string;
+  eventId: string;
+  title: string;
+}
+
+/**
+ * Ma prochaine session : à quelle heure, pour faire quoi. Une seule par
+ * personne ; en prévoir une autre la remplace. Elle s'efface
+ * `PLANNED_SESSION_GRACE_HOURS` après l'heure dite, ou quand je commence à
+ * jouer — son activité devient alors celle de la session.
+ */
+export interface PlannedSession {
+  /** ISO. */
+  at: string;
+  activity: string | null;
+  /**
+   * Quand elle reprend un évènement d'organisation. Absent de ce que voient
+   * les amis : un évènement privé ne regarde que les membres de l'orga.
+   */
+  event: PlannedEventRef | null;
+}
+
 /** Ma déclaration, telle que je la relis. */
 export interface MyPresence {
   playing: boolean;
@@ -45,6 +78,8 @@ export interface MyPresence {
   since: string | null;
   /** Quand la déclaration s'éteint, ISO ; `null` si je ne joue pas. */
   expiresAt: string | null;
+  /** Ma prochaine session, en jeu ou non ; `null` sans session prévue. */
+  planned: PlannedSession | null;
 }
 
 export const NOT_PLAYING: MyPresence = {
@@ -52,6 +87,7 @@ export const NOT_PLAYING: MyPresence = {
   activity: null,
   since: null,
   expiresAt: null,
+  planned: null,
 };
 
 /** Un membre d'une organisation en train de jouer. */
@@ -64,9 +100,23 @@ export interface MemberPresence {
   since: string;
 }
 
+/** Un membre d'une organisation qui a prévu une session, sans y être encore. */
+export interface MemberPlanned {
+  userId: string;
+  name: string;
+  avatar: string | null;
+  rank: string | null;
+  planned: PlannedSession;
+}
+
 export interface OrgPresence {
   orgId: string;
   playing: MemberPresence[];
+  /**
+   * Ceux qui ne jouent pas mais ont prévu une session, de la plus proche à la
+   * plus lointaine. `event` n'y figure que pour un évènement de cette orga.
+   */
+  planned: MemberPlanned[];
   /** Nombre total de membres, pour dire « 3 sur 12 ». */
   memberCount: number;
 }

@@ -23,6 +23,7 @@ import {
   type OrgEventRegistration,
   type OrgEventRole,
   type OrgEventSummary,
+  type MyUpcomingEvent,
   type OrgEventView,
   type OrgEventVisibility,
 } from "@/types/org-events";
@@ -816,4 +817,85 @@ export async function withdrawFromOrgEvent(
   );
 
   return { view: toView(updated ?? doc, access, readerId) };
+}
+
+// ─── Mes évènements ──────────────────────────────────────────────────────────
+
+/** Jusqu'où regarder devant soi : ce que peut viser une session prévue. */
+const UPCOMING_DAYS = 14;
+
+/**
+ * Les évènements pas encore finis, dans les `UPCOMING_DAYS` jours, où
+ * `userId` est inscrit sans s'être désinscrit — du plus proche au plus
+ * lointain.
+ */
+export async function listMyUpcomingEvents(
+  userId: string,
+): Promise<MyUpcomingEvent[]> {
+  const now = new Date();
+  const docs = await collection()
+    .find(
+      {
+        registrations: { $elemMatch: { userId, withdrawn: false } },
+        endsAt: { $gt: now.toISOString() },
+        startsAt: {
+          $lt: new Date(
+            now.getTime() + UPCOMING_DAYS * 86_400_000,
+          ).toISOString(),
+        },
+      },
+      { projection: { orgId: 1, title: 1, startsAt: 1, endsAt: 1 } },
+    )
+    .sort({ startsAt: 1 })
+    .limit(LIST_LIMIT)
+    .toArray();
+
+  const orgIds = [...new Set(docs.map((doc) => doc.orgId))];
+  const orgs = orgIds.length
+    ? await db
+        .db()
+        .collection<Organization>("organizations")
+        .find({ _id: { $in: orgIds } }, { projection: { name: 1 } })
+        .toArray()
+    : [];
+  const names = new Map(orgs.map((org) => [org._id, org.name]));
+
+  return docs.map((doc) => ({
+    orgId: doc.orgId,
+    orgName: names.get(doc.orgId) ?? "",
+    eventId: doc._id.toString(),
+    title: doc.title,
+    startsAt: doc.startsAt,
+    endsAt: doc.endsAt,
+  }));
+}
+
+/**
+ * L'évènement que `userId` veut reprendre comme prochaine session, s'il y est
+ * inscrit et qu'il n'est pas fini ; `null` sinon.
+ */
+export async function findMyUpcomingEvent(
+  userId: string,
+  orgId: string,
+  eventId: string,
+): Promise<MyUpcomingEvent | null> {
+  const doc = await findEvent(orgId, eventId);
+  if (
+    !doc ||
+    new Date(doc.endsAt) <= new Date() ||
+    !doc.registrations.some(
+      (registration) =>
+        registration.userId === userId && !registration.withdrawn,
+    )
+  ) {
+    return null;
+  }
+  return {
+    orgId: doc.orgId,
+    orgName: "",
+    eventId: doc._id.toString(),
+    title: doc.title,
+    startsAt: doc.startsAt,
+    endsAt: doc.endsAt,
+  };
 }

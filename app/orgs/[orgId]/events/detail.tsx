@@ -447,6 +447,7 @@ function RegistrationPanel({
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shownAsPlanned, setShownAsPlanned] = useState(false);
 
   const box =
     "space-y-4 rounded-2xl border border-[#9ED0FF]/25 bg-[#0B2E4A] p-5";
@@ -493,6 +494,31 @@ function RegistrationPanel({
     }
   }
 
+  /** Reprend l'évènement comme prochaine session, dans le statut. */
+  async function showAsPlanned() {
+    setPending(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/me/presence/planned", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: { orgId: event.orgId, eventId: event.id },
+        }),
+      });
+      if (!response.ok) throw new Error(await errorOf(response));
+      setShownAsPlanned(true);
+    } catch (failure) {
+      setError(
+        t("error", {
+          message: failure instanceof Error ? failure.message : "?",
+        }),
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
   if (active && !editing) {
     const myRole = roleById(event.roles, mine.role);
     const firstAnswer = event.questions
@@ -516,6 +542,21 @@ function RegistrationPanel({
             </p>
           </div>
         </div>
+        {shownAsPlanned ? (
+          <p className="rounded-xl bg-[#071A2B]/70 px-3 py-2.5 text-sm text-[#F7D2AE]">
+            {t("shownAsPlanned")}
+          </p>
+        ) : (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => void showAsPlanned()}
+            className="flex w-full items-center gap-2 rounded-xl border border-dashed border-[#F2B880]/45 px-3 py-2.5 text-left text-sm text-[#F7D2AE] hover:border-[#F2B880]"
+          >
+            <CalendarClock className="size-4 shrink-0" />
+            {t("showAsPlanned")}
+          </button>
+        )}
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
         <div className="flex flex-col gap-2">
           <Button
