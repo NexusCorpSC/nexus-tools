@@ -25,6 +25,10 @@ export type Mission = {
   rewardUEC?: number;
   faction?: MissionFaction;
   blueprintDetails: MissionBlueprint[];
+  /** Version du jeu dont la mission a disparu ; absente tant qu'elle existe. */
+  removedInVersion?: string;
+  /** La mission dans laquelle la source a fusionné celle-ci. */
+  replacedBy?: string;
 };
 
 export type FactionWithBlueprints = {

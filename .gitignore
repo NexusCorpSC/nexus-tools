@@ -22,6 +22,9 @@
 
 # misc
 .DS_Store
+
+# fichiers téléchargés par les imports (scripts/game-data)
+/.cache/
 *.pem
 
 # debug

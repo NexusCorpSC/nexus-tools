@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import db from "@/lib/db";
+import { ACTIVE_MISSION } from "@/lib/data/missions";
 import { ObjectId } from "bson";
 
 export async function GET(request: NextRequest) {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   // Build MongoDB match stage
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const match: Record<string, any> = {};
+  const match: Record<string, any> = { ...ACTIVE_MISSION };
   if (query) {
     match["$or"] = [
       { title: { $regex: query, $options: "i" } },

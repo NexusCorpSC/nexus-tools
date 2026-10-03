@@ -256,3 +256,49 @@ s'importent avec `scwiki --types Turret,MissileLauncher`.
 > Le script lit `MONGODB_URI` dans `.env.local`. Il s'exécute hors de Next
 > (`tsx`) : aucune permission applicative n'est vérifiée, réservez-le aux
 > opérateurs.
+
+## Import des blueprints, factions et missions
+
+Les blueprints de `/crafting`, les factions et les missions de `/missions`
+viennent de [scmdb.net](https://scmdb.net), qui publie un export par version
+du jeu :
+
+```bash
+npm run import:game-data -- all --dry-run    # le rapport de ce qui changerait, sans rien écrire
+npm run import:game-data -- all              # dernière version LIVE : blueprints, factions, missions
+npm run import:game-data -- images           # illustrations des blueprints qui n'en ont pas
+```
+
+Options utiles : `--version 4.10.1-live.12660092` (une version précise),
+`--dir dossier` (des fichiers `merged-<V>.json` et
+`crafting_blueprints-<V>.json` déjà téléchargés), `--mirror-images` (avec
+`images`, recopie dans le blob storage), `--allow-mass-removal`.
+
+Les fichiers téléchargés sont gardés dans `.cache/game-data/scmdb/` : un
+second import ne retélécharge rien, et une version que scmdb ne sert plus
+reste importable depuis ce cache.
+
+Ce que l'import garantit :
+
+- **Un blueprint est suivi par son GUID**, une mission par ses identifiants de
+  contrat et ses noms techniques, jamais par leur nom. Quand le jeu renomme un
+  blueprint, sa fiche est mise à jour : son `_id` ne change pas, les joueurs
+  qui le possèdent le gardent, et l'ancien slug redirige vers le nouveau. Les
+  homonymes (quatre refroidisseurs « Cryo-Star SL ») ont chacun leur fiche.
+- **Rien n'est supprimé.** Ce qui disparaît du jeu est marqué
+  `removedInVersion` : la mission sort des listes mais sa page reste, avec un
+  avertissement ; une mission que scmdb a fusionnée dans une autre redirige
+  vers elle.
+- **Les saisies des administrateurs sont gardées** : nom, description, slug,
+  image, statistiques, et le texte « Obtention » dès qu'il n'est plus celui que
+  l'import avait écrit.
+- **La source est vérifiée avant toute écriture.** Un champ renommé par scmdb,
+  un fichier qui n'est plus du JSON, ou un import qui retirerait d'un coup plus
+  de 20 % du catalogue arrêtent l'import sans rien toucher.
+
+Une fiche d'objet du catalogue importée du wiki retrouve aussi ses blueprints
+par l'identifiant d'entité du jeu, quel que soit leur nom.
+
+Le premier passage rattache les fiches des anciens imports à leur GUID grâce à
+l'export qui leur a servi (`assets/blueprints.json` et `assets/missions.json`,
+lus automatiquement s'ils sont là). Lancer ensuite `npm run ensure:indexes`.

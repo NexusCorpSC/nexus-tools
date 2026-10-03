@@ -649,12 +649,15 @@ const BLUEPRINT_PROJECTION = {
 } as const;
 
 /**
- * Blueprints crafting this item. Declared slugs win; without any, blueprints
- * carrying exactly the same name are proposed, which covers the items imported
- * before anyone linked them by hand.
+ * Blueprints crafting this item. Declared slugs win; then the blueprints the
+ * game itself says make this item — an item imported from the wiki carries the
+ * game's uuid as `source.id`, the very id a blueprint names as its product
+ * (`productEntityClass`), so the link holds whatever either is called. Without
+ * either, blueprints carrying exactly the same name are proposed, which covers
+ * the items imported before anyone linked them by hand.
  */
 export async function getBlueprintsForItem(
-  item: Pick<Item, "name" | "blueprintSlugs">,
+  item: Pick<Item, "name" | "blueprintSlugs" | "source">,
 ): Promise<{ blueprints: ItemBlueprintLink[]; inferred: boolean }> {
   const blueprints = db.db().collection(BLUEPRINTS_COLLECTION);
 
@@ -667,6 +670,20 @@ export async function getBlueprintsForItem(
       .toArray();
 
     return { blueprints: docs.map(toBlueprintLink), inferred: false };
+  }
+
+  if (item.source?.name === "scwiki" && item.source.id) {
+    const docs = await blueprints
+      .find(
+        { productEntityClass: item.source.id },
+        { projection: BLUEPRINT_PROJECTION },
+      )
+      .limit(10)
+      .toArray();
+
+    if (docs.length > 0) {
+      return { blueprints: docs.map(toBlueprintLink), inferred: false };
+    }
   }
 
   const docs = await blueprints

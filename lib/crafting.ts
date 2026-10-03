@@ -301,11 +301,19 @@ function toBlueprint(
   };
 }
 
+/**
+ * The blueprint at this slug — or the one that held it before the game renamed
+ * it: the import moves the slug with the name and keeps the old one in
+ * `previousSlugs`, so a shared link still lands. The blueprint returned then
+ * carries its current slug, for the caller to redirect to.
+ */
 export async function getBlueprintBySlug(
   slug: string,
 ): Promise<Blueprint | null> {
   const collection = db.db().collection<Blueprint>("blueprints");
-  const blueprint = await collection.findOne({ slug });
+  const blueprint =
+    (await collection.findOne({ slug })) ??
+    (await collection.findOne({ previousSlugs: slug }));
   return blueprint ? toBlueprint(blueprint) : null;
 }
 
@@ -331,10 +339,27 @@ export async function getBlueprintByName(
   const parts = name.trim().split(/\s+/).filter(Boolean).map(escapeRegex);
   if (parts.length === 0) return null;
 
+  // The name as the game spells it (`gameName`) first: an administrator may
+  // have renamed the fiche. Several blueprints can share a name in game (four
+  // coolers are called « Cryo-Star SL ») and the log does not say which: the
+  // choice is at least stable — one still in the game, the oldest fiche.
+  const pattern = {
+    $regex: `^\\s*${parts.join("\\s+")}\\s*$`,
+    $options: "i",
+  };
   const collection = db.db().collection<Blueprint>("blueprints");
-  const blueprint = await collection.findOne({
-    name: { $regex: `^\\s*${parts.join("\\s+")}\\s*$`, $options: "i" },
-  });
+  const [blueprint] = await collection
+    .aggregate<Blueprint & { _id: { toString(): string } }>([
+      { $match: { $or: [{ gameName: pattern }, { name: pattern }] } },
+      {
+        $addFields: {
+          _gone: { $cond: [{ $ifNull: ["$removedInVersion", false] }, 1, 0] },
+        },
+      },
+      { $sort: { _gone: 1, _id: 1 } },
+      { $limit: 1 },
+    ])
+    .toArray();
   return blueprint ? toBlueprint(blueprint) : null;
 }
 

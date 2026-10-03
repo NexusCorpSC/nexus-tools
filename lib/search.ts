@@ -3,6 +3,7 @@ import "server-only";
 import { ObjectId } from "bson";
 import type { Document } from "bson";
 import db from "@/lib/db";
+import { ACTIVE_MISSION } from "@/lib/data/missions";
 import { getAvailableTransports } from "@/lib/cargo-ships";
 import {
   DEFAULT_SEARCH_LIMIT,
@@ -210,7 +211,12 @@ async function searchMissions({
     .db()
     .collection("missions")
     .aggregate([
-      { $match: { $or: [{ title: matcher }, { description: matcher }] } },
+      {
+        $match: {
+          ...ACTIVE_MISSION,
+          $or: [{ title: matcher }, { description: matcher }],
+        },
+      },
       { $limit: candidates },
       {
         $lookup: {

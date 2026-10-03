@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { getTranslations } from "next-intl/server";
 import db from "@/lib/db";
+import { ACTIVE_MISSION } from "@/lib/data/missions";
 import { ObjectId } from "bson";
 import { FactionDb } from "@/lib/data/factions";
 import { MissionBlueprint, Mission } from "@/types/missions";
@@ -91,7 +92,7 @@ async function getFactionData(factionId: string, userId?: string): Promise<Facti
     .db()
     .collection("missions")
     .aggregate([
-      { $match: { factionId: objectId } },
+      { $match: { factionId: objectId, ...ACTIVE_MISSION } },
       {
         $lookup: {
           from: "blueprints",

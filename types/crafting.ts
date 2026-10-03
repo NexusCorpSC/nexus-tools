@@ -5,6 +5,8 @@ export type BlueprintStatistics = {
 export type BlueprintRecipeComponentOption = {
   quantity: number;
   minQuality?: number;
+  /** `SCU` pour une ressource, `unit` pour un objet (imports). */
+  unit?: string;
   name: string;
 };
 
@@ -41,6 +43,19 @@ export type Blueprint = {
   /** Où obtenir ce blueprint */
   obtention?: string;
   isDefault?: boolean;
+  // Les champs suivants ne sont posés que par l'import des données du jeu
+  // (`npm run import:game-data`), sur les blueprints qui en viennent.
+  /** GUID du blueprint dans le jeu : la clé qu'un ré-import retrouve. */
+  gameId?: string;
+  /** Le nom en jeu, que l'administrateur peut avoir remplacé dans `name`. */
+  gameName?: string;
+  gameTag?: string;
+  /** GUID de l'objet fabriqué (le `source.id` des objets importés du wiki). */
+  productEntityClass?: string;
+  /** Les slugs qu'un renommage en jeu a remplacés, qui redirigent ici. */
+  previousSlugs?: string[];
+  /** Version du jeu dont le blueprint a disparu. */
+  removedInVersion?: string;
 };
 
 export type UserBlueprint = {

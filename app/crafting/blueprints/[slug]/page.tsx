@@ -20,6 +20,7 @@ import {
 } from "./server-components";
 import { BlueprintImageCover } from "@/app/crafting/blueprints/[slug]/components";
 import type { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 
 export async function generateMetadata({
   params,
@@ -47,7 +48,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${blueprint.name} — Blueprints Nexus Tools`,
       description,
-      url: `https://tools.services.nexus/crafting/blueprints/${slug}`,
+      url: `https://tools.services.nexus/crafting/blueprints/${blueprint.slug}`,
       images: [{ url: imageUrl, alt: blueprint.name }],
     },
     twitter: {
@@ -68,6 +69,11 @@ export default async function BlueprintDetailPage({
   const { slug } = await params;
 
   const blueprint = await getBlueprintBySlug(slug);
+
+  // Un ancien slug, d'avant un renommage en jeu : la fiche a déménagé.
+  if (blueprint && blueprint.slug !== slug) {
+    permanentRedirect(`/crafting/blueprints/${blueprint.slug}`);
+  }
 
   if (!blueprint) {
     return (
