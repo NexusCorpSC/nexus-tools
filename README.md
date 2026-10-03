@@ -259,9 +259,10 @@ s'importent avec `scwiki --types Turret,MissileLauncher`.
 
 ## Import des blueprints, factions et missions
 
-Les blueprints de `/crafting`, les factions et les missions de `/missions`
-viennent de [scmdb.net](https://scmdb.net), qui publie un export par version
-du jeu :
+Les blueprints de `/crafting` viennent de l'[API du Star Citizen
+Wiki](https://api.star-citizen.wiki), les factions et les missions de
+`/missions` de [scmdb.net](https://scmdb.net). Les deux partagent les GUID des
+blueprints, tirés des fichiers du jeu.
 
 ```bash
 npm run import:game-data -- all --dry-run    # le rapport de ce qui changerait, sans rien écrire
@@ -269,14 +270,24 @@ npm run import:game-data -- all              # dernière version LIVE : blueprin
 npm run import:game-data -- images           # illustrations des blueprints qui n'en ont pas
 ```
 
-Options utiles : `--version 4.10.1-live.12660092` (une version précise),
-`--dir dossier` (des fichiers `merged-<V>.json` et
+Le wiki est lu par ses listes, à 200 lignes par page : une dizaine de
+requêtes pour tous les blueprints. La recette complète d'un blueprint n'est
+qu'à son détail ; elle n'est demandée que pour les blueprints nouveaux ou dont
+les ingrédients ont changé (`--refresh-recipes` pour toutes les redemander).
+
+Les missions restent sur scmdb : le wiki regroupe les variantes autrement que
+la base (569 missions auraient été fusionnées en 4.10.1), laisse certains
+titres non résolus (`[Contractor|BountyTitle]`) et n'a pas le montant de la
+récompense pour deux tiers d'entre elles. `--missions-source wiki` (ou
+`--source wiki|scmdb` pour tout) permet de changer.
+
+Options utiles : `--version 4.10.1-LIVE.12660092` (une version précise),
+`--dir dossier` (avec scmdb, des fichiers `merged-<V>.json` et
 `crafting_blueprints-<V>.json` déjà téléchargés), `--mirror-images` (avec
 `images`, recopie dans le blob storage), `--allow-mass-removal`.
 
-Les fichiers téléchargés sont gardés dans `.cache/game-data/scmdb/` : un
-second import ne retélécharge rien, et une version que scmdb ne sert plus
-reste importable depuis ce cache.
+Les fichiers de scmdb sont gardés dans `.cache/game-data/scmdb/` : un second
+import ne les retélécharge pas.
 
 Ce que l'import garantit :
 
@@ -287,14 +298,14 @@ Ce que l'import garantit :
   homonymes (quatre refroidisseurs « Cryo-Star SL ») ont chacun leur fiche.
 - **Rien n'est supprimé.** Ce qui disparaît du jeu est marqué
   `removedInVersion` : la mission sort des listes mais sa page reste, avec un
-  avertissement ; une mission que scmdb a fusionnée dans une autre redirige
-  vers elle.
+  avertissement ; une mission que la source a fusionnée dans une autre
+  redirige vers elle.
 - **Les saisies des administrateurs sont gardées** : nom, description, slug,
   image, statistiques, et le texte « Obtention » dès qu'il n'est plus celui que
   l'import avait écrit.
-- **La source est vérifiée avant toute écriture.** Un champ renommé par scmdb,
-  un fichier qui n'est plus du JSON, ou un import qui retirerait d'un coup plus
-  de 20 % du catalogue arrêtent l'import sans rien toucher.
+- **La source est vérifiée avant toute écriture.** Un champ renommé par la
+  source, une réponse qui n'est plus du JSON, ou un import qui retirerait d'un
+  coup plus de 20 % du catalogue arrêtent l'import sans rien toucher.
 
 Une fiche d'objet du catalogue importée du wiki retrouve aussi ses blueprints
 par l'identifiant d'entité du jeu, quel que soit leur nom.

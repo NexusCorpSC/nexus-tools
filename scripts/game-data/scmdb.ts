@@ -21,6 +21,15 @@ import path from "node:path";
 import type { BlueprintRecipe } from "@/types/crafting";
 import {
   cleanGameText,
+  fetchJson as fetchSourceJson,
+  isNumber,
+  isObject,
+  isString,
+  isStringList,
+  isStringOrNull,
+  keepValid as keepValidFrom,
+  recipeFingerprint,
+  SourceFormatError,
   type GameBlueprint,
   type GameData,
   type GameFaction,
@@ -28,7 +37,6 @@ import {
 } from "./source";
 
 const SCMDB_DATA_URL = "https://scmdb.net/data";
-const USER_AGENT = "nexus-tools-import/0.1 (+https://tools.services.nexus)";
 export const SCMDB_CACHE_DIR = path.join(
   process.cwd(),
   ".cache",
@@ -36,13 +44,7 @@ export const SCMDB_CACHE_DIR = path.join(
   "scmdb",
 );
 
-/**
- * Au-delà de cette part d'enregistrements illisibles, ce n'est plus une
- * poignée de lignes abîmées mais un format qui a changé : l'import s'arrête.
- */
-const MAX_INVALID_RATIO = 0.02;
-
-export class SourceFormatError extends Error {}
+export { SourceFormatError };
 
 // ─── Forme brute des fichiers ─────────────────────────────────────────────────
 
@@ -99,15 +101,6 @@ type RawMissionsFile = {
 type RawBlueprintsFile = { version: string; blueprints: unknown[] };
 
 // ─── Vérification de forme ────────────────────────────────────────────────────
-
-const isString = (value: unknown): value is string => typeof value === "string";
-const isNumber = (value: unknown): value is number =>
-  typeof value === "number" && Number.isFinite(value);
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-const isStringOrNull = (value: unknown) => value === null || isString(value);
-const isStringList = (value: unknown) =>
-  Array.isArray(value) && value.every(isString);
 
 /** Le premier champ qui n'a pas la forme attendue, ou `null`. */
 function blueprintProblem(raw: unknown): string | null {
@@ -175,40 +168,13 @@ function contractProblem(raw: unknown): string | null {
   return null;
 }
 
-/**
- * Garde les enregistrements lisibles, et s'arrête si trop ne le sont pas.
- * Les problèmes sont comptés par champ : « 1 400 contrats sans `title` » dit
- * tout de suite que scmdb a renommé le champ.
- */
 function keepValid<T>(
   label: string,
   rows: unknown[],
   problem: (raw: unknown) => string | null,
   warnings: string[],
 ): T[] {
-  const kept: T[] = [];
-  const byField = new Map<string, number>();
-  for (const row of rows) {
-    const issue = problem(row);
-    if (issue) byField.set(issue, (byField.get(issue) ?? 0) + 1);
-    else kept.push(row as T);
-  }
-
-  const invalid = rows.length - kept.length;
-  if (invalid === 0) return kept;
-
-  const detail = [...byField]
-    .map(([field, count]) => `${field} (${count})`)
-    .join(", ");
-  if (rows.length === 0 || invalid / rows.length > MAX_INVALID_RATIO) {
-    throw new SourceFormatError(
-      `${label} : ${invalid} enregistrement(s) sur ${rows.length} n'ont pas la forme attendue — ${detail}. Le format de scmdb a probablement changé ; rien n'a été écrit.`,
-    );
-  }
-  warnings.push(
-    `${label} : ${invalid} enregistrement(s) ignoré(s) — ${detail}`,
-  );
-  return kept;
+  return keepValidFrom<T>("scmdb", label, rows, problem, warnings);
 }
 
 function checkMissionsFile(raw: unknown): RawMissionsFile {
@@ -258,16 +224,18 @@ function toRecipe(raw: RawBlueprint): BlueprintRecipe {
 }
 
 function toBlueprint(raw: RawBlueprint): GameBlueprint {
+  const recipe = toRecipe(raw);
   return {
     gameId: raw.guid,
     tag: raw.tag,
     name: raw.productName?.trim() || null,
     // Les objets de mission n'ont pas de type, seulement leur « gear ».
     category: raw.type ?? raw.gear ?? "other",
-    subcategory: raw.subtype ?? undefined,
+    subcategory: raw.subtype ?? null,
     productEntityClass: raw.productEntityClass ?? undefined,
     craftingTime: raw.tiers[0].craftTimeSeconds,
-    recipe: toRecipe(raw),
+    recipe,
+    fingerprint: recipeFingerprint(recipe),
   };
 }
 
@@ -303,7 +271,7 @@ function toMission(
     factionGameId: raw.factionGuid,
     canBeShared: raw.canBeShared ?? false,
     illegal: raw.illegal ?? false,
-    rewardUEC: raw.rewardUEC ?? undefined,
+    rewardUEC: raw.rewardUEC ?? null,
     blueprintGameIds: [...blueprintGameIds],
   };
 }
@@ -383,48 +351,12 @@ export function parseScmdb(
 
 // ─── Téléchargement ───────────────────────────────────────────────────────────
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Un GET qui insiste poliment sur 429/5xx et sur les coupures réseau, et qui
- * refuse une réponse qui n'est pas du JSON : c'est ainsi que scmdb répond
- * pour une version qu'il ne sert plus.
- */
-async function fetchJson(url: string, attempts = 4): Promise<unknown> {
-  for (let attempt = 1; ; attempt++) {
-    let failure: string;
-    try {
-      const response = await fetch(url, {
-        headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-        signal: AbortSignal.timeout(120_000),
-      });
-
-      if (response.ok) {
-        const type = response.headers.get("content-type") ?? "";
-        if (!type.includes("json")) {
-          throw new SourceFormatError(
-            `${url} a répondu « ${type || "sans type"} » au lieu de JSON : scmdb ne sert plus ce fichier (version retirée ?).`,
-          );
-        }
-        return await response.json();
-      }
-
-      const retryable = response.status === 429 || response.status >= 500;
-      if (!retryable) {
-        throw new SourceFormatError(
-          `${response.status} ${response.statusText} — ${url}`,
-        );
-      }
-      failure = `${response.status} ${response.statusText}`;
-    } catch (error) {
-      if (error instanceof SourceFormatError || attempt >= attempts)
-        throw error;
-      failure = (error as Error).message;
-    }
-
-    if (attempt >= attempts) throw new Error(`${failure} — ${url}`);
-    await sleep(2000 * attempt);
-  }
+/** Le JSON d'une adresse de scmdb, qui répond par sa page HTML pour un fichier qu'il ne sert plus. */
+function fetchJson(url: string): Promise<unknown> {
+  return fetchSourceJson(
+    url,
+    "scmdb ne sert plus ce fichier (version retirée ?).",
+  );
 }
 
 /** Compare deux versions `4.10.1-live.12660092` : numéro, puis build. */
@@ -464,12 +396,16 @@ export async function resolveScmdbVersion(requested?: string): Promise<string> {
 
   const versions = manifest.map((entry) => entry.version);
   if (requested) {
-    if (!versions.includes(requested)) {
+    // Le wiki écrit `LIVE`, scmdb `live`.
+    const found = versions.find(
+      (version) => version.toLowerCase() === requested.toLowerCase(),
+    );
+    if (!found) {
       console.warn(
         `La version ${requested} n'est plus au manifeste de scmdb (${versions.join(", ")}) : seul le cache local peut encore la fournir.`,
       );
     }
-    return requested;
+    return found ?? requested;
   }
 
   const live = versions

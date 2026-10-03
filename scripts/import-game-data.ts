@@ -3,10 +3,17 @@
  *
  *   npm run import:game-data -- <all|blueprints|missions|images> [options]
  *
- *   --version V        version du jeu à importer (défaut : la plus récente du
- *                      LIVE au manifeste de scmdb), par ex. 4.10.1-live.12660092
- *   --dir DOSSIER      lire les fichiers scmdb d'un dossier plutôt que de les
+ *   --source S         la source de tout : `wiki` (l'API du Star Citizen
+ *                      Wiki) ou `scmdb` (les fichiers de scmdb.net)
+ *   --blueprints-source S  la source des blueprints (défaut : wiki)
+ *   --missions-source S    la source des factions et missions (défaut : scmdb)
+ *   --version V        version du jeu à importer (défaut : celle que la source
+ *                      sert par défaut, le dernier LIVE), par ex.
+ *                      4.10.1-LIVE.12660092
+ *   --dir DOSSIER      (scmdb) lire ses fichiers d'un dossier plutôt que de les
  *                      télécharger (`merged-<V>.json`, `crafting_blueprints-<V>.json`)
+ *   --refresh-recipes  (wiki) redemander la recette de chaque blueprint, pas
+ *                      seulement de ceux dont les ingrédients ont changé
  *   --legacy DOSSIER   l'ancien export qui a servi aux imports d'avant les GUID
  *                      (défaut : `assets/` s'il contient missions.json et
  *                      blueprints.json) ; `--no-legacy` pour s'en passer
@@ -17,8 +24,16 @@
  *                      (BLOB_READ_WRITE_TOKEN requis)
  *   --dry-run          tout calculer et afficher le rapport, n'écrire nulle part
  *
- * Source : scmdb.net (`scripts/game-data/scmdb.ts`). Les fichiers sont gardés
- * dans `.cache/game-data/scmdb/` : relancer l'import ne retélécharge rien.
+ * Sources :
+ *   - l'API du Star Citizen Wiki (`scripts/game-data/wiki.ts`), lue par ses
+ *     listes à 200 lignes par page : une dizaine de requêtes pour les
+ *     blueprints, plus le détail des seuls blueprints nouveaux ou dont la
+ *     recette a changé ;
+ *   - scmdb.net (`scripts/game-data/scmdb.ts`), pour les missions : il les
+ *     découpe comme la base, résout leurs titres et a leurs récompenses, là
+ *     où le wiki regroupe les variantes et n'a souvent pas de montant. Deux
+ *     fichiers par version, gardés dans `.cache/game-data/scmdb/`.
+ * Les deux partagent les GUID des blueprints : on peut les combiner.
  *
  * Ce que l'import garantit (`scripts/game-data/plan.ts`) :
  *   - un blueprint est suivi par son GUID, une mission par ses identifiants de
@@ -50,8 +65,13 @@ import {
   loadScmdb,
   loadScmdbFiles,
   resolveScmdbVersion,
-  SourceFormatError,
 } from "./game-data/scmdb";
+import {
+  loadWiki,
+  loadWikiRecipes,
+  resolveWikiVersion,
+  type WikiStats,
+} from "./game-data/wiki";
 import {
   MassRemovalError,
   planBlueprints,
@@ -65,7 +85,7 @@ import {
   type Report,
 } from "./game-data/plan";
 import { planBlueprintImages } from "./game-data/images";
-import type { GameData } from "./game-data/source";
+import { SourceFormatError, type GameData } from "./game-data/source";
 
 // ─── Ligne de commande ────────────────────────────────────────────────────────
 
@@ -74,18 +94,23 @@ class ImportStopped extends Error {}
 
 type Target = "all" | "blueprints" | "missions" | "images";
 
+type SourceName = GameData["source"];
+
 type Options = {
   target: Target;
+  blueprintsSource: SourceName;
+  missionsSource: SourceName;
   version?: string;
   dir?: string;
   legacy?: string | false;
   allowMassRemoval: boolean;
+  refreshRecipes: boolean;
   mirrorImages: boolean;
   dryRun: boolean;
 };
 
 const USAGE =
-  "Usage : npm run import:game-data -- <all|blueprints|missions|images> [--version V] [--dir DOSSIER] [--legacy DOSSIER | --no-legacy] [--allow-mass-removal] [--mirror-images] [--dry-run]";
+  "Usage : npm run import:game-data -- <all|blueprints|missions|images> [--source wiki|scmdb] [--blueprints-source wiki|scmdb] [--missions-source wiki|scmdb] [--version V] [--dir DOSSIER] [--refresh-recipes] [--legacy DOSSIER | --no-legacy] [--allow-mass-removal] [--mirror-images] [--dry-run]";
 
 function parseArgs(argv: string[]): Options {
   const [target, ...rest] = argv;
@@ -96,7 +121,10 @@ function parseArgs(argv: string[]): Options {
 
   const options: Options = {
     target: target as Target,
+    blueprintsSource: "wiki",
+    missionsSource: "scmdb",
     allowMassRemoval: false,
+    refreshRecipes: false,
     mirrorImages: false,
     dryRun: false,
   };
@@ -111,11 +139,25 @@ function parseArgs(argv: string[]): Options {
       }
       return value;
     };
-    if (arg === "--version") options.version = next();
+    const source = (): SourceName => {
+      const value = next();
+      if (value !== "wiki" && value !== "scmdb") {
+        console.error(`${arg} : wiki ou scmdb\n${USAGE}`);
+        process.exit(1);
+      }
+      return value;
+    };
+    if (arg === "--source") {
+      options.blueprintsSource = options.missionsSource = source();
+    } else if (arg === "--blueprints-source")
+      options.blueprintsSource = source();
+    else if (arg === "--missions-source") options.missionsSource = source();
+    else if (arg === "--version") options.version = next();
     else if (arg === "--dir") options.dir = next();
     else if (arg === "--legacy") options.legacy = next();
     else if (arg === "--no-legacy") options.legacy = false;
     else if (arg === "--allow-mass-removal") options.allowMassRemoval = true;
+    else if (arg === "--refresh-recipes") options.refreshRecipes = true;
     else if (arg === "--mirror-images") options.mirrorImages = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else {
@@ -123,13 +165,46 @@ function parseArgs(argv: string[]): Options {
       process.exit(1);
     }
   }
+  if (
+    options.dir &&
+    !sourcesFor(options).every((source) => source === "scmdb")
+  ) {
+    console.error(`--dir ne sert qu'avec --source scmdb\n${USAGE}`);
+    process.exit(1);
+  }
 
   return options;
 }
 
 // ─── Chargement ───────────────────────────────────────────────────────────────
 
-async function loadData(options: Options): Promise<GameData> {
+/** Les sources que la cible demande. */
+function sourcesFor(options: Options): SourceName[] {
+  const sources = new Set<SourceName>();
+  if (options.target !== "missions") sources.add(options.blueprintsSource);
+  if (options.target !== "blueprints") sources.add(options.missionsSource);
+  return [...sources];
+}
+
+async function loadSource(
+  source: SourceName,
+  options: Options,
+  stats: WikiStats,
+): Promise<GameData> {
+  if (source === "wiki") {
+    const version = await resolveWikiVersion(options.version, stats);
+    console.log(`Source : API du Star Citizen Wiki, version ${version}`);
+    return loadWiki(
+      version,
+      {
+        blueprints:
+          options.target !== "missions" && options.blueprintsSource === "wiki",
+        missions:
+          options.target !== "blueprints" && options.missionsSource === "wiki",
+      },
+      stats,
+    );
+  }
   if (options.dir) {
     const files = await findScmdbFiles(options.dir, options.version);
     console.log(`Source : fichiers locaux`);
@@ -362,57 +437,115 @@ async function main() {
   const factionsCollection = database.collection<FactionDoc>("factions");
   const missionsCollection = database.collection<MissionDoc>("missions");
 
-  const data = await loadData(options);
+  const stats: WikiStats = { requests: 0 };
+  const loaded = new Map<SourceName, GameData>();
+  for (const source of sourcesFor(options)) {
+    loaded.set(source, await loadSource(source, options, stats));
+  }
+  const withBlueprints = options.target !== "missions";
+  const withMissions = options.target !== "blueprints";
+  const bpData = withBlueprints
+    ? loaded.get(options.blueprintsSource)!
+    : undefined;
+  const msData = withMissions ? loaded.get(options.missionsSource)! : undefined;
+  if (
+    bpData &&
+    msData &&
+    bpData.version.toLowerCase() !== msData.version.toLowerCase()
+  ) {
+    console.warn(
+      `  ⚠ Les deux sources ne sont pas à la même version : blueprints ${bpData.version}, missions ${msData.version}. Les blueprints qu'une mission récompense mais que l'autre version n'a pas seront signalés.`,
+    );
+  }
+  // La sous-catégorie (taille, famille d'arme ou d'armure) n'est pas au
+  // wiki ; quand les fichiers scmdb sont déjà là pour les missions, ils la
+  // donnent sans requête de plus. Sinon une fiche garde la sienne.
+  const scmdbData = loaded.get("scmdb");
+  if (bpData?.source === "wiki" && scmdbData) {
+    const subcategories = new Map(
+      scmdbData.blueprints.map((record) => [record.gameId, record.subcategory]),
+    );
+    for (const record of bpData.blueprints) {
+      record.subcategory ??= subcategories.get(record.gameId);
+    }
+  }
   const legacy = await loadLegacy(options);
-  console.log(
-    `${data.blueprints.length} blueprints, ${data.factions.length} factions, ${data.missions.length} missions`,
-  );
-  for (const warning of data.warnings) console.warn(`  ⚠ ${warning}`);
+  if (bpData) console.log(`${bpData.blueprints.length} blueprints`);
+  if (msData)
+    console.log(
+      `${msData.factions.length} factions, ${msData.missions.length} missions`,
+    );
 
-  const planOptions = {
+  const planOptions = (data: GameData) => ({
     version: data.version,
     source: data.source,
     allowMassRemoval: options.allowMassRemoval,
-  };
-  const withBlueprints = options.target !== "missions";
-  const withMissions = options.target !== "blueprints";
+  });
 
   // Tout est calculé avant la première écriture.
   const existingBlueprints = await blueprintsCollection.find().toArray();
-  const blueprints = withBlueprints
-    ? planBlueprints(
-        existingBlueprints,
-        data.blueprints,
-        legacy?.blueprints,
-        planOptions,
-      )
-    : undefined;
+  const planAll = (data: GameData) =>
+    planBlueprints(
+      existingBlueprints,
+      data.blueprints,
+      legacy?.blueprints,
+      planOptions(data),
+    );
+  let blueprints = bpData ? planAll(bpData) : undefined;
+  // Le wiki ne donne la recette complète qu'au détail : seulement pour les
+  // blueprints nouveaux ou dont les ingrédients ont changé, puis on recalcule.
+  if (blueprints && bpData?.source === "wiki") {
+    const wanted = options.refreshRecipes
+      ? bpData.blueprints.map((record) => record.gameId)
+      : blueprints.needsRecipe;
+    if (wanted.length > 0) {
+      console.log(`Recettes à lire au détail : ${wanted.length}`);
+      const recipes = await loadWikiRecipes(
+        bpData.version,
+        wanted,
+        stats,
+        bpData.warnings,
+      );
+      for (const record of bpData.blueprints) {
+        const recipe = recipes.get(record.gameId);
+        if (recipe) record.recipe = recipe;
+      }
+      blueprints = planAll(bpData);
+    }
+  }
+  if (loaded.has("wiki"))
+    console.log(`Requêtes à l'API du wiki : ${stats.requests}`);
+  for (const data of loaded.values())
+    for (const warning of data.warnings) console.warn(`  ⚠ ${warning}`);
   const blueprintDocs = blueprints?.docs ?? existingBlueprints;
   if (blueprints) printReport("Blueprints", blueprints.report);
 
   let factions: ReturnType<typeof planFactions> | undefined;
   let missions: ReturnType<typeof planMissions> | undefined;
   let obtention: ReturnType<typeof planObtention> | undefined;
-  if (withMissions) {
+  if (msData) {
     const byGameId = new Map(
       blueprintDocs
         .filter((doc) => doc.gameId)
         .map((doc) => [doc.gameId!, doc]),
     );
-    if (byGameId.size === 0 && data.blueprints.length > 0) {
+    const rewarded = msData.missions.some(
+      (mission) => mission.blueprintGameIds.length > 0,
+    );
+    if (byGameId.size === 0 && rewarded) {
       // Sans GUID en base, chaque mission perdrait ses blueprints récompensés.
       throw new ImportStopped(
         "Aucun blueprint n'a encore de GUID en base : lancez `all` (ou `blueprints`) avant `missions`. Rien n'a été écrit.",
       );
     }
-    factions = planFactions(await factionsCollection.find().toArray(), data);
+    factions = planFactions(await factionsCollection.find().toArray(), msData);
     missions = planMissions(
       await missionsCollection.find().toArray(),
-      data,
+      msData,
       legacy?.missions,
-      factions.byGameId,
+      factions,
       byGameId,
-      planOptions,
+      planOptions(msData),
     );
     obtention = planObtention(blueprintDocs, missions.docs, factions.docs);
     printReport("Factions", factions.report);
@@ -444,7 +577,9 @@ async function main() {
   }
   await write(database.collection("gameItems"), [], itemUpdates);
 
-  console.log(`Terminé : version ${data.version} importée.`);
+  console.log(
+    `Terminé : version ${[...new Set([...loaded.values()].map((data) => data.version))].join(" / ")} importée.`,
+  );
   await db.close();
 }
 

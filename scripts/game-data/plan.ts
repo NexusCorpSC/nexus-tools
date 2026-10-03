@@ -15,6 +15,8 @@ import { isDeepStrictEqual } from "node:util";
 import { ObjectId } from "bson";
 import type { BlueprintRecipe } from "@/types/crafting";
 import {
+  isPlaceholderTitle,
+  recipeFingerprint,
   recipeSignature,
   toBlueprintSlug,
   type GameBlueprint,
@@ -67,7 +69,7 @@ export type MissionDoc = {
   factionId?: ObjectId | null;
   canBeShared?: boolean;
   illegal?: boolean;
-  rewardUEC?: number;
+  rewardUEC?: number | null;
   blueprints?: ObjectId[];
   removedInVersion?: string;
   replacedBy?: ObjectId;
@@ -218,8 +220,28 @@ export type BlueprintOptions = {
 export type BlueprintChanges = Changes<BlueprintDoc> & {
   /** Slugs déplacés par un renommage, ancien → nouveau. */
   slugMoves: Map<string, string>;
+  /**
+   * Les blueprints dont la recette est à demander à la source : nouveaux, ou
+   * dont les ingrédients ne sont plus ceux de la recette en base. Le calcul
+   * est à refaire une fois leurs recettes connues.
+   */
+  needsRecipe: string[];
   report: Report;
 };
+
+/**
+ * La recette en base est-elle encore celle du jeu ? Avec la recette complète,
+ * on compare tout ; sans (le wiki ne la donne qu'au détail), on compare les
+ * ingrédients et le temps.
+ */
+function sameRecipe(
+  record: GameBlueprint,
+  recipe: BlueprintRecipe | undefined,
+) {
+  return record.recipe
+    ? recipeSignature(record.recipe) === recipeSignature(recipe)
+    : record.fingerprint === recipeFingerprint(recipe);
+}
 
 /**
  * Rapproche les blueprints de la source des fiches en base.
@@ -283,9 +305,8 @@ export function planBlueprints(
       (record) => !byGameId.has(record.gameId),
     );
     if (candidates.length > 1) {
-      const signature = recipeSignature(doc.recipe);
-      candidates = candidates.filter(
-        (record) => recipeSignature(record.recipe) === signature,
+      candidates = candidates.filter((record) =>
+        sameRecipe(record, doc.recipe),
       );
       // Même nom et même recette : des variantes que rien ne distingue sur
       // la fiche. L'ancien import, qui cherchait par nom, a écrit chacune par
@@ -322,18 +343,20 @@ export function planBlueprints(
   // Les champs que la source décide.
   const inserted: BlueprintDoc[] = [];
   const oldNames = new Map<BlueprintDoc, string>();
+  const needsRecipe: string[] = [];
   for (const record of records) {
     const name = record.name!;
     const doc = byGameId.get(record.gameId);
 
     if (!doc) {
+      if (!record.recipe) needsRecipe.push(record.gameId);
       const created: BlueprintDoc = compact({
         _id: new ObjectId(),
         name,
         slug: "",
         description: autoDescription(name),
         category: record.category,
-        subcategory: record.subcategory,
+        subcategory: record.subcategory ?? undefined,
         tier: 0,
         craftingTime: record.craftingTime,
         statistics: {},
@@ -370,9 +393,12 @@ export function planBlueprints(
     tracker.change(doc, "gameTag", record.tag);
     tracker.change(doc, "productEntityClass", record.productEntityClass);
     tracker.change(doc, "category", record.category);
-    tracker.change(doc, "subcategory", record.subcategory);
+    // `undefined` : la source ne la connaît pas, la fiche garde la sienne.
+    if (record.subcategory !== undefined)
+      tracker.change(doc, "subcategory", record.subcategory ?? undefined);
     tracker.change(doc, "craftingTime", record.craftingTime);
-    tracker.change(doc, "recipe", record.recipe);
+    if (record.recipe) tracker.change(doc, "recipe", record.recipe);
+    else if (!sameRecipe(record, doc.recipe)) needsRecipe.push(record.gameId);
     if (doc.removedInVersion) {
       tracker.change(doc, "removedInVersion", undefined);
       note(report, "revenus en jeu", name);
@@ -470,25 +496,66 @@ export function planBlueprints(
     updates,
     docs: [...docs, ...inserted],
     slugMoves,
+    needsRecipe,
     report,
   };
 }
 
 // ─── Factions ─────────────────────────────────────────────────────────────────
 
+/** Le nom d'une faction tel qu'on le compare : la casse et les espaces varient d'une source à l'autre. */
+export const factionKey = (name: string) =>
+  name.trim().replace(/\s+/g, " ").toLowerCase();
+
+export type FactionChanges = Changes<FactionDoc> & {
+  byGameId: Map<string, FactionDoc>;
+  byName: Map<string, FactionDoc>;
+  report: Report;
+};
+
+/**
+ * Rapproche les factions de la source des fiches en base : par identifiant
+ * de jeu, sinon par nom. Les deux sources n'ont pas les mêmes identifiants de
+ * faction, et les fiches d'avant cet import n'en ont aucun : une faction
+ * retrouvée par son nom prend l'identifiant de la source.
+ */
 export function planFactions(
   existing: FactionDoc[],
   data: GameData,
-): Changes<FactionDoc> & { byGameId: Map<string, FactionDoc>; report: Report } {
+): FactionChanges {
   const report = newReport();
   const tracker = new Tracker<FactionDoc>();
   const docs = existing.map((doc) => ({ ...doc }));
   const byGameId = new Map<string, FactionDoc>();
   for (const doc of docs) if (doc.gameId) byGameId.set(doc.gameId, doc);
 
-  const inserts: FactionDoc[] = [];
+  const matched = new Map<string, FactionDoc>();
   for (const faction of data.factions) {
     const doc = byGameId.get(faction.gameId);
+    if (doc) matched.set(faction.gameId, doc);
+  }
+  const taken = new Set(matched.values());
+  const byExistingName = new Map<string, FactionDoc>();
+  for (const doc of docs) {
+    const key = factionKey(doc.name);
+    if (!taken.has(doc) && !byExistingName.has(key))
+      byExistingName.set(key, doc);
+  }
+
+  const inserts: FactionDoc[] = [];
+  for (const faction of data.factions) {
+    let doc = matched.get(faction.gameId);
+    if (!doc) {
+      const named = byExistingName.get(factionKey(faction.name));
+      if (named && !taken.has(named)) {
+        doc = named;
+        taken.add(doc);
+        if (doc.gameId) byGameId.delete(doc.gameId);
+        tracker.change(doc, "gameId", faction.gameId);
+        byGameId.set(faction.gameId, doc);
+        note(report, "rattachées à leur identifiant par leur nom");
+      }
+    }
     if (!doc) {
       const created = {
         _id: new ObjectId(),
@@ -505,9 +572,16 @@ export function planFactions(
     tracker.change(doc, "name", faction.name);
   }
 
+  const all = [...docs, ...inserts];
+  const byName = new Map<string, FactionDoc>();
+  for (const doc of all) {
+    const key = factionKey(doc.name);
+    if (!byName.has(key)) byName.set(key, doc);
+  }
+
   const updates = tracker.updates();
   report.counts["mises à jour"] = updates.length;
-  return { inserts, updates, docs: [...docs, ...inserts], byGameId, report };
+  return { inserts, updates, docs: all, byGameId, byName, report };
 }
 
 // ─── Missions ─────────────────────────────────────────────────────────────────
@@ -560,7 +634,7 @@ export function planMissions(
   existing: MissionDoc[],
   data: GameData,
   legacy: GameMission[] | undefined,
-  factions: Map<string, FactionDoc>,
+  factions: Pick<FactionChanges, "byGameId" | "byName">,
   blueprints: Map<string, BlueprintDoc>,
   options: MissionOptions,
 ): Changes<MissionDoc> & { report: Report } {
@@ -628,6 +702,25 @@ export function planMissions(
   }
 
   const missingBlueprints = new Set<string>();
+  let withoutFaction = 0;
+  /**
+   * La faction par son identifiant, sinon par le nom du donneur de mission.
+   * `null` si la source en cite une qu'on ne connaît pas, `undefined` si elle
+   * n'en dit rien : la fiche garde alors la sienne.
+   */
+  const factionOf = (mission: GameMission) => {
+    const found =
+      (mission.factionGameId
+        ? factions.byGameId.get(mission.factionGameId)
+        : undefined) ??
+      (mission.factionName
+        ? factions.byName.get(factionKey(mission.factionName))
+        : undefined);
+    if (found) return found._id;
+    withoutFaction += 1;
+    return mission.factionGameId ? null : undefined;
+  };
+  // Une clé `undefined` : la source ne sait pas, la fiche garde sa valeur.
   const fields = (mission: GameMission) => {
     const blueprintIds: ObjectId[] = [];
     for (const gameId of mission.blueprintGameIds) {
@@ -641,11 +734,9 @@ export function planMissions(
       debugNames: mission.debugNames,
       category: mission.category,
       missionType: mission.missionType,
-      title: mission.title,
+      title: isPlaceholderTitle(mission.title) ? undefined : mission.title,
       description: mission.description,
-      factionId: mission.factionGameId
-        ? (factions.get(mission.factionGameId)?._id ?? null)
-        : null,
+      factionId: factionOf(mission),
       canBeShared: mission.canBeShared,
       illegal: mission.illegal,
       rewardUEC: mission.rewardUEC,
@@ -657,14 +748,29 @@ export function planMissions(
   for (const mission of data.missions) {
     const doc = docFor.get(mission);
     if (!doc) {
+      if (isPlaceholderTitle(mission.title)) {
+        note(
+          report,
+          "ignorées (titre non résolu par la source)",
+          mission.title,
+        );
+        continue;
+      }
+      const values = fields(mission);
       inserts.push(
-        compact({ _id: new ObjectId(), ...fields(mission), source }),
+        compact({
+          _id: new ObjectId(),
+          ...values,
+          factionId: values.factionId ?? null,
+          missionType: values.missionType ?? "",
+          source,
+        }),
       );
       note(report, "créées", mission.title);
       continue;
     }
     for (const [key, value] of Object.entries(fields(mission))) {
-      tracker.change(doc, key, value);
+      if (value !== undefined) tracker.change(doc, key, value);
     }
     if (doc.removedInVersion) {
       tracker.change(doc, "removedInVersion", undefined);
@@ -685,10 +791,12 @@ export function planMissions(
     if (winner) absorbedBy.set(doc, winner);
   }
   const gone = docs.filter((doc) => !taken.has(doc) && !doc.removedInVersion);
+  // Une mission fusionnée reste joignable : seules les vraies disparitions
+  // disent que la source est tronquée.
   if (!options.allowMassRemoval) {
     guardRemovals(
       "Missions",
-      gone.length,
+      gone.filter((doc) => !absorbedBy.has(doc)).length,
       docs.filter((doc) => !doc.removedInVersion).length,
     );
   }
@@ -718,18 +826,15 @@ export function planMissions(
       ...missingBlueprints,
     ];
   }
-  const withoutFaction = data.missions.filter(
-    (mission) => !mission.factionGameId,
-  ).length;
   if (withoutFaction > 0)
-    report.counts["sans faction dans la source"] = withoutFaction;
+    report.counts["sans faction retrouvée (la fiche garde la sienne)"] =
+      withoutFaction;
 
   const updates = tracker.updates();
   report.counts["mises à jour"] = updates.length;
-  report.counts["inchangées"] =
-    data.missions.length -
-    inserts.length -
-    [...docFor.values()].filter((doc) => tracker.changed(doc)).length;
+  report.counts["inchangées"] = [...docFor.values()].filter(
+    (doc) => !tracker.changed(doc),
+  ).length;
   return { inserts, updates, docs: [...docs, ...inserts], report };
 }
 
