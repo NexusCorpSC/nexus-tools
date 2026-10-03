@@ -1254,16 +1254,23 @@ export async function createItem(input: ItemInput): Promise<Item> {
   return item;
 }
 
+/**
+ * `only` restreint l'écriture à ces champs : une contribution ne touche que ce
+ * qu'elle a changé, et une modification faite entre-temps sur un autre champ
+ * survit à sa publication. Le reste de `input` n'est alors que validé.
+ */
 export async function updateItem(
   currentSlug: string,
   input: ItemInput,
+  options: { only?: (keyof ItemInput)[] } = {},
 ): Promise<Item> {
   const normalized = normalizeItemInput(input);
 
-  const entries = Object.entries(normalized) as [
-    keyof NormalizedItem,
-    unknown,
-  ][];
+  const entries = (
+    Object.entries(normalized) as [keyof NormalizedItem, unknown][]
+  ).filter(
+    ([key]) => !options.only || (options.only as string[]).includes(key),
+  );
 
   // A field the form left empty is removed rather than written as `undefined`
   // (which the driver would store as `null`), otherwise the old value would
@@ -1301,6 +1308,37 @@ export async function updateItem(
     }
     throw error;
   }
+}
+
+/**
+ * Remet des champs dans l'état exact où ils étaient, pour annuler une
+ * contribution. Pas de normalisation : ces valeurs sortent de la base, et les
+ * repasser au formulaire changerait au moins la date des cours.
+ */
+export async function restoreItemFields(
+  slug: string,
+  fields: Partial<Record<keyof ItemInput, unknown>>,
+): Promise<Item | null> {
+  const entries = Object.entries(fields).filter(
+    ([key]) => key !== "slug" && key !== "source",
+  );
+  const $set: Document = Object.fromEntries(
+    entries.filter(([, value]) => value !== undefined && value !== null),
+  );
+  const $unset: Document = Object.fromEntries(
+    entries
+      .filter(([, value]) => value === undefined || value === null)
+      .map(([key]) => [key, ""]),
+  );
+
+  return (await collection().findOneAndUpdate(
+    { slug },
+    {
+      $set: { ...$set, updatedAt: new Date().toISOString() },
+      ...(Object.keys($unset).length > 0 ? { $unset } : {}),
+    } as UpdateFilter<ItemDbModel>,
+    { returnDocument: "after", projection: { _id: 0 } },
+  )) as Item | null;
 }
 
 export async function findItemBySource(

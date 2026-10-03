@@ -544,6 +544,19 @@ function normalizePlans(value: unknown, ownerSlug?: string): StoredPlacePlan[] {
     .filter((plan): plan is StoredPlacePlan => plan !== null);
 }
 
+/**
+ * Un seul plan possédé, tel que `savePlacePlans` l'écrirait ; `null` s'il ne
+ * tient pas debout, ou si c'est un emprunt. Pour une contribution, qui propose
+ * un plan à la fois.
+ */
+export function normalizePlacePlan(
+  value: unknown,
+  ownerSlug: string,
+): Exclude<StoredPlacePlan, PlacePlanRef> | null {
+  const [plan] = normalizePlans([value], ownerSlug);
+  return plan && !isPlacePlanRef(plan) ? plan : null;
+}
+
 /** Quatre décimales : le dix-millième de la largeur est déjà sous le pixel. */
 function clampFraction(value: unknown): number {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -1569,9 +1582,15 @@ async function refreshChildCount(slug: string): Promise<void> {
   await collection().updateOne({ slug }, { $set: { childCount } });
 }
 
+/**
+ * `only` restreint l'écriture à ces champs : une contribution ne touche que ce
+ * qu'elle a changé, et une modification faite entre-temps sur un autre champ
+ * survit à sa publication. Le reste de `input` n'est alors que validé.
+ */
 export async function updatePlace(
   currentSlug: string,
   input: PlaceInput,
+  options: { only?: (keyof PlaceInput)[] } = {},
 ): Promise<Place> {
   const normalized = normalizePlaceInput(input);
   const before = await getPlaceBySlug(currentSlug);
@@ -1579,10 +1598,11 @@ export async function updatePlace(
 
   await assertParentIsSound(normalized.slug, normalized.parentSlug);
 
-  const entries = Object.entries(normalized) as [
-    keyof NormalizedPlace,
-    unknown,
-  ][];
+  const entries = (
+    Object.entries(normalized) as [keyof NormalizedPlace, unknown][]
+  ).filter(
+    ([key]) => !options.only || (options.only as string[]).includes(key),
+  );
 
   // Un champ vidé par le formulaire est retiré plutôt qu'écrit à `undefined`
   // (que le driver stockerait en `null`), sinon l'ancienne valeur survivrait à
@@ -1725,6 +1745,22 @@ export async function setPlaceImageIfMissing(
       ],
     },
     { $set: { imageUrl: url, updatedAt: new Date().toISOString() } },
+  );
+  return modifiedCount > 0;
+}
+
+/**
+ * Retire la vignette d'un lieu si c'est encore celle-là. Une image retirée de
+ * la galerie ne doit pas rester affichée en tête de fiche, mais une vignette
+ * changée entre-temps n'est pas la sienne.
+ */
+export async function clearPlaceImageIf(
+  slug: string,
+  imageUrl: string,
+): Promise<boolean> {
+  const { modifiedCount } = await collection().updateOne(
+    { slug, imageUrl },
+    { $unset: { imageUrl: "" }, $set: { updatedAt: new Date().toISOString() } },
   );
   return modifiedCount > 0;
 }

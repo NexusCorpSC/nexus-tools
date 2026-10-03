@@ -19,18 +19,58 @@ import { PLACE_SERVICES, PLACE_TYPES, toPlaceSlug } from "@/types/places";
 import type { Place, PlaceService, PlaceType } from "@/types/places";
 import { PlaceImageUpload } from "./place-image-upload";
 import { PlacePicker } from "@/app/lieux/place-picker";
+import {
+  ContributionMetaFields,
+  useContribute,
+  type ContributionMetaValue,
+} from "@/app/contributions/contribute-kit";
+
+/**
+ * Le formulaire sert aussi aux contributions. Il propose alors au lieu
+ * d'écrire : pas de slug (il suit le nom), pas de vignette (elle vient de la
+ * galerie), et le nom comme le parent restent fixes en deçà du niveau 4.
+ */
+type ResumedContribution = {
+  /** La contribution reprise, renvoyée à corriger ou encore en attente. */
+  contributionId?: string;
+  /** Ce qu'elle proposait, par-dessus la fiche. */
+  initial?: Partial<Place>;
+  source?: string;
+  gameVersion?: string;
+};
+
+export type PlaceContribution =
+  | ({
+      mode: "create";
+      parentSlug: string;
+      parentName: string;
+    } & ResumedContribution)
+  | ({ mode: "edit"; canRename: boolean } & ResumedContribution);
 
 export function PlaceForm({
-  place,
+  place: published,
   parentName,
+  contribution,
 }: {
   place?: Place;
   parentName?: string;
+  contribution?: PlaceContribution;
 }) {
   const t = useTranslations("Places");
+  const tForm = useTranslations("Contributions.Form");
   const router = useRouter();
+  const { contribute, errorMessage } = useContribute();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const place: Partial<Place> | undefined = contribution?.initial
+    ? { ...published, ...contribution.initial }
+    : published;
+  const locked = contribution?.mode === "edit" && !contribution.canRename;
+  const [meta, setMeta] = useState<ContributionMetaValue>({
+    source: contribution?.source ?? "",
+    gameVersion: contribution?.gameVersion ?? "",
+  });
 
   const [name, setName] = useState(place?.name ?? "");
   const [slug, setSlug] = useState(place?.slug ?? "");
@@ -38,9 +78,15 @@ export function PlaceForm({
   // déjà l'adresse d'une fiche, donc il ne bouge plus tout seul.
   const [slugEdited, setSlugEdited] = useState(!!place);
   const [type, setType] = useState<PlaceType>(place?.type ?? "outpost");
-  const [parentSlug, setParentSlug] = useState(place?.parentSlug);
+  const [parentSlug, setParentSlug] = useState(
+    contribution?.mode === "create"
+      ? contribution.parentSlug
+      : place?.parentSlug,
+  );
   const [parentLabel, setParentLabel] = useState(
-    parentName ?? place?.parentName,
+    contribution?.mode === "create"
+      ? contribution.parentName
+      : (parentName ?? place?.parentName),
   );
   const [description, setDescription] = useState(place?.description ?? "");
   const [shopCategory, setShopCategory] = useState(place?.shopCategory ?? "");
@@ -61,6 +107,44 @@ export function PlaceForm({
     setError(null);
 
     startTransition(async () => {
+      if (contribution) {
+        const input = {
+          name,
+          type,
+          parentSlug: parentSlug ?? null,
+          description,
+          shopCategory,
+          services,
+        };
+        const result =
+          contribution.mode === "create"
+            ? await contribute(
+                {
+                  kind: "placeCreate",
+                  parentSlug: contribution.parentSlug,
+                  input,
+                },
+                { ...meta, contributionId: contribution.contributionId },
+              )
+            : await contribute(
+                { kind: "placeEdit", slug: published!.slug, input },
+                { ...meta, contributionId: contribution.contributionId },
+              );
+        if (!result.ok) {
+          setError(errorMessage(result));
+          return;
+        }
+        const { contribution: sent } = result;
+        // Un lieu proposé n'a pas encore de fiche : on revient à son parent.
+        router.push(
+          sent.kind === "placeCreate" && sent.status !== "published"
+            ? `/lieux/${sent.target.parent?.slug ?? ""}`
+            : `/lieux/${sent.target.slug}`,
+        );
+        router.refresh();
+        return;
+      }
+
       const input = {
         name,
         slug,
@@ -72,8 +156,8 @@ export function PlaceForm({
         services,
       };
 
-      const result = place
-        ? await updatePlaceAction(place.slug, input)
+      const result = published
+        ? await updatePlaceAction(published.slug, input)
         : await createPlaceAction(input);
 
       if (!result.ok) {
@@ -95,6 +179,7 @@ export function PlaceForm({
             id="place-name"
             value={name}
             required
+            disabled={locked}
             onChange={(event) => {
               setName(event.target.value);
               if (!slugEdited) setSlug(toPlaceSlug(event.target.value));
@@ -102,21 +187,29 @@ export function PlaceForm({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="place-slug">{t("Admin.fieldSlug")}</Label>
-          <Input
-            id="place-slug"
-            value={slug}
-            required
-            onChange={(event) => {
-              setSlugEdited(true);
-              setSlug(event.target.value);
-            }}
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("Admin.fieldSlugHint")}
+        {locked && (
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            {tForm("renameLocked")}
           </p>
-        </div>
+        )}
+
+        {!contribution && (
+          <div className="space-y-1.5">
+            <Label htmlFor="place-slug">{t("Admin.fieldSlug")}</Label>
+            <Input
+              id="place-slug"
+              value={slug}
+              required
+              onChange={(event) => {
+                setSlugEdited(true);
+                setSlug(event.target.value);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("Admin.fieldSlugHint")}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <Label htmlFor="place-type">{t("Admin.fieldType")}</Label>
@@ -142,6 +235,7 @@ export function PlaceForm({
           <PlacePicker
             value={parentSlug}
             valueLabel={parentLabel}
+            disabled={locked || contribution?.mode === "create"}
             exclude={place?.slug}
             onChange={(next) => {
               setParentSlug(next?.slug);
@@ -203,14 +297,18 @@ export function PlaceForm({
         </div>
       </fieldset>
 
-      <div className="space-y-1.5">
-        <Label>{t("Admin.fieldImage")}</Label>
-        <PlaceImageUpload
-          slug={slug}
-          imageUrl={imageUrl}
-          onChange={setImageUrl}
-        />
-      </div>
+      {contribution ? (
+        <ContributionMetaFields value={meta} onChange={setMeta} />
+      ) : (
+        <div className="space-y-1.5">
+          <Label>{t("Admin.fieldImage")}</Label>
+          <PlaceImageUpload
+            slug={slug}
+            imageUrl={imageUrl}
+            onChange={setImageUrl}
+          />
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
@@ -218,9 +316,11 @@ export function PlaceForm({
         <Button type="submit" disabled={isPending}>
           {isPending
             ? t("Admin.saving")
-            : place
-              ? t("Admin.editSave")
-              : t("Admin.newCreate")}
+            : contribution
+              ? tForm("submit")
+              : published
+                ? t("Admin.editSave")
+                : t("Admin.newCreate")}
         </Button>
         <Button
           type="button"

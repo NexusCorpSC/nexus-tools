@@ -7,13 +7,20 @@ import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import {
   ContributionError,
+  listRevertConflicts,
   publishContribution,
   rejectContribution,
+  requestChanges,
+  revertContribution,
   type Contributor,
 } from "@/lib/contributions";
 import {
   CONTRIBUTIONS_REVIEW_PERMISSION,
-  isRejectReason,
+  REVIEWER_REJECT_REASONS,
+  type Contribution,
+  type ContributionChange,
+  type ContributionErrorCode,
+  type RejectReason,
 } from "@/types/contributions";
 
 export type ReviewActionResult = {
@@ -36,10 +43,24 @@ async function reviewer(): Promise<Contributor> {
   return { id: new ObjectId(session.user.id), name: session.user.name };
 }
 
-function revalidate(slugs: string[]) {
+/** Les pages qu'une décision change : la file, le journal, et la fiche visée. */
+function revalidate(done: Contribution[]) {
   revalidatePath("/admin/contributions");
+  revalidatePath("/admin/contributions/journal");
   revalidatePath("/admin");
-  for (const slug of new Set(slugs)) revalidatePath(`/lieux/${slug}`);
+  revalidatePath("/contributions");
+  const paths = new Set<string>();
+  for (const { target } of done) {
+    if (target.type === "item") {
+      paths.add("/items");
+      paths.add(`/items/${target.slug}`);
+    } else {
+      paths.add("/lieux");
+      paths.add(`/lieux/${target.slug}`);
+      if (target.parent) paths.add(`/lieux/${target.parent.slug}`);
+    }
+  }
+  for (const path of paths) revalidatePath(path);
 }
 
 /**
@@ -49,17 +70,16 @@ function revalidate(slugs: string[]) {
  */
 async function forEachId(
   ids: string[],
-  apply: (id: string) => Promise<{ target: { slug: string } }>,
+  apply: (id: string) => Promise<Contribution>,
 ): Promise<ReviewActionResult> {
   const unique = [...new Set(ids)].slice(0, MAX_BATCH);
-  const slugs: string[] = [];
+  const done: Contribution[] = [];
   let skipped = 0;
 
   try {
     for (const id of unique) {
       try {
-        const contribution = await apply(id);
-        slugs.push(contribution.target.slug);
+        done.push(await apply(id));
       } catch (error) {
         if (!(error instanceof ContributionError)) throw error;
         skipped += 1;
@@ -68,10 +88,10 @@ async function forEachId(
   } finally {
     // Une erreur au milieu du lot n'annule pas ce qui est déjà publié : les
     // pages concernées doivent le montrer.
-    revalidate(slugs);
+    revalidate(done);
   }
 
-  return { done: slugs.length, skipped };
+  return { done: done.length, skipped };
 }
 
 export async function publishContributionsAction(
@@ -87,6 +107,56 @@ export async function rejectContributionsAction(
   message?: string,
 ): Promise<ReviewActionResult> {
   const by = await reviewer();
-  if (!isRejectReason(reason)) throw new Error("Invalid reason");
-  return forEachId(ids, (id) => rejectContribution(id, by, reason, message));
+  // « Expirée » ne se choisit pas : c'est le délai qui la donne.
+  if (!(REVIEWER_REJECT_REASONS as readonly string[]).includes(reason)) {
+    throw new Error("Invalid reason");
+  }
+  return forEachId(ids, (id) =>
+    rejectContribution(id, by, reason as RejectReason, message),
+  );
+}
+
+/** Renvoyer à l'auteur ce qu'il doit reprendre. Le message est obligatoire. */
+export async function requestChangesAction(
+  ids: string[],
+  message: string,
+): Promise<ReviewActionResult> {
+  const by = await reviewer();
+  if (!message.trim()) throw new Error("Message required");
+  return forEachId(ids, (id) => requestChanges(id, by, message));
+}
+
+export type RevertActionResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: ContributionErrorCode;
+      /** Pour `revertConflict` : ce que l'annulation écraserait. */
+      conflicts?: ContributionChange[];
+    };
+
+/**
+ * Annule une publication. Si la fiche a changé depuis sur les mêmes champs,
+ * on renvoie ce qui a changé, et l'interface ne repasse avec `force` qu'après
+ * confirmation.
+ */
+export async function revertContributionAction(
+  id: string,
+  force = false,
+): Promise<RevertActionResult> {
+  const by = await reviewer();
+  try {
+    revalidate([await revertContribution(id, by, force)]);
+    return { ok: true };
+  } catch (error) {
+    if (!(error instanceof ContributionError)) throw error;
+    if (error.code === "revertConflict") {
+      return {
+        ok: false,
+        error: error.code,
+        conflicts: await listRevertConflicts(id),
+      };
+    }
+    return { ok: false, error: error.code };
+  }
 }

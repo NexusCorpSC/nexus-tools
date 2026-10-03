@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
@@ -21,16 +20,19 @@ import {
 import { cn } from "@/lib/utils";
 import {
   MAX_REJECT_MESSAGE_LENGTH,
-  REJECT_REASONS,
+  REVIEWER_REJECT_REASONS,
   levelForPoints,
   type PendingContribution,
   type RejectReason,
 } from "@/types/contributions";
+import { targetHref } from "@/app/contributions/links";
 import {
   publishContributionsAction,
   rejectContributionsAction,
+  requestChangesAction,
   type ReviewActionResult,
 } from "./actions";
+import { ContributionBody } from "./change-table";
 
 const GROUPINGS = ["author", "target", "none"] as const;
 type Grouping = (typeof GROUPINGS)[number];
@@ -43,8 +45,8 @@ type Group = {
   title: string;
   /** Les points de l'auteur, quand le groupe n'en a qu'un. */
   authorPoints?: number;
-  /** Le lieu, quand le groupe n'en vise qu'un. */
-  targetSlug?: string;
+  /** La fiche, quand le groupe n'en vise qu'une. */
+  targetHref?: string;
   items: PendingContribution[];
   oldest: number;
 };
@@ -61,7 +63,7 @@ function groupItems(
       grouping === "author"
         ? item.userId
         : grouping === "target"
-          ? item.target.slug
+          ? `${item.target.type}:${item.target.slug}`
           : "all";
     const created = Date.parse(item.createdAt);
     const group = groups.get(key) ?? {
@@ -73,7 +75,7 @@ function groupItems(
             ? item.target.name
             : noneTitle,
       authorPoints: grouping === "author" ? item.authorPoints : undefined,
-      targetSlug: grouping === "target" ? item.target.slug : undefined,
+      targetHref: grouping === "target" ? targetHref(item) : undefined,
       items: [],
       oldest: created,
     };
@@ -108,6 +110,10 @@ export function ReviewQueue({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [rejecting, setRejecting] = useState<string[] | null>(null);
+  const [requesting, setRequesting] = useState<string[] | null>(null);
+  // La contribution que visent les raccourcis : la dernière survolée ou
+  // atteinte au clavier.
+  const [focused, setFocused] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const groups = useMemo(
@@ -134,7 +140,10 @@ export function ReviewQueue({
     });
   }
 
-  function report(result: ReviewActionResult, key: "published" | "rejected") {
+  function report(
+    result: ReviewActionResult,
+    key: "published" | "rejected" | "changesRequested",
+  ) {
     toast.success(t(key, { count: result.done }));
     if (result.skipped > 0) {
       toast.info(t("skipped", { count: result.skipped }));
@@ -166,6 +175,50 @@ export function ReviewQueue({
       }
     });
   }
+
+  function askChanges(ids: string[], message: string) {
+    startTransition(async () => {
+      try {
+        report(await requestChangesAction(ids, message), "changesRequested");
+        setRequesting(null);
+      } catch {
+        toast.error(t("failed"));
+      }
+    });
+  }
+
+  const byId = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items],
+  );
+
+  // P publie, C demande une correction, R refuse — la contribution visée.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest("input, textarea, select, [contenteditable=true]") ||
+        rejecting ||
+        requesting ||
+        pending
+      ) {
+        return;
+      }
+      const item = focused ? byId.get(focused) : undefined;
+      if (!item) return;
+      const key = event.key.toLowerCase();
+      if (key === "p") publish([item.id]);
+      else if (key === "r") setRejecting([item.id]);
+      else if (key === "c" && item.kind !== "media") setRequesting([item.id]);
+      else return;
+      event.preventDefault();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // `publish` change à chaque rendu ; ce qu'il lit est déjà dans la liste.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused, byId, rejecting, requesting, pending]);
 
   if (items.length === 0) {
     return (
@@ -270,9 +323,9 @@ export function ReviewQueue({
                 />
                 <div className="min-w-0 flex-1 basis-64">
                   <div className="flex flex-wrap items-center gap-2">
-                    {group.targetSlug ? (
+                    {group.targetHref ? (
                       <Link
-                        href={`/lieux/${group.targetSlug}`}
+                        href={group.targetHref}
                         className="font-semibold text-[#E3F1FF] hover:underline"
                       >
                         {group.title}
@@ -336,7 +389,13 @@ export function ReviewQueue({
                   {group.items.map((item) => (
                     <li
                       key={item.id}
-                      className="flex flex-wrap items-center gap-3 px-4 py-3"
+                      tabIndex={-1}
+                      onMouseEnter={() => setFocused(item.id)}
+                      onFocus={() => setFocused(item.id)}
+                      className={cn(
+                        "flex flex-wrap items-start gap-3 px-4 py-3 outline-none",
+                        focused === item.id && "bg-[#9ED0FF]/[0.04]",
+                      )}
                     >
                       <input
                         type="checkbox"
@@ -347,50 +406,49 @@ export function ReviewQueue({
                           toggle([item.id], event.target.checked)
                         }
                       />
-                      <div className="flex gap-1.5">
-                        {item.media.map((image) => (
-                          <a
-                            key={image.id}
-                            href={image.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            title={image.caption}
-                            className="relative block h-14 w-24 overflow-hidden rounded-md border border-[#9ED0FF]/20"
+                      <div className="min-w-0 flex-1 basis-72 space-y-2 text-sm">
+                        <div>
+                          <span className="mr-2 rounded border border-[#9ED0FF]/25 px-1.5 py-px text-[11px] text-[#9ED0FF]/80">
+                            {t(`kinds.${item.kind}`)}
+                          </span>
+                          <Link
+                            href={targetHref(item)}
+                            className="font-medium text-[#E3F1FF] hover:underline"
                           >
-                            <Image
-                              src={image.url}
-                              alt={image.caption ?? ""}
-                              fill
-                              sizes="96px"
-                              className="object-cover"
-                            />
-                          </a>
-                        ))}
-                      </div>
-                      <div className="min-w-0 flex-1 basis-48 text-sm">
-                        <Link
-                          href={`/lieux/${item.target.slug}`}
-                          className="font-medium text-[#E3F1FF] hover:underline"
-                        >
-                          {item.target.name}
-                        </Link>
-                        <p className="text-xs text-[#9ED0FF]/65">
-                          {[
-                            item.userName,
-                            now !== null &&
-                              format.relativeTime(
-                                Date.parse(item.createdAt),
-                                now,
-                              ),
-                            item.gameVersion &&
-                              t("gameVersion", { version: item.gameVersion }),
-                            ...item.media
-                              .map((image) => image.caption)
-                              .filter(Boolean),
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
+                            {item.target.name}
+                          </Link>
+                          {item.kind === "placeCreate" &&
+                            item.target.parent && (
+                              <span className="text-xs text-[#9ED0FF]/60">
+                                {" "}
+                                {t("inParent", {
+                                  name: item.target.parent.name,
+                                })}
+                              </span>
+                            )}
+                          <p className="text-xs text-[#9ED0FF]/65">
+                            {[
+                              item.userName,
+                              now !== null &&
+                                format.relativeTime(
+                                  Date.parse(item.updatedAt ?? item.createdAt),
+                                  now,
+                                ),
+                              item.gameVersion &&
+                                t("gameVersion", { version: item.gameVersion }),
+                              item.points > 0 && `+${item.points}`,
+                              ...item.media
+                                .map((image) => image.caption)
+                                .filter(Boolean),
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        </div>
+                        <ContributionBody
+                          contribution={item}
+                          media={item.media}
+                        />
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -401,6 +459,16 @@ export function ReviewQueue({
                         >
                           {t("reject")}
                         </Button>
+                        {item.kind !== "media" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={pending}
+                            onClick={() => setRequesting([item.id])}
+                          >
+                            {t("requestChanges")}
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           disabled={pending}
@@ -442,6 +510,16 @@ export function ReviewQueue({
           >
             {t("rejectSelection")}
           </Button>
+          {selectedIds.every((id) => byId.get(id)?.kind !== "media") && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pending}
+              onClick={() => setRequesting(selectedIds)}
+            >
+              {t("requestChangesSelection")}
+            </Button>
+          )}
           <Button
             size="sm"
             disabled={pending}
@@ -459,9 +537,20 @@ export function ReviewQueue({
         // d'un refus ne doivent pas partir avec le suivant.
         key={rejecting?.join(",") ?? "closed"}
         ids={rejecting}
+        imagesOnly={
+          rejecting?.every((id) => byId.get(id)?.kind === "media") ?? true
+        }
         pending={pending}
         onClose={() => setRejecting(null)}
         onConfirm={reject}
+      />
+
+      <RequestChangesDialog
+        key={`changes-${requesting?.join(",") ?? "closed"}`}
+        ids={requesting}
+        pending={pending}
+        onClose={() => setRequesting(null)}
+        onConfirm={askChanges}
       />
     </div>
   );
@@ -498,17 +587,22 @@ function Kpi({
 
 function RejectDialog({
   ids,
+  imagesOnly,
   pending,
   onClose,
   onConfirm,
 }: {
   ids: string[] | null;
+  /** Les motifs d'image d'abord, quand on ne refuse que des images. */
+  imagesOnly: boolean;
   pending: boolean;
   onClose: () => void;
   onConfirm: (ids: string[], reason: RejectReason, message: string) => void;
 }) {
   const t = useTranslations("Contributions");
-  const [reason, setReason] = useState<RejectReason>("quality");
+  const [reason, setReason] = useState<RejectReason>(
+    imagesOnly ? "quality" : "inaccurate",
+  );
   const [message, setMessage] = useState("");
 
   return (
@@ -532,7 +626,7 @@ function RejectDialog({
           <legend className="mb-2 text-sm text-[#9ED0FF]/80">
             {t("Admin.rejectReason")}
           </legend>
-          {REJECT_REASONS.map((entry) => (
+          {REVIEWER_REJECT_REASONS.map((entry) => (
             <label
               key={entry}
               className="flex cursor-pointer items-center gap-2 text-sm"
@@ -571,6 +665,69 @@ function RejectDialog({
           >
             {pending && <Loader2 className="animate-spin" />}
             {t("Admin.rejectConfirm", { count: ids?.length ?? 0 })}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** « À corriger » : l'auteur reprend sa proposition, le message dit quoi. */
+function RequestChangesDialog({
+  ids,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  ids: string[] | null;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: (ids: string[], message: string) => void;
+}) {
+  const t = useTranslations("Contributions.Admin");
+  const [message, setMessage] = useState("");
+
+  return (
+    <Dialog
+      open={ids !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {t("requestChangesTitle", { count: ids?.length ?? 0 })}
+          </DialogTitle>
+          <DialogDescription>
+            {t("requestChangesDescription")}
+          </DialogDescription>
+        </DialogHeader>
+        <label className="block space-y-1 text-sm">
+          <span className="text-[#9ED0FF]/80">
+            {t("requestChangesMessage")}
+          </span>
+          <textarea
+            rows={4}
+            autoFocus
+            value={message}
+            maxLength={MAX_REJECT_MESSAGE_LENGTH}
+            onChange={(event) => setMessage(event.target.value)}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm dark:bg-input/30"
+          />
+        </label>
+        <DialogFooter className="gap-2">
+          <DialogClose asChild>
+            <Button variant="outline" disabled={pending}>
+              {t("cancel")}
+            </Button>
+          </DialogClose>
+          <Button
+            disabled={pending || !message.trim()}
+            onClick={() => ids && onConfirm(ids, message)}
+          >
+            {pending && <Loader2 className="animate-spin" />}
+            {t("requestChangesConfirm")}
           </Button>
         </DialogFooter>
       </DialogContent>

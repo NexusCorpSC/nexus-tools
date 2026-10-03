@@ -304,6 +304,13 @@ export function MobileNav({
                   >
                     {t("nav.settings")}
                   </Link>
+                  <Link
+                    href="/contributions"
+                    onClick={close}
+                    className="col-span-2 flex h-11 items-center justify-center rounded-lg border border-[#9ED0FF]/25 text-sm font-medium text-[#CCE7FF] hover:bg-[#9ED0FF]/10"
+                  >
+                    {t("nav.myContributions")}
+                  </Link>
                 </div>
                 <form action={signOut}>
                   <button

@@ -379,6 +379,8 @@ async function ensureContributions(database: Db) {
   await contributions.createIndex({ status: 1, createdAt: 1 });
   await contributions.createIndex({ userId: 1, createdAt: -1 });
   await contributions.createIndex({ "target.type": 1, "target.slug": 1 });
+  // Le journal, du plus récent au plus ancien.
+  await contributions.createIndex({ status: 1, updatedAt: -1 });
 
   const media = database.collection("placeMedia");
   await media.createIndex({ placeSlug: 1, status: 1, createdAt: 1 });
@@ -387,6 +389,11 @@ async function ensureContributions(database: Db) {
   const points = database.collection("pointEvents");
   await points.createIndex({ userId: 1, at: -1 });
   await points.createIndex({ at: -1 });
+  // La valeur d'un plan ne se touche qu'une fois.
+  await points.createIndex(
+    { planKey: 1, reason: 1 },
+    { unique: true, partialFilterExpression: { reason: "plan" } },
+  );
   // Un seul bonus de première image par lieu.
   await points.createIndex(
     { placeSlug: 1, reason: 1 },

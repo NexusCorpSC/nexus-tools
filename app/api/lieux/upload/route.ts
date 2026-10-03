@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { ObjectId } from "mongodb";
-import { requirePermission } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
 import { getStanding } from "@/lib/contributions";
 import { getPlaceBySlug } from "@/lib/places";
 import { DIRECT_MEDIA_LEVEL, MAX_PENDING_RECRUIT } from "@/types/contributions";
@@ -14,7 +14,7 @@ const COVER = /^lieux\/[a-z0-9-]{1,120}\/image\.[a-z0-9]{1,6}$/i;
 
 /** Le fond d'un plan, rangé sous l'identifiant de ce plan. */
 const PLAN =
-  /^lieux\/[a-z0-9-]{1,120}\/plans\/[A-Za-z0-9_-]{6,40}\.[a-z0-9]{1,6}$/i;
+  /^lieux\/([a-z0-9-]{1,120})\/plans\/[A-Za-z0-9_-]{6,40}\.[a-z0-9]{1,6}$/i;
 
 /**
  * Une image de la galerie, envoyée par n'importe quel joueur connecté. Le nom
@@ -40,7 +40,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       request,
       onBeforeGenerateToken: async (pathname) => {
         const media = MEDIA.exec(pathname);
-        if (media) {
+        const plan = PLAN.exec(pathname);
+        const editor = await hasPermission(PLACES_EDIT_PERMISSION);
+        // Un contributeur envoie aussi les images d'un plan qu'il propose —
+        // fond, calque, aperçu rendu —, mais jamais à une adresse déjà prise :
+        // le suffixe aléatoire l'empêche de remplacer un plan publié.
+        const contributed = media ?? (editor ? null : plan);
+        if (contributed) {
           const session = await auth.api.getSession({
             headers: await headers(),
           });
@@ -48,11 +54,17 @@ export async function POST(request: Request): Promise<NextResponse> {
 
           // Ce que l'envoi refuserait de toute façon, on ne le stocke pas :
           // les images téléversées puis refusées resteraient orphelines.
-          if (!(await getPlaceBySlug(media[1]))) {
+          if (!(await getPlaceBySlug(contributed[1]))) {
             throw new Error("Unknown place.");
           }
-          const standing = await getStanding(new ObjectId(session.user.id));
+          // Le plafond ne vaut que pour la galerie : un plan en cours de
+          // relevé envoie son aperçu à chaque enregistrement, et c'est la
+          // contribution qui le porte qui compte dans le plafond.
+          const standing = media
+            ? await getStanding(new ObjectId(session.user.id))
+            : null;
           if (
+            standing &&
             standing.level < DIRECT_MEDIA_LEVEL &&
             standing.pending >= MAX_PENDING_RECRUIT
           ) {
@@ -67,8 +79,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           };
         }
 
-        await auth.api.getSession({ headers: await headers() });
-        await requirePermission(PLACES_EDIT_PERMISSION);
+        if (!editor) throw new Error("Unauthorized");
 
         if (!COVER.test(pathname) && !PLAN.test(pathname)) {
           throw new Error("Invalid pathname.");

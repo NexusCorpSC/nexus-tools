@@ -15,7 +15,7 @@ import {
   type PlacePlan,
 } from "@/types/places";
 import { DrawnPlanEditor } from "./drawn-plan-editor";
-import { usePlanSaver } from "./save-plans";
+import { usePlanSaver, type PlansSubmit } from "./save-plans";
 
 /**
  * La coque plein écran de la table à dessin.
@@ -39,14 +39,24 @@ export function DrawnPlanWorkspace({
   placeName,
   planId,
   initialPlans,
+  contribution,
 }: {
   slug: string;
   placeName: string;
   planId: string;
   initialPlans: PlacePlan[];
+  /**
+   * Un relevé proposé : `initialPlans` ne porte que lui, l'enregistrement
+   * part en contribution et « Retour » ramène à la fiche.
+   */
+  contribution?: { submit: PlansSubmit; saveLabel: string; backHref: string };
 }) {
   const t = useTranslations("Places");
-  const { plate, save } = usePlanSaver(slug, placeName);
+  const { plate, save } = usePlanSaver(
+    slug,
+    placeName,
+    contribution?.submit,
+  );
   const [isPending, startTransition] = useTransition();
 
   const [plans, setPlans] = useState<PlacePlan[]>(initialPlans);
@@ -69,7 +79,7 @@ export function DrawnPlanWorkspace({
   // ne sert qu'à satisfaire le typage après le premier rendu.
   if (!plan) return null;
 
-  const plansHref = `/admin/lieux/${slug}/plans`;
+  const plansHref = contribution?.backHref ?? `/admin/lieux/${slug}/plans`;
 
   const commit = () => {
     startTransition(async () => {
@@ -80,7 +90,8 @@ export function DrawnPlanWorkspace({
       }
       setPlans(result.plans);
       setDirty(false);
-      toast.success(t("Admin.saved"));
+      // Une contribution annonce elle-même ce qu'elle est devenue.
+      if (!contribution) toast.success(t("Admin.saved"));
     });
   };
 
@@ -118,7 +129,9 @@ export function DrawnPlanWorkspace({
 
         {!plan.borrowedFrom && (
           <Button onClick={commit} disabled={isPending || !dirty}>
-            {isPending ? t("Admin.saving") : t("Admin.save")}
+            {isPending
+              ? t("Admin.saving")
+              : (contribution?.saveLabel ?? t("Admin.save"))}
           </Button>
         )}
       </header>

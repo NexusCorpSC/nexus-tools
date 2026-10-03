@@ -1,11 +1,46 @@
 import "server-only";
-import { ObjectId } from "mongodb";
+import { ObjectId, type Filter } from "mongodb";
 import { del } from "@vercel/blob";
-import db from "@/lib/db";
-import { getPlaceBySlug, setPlaceImageIfMissing } from "@/lib/places";
-import { PLACES_EDIT_PERMISSION } from "@/types/places";
+import {
+  clearPlaceImageIf,
+  getPlaceBySlug,
+  setPlaceImageIfMissing,
+} from "@/lib/places";
+import {
+  BLOB_HOST,
+  ContributionError,
+  cleanText,
+  contributions,
+  isDuplicateKey,
+  placeMedia,
+  pointEvents,
+  toContribution,
+  toPlaceMedia,
+  users,
+  type Contributor,
+  type DbContribution,
+  type DbPlaceMedia,
+} from "@/lib/contribution-store";
+import {
+  applyCatalog,
+  buildItemCreate,
+  buildItemEdit,
+  buildPlaceCreate,
+  buildPlaceEdit,
+  buildPlan,
+  planKey,
+  planValue,
+  revertCatalog,
+  revertConflicts,
+  type CatalogDraft,
+} from "@/lib/contribution-catalog";
+import { PLACES_EDIT_PERMISSION, type PlacePlan } from "@/types/places";
+import { ITEMS_EDIT_PERMISSION } from "@/types/items";
 import {
   ACCEPTANCE_WINDOW,
+  CHANGES_REQUESTED_TTL_DAYS,
+  DIRECT_EDIT_DAILY_CAP,
+  DIRECT_EDIT_LEVEL,
   DIRECT_MEDIA_DAILY_CAP,
   DIRECT_MEDIA_LEVEL,
   LEVELS,
@@ -15,40 +50,38 @@ import {
   MAX_MEDIA_PER_CONTRIBUTION,
   MAX_PENDING_RECRUIT,
   MAX_REJECT_MESSAGE_LENGTH,
+  MAX_SOURCE_LENGTH,
   MIN_ACCEPTANCE_RATE,
   MIN_REVIEWED_FOR_RATE,
   POINTS,
+  REPEAT_EDIT_WINDOW_MS,
   type Contribution,
-  type ContributionErrorCode,
+  type ContributionChange,
   type ContributionKind,
-  type ContributionReview,
   type ContributionStatus,
-  type ContributionTarget,
   type ContributorStanding,
+  type PendingContribution,
   type PlaceMedia,
   type PlaceMediaInput,
-  type PendingContribution,
   type RejectReason,
   type SubmitContributionResult,
   levelForPoints,
 } from "@/types/contributions";
 
+export { ContributionError, type Contributor } from "@/lib/contribution-store";
+
 /**
  * Les contributions de la communauté, et ce qu'elles rapportent.
  *
- * Trois collections :
- * - `contributions`, l'unité de relecture et de crédit ;
- * - `placeMedia`, les images de lieux, publiées ou non ;
- * - `pointEvents`, le registre des points. `users.contrib.points` n'en est que
- *   la somme tenue à jour, pour ne pas la recalculer à chaque affichage.
+ * Toutes suivent le même cycle : envoyées, elles attendent une relecture ou
+ * sont publiées tout de suite selon le niveau de l'auteur ; relues, elles sont
+ * publiées, renvoyées à corriger, ou refusées ; publiées, elles peuvent être
+ * annulées. Les points ne sont crédités qu'à la publication, et repris à
+ * l'annulation.
+ *
+ * Ce qui est propre aux images est ici ; ce qui est propre aux lieux, plans et
+ * objets est dans `lib/contribution-catalog.ts`.
  */
-
-/**
- * Le seul stockage dont on accepte les images : celui où `/api/lieux/upload`
- * téléverse. Une URL d'ailleurs casserait `next/image`, dont les hôtes sont
- * listés dans `next.config.ts`, et ferait de la galerie un hébergeur de liens.
- */
-const BLOB_HOST = "gwgsmex5adyadzri.public.blob.vercel-storage.com";
 
 /**
  * Le chemin exact que `/api/lieux/upload` accorde, suffixe aléatoire compris.
@@ -60,129 +93,16 @@ const MEDIA_PATH =
 
 const MAX_IMAGE_SIDE = 20_000;
 
-interface DbUser {
-  _id: ObjectId;
-  name?: string;
-  isAdmin?: boolean;
-  permissions?: string[];
-  contrib?: {
-    points?: number;
-    /** Fixé par un admin, il passe avant les points. */
-    trustLevel?: number;
-  };
-}
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-interface DbContribution {
-  _id: ObjectId;
-  userId: ObjectId;
-  userName?: string;
-  kind: ContributionKind;
-  target: ContributionTarget;
-  status: ContributionStatus;
-  mediaIds: ObjectId[];
-  gameVersion?: string;
-  points: number;
-  createdAt: Date;
-  review?: {
-    by: ObjectId;
-    byName?: string;
-    at: Date;
-    reason?: RejectReason;
-    message?: string;
-  };
-  publishedAt?: Date;
-}
-
-interface DbPlaceMedia {
-  _id: ObjectId;
-  placeSlug: string;
-  url: string;
-  width: number;
-  height: number;
-  caption?: string;
-  credit?: string;
-  userId: ObjectId;
-  userName?: string;
-  contributionId: ObjectId;
-  status: ContributionStatus;
-  createdAt: Date;
-}
-
-interface DbPointEvent {
-  _id?: ObjectId;
-  userId: ObjectId;
-  contributionId: ObjectId;
-  delta: number;
-  /**
-   * `firstMedia` porte le slug du lieu : un index unique sur ce couple fait
-   * qu'un seul auteur touche le bonus, même publié en même temps qu'un autre.
-   */
-  reason: "published" | "firstMedia";
-  placeSlug?: string;
-  at: Date;
-}
-
-const users = () => db.db().collection<DbUser>("users");
-const contributions = () => db.db().collection<DbContribution>("contributions");
-const placeMedia = () => db.db().collection<DbPlaceMedia>("placeMedia");
-const pointEvents = () => db.db().collection<DbPointEvent>("pointEvents");
-
-export class ContributionError extends Error {
-  constructor(
-    readonly code: ContributionErrorCode,
-    readonly status: number,
-  ) {
-    super(code);
-  }
-}
-
-export type Contributor = { id: ObjectId; name?: string };
+/** Ce qui occupe encore la place d'une contribution en attente. */
+const OPEN_STATUSES: ContributionStatus[] = [
+  "pending",
+  "changesRequested",
+  "publishing",
+];
 
 // ─── Lecture ────────────────────────────────────────────────────────────────
-
-function toContribution(doc: DbContribution): Contribution {
-  const review: ContributionReview | undefined = doc.review
-    ? {
-        by: String(doc.review.by),
-        byName: doc.review.byName,
-        at: doc.review.at.toISOString(),
-        reason: doc.review.reason,
-        message: doc.review.message,
-      }
-    : undefined;
-
-  return {
-    id: String(doc._id),
-    userId: String(doc.userId),
-    userName: doc.userName,
-    kind: doc.kind,
-    target: doc.target,
-    status: doc.status,
-    mediaIds: doc.mediaIds.map(String),
-    gameVersion: doc.gameVersion,
-    points: doc.points,
-    createdAt: doc.createdAt.toISOString(),
-    review,
-    publishedAt: doc.publishedAt?.toISOString(),
-  };
-}
-
-function toPlaceMedia(doc: DbPlaceMedia): PlaceMedia {
-  return {
-    id: String(doc._id),
-    placeSlug: doc.placeSlug,
-    url: doc.url,
-    width: doc.width,
-    height: doc.height,
-    caption: doc.caption,
-    credit: doc.credit,
-    userId: String(doc.userId),
-    userName: doc.userName,
-    contributionId: String(doc.contributionId),
-    status: doc.status,
-    createdAt: doc.createdAt.toISOString(),
-  };
-}
 
 /** La galerie publiée d'un lieu, dans l'ordre où elle s'est constituée. */
 export async function listPlaceMedia(slug: string): Promise<PlaceMedia[]> {
@@ -205,13 +125,47 @@ export async function countMyPendingMedia(
   });
 }
 
+/**
+ * Les contributions de l'auteur encore ouvertes sur cette fiche : de quoi lui
+ * dire qu'une proposition attend, ou qu'elle lui revient à corriger.
+ */
+export async function listMyOpenContributions(
+  userId: ObjectId,
+  target: { type: "place" | "item"; slug: string },
+): Promise<Contribution[]> {
+  await expireChangesRequested();
+  const docs = await contributions()
+    .find({
+      userId,
+      "target.type": target.type,
+      "target.slug": target.slug,
+      kind: { $ne: "media" },
+      status: { $in: ["pending", "changesRequested"] },
+    })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .toArray();
+  return docs.map(toContribution);
+}
+
+/** Une contribution de l'auteur, pour la reprendre dans son formulaire. */
+export async function getMyContribution(
+  id: string,
+  userId: ObjectId,
+): Promise<Contribution | null> {
+  if (!ObjectId.isValid(id)) return null;
+  const doc = await contributions().findOne({ _id: new ObjectId(id), userId });
+  return doc ? toContribution(doc) : null;
+}
+
 // ─── Niveau et confiance ────────────────────────────────────────────────────
 
 /**
  * Où en est un contributeur : ses points, son niveau, et ce que ce niveau lui
  * permet. Le niveau tient compte de la fiabilité — en dessous de 80 %
- * d'acceptation sur ses dernières relectures, on redevient Recrue, et tout ce
- * qu'on envoie est relu d'abord.
+ * d'acceptation sur ses dernières contributions jugées, on redevient Recrue,
+ * et tout ce qu'on envoie est relu d'abord. Une publication directe annulée
+ * compte comme un refus : c'est la relecture après coup qui l'a jugée.
  */
 export async function getStanding(
   userId: ObjectId,
@@ -221,10 +175,17 @@ export async function getStanding(
       { _id: userId },
       { projection: { isAdmin: 1, permissions: 1, contrib: 1 } },
     ),
-    contributions().countDocuments({ userId, status: "pending" }),
+    contributions().countDocuments({ userId, status: { $in: OPEN_STATUSES } }),
     contributions()
       .find(
-        { userId, "review.by": { $exists: true } },
+        {
+          userId,
+          status: { $in: ["published", "rejected", "reverted"] },
+          $or: [
+            { "review.by": { $exists: true } },
+            { revert: { $exists: true } },
+          ],
+        },
         { projection: { status: 1 } },
       )
       .sort({ createdAt: -1 })
@@ -252,7 +213,8 @@ export async function getStanding(
   // sans relecture, la contribution ne doit pas leur en imposer une.
   if (
     user?.isAdmin === true ||
-    user?.permissions?.includes(PLACES_EDIT_PERMISSION)
+    user?.permissions?.includes(PLACES_EDIT_PERMISSION) ||
+    user?.permissions?.includes(ITEMS_EDIT_PERMISSION)
   ) {
     level = 5;
   }
@@ -275,13 +237,7 @@ export async function getStanding(
   };
 }
 
-// ─── Envoi ──────────────────────────────────────────────────────────────────
-
-function cleanText(value: unknown, max: number): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const text = value.trim().slice(0, max).trim();
-  return text || undefined;
-}
+// ─── Envoi d'images ─────────────────────────────────────────────────────────
 
 /**
  * Une image n'est acceptée que si elle vient du stockage du site, sous le
@@ -408,6 +364,7 @@ export async function submitPlaceMedia(
     gameVersion: cleanText(gameVersion, MAX_GAME_VERSION_LENGTH),
     points: 0,
     createdAt: now,
+    updatedAt: now,
   };
 
   try {
@@ -428,18 +385,15 @@ export async function submitPlaceMedia(
   return { contribution: result, standing: await getStanding(author.id) };
 }
 
-function isDuplicateKey(error: unknown): boolean {
-  return (error as { code?: unknown } | null)?.code === 11000;
-}
-
 /** Les images publiées sans relecture par ce joueur depuis 24 heures. */
 async function countDirectMediaToday(userId: ObjectId): Promise<number> {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const since = new Date(Date.now() - DAY_MS);
   const [row] = await contributions()
     .aggregate<{ count: number }>([
       {
         $match: {
           userId,
+          kind: "media",
           status: "published",
           publishedAt: { $gte: since },
           "review.by": { $exists: false },
@@ -451,76 +405,170 @@ async function countDirectMediaToday(userId: ObjectId): Promise<number> {
   return row?.count ?? 0;
 }
 
-// ─── Relecture ──────────────────────────────────────────────────────────────
+// ─── Envoi au catalogue ─────────────────────────────────────────────────────
+
+/** Ce qu'un formulaire de contribution envoie, quelle que soit la fiche. */
+export type CatalogSubmission =
+  | { kind: "placeCreate"; parentSlug: string; input: unknown }
+  | { kind: "placeEdit"; slug: string; input: unknown }
+  | { kind: "plan"; slug: string; plan: unknown }
+  | { kind: "itemCreate"; input: unknown }
+  | { kind: "itemEdit"; slug: string; input: unknown };
+
+export type CatalogSubmissionMeta = {
+  /** La contribution reprise : en attente, ou renvoyée à corriger. */
+  contributionId?: string;
+  source?: unknown;
+  gameVersion?: unknown;
+};
+
+async function buildDraft(
+  submission: CatalogSubmission,
+  level: number,
+): Promise<CatalogDraft> {
+  switch (submission.kind) {
+    case "placeCreate":
+      return buildPlaceCreate(submission.parentSlug, submission.input);
+    case "placeEdit":
+      return buildPlaceEdit(submission.slug, submission.input, level);
+    case "plan":
+      return buildPlan(submission.slug, submission.plan);
+    case "itemCreate":
+      return buildItemCreate(submission.input);
+    case "itemEdit":
+      return buildItemEdit(submission.slug, submission.input, level);
+  }
+}
+
+/** Ce qui identifie « la même proposition » pour la reprendre plutôt que la doubler. */
+function sameTargetFilter(draft: CatalogDraft): Filter<DbContribution> {
+  return {
+    kind: draft.kind,
+    "target.type": draft.target.type,
+    "target.slug": draft.target.slug,
+    ...(draft.target.planId ? { "target.planId": draft.target.planId } : {}),
+  };
+}
+
+/** Les publications directes hors images de ce joueur depuis 24 heures. */
+async function countDirectEditsToday(userId: ObjectId): Promise<number> {
+  return contributions().countDocuments({
+    userId,
+    kind: { $ne: "media" },
+    status: "published",
+    publishedAt: { $gte: new Date(Date.now() - DAY_MS) },
+    "review.by": { $exists: false },
+  });
+}
 
 /**
- * Publie une contribution en attente : ses images rejoignent la galerie, et
- * l'auteur est crédité. `reviewer` est absent pour une publication directe.
+ * Propose un lieu, un plan, un objet, ou une correction. Publiée tout de suite
+ * à partir du niveau 3, relue d'abord en dessous.
  *
- * Le passage de `pending` à `published` est le verrou : deux relecteurs qui
- * publient en même temps ne créditent l'auteur qu'une fois. Tout ce qui dépend
- * de l'état du lieu (bonus de première image, vignette) se décide après lui,
- * par des écritures conditionnelles plutôt que sur une lecture faite avant.
+ * Une proposition qui vise ce que l'auteur a déjà en attente — le même lieu à
+ * corriger, le même plan — reprend celle-ci plutôt que d'en ouvrir une
+ * seconde : c'est ce qui fait d'un relevé enregistré dix fois une seule
+ * contribution.
  */
-async function publish(
-  contribution: DbContribution,
-  reviewer: Contributor | null,
-): Promise<Contribution> {
-  const slug = contribution.target.slug;
-  const now = new Date();
+export async function submitCatalogContribution(
+  author: Contributor,
+  submission: CatalogSubmission,
+  meta: CatalogSubmissionMeta = {},
+): Promise<SubmitContributionResult> {
+  const standing = await getStanding(author.id);
+  const draft = await buildDraft(submission, standing.level);
 
-  const locked = await contributions().findOneAndUpdate(
-    { _id: contribution._id, status: "pending" },
-    {
-      $set: {
-        status: "published",
-        publishedAt: now,
-        ...(reviewer
-          ? { review: { by: reviewer.id, byName: reviewer.name, at: now } }
-          : {}),
-      },
-    },
-  );
-  if (!locked) throw new ContributionError("notPending", 409);
-
-  await placeMedia().updateMany(
-    { _id: { $in: contribution.mediaIds } },
-    { $set: { status: "published" } },
-  );
-
-  const mediaPoints = contribution.mediaIds.length * POINTS.media;
-  const bonus = (await claimFirstMedia(contribution, now))
-    ? POINTS.firstMedia
-    : 0;
-  await pointEvents().insertOne({
-    userId: contribution.userId,
-    contributionId: contribution._id,
-    delta: mediaPoints,
-    reason: "published",
-    at: now,
+  let resumeFilter: Filter<DbContribution> = sameTargetFilter(draft);
+  if (meta.contributionId) {
+    if (!ObjectId.isValid(meta.contributionId)) {
+      throw new ContributionError("notFound", 404);
+    }
+    resumeFilter = { _id: new ObjectId(meta.contributionId) };
+  }
+  const resumed = await contributions().findOne({
+    ...resumeFilter,
+    userId: author.id,
+    kind: draft.kind,
+    status: { $in: ["pending", "changesRequested"] },
   });
-  await users().updateOne(
-    { _id: contribution.userId },
-    { $inc: { "contrib.points": mediaPoints + bonus } },
-  );
-  const updated = await contributions().findOneAndUpdate(
-    { _id: contribution._id },
-    { $set: { points: mediaPoints + bonus } },
-    { returnDocument: "after" },
-  );
-
-  // La vignette se voit partout où le lieu est cité : elle ne vient que d'une
-  // image qu'un humain a regardée, et ne remplace jamais celle d'un admin.
-  if (reviewer) {
-    const cover = await placeMedia().findOne(
-      { _id: { $in: contribution.mediaIds } },
-      { sort: { createdAt: 1 } },
-    );
-    if (cover) await setPlaceImageIfMissing(slug, cover.url);
+  if (meta.contributionId && !resumed) {
+    throw new ContributionError("notPending", 409);
   }
 
-  return toContribution(updated!);
+  if (!resumed) {
+    if (
+      standing.level < DIRECT_EDIT_LEVEL &&
+      standing.pending >= MAX_PENDING_RECRUIT
+    ) {
+      throw new ContributionError("tooManyPending", 429);
+    }
+    // Deux propositions du même lieu ou du même objet : la seconde attendrait
+    // une relecture qui ne pourrait que la refuser.
+    if (draft.kind === "placeCreate" || draft.kind === "itemCreate") {
+      const taken = await contributions().countDocuments({
+        ...sameTargetFilter(draft),
+        status: { $in: OPEN_STATUSES },
+      });
+      if (taken > 0) throw new ContributionError("duplicate", 409);
+    }
+  }
+
+  const direct =
+    standing.level >= DIRECT_EDIT_LEVEL &&
+    (standing.level >= 5 ||
+      (await countDirectEditsToday(author.id)) < DIRECT_EDIT_DAILY_CAP);
+
+  const now = new Date();
+  const fields = {
+    userName: author.name,
+    target: draft.target,
+    proposal: draft.proposal,
+    fields: draft.fields,
+    before: draft.before,
+    after: draft.after,
+    changes: draft.changes,
+    points: draft.points,
+    preview: draft.preview,
+    source: cleanText(meta.source, MAX_SOURCE_LENGTH),
+    gameVersion: cleanText(meta.gameVersion, MAX_GAME_VERSION_LENGTH),
+    updatedAt: now,
+  };
+
+  let contribution: DbContribution;
+  if (resumed) {
+    const updated = await contributions().findOneAndUpdate(
+      {
+        _id: resumed._id,
+        status: { $in: ["pending", "changesRequested"] },
+      },
+      // Reprise, elle repart en relecture ; le message du relecteur reste
+      // lisible jusqu'à la prochaine décision.
+      { $set: { ...fields, status: "pending" } },
+      { returnDocument: "after" },
+    );
+    if (!updated) throw new ContributionError("notPending", 409);
+    contribution = updated;
+  } else {
+    contribution = {
+      _id: new ObjectId(),
+      userId: author.id,
+      kind: draft.kind,
+      status: "pending",
+      mediaIds: [],
+      createdAt: now,
+      ...fields,
+    };
+    await contributions().insertOne(contribution);
+  }
+
+  const result = direct
+    ? await publish(contribution, null)
+    : toContribution(contribution);
+
+  return { contribution: result, standing: await getStanding(author.id) };
 }
+
+// ─── Publication ────────────────────────────────────────────────────────────
 
 /**
  * Le bonus de première image d'un lieu qui n'en avait aucune. Au plus un
@@ -530,7 +578,7 @@ async function publish(
 async function claimFirstMedia(
   contribution: DbContribution,
   at: Date,
-): Promise<boolean> {
+): Promise<number> {
   const slug = contribution.target.slug;
   const [others, place] = await Promise.all([
     placeMedia().countDocuments({
@@ -540,7 +588,7 @@ async function claimFirstMedia(
     }),
     getPlaceBySlug(slug),
   ]);
-  if (others > 0 || !place || place.imageUrl) return false;
+  if (others > 0 || !place || place.imageUrl) return 0;
 
   try {
     await pointEvents().insertOne({
@@ -551,17 +599,184 @@ async function claimFirstMedia(
       placeSlug: slug,
       at,
     });
-    return true;
+    return POINTS.firstMedia;
   } catch (error) {
-    if (isDuplicateKey(error)) return false;
+    if (isDuplicateKey(error)) return 0;
     throw error;
   }
 }
 
-async function findPending(id: string): Promise<DbContribution> {
+/**
+ * Ce que vaut un plan à sa première publication utile — un relevé ne compte
+ * qu'à sa première pièce. Une seule fois par plan, quel que soit le nombre de
+ * reprises : l'index unique de `pointEvents` sur `planKey` le garantit.
+ */
+async function claimPlan(
+  contribution: DbContribution,
+  at: Date,
+): Promise<number> {
+  const value = planValue(contribution.proposal as PlacePlan);
+  if (value === 0) return 0;
+
+  try {
+    await pointEvents().insertOne({
+      userId: contribution.userId,
+      contributionId: contribution._id,
+      delta: value,
+      reason: "plan",
+      planKey: planKey(contribution),
+      at,
+    });
+    return value;
+  } catch (error) {
+    if (isDuplicateKey(error)) return 0;
+    throw error;
+  }
+}
+
+/**
+ * Une correction du même auteur sur la même fiche, déjà publiée dans les
+ * dernières 24 heures, ne rapporte rien de plus.
+ */
+async function isRepeatEdit(contribution: DbContribution): Promise<boolean> {
+  const repeat = await contributions().countDocuments({
+    _id: { $ne: contribution._id },
+    userId: contribution.userId,
+    kind: contribution.kind,
+    "target.type": contribution.target.type,
+    "target.slug": contribution.target.slug,
+    status: "published",
+    publishedAt: { $gte: new Date(Date.now() - REPEAT_EDIT_WINDOW_MS) },
+  });
+  return repeat > 0;
+}
+
+/** Les points d'une publication, bonus réservés compris. */
+async function credit(
+  contribution: DbContribution,
+  at: Date,
+): Promise<{ base: number; bonus: number }> {
+  switch (contribution.kind) {
+    case "media":
+      return {
+        base: contribution.mediaIds.length * POINTS.media,
+        bonus: await claimFirstMedia(contribution, at),
+      };
+    case "plan": {
+      const bonus = await claimPlan(contribution, at);
+      if (bonus > 0) return { base: 0, bonus };
+      // Un plan repris, ou un relevé encore vide : une correction.
+      const isNew = !contribution.before?.plan;
+      return {
+        base: isNew || (await isRepeatEdit(contribution)) ? 0 : POINTS.edit,
+        bonus: 0,
+      };
+    }
+    case "placeEdit":
+    case "itemEdit":
+      return {
+        base: (await isRepeatEdit(contribution)) ? 0 : contribution.points,
+        bonus: 0,
+      };
+    default:
+      return { base: contribution.points, bonus: 0 };
+  }
+}
+
+/**
+ * Publie une contribution en attente et crédite son auteur. `reviewer` est
+ * absent pour une publication directe.
+ *
+ * Le passage de `pending` à `publishing` est le verrou : deux relecteurs qui
+ * publient en même temps n'écrivent et ne créditent qu'une fois. Si l'écriture
+ * échoue — la fiche a changé au point de ne plus l'accepter —, la
+ * contribution revient en attente avec l'erreur, et rien n'est crédité.
+ */
+async function publish(
+  contribution: DbContribution,
+  reviewer: Contributor | null,
+): Promise<Contribution> {
+  const locked = await contributions().findOneAndUpdate(
+    { _id: contribution._id, status: "pending" },
+    { $set: { status: "publishing" } },
+  );
+  if (!locked) throw new ContributionError("notPending", 409);
+
+  const now = new Date();
+  try {
+    if (contribution.kind === "media") {
+      await placeMedia().updateMany(
+        { _id: { $in: contribution.mediaIds } },
+        { $set: { status: "published" } },
+      );
+    } else {
+      await applyCatalog(contribution);
+    }
+  } catch (error) {
+    await contributions().updateOne(
+      { _id: contribution._id, status: "publishing" },
+      { $set: { status: "pending" } },
+    );
+    throw error;
+  }
+
+  const { base, bonus } = await credit(contribution, now);
+  if (base > 0) {
+    await pointEvents().insertOne({
+      userId: contribution.userId,
+      contributionId: contribution._id,
+      delta: base,
+      reason: "published",
+      at: now,
+    });
+  }
+  if (base + bonus > 0) {
+    await users().updateOne(
+      { _id: contribution.userId },
+      { $inc: { "contrib.points": base + bonus } },
+    );
+  }
+
+  const updated = await contributions().findOneAndUpdate(
+    { _id: contribution._id },
+    {
+      $set: {
+        status: "published",
+        points: base + bonus,
+        publishedAt: now,
+        updatedAt: now,
+        ...(reviewer
+          ? { review: { by: reviewer.id, byName: reviewer.name, at: now } }
+          : {}),
+      },
+    },
+    { returnDocument: "after" },
+  );
+
+  // La vignette se voit partout où le lieu est cité : elle ne vient que d'une
+  // image qu'un humain a regardée, et ne remplace jamais celle d'un admin.
+  if (contribution.kind === "media" && reviewer) {
+    const cover = await placeMedia().findOne(
+      { _id: { $in: contribution.mediaIds } },
+      { sort: { createdAt: 1 } },
+    );
+    if (cover) {
+      await setPlaceImageIfMissing(contribution.target.slug, cover.url);
+    }
+  }
+
+  return toContribution(updated!);
+}
+
+async function findContribution(id: string): Promise<DbContribution> {
   if (!ObjectId.isValid(id)) throw new ContributionError("notFound", 404);
   const doc = await contributions().findOne({ _id: new ObjectId(id) });
   if (!doc) throw new ContributionError("notFound", 404);
+  return doc;
+}
+
+async function findPending(id: string): Promise<DbContribution> {
+  const doc = await findContribution(id);
   if (doc.status !== "pending") throw new ContributionError("notPending", 409);
   return doc;
 }
@@ -578,10 +793,23 @@ export async function publishContribution(
   return publish(contribution, reviewer);
 }
 
+/** Supprime des images du stockage, sans faire échouer ce qui est déjà acquis. */
+async function deleteBlobs(urls: string[]) {
+  if (urls.length === 0) return;
+  try {
+    await del(urls);
+  } catch (error) {
+    // Une image restée dans le stockage n'est servie nulle part et se
+    // rattrape au prochain ménage.
+    console.error("Suppression d'images impossible", error);
+  }
+}
+
 /**
- * Refuse une contribution. Ses images quittent le stockage : une image refusée
- * n'a plus de raison d'occuper de la place, ni d'être servie à qui garderait
- * son adresse.
+ * Refuse une contribution, en attente ou renvoyée à corriger. Ses images
+ * quittent le stockage : une image refusée n'a plus de raison d'occuper de la
+ * place, ni d'être servie à qui garderait son adresse. Les images d'un plan
+ * refusé restent : un plan publié du même lieu peut les partager.
  */
 export async function rejectContribution(
   id: string,
@@ -589,14 +817,18 @@ export async function rejectContribution(
   reason: RejectReason,
   message?: string,
 ): Promise<Contribution> {
-  const contribution = await findPending(id);
+  const contribution = await findContribution(id);
   const now = new Date();
 
   const updated = await contributions().findOneAndUpdate(
-    { _id: contribution._id, status: "pending" },
+    {
+      _id: contribution._id,
+      status: { $in: ["pending", "changesRequested"] },
+    },
     {
       $set: {
         status: "rejected",
+        updatedAt: now,
         review: {
           by: reviewer.id,
           byName: reviewer.name,
@@ -610,41 +842,177 @@ export async function rejectContribution(
   );
   if (!updated) throw new ContributionError("notPending", 409);
 
-  const media = await placeMedia()
-    .find({ _id: { $in: contribution.mediaIds } }, { projection: { url: 1 } })
-    .toArray();
-  await placeMedia().updateMany(
-    { _id: { $in: contribution.mediaIds } },
-    { $set: { status: "rejected" } },
-  );
-  if (media.length > 0) {
-    try {
-      await del(media.map((image) => image.url));
-    } catch (error) {
-      // Le refus est acquis ; une image restée dans le stockage n'est servie
-      // nulle part et se rattrape au prochain ménage.
-      console.error("Suppression des images refusées impossible", error);
-    }
+  if (contribution.kind === "media") {
+    const media = await placeMedia()
+      .find({ _id: { $in: contribution.mediaIds } }, { projection: { url: 1 } })
+      .toArray();
+    await placeMedia().updateMany(
+      { _id: { $in: contribution.mediaIds } },
+      { $set: { status: "rejected" } },
+    );
+    await deleteBlobs(media.map((image) => image.url));
   }
 
   return toContribution(updated);
 }
 
-// ─── File d'attente ─────────────────────────────────────────────────────────
+/**
+ * Renvoie une contribution à son auteur, avec ce qu'il faut reprendre. Pas pour
+ * des images : il n'y a rien à y corriger, on les refuse ou on les publie.
+ */
+export async function requestChanges(
+  id: string,
+  reviewer: Contributor,
+  message: string,
+): Promise<Contribution> {
+  const contribution = await findPending(id);
+  if (contribution.kind === "media") {
+    throw new ContributionError("notAllowed", 400);
+  }
+  const text = cleanText(message, MAX_REJECT_MESSAGE_LENGTH);
+  if (!text) throw new ContributionError("messageRequired", 400);
 
-/** La file d'attente, la plus ancienne d'abord, avec de quoi juger sur pièce. */
-export async function listPendingContributions(
-  limit = 300,
-): Promise<{ items: PendingContribution[]; total: number }> {
-  const [docs, total] = await Promise.all([
-    contributions()
-      .find({ status: "pending" })
-      .sort({ createdAt: 1 })
-      .limit(limit)
-      .toArray(),
-    contributions().countDocuments({ status: "pending" }),
-  ]);
+  const now = new Date();
+  const updated = await contributions().findOneAndUpdate(
+    { _id: contribution._id, status: "pending" },
+    {
+      $set: {
+        status: "changesRequested",
+        updatedAt: now,
+        review: {
+          by: reviewer.id,
+          byName: reviewer.name,
+          at: now,
+          message: text,
+        },
+      },
+    },
+    { returnDocument: "after" },
+  );
+  if (!updated) throw new ContributionError("notPending", 409);
+  return toContribution(updated);
+}
 
+/** Ce qu'annuler écraserait, pour le montrer avant de confirmer. */
+export async function listRevertConflicts(
+  id: string,
+): Promise<ContributionChange[]> {
+  return revertConflicts(await findContribution(id));
+}
+
+/**
+ * Annule une contribution publiée : l'état d'avant revient, et les points
+ * qu'elle a rapportés sont retirés. Si la fiche a changé depuis sur les mêmes
+ * champs, l'annulation écraserait le travail d'un autre : elle demande alors
+ * `force`, que l'interface ne passe qu'après confirmation.
+ */
+export async function revertContribution(
+  id: string,
+  reviewer: Contributor,
+  force = false,
+): Promise<Contribution> {
+  const contribution = await findContribution(id);
+  if (contribution.status !== "published") {
+    throw new ContributionError("notPublished", 409);
+  }
+  if (contribution.kind !== "media" && !force) {
+    if ((await revertConflicts(contribution)).length > 0) {
+      throw new ContributionError("revertConflict", 409);
+    }
+  }
+
+  const locked = await contributions().findOneAndUpdate(
+    { _id: contribution._id, status: "published" },
+    { $set: { status: "publishing" } },
+  );
+  if (!locked) throw new ContributionError("notPublished", 409);
+
+  try {
+    if (contribution.kind === "media") {
+      const media = await placeMedia()
+        .find(
+          { _id: { $in: contribution.mediaIds } },
+          { projection: { url: 1 } },
+        )
+        .toArray();
+      await placeMedia().updateMany(
+        { _id: { $in: contribution.mediaIds } },
+        { $set: { status: "reverted" } },
+      );
+      for (const image of media) {
+        await clearPlaceImageIf(contribution.target.slug, image.url);
+      }
+      await deleteBlobs(media.map((image) => image.url));
+    } else {
+      await revertCatalog(contribution);
+    }
+  } catch (error) {
+    await contributions().updateOne(
+      { _id: contribution._id, status: "publishing" },
+      { $set: { status: "published" } },
+    );
+    throw error;
+  }
+
+  const now = new Date();
+  if (contribution.points > 0) {
+    await pointEvents().insertOne({
+      userId: contribution.userId,
+      contributionId: contribution._id,
+      delta: -contribution.points,
+      reason: "reverted",
+      at: now,
+    });
+    await users().updateOne(
+      { _id: contribution.userId },
+      { $inc: { "contrib.points": -contribution.points } },
+    );
+  }
+
+  const updated = await contributions().findOneAndUpdate(
+    { _id: contribution._id },
+    {
+      $set: {
+        status: "reverted",
+        updatedAt: now,
+        revert: { by: reviewer.id, byName: reviewer.name, at: now },
+      },
+    },
+    { returnDocument: "after" },
+  );
+  return toContribution(updated!);
+}
+
+/**
+ * Une contribution renvoyée à corriger et jamais reprise ne reste pas ouverte
+ * indéfiniment : passé le délai, elle est refusée. Appelé à la lecture des
+ * files, plutôt que par une tâche planifiée de plus.
+ */
+export async function expireChangesRequested(): Promise<number> {
+  const now = new Date();
+  const { modifiedCount } = await contributions().updateMany(
+    {
+      status: "changesRequested",
+      "review.at": {
+        $lt: new Date(now.getTime() - CHANGES_REQUESTED_TTL_DAYS * DAY_MS),
+      },
+    },
+    {
+      $set: {
+        status: "rejected",
+        updatedAt: now,
+        "review.reason": "expired",
+      },
+    },
+  );
+  return modifiedCount;
+}
+
+// ─── Files d'attente ────────────────────────────────────────────────────────
+
+async function withMedia(
+  docs: DbContribution[],
+): Promise<PendingContribution[]> {
   const mediaIds = docs.flatMap((doc) => doc.mediaIds);
   const authorIds = [...new Set(docs.map((doc) => String(doc.userId)))].map(
     (id) => new ObjectId(id),
@@ -667,21 +1035,72 @@ export async function listPendingContributions(
     authors.map((doc) => [String(doc._id), doc.contrib?.points ?? 0]),
   );
 
-  return {
-    total,
-    items: docs.map((doc) => ({
-      ...toContribution(doc),
-      media: doc.mediaIds
-        .map((mediaId) => mediaById.get(String(mediaId)))
-        .filter((entry): entry is DbPlaceMedia => Boolean(entry))
-        .map(toPlaceMedia),
-      authorPoints: pointsById.get(String(doc.userId)) ?? 0,
-    })),
-  };
+  return docs.map((doc) => ({
+    ...toContribution(doc),
+    media: doc.mediaIds
+      .map((mediaId) => mediaById.get(String(mediaId)))
+      .filter((entry): entry is DbPlaceMedia => Boolean(entry))
+      .map(toPlaceMedia),
+    authorPoints: pointsById.get(String(doc.userId)) ?? 0,
+  }));
+}
+
+/** La file d'attente, la plus ancienne d'abord, avec de quoi juger sur pièce. */
+export async function listPendingContributions(
+  limit = 300,
+): Promise<{ items: PendingContribution[]; total: number }> {
+  await expireChangesRequested();
+  const [docs, total] = await Promise.all([
+    contributions()
+      .find({ status: "pending" })
+      .sort({ createdAt: 1 })
+      .limit(limit)
+      .toArray(),
+    contributions().countDocuments({ status: "pending" }),
+  ]);
+
+  return { total, items: await withMedia(docs) };
 }
 
 export async function countPendingContributions(): Promise<number> {
   return contributions().countDocuments({ status: "pending" });
+}
+
+export const JOURNAL_STATUSES = [
+  "published",
+  "changesRequested",
+  "rejected",
+  "reverted",
+] as const satisfies readonly ContributionStatus[];
+
+export type JournalStatus = (typeof JOURNAL_STATUSES)[number];
+
+/**
+ * Le journal : tout ce qui a été publié ou décidé, du plus récent au plus
+ * ancien. C'est là que se relisent après coup les publications directes, et
+ * qu'une publication s'annule.
+ */
+export async function listJournal(
+  options: {
+    limit?: number;
+    status?: JournalStatus;
+    kind?: ContributionKind;
+    /** Seulement ce qui a été publié sans relecture. */
+    direct?: boolean;
+  } = {},
+): Promise<PendingContribution[]> {
+  await expireChangesRequested();
+  const filter: Filter<DbContribution> = options.direct
+    ? { status: "published", "review.by": { $exists: false } }
+    : { status: options.status ?? { $in: [...JOURNAL_STATUSES] } };
+  if (options.kind) filter.kind = options.kind;
+
+  const docs = await contributions()
+    .find(filter)
+    .sort({ updatedAt: -1, createdAt: -1 })
+    .limit(options.limit ?? 100)
+    .toArray();
+  return withMedia(docs);
 }
 
 /** Les dernières contributions d'un joueur, pour son suivi. */
@@ -689,9 +1108,10 @@ export async function listMyContributions(
   userId: ObjectId,
   limit = 50,
 ): Promise<Contribution[]> {
+  await expireChangesRequested();
   const docs = await contributions()
     .find({ userId })
-    .sort({ createdAt: -1 })
+    .sort({ updatedAt: -1, createdAt: -1 })
     .limit(limit)
     .toArray();
   return docs.map(toContribution);

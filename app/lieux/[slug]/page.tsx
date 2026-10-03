@@ -14,6 +14,9 @@ import { placeTrail } from "@/lib/place-icons";
 import { KeyFigure } from "@/app/items/[slug]/sections";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import { PlaceAdminMenu } from "./components";
+import { PlaceContributeMenu } from "./contribute-menu";
+import { OpenContributionsBanner } from "@/app/contributions/open-banner";
+import { POINTS } from "@/types/contributions";
 import { PlaceGallery } from "./gallery";
 import { PlanViewer } from "./plan-viewer";
 import {
@@ -116,6 +119,9 @@ export default async function PlacePage({
             targets: place.planTargets,
           }
         : null;
+  // Le plan affiché, celui qu'« Améliorer ce plan » ouvre.
+  const shownPlan =
+    plans?.plans.find((entry) => entry.id === plan) ?? plans?.plans[0];
   const services = place.services ?? [];
   const trail = placeTrail(place);
 
@@ -143,8 +149,14 @@ export default async function PlacePage({
             <p className="text-sm text-nexus">{place.shopCategory}</p>
           )}
         </div>
-        {canEdit && <PlaceAdminMenu slug={place.slug} />}
+        {canEdit ? (
+          <PlaceAdminMenu slug={place.slug} />
+        ) : (
+          <PlaceContributeMenu slug={place.slug} />
+        )}
       </div>
+
+      <OpenContributionsBanner type="place" slug={place.slug} />
 
       {place.imageUrl && (
         <div className="relative flex min-h-24 w-full items-center justify-center overflow-hidden rounded-xl border border-[#9ED0FF]/15">
@@ -254,6 +266,15 @@ export default async function PlacePage({
             ) : (
               <PlaceEmpty>{t("noContained")}</PlaceEmpty>
             )}
+            {!canEdit && (
+              <Link
+                href={`/lieux/${place.slug}/contribuer/lieu`}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              >
+                {t("missingPlace")}
+                <PointsChip points={POINTS.placeCreate} />
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -293,12 +314,22 @@ export default async function PlacePage({
         <div>
           <SectionTitle>{t("planTitle")}</SectionTitle>
           {plans && plans.plans.length > 0 ? (
-            <PlanViewer
-              data={plans}
-              rootSlug={place.slug}
-              activePlanId={plan}
-              canBrief={Boolean(session)}
-            />
+            <div className="space-y-3">
+              <PlanViewer
+                data={plans}
+                rootSlug={place.slug}
+                activePlanId={plan}
+                canBrief={Boolean(session)}
+              />
+              {!canEdit && (
+                <PlanContributeLinks
+                  slug={plans.slug}
+                  improvePlanId={
+                    shownPlan?.borrowedFrom ? undefined : shownPlan?.id
+                  }
+                />
+              )}
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#9ED0FF]/25 bg-[#092F49]/35 px-6 py-12 text-center">
               <MapIcon className="size-8 text-muted-foreground" />
@@ -308,12 +339,14 @@ export default async function PlacePage({
               <p className="max-w-md text-sm text-muted-foreground">
                 {t("noPlanHint")}
               </p>
-              {canEdit && (
+              {canEdit ? (
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/admin/lieux/${place.slug}/plans`}>
                     {t("suggestPlan")}
                   </Link>
                 </Button>
+              ) : (
+                <PlanContributeLinks slug={place.slug} />
               )}
             </div>
           )}
@@ -329,6 +362,53 @@ export default async function PlacePage({
         </Link>
         <p className="text-xs text-muted-foreground">{t("reportHint")}</p>
       </div>
+    </div>
+  );
+}
+
+function PointsChip({ points }: { points: number }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-amber-300/55 bg-amber-300/15 px-1.5 font-mono text-[10px] font-bold leading-4 text-amber-200">
+      +{points}
+    </span>
+  );
+}
+
+/**
+ * Proposer un plan : le dessiner, ou en envoyer l'image. Un plan proposé
+ * s'ajoute à ceux de la fiche, il ne remplace jamais un plan publié.
+ */
+async function PlanContributeLinks({
+  slug,
+  improvePlanId,
+}: {
+  slug: string;
+  /** Le plan regardé, quand il appartient bien à ce lieu. */
+  improvePlanId?: string;
+}) {
+  const t = await getTranslations("Contributions.Place");
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      <Button asChild size="sm">
+        <Link href={`/lieux/${slug}/contribuer/dessin`}>
+          {t("planDrawn")}
+          <PointsChip points={POINTS.planDrawn} />
+        </Link>
+      </Button>
+      <Button asChild variant="outline" size="sm">
+        <Link href={`/lieux/${slug}/contribuer/plan`}>
+          {t("planImage")}
+          <PointsChip points={POINTS.planImage} />
+        </Link>
+      </Button>
+      {improvePlanId && (
+        <Button asChild variant="ghost" size="sm">
+          <Link href={`/lieux/${slug}/contribuer/plan?plan=${improvePlanId}`}>
+            {t("improvePlan")}
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }

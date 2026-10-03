@@ -12,8 +12,21 @@
  * quand une contribution est annulée.
  */
 
-/** Ce qu'une contribution apporte. La première étape n'ouvre que les images. */
-export const CONTRIBUTION_KINDS = ["media"] as const;
+/**
+ * Ce qu'une contribution apporte :
+ * - `media` : des images dans la galerie d'un lieu ;
+ * - `placeCreate`, `placeEdit` : un lieu proposé, ou des champs d'un lieu ;
+ * - `plan` : un plan d'un lieu, ajouté ou repris (image ou dessiné) ;
+ * - `itemCreate`, `itemEdit` : un objet proposé, ou des champs d'un objet.
+ */
+export const CONTRIBUTION_KINDS = [
+  "media",
+  "placeCreate",
+  "placeEdit",
+  "plan",
+  "itemCreate",
+  "itemEdit",
+] as const;
 
 export type ContributionKind = (typeof CONTRIBUTION_KINDS)[number];
 
@@ -21,10 +34,20 @@ export function isContributionKind(value: string): value is ContributionKind {
   return (CONTRIBUTION_KINDS as readonly string[]).includes(value);
 }
 
+/**
+ * `changesRequested` renvoie la contribution à son auteur avec un message ;
+ * sans reprise sous 14 jours, elle est refusée. `reverted` est une publication
+ * annulée après coup : l'état d'avant est rétabli et les points retirés.
+ * `publishing` ne dure que le temps d'écrire : c'est le verrou de la
+ * publication, et il ne s'affiche nulle part.
+ */
 export const CONTRIBUTION_STATUSES = [
   "pending",
+  "changesRequested",
+  "publishing",
   "published",
   "rejected",
+  "reverted",
 ] as const;
 
 export type ContributionStatus = (typeof CONTRIBUTION_STATUSES)[number];
@@ -35,13 +58,20 @@ export type ContributionStatus = (typeof CONTRIBUTION_STATUSES)[number];
  * Les libellés vivent dans `messages/*.json` sous `Contributions.reasons`.
  */
 export const REJECT_REASONS = [
+  "inaccurate",
   "offTopic",
   "quality",
   "personalInterface",
   "duplicate",
   "copyright",
   "other",
+  "expired",
 ] as const;
+
+/** Ce qu'un relecteur peut choisir ; `expired` n'est posé que par l'échéance. */
+export const REVIEWER_REJECT_REASONS = REJECT_REASONS.filter(
+  (reason) => reason !== "expired",
+);
 
 export type RejectReason = (typeof REJECT_REASONS)[number];
 
@@ -49,12 +79,26 @@ export function isRejectReason(value: string): value is RejectReason {
   return (REJECT_REASONS as readonly string[]).includes(value);
 }
 
-/** Ce que vise une contribution. Un lieu, pour l'instant. */
+/** Ce que vise une contribution : un lieu (ou un de ses plans), ou un objet. */
 export type ContributionTarget = {
-  type: "place";
+  type: "place" | "item";
   slug: string;
-  /** Le nom au moment de l'envoi, pour lister sans relire chaque lieu. */
+  /** Le nom au moment de l'envoi, pour lister sans relire chaque fiche. */
   name: string;
+  /** Pour un plan : lequel. */
+  planId?: string;
+  /** Pour un lieu proposé : le lieu qui le contiendra. */
+  parent?: { slug: string; name: string };
+};
+
+/**
+ * Une ligne de l'avant/après, déjà mise en mots pour l'affichage. `field` est
+ * un chemin (`vehicle.speedMax`) ; une valeur absente est un champ vide.
+ */
+export type ContributionChange = {
+  field: string;
+  before?: string;
+  after?: string;
 };
 
 export type ContributionReview = {
@@ -81,6 +125,16 @@ export type Contribution = {
   /** Absent pour une publication directe, qui n'a pas été relue. */
   review?: ContributionReview;
   publishedAt?: string;
+  /** L'avant/après, pour tout ce qui n'est pas une image. */
+  changes?: ContributionChange[];
+  /** Ce que l'auteur a saisi, pour reprendre une contribution à corriger. */
+  proposal?: unknown;
+  /** D'où vient l'information : une capture, un lien, un patch. */
+  source?: string;
+  /** L'image d'un plan proposé, pour le juger sans l'ouvrir. */
+  preview?: { url: string; width: number; height: number };
+  revert?: { by: string; byName?: string; at: string };
+  updatedAt?: string;
 };
 
 // ─── Images de lieux ────────────────────────────────────────────────────────
@@ -133,6 +187,15 @@ export const POINTS = {
   media: 10,
   /** En plus, pour la première image d'un lieu qui n'en avait aucune. */
   firstMedia: 5,
+  placeCreate: 20,
+  itemCreate: 20,
+  /** Un plan dessiné, dès qu'il compte une pièce. */
+  planDrawn: 60,
+  planImage: 30,
+  /** Une section d'objet qui était vide. */
+  section: 10,
+  /** Toute autre correction de champs, plan repris compris. */
+  edit: 5,
 } as const;
 
 /**
@@ -182,6 +245,29 @@ export const DIRECT_MEDIA_LEVEL = 2;
  */
 export const DIRECT_MEDIA_DAILY_CAP = 12;
 
+/**
+ * À partir de ce niveau, lieux, plans et objets sont publiés tout de suite et
+ * relus après coup, dans le journal.
+ */
+export const DIRECT_EDIT_LEVEL = 3;
+
+/** Pas plus de publications directes (hors images) par jour, hors niveau 5. */
+export const DIRECT_EDIT_DAILY_CAP = 20;
+
+/** Renommer un lieu ou un objet, déplacer un lieu, changer un type d'objet. */
+export const RENAME_LEVEL = 4;
+
+/** Une contribution à corriger sans reprise après ce délai est refusée. */
+export const CHANGES_REQUESTED_TTL_DAYS = 14;
+
+/**
+ * Une correction du même auteur sur la même fiche dans ces 24 heures ne
+ * rapporte rien de plus : enregistrer dix fois un plan n'en fait pas dix.
+ */
+export const REPEAT_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export const MAX_SOURCE_LENGTH = 500;
+
 export const CONTRIBUTIONS_REVIEW_PERMISSION = "contributions:review";
 
 export type ContributorStanding = {
@@ -206,6 +292,16 @@ export const CONTRIBUTION_ERRORS = [
   "notFound",
   "notPending",
   "ownContribution",
+  "itemNotFound",
+  "invalidInput",
+  "noChange",
+  "duplicate",
+  "notAllowed",
+  "messageRequired",
+  "notPublished",
+  "revertConflict",
+  "revertFailed",
+  "applyFailed",
 ] as const;
 
 export type ContributionErrorCode = (typeof CONTRIBUTION_ERRORS)[number];

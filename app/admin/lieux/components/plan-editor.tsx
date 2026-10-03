@@ -43,7 +43,7 @@ import {
 } from "@/types/places";
 import { PlanImageUpload } from "./place-image-upload";
 import { emptyDrawnPlan } from "./drawn-plan-editor/use-plan-draft";
-import { usePlanSaver } from "./save-plans";
+import { usePlanSaver, type PlansSubmit } from "./save-plans";
 import { PlacePicker } from "@/app/lieux/place-picker";
 import { BorrowPlanDialog } from "./borrow-plan-dialog";
 
@@ -55,16 +55,26 @@ export function PlanEditor({
   placeName,
   initialPlans,
   initialTargets,
+  contribution,
 }: {
   slug: string;
   /** Le titre que porte une planche exportée : le lieu, pas le plan. */
   placeName: string;
   initialPlans: PlacePlan[];
   initialTargets: PlaceSummary[];
+  /**
+   * Un seul plan, proposé plutôt qu'enregistré : la liste ne s'allonge, ne se
+   * réordonne ni n'emprunte, et l'enregistrement part en contribution.
+   */
+  contribution?: { submit: PlansSubmit; saveLabel: string };
 }) {
   const t = useTranslations("Places");
   const router = useRouter();
-  const { save: savePlans } = usePlanSaver(slug, placeName);
+  const { save: savePlans } = usePlanSaver(
+    slug,
+    placeName,
+    contribution?.submit,
+  );
   const [isPending, startTransition] = useTransition();
 
   const [plans, setPlans] = useState<PlacePlan[]>(initialPlans);
@@ -254,7 +264,8 @@ export function PlanEditor({
       }
       setPlans(result.plans);
       setDirty(false);
-      toast.success(t("Admin.saved"));
+      // Une contribution annonce elle-même ce qu'elle est devenue.
+      if (!contribution) toast.success(t("Admin.saved"));
     });
   };
 
@@ -286,7 +297,9 @@ export function PlanEditor({
             <span className="text-xs text-amber-300">{t("Admin.unsaved")}</span>
           )}
           <Button onClick={save} disabled={isPending || !dirty}>
-            {isPending ? t("Admin.saving") : t("Admin.save")}
+            {isPending
+              ? t("Admin.saving")
+              : (contribution?.saveLabel ?? t("Admin.save"))}
           </Button>
         </div>
       </div>
@@ -334,70 +347,76 @@ export function PlanEditor({
                   </span>
                 </p>
               )}
-              <div className="mt-1.5 flex items-center gap-1">
-                {entry.borrowedFrom && (
+              {!contribution && (
+                <div className="mt-1.5 flex items-center gap-1">
+                  {entry.borrowedFrom && (
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={t("Admin.detachPlan")}
+                      title={t("Admin.detachPlan")}
+                      onClick={() => detachPlan(entry.id)}
+                    >
+                      <LinkSlashIcon />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={t("Admin.detachPlan")}
-                    title={t("Admin.detachPlan")}
-                    onClick={() => detachPlan(entry.id)}
+                    aria-label={t("Admin.planMoveUp")}
+                    disabled={index === 0}
+                    onClick={() => movePlan(entry.id, -1)}
                   >
-                    <LinkSlashIcon />
+                    <ArrowUpIcon />
                   </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={t("Admin.planMoveUp")}
-                  disabled={index === 0}
-                  onClick={() => movePlan(entry.id, -1)}
-                >
-                  <ArrowUpIcon />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={t("Admin.planMoveDown")}
-                  disabled={index === plans.length - 1}
-                  onClick={() => movePlan(entry.id, 1)}
-                >
-                  <ArrowDownIcon />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={t("Admin.planDelete")}
-                  onClick={() => removePlan(entry.id)}
-                  className="text-red-400 hover:text-red-300"
-                >
-                  <TrashIcon />
-                </Button>
-              </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("Admin.planMoveDown")}
+                    disabled={index === plans.length - 1}
+                    onClick={() => movePlan(entry.id, 1)}
+                  >
+                    <ArrowDownIcon />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("Admin.planDelete")}
+                    onClick={() => removePlan(entry.id)}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    <TrashIcon />
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={addPlan}
-          >
-            <PlusIcon className="size-4" />
-            {t("Admin.planAdd")}
-          </Button>
+          {!contribution && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={addPlan}
+              >
+                <PlusIcon className="size-4" />
+                {t("Admin.planAdd")}
+              </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={addDrawnPlan}
-          >
-            <PencilSquareIcon className="size-4" />
-            {t("Admin.planDraw")}
-          </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={addDrawnPlan}
+              >
+                <PencilSquareIcon className="size-4" />
+                {t("Admin.planDraw")}
+              </Button>
 
-          <BorrowPlanDialog exclude={slug} onBorrow={borrowPlan} />
+              <BorrowPlanDialog exclude={slug} onBorrow={borrowPlan} />
+            </>
+          )}
         </div>
 
         {drawn ? (
@@ -435,7 +454,10 @@ export function PlanEditor({
               </p>
             )}
 
-            <Button onClick={() => openDrawnPlan(drawn.id)} disabled={isPending}>
+            <Button
+              onClick={() => openDrawnPlan(drawn.id)}
+              disabled={isPending}
+            >
               <PencilSquareIcon className="size-4" />
               {drawn.borrowedFrom
                 ? t("Admin.drawnOpenBorrowed")

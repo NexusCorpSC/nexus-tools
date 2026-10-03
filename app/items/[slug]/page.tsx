@@ -4,7 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { getItemDetails } from "@/lib/items";
 import { hasPermission } from "@/lib/permissions";
-import { ITEMS_EDIT_PERMISSION } from "@/types/items";
+import { ITEMS_EDIT_PERMISSION, type ItemDetails } from "@/types/items";
+import { OpenContributionsBanner } from "@/app/contributions/open-banner";
 import { ResourceView } from "./views/resource-view";
 import { StandardView } from "./views/standard-view";
 import { VehicleView } from "./views/vehicle-view";
@@ -71,6 +72,19 @@ export default async function ItemDetailPage({
 
   const canEdit = await hasPermission(ITEMS_EDIT_PERMISSION);
 
+  return (
+    <>
+      <OpenContributionsBanner
+        type="item"
+        slug={item.slug}
+        className="mx-2 mt-2 max-w-7xl md:mx-auto"
+      />
+      <ItemView item={item} canEdit={canEdit} />
+    </>
+  );
+}
+
+function ItemView({ item, canEdit }: { item: ItemDetails; canEdit: boolean }) {
   switch (item.kind) {
     case "vehicle":
       return <VehicleView item={item} canEdit={canEdit} />;

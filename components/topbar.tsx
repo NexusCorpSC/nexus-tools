@@ -15,6 +15,7 @@ import { countFriendsPlaying } from "@/lib/friends";
 
 const userNavigation = [
   { name: "myProfile", href: "/profile" },
+  { name: "myContributions", href: "/contributions" },
   { name: "settings", href: "/settings" },
 ] as const;
 
