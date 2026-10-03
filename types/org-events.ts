@@ -44,6 +44,12 @@ export interface OrgEventRole {
   id: string;
   label: string;
   icon: SquadRoleIcon;
+  /**
+   * Combien l'organisateur en souhaite, `null` pour « pas d'objectif ».
+   * Un souhait, pas un plafond : on s'inscrit encore une fois le compte
+   * atteint, et les pages disent ce qui manque plutôt que de refuser.
+   */
+  wanted: number | null;
 }
 
 export interface OrgEventQuestion {
@@ -110,6 +116,11 @@ export interface OrgEventView extends OrgEvent {
   /** Inscrits actifs, désinscrits exclus. */
   registrationCount: number;
   /**
+   * Inscrits actifs par id de rôle, `""` pour ceux qui n'en ont pas — visible
+   * de tous les lecteurs, comme le total : c'est ce qui dit ce qui manque.
+   */
+  roleCounts: Record<string, number>;
+  /**
    * Les inscrits actifs, pour les membres de l'organisation ; vide pour un
    * visiteur d'un évènement public, qui ne voit que le nombre.
    */
@@ -147,7 +158,12 @@ export interface OrgEventInput {
   meetingPlaceSlug?: string | null;
   visibility?: OrgEventVisibility;
   /** Un rôle sans `id` est nouveau ; avec, il garde celui qu'il avait. */
-  roles?: { id?: string; label: string; icon: SquadRoleIcon }[];
+  roles?: {
+    id?: string;
+    label: string;
+    icon: SquadRoleIcon;
+    wanted?: number | null;
+  }[];
   questions?: { id?: string; label: string; required?: boolean }[];
 }
 

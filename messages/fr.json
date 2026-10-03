@@ -1555,6 +1555,7 @@
     }
   },
   "OrgEvents": {
+    "missing": "{count, plural, one {Il manque # {role}} other {Il manque # {role}}}",
     "title": "Évènements",
     "home": "Accueil",
     "organizations": "Organisations",
@@ -1580,6 +1581,8 @@
     "forbidden": "Seuls son créateur et les éditeurs de l'organisation peuvent modifier cet évènement.",
     "notMember": "Seuls les membres de l'organisation peuvent prévoir un évènement.",
     "Form": {
+      "wanted": "Souhaités",
+      "wantedPlaceholder": "—",
       "newTitle": "Prévoir un évènement",
       "editTitle": "Modifier l'évènement",
       "title": "Titre",
@@ -1596,7 +1599,7 @@
       "visibilityPrivate": "Privé : membres de l'organisation seulement",
       "visibilityPublic": "Public : visible par tout le monde",
       "roles": "Rôles",
-      "rolesHint": "Si vous proposez des rôles, chaque inscrit en choisit un. Ils seront repris par l'escouade de l'évènement.",
+      "rolesHint": "Si vous proposez des rôles, chaque inscrit en choisit un. Ils seront repris par l'escouade de l'évènement. Le nombre souhaité n'est pas une limite : la page dit ce qui manque.",
       "addRole": "Ajouter un rôle",
       "roleLabel": "Nom du rôle",
       "chooseIcon": "Choisir l'icône",

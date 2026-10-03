@@ -50,7 +50,8 @@ export interface DbOrgEvent {
   meetingPoint: string;
   meetingPlace: { slug: string; name: string } | null;
   visibility: OrgEventVisibility;
-  roles: OrgEventRole[];
+  /** `wanted` manque aux rôles des évènements créés avant lui : voir `toEvent`. */
+  roles: (Omit<OrgEventRole, "wanted"> & { wanted?: number | null })[];
   questions: OrgEventQuestion[];
   createdBy: OrgEventAuthor;
   squadId: string | null;
@@ -118,7 +119,8 @@ function toEvent(doc: DbOrgEvent): OrgEvent {
     meetingPoint: doc.meetingPoint,
     meetingPlace: doc.meetingPlace ?? null,
     visibility: doc.visibility,
-    roles: doc.roles,
+    // `wanted` est absent des évènements créés avant les places souhaitées.
+    roles: doc.roles.map((role) => ({ ...role, wanted: role.wanted ?? null })),
     questions: doc.questions,
     createdBy: doc.createdBy,
     squadId: doc.squadId ?? null,
@@ -155,6 +157,16 @@ function activeRegistrations(doc: DbOrgEvent): OrgEventRegistration[] {
     .map((registration) => toRegistration(registration, doc));
 }
 
+function countByRole(
+  registrations: OrgEventRegistration[],
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const registration of registrations) {
+    counts[registration.role] = (counts[registration.role] ?? 0) + 1;
+  }
+  return counts;
+}
+
 function toView(
   doc: DbOrgEvent,
   access: OrgAccess,
@@ -168,6 +180,7 @@ function toView(
   return {
     ...toEvent(doc),
     registrationCount: active.length,
+    roleCounts: countByRole(active),
     participants: access.isMember
       ? active.map(({ userId, name, role }) => ({ userId, name, role }))
       : [],
@@ -260,10 +273,7 @@ export async function getOrgEventSummary(
   if (!canManage(doc, access, readerId)) return { refusal: "forbidden" };
 
   const registrations = activeRegistrations(doc);
-  const roleCounts: Record<string, number> = {};
-  for (const registration of registrations) {
-    roleCounts[registration.role] = (roleCounts[registration.role] ?? 0) + 1;
-  }
+  const roleCounts = countByRole(registrations);
 
   return {
     summary: {
@@ -291,7 +301,12 @@ export interface ParsedOrgEventInput {
   meetingPoint: string;
   meetingPlaceSlug: string | null;
   visibility: OrgEventVisibility;
-  roles: { id: string | null; label: string; icon: OrgEventRole["icon"] }[];
+  roles: {
+    id: string | null;
+    label: string;
+    icon: OrgEventRole["icon"];
+    wanted: number | null;
+  }[];
   questions: { id: string | null; label: string; required: boolean }[];
 }
 
@@ -400,7 +415,25 @@ export function parseOrgEventInput(body: unknown): Parsed<ParsedOrgEventInput> {
     if (!isSquadRoleIcon(raw.icon)) {
       return { error: "A role `icon` must be one of the known role icons" };
     }
-    roles.push({ id: readId(raw.id), label: label.value, icon: raw.icon });
+    const wanted = raw.wanted ?? null;
+    if (
+      wanted !== null &&
+      !(
+        Number.isInteger(wanted) &&
+        (wanted as number) >= 1 &&
+        (wanted as number) <= ORG_EVENT_MAX_REGISTRATIONS
+      )
+    ) {
+      return {
+        error: `A role's \`wanted\` must be null or an integer from 1 to ${ORG_EVENT_MAX_REGISTRATIONS}`,
+      };
+    }
+    roles.push({
+      id: readId(raw.id),
+      label: label.value,
+      icon: raw.icon,
+      wanted: wanted as number | null,
+    });
   }
 
   const rawQuestions = body.questions ?? [];
@@ -584,7 +617,7 @@ export async function deleteOrgEvent(
 /** Un rôle et des réponses, validés contre ce que l'évènement demande. */
 export function parseRegistrationInput(
   body: unknown,
-  event: Pick<OrgEvent, "roles" | "questions">,
+  event: { roles: { id: string }[]; questions: OrgEventQuestion[] },
 ): Parsed<{ role: string; answers: Record<string, string> }> {
   const record = isRecord(body) ? body : {};
 

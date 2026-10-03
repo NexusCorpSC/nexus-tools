@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -16,6 +16,7 @@ import {
   ORG_EVENT_ANSWER_MAX_LENGTH,
   ORG_EVENT_DESCRIPTION_MAX_LENGTH,
   ORG_EVENT_MAX_QUESTIONS,
+  ORG_EVENT_MAX_REGISTRATIONS,
   ORG_EVENT_MAX_ROLES,
   ORG_EVENT_MEETING_POINT_MAX_LENGTH,
   ORG_EVENT_QUESTION_MAX_LENGTH,
@@ -42,11 +43,25 @@ async function errorOf(response: Response): Promise<string> {
 
 // ─── Dates ────────────────────────────────────────────────────────────────────
 
+/** `false` au rendu serveur et à l'hydratation, `true` ensuite. */
+function useInBrowser(): boolean {
+  return useSyncExternalStore(
+    noSubscription,
+    () => true,
+    () => false,
+  );
+}
+
+function noSubscription() {
+  return () => {};
+}
+
 /**
  * « samedi 4 octobre, 19:00 – 22:00 », dans le fuseau du lecteur.
  *
- * Le serveur ne connaît pas ce fuseau : le rendu serveur et celui du
- * navigateur peuvent différer, et c'est le second qui a raison.
+ * Le serveur ne connaît pas ce fuseau : rien n'est écrit avant que le
+ * navigateur ne prenne la main — un rendu serveur en UTC resterait affiché,
+ * l'hydratation ne corrige pas un texte qui diffère.
  */
 export function EventTime({
   startsAt,
@@ -58,6 +73,9 @@ export function EventTime({
   className?: string;
 }) {
   const locale = useLocale();
+  const inBrowser = useInBrowser();
+  if (!inBrowser) return <span className={className}>&nbsp;</span>;
+
   const start = new Date(startsAt);
   const end = new Date(endsAt);
 
@@ -73,7 +91,7 @@ export function EventTime({
   const sameDay = start.toDateString() === end.toDateString();
 
   return (
-    <span className={className} suppressHydrationWarning>
+    <span className={className}>
       {day.format(start)}, {time.format(start)} –{" "}
       {sameDay ? "" : `${day.format(end)}, `}
       {time.format(end)}
@@ -114,6 +132,50 @@ function toRange(
   return { startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() };
 }
 
+// ─── Places souhaitées ────────────────────────────────────────────────────────
+
+/** « 3 » sans objectif, « 3 / 2 » avec. */
+function roleCount(role: OrgEventRole, counts: Record<string, number>): string {
+  const count = counts[role.id] ?? 0;
+  return role.wanted === null ? String(count) : `${count} / ${role.wanted}`;
+}
+
+/** Les rôles dont l'objectif n'est pas atteint, et de combien. */
+function missingRoles(
+  event: Pick<OrgEventView, "roles" | "roleCounts">,
+): { role: OrgEventRole; missing: number }[] {
+  return event.roles
+    .map((role) => ({
+      role,
+      missing:
+        role.wanted === null
+          ? 0
+          : role.wanted - (event.roleCounts[role.id] ?? 0),
+    }))
+    .filter(({ missing }) => missing > 0);
+}
+
+function MissingChips({
+  event,
+}: {
+  event: Pick<OrgEventView, "roles" | "roleCounts">;
+}) {
+  const t = useTranslations("OrgEvents");
+  return (
+    <>
+      {missingRoles(event).map(({ role, missing }) => (
+        <span
+          key={role.id}
+          className="inline-flex items-center gap-1 rounded-full border border-amber-300/50 px-2 py-0.5 text-xs text-amber-200"
+        >
+          <RoleIcon icon={role.icon} className="size-3" />
+          {t("missing", { count: missing, role: role.label })}
+        </span>
+      ))}
+    </>
+  );
+}
+
 // ─── Liste ────────────────────────────────────────────────────────────────────
 
 export function VisibilityBadge({
@@ -148,6 +210,7 @@ export function EventCard({ event }: { event: OrgEventView }) {
             {t("youAreRegistered")}
           </span>
         ) : null}
+        <MissingChips event={event} />
       </div>
       <EventTime
         startsAt={event.startsAt}
@@ -176,6 +239,8 @@ type RoleDraft = {
   id?: string;
   label: string;
   icon: SquadRoleIcon;
+  /** Tel que saisi : vide pour « pas d'objectif ». */
+  wanted: string;
 };
 type QuestionDraft = {
   key: string;
@@ -272,7 +337,12 @@ export function EventForm({
     initial?.visibility ?? "private",
   );
   const [roles, setRoles] = useState<RoleDraft[]>(
-    () => initial?.roles.map((role) => ({ ...role, key: role.id })) ?? [],
+    () =>
+      initial?.roles.map((role) => ({
+        ...role,
+        key: role.id,
+        wanted: role.wanted === null ? "" : String(role.wanted),
+      })) ?? [],
   );
   const [questions, setQuestions] = useState<QuestionDraft[]>(
     () =>
@@ -313,7 +383,12 @@ export function EventForm({
       meetingPoint,
       meetingPlaceSlug: meetingPlace?.slug ?? null,
       visibility,
-      roles: roles.map(({ id, label, icon }) => ({ id, label, icon })),
+      roles: roles.map(({ id, label, icon, wanted }) => ({
+        id,
+        label,
+        icon,
+        wanted: wanted.trim() ? Number(wanted) : null,
+      })),
       questions: questions.map(({ id, label, required }) => ({
         id,
         label,
@@ -497,6 +572,26 @@ export function EventForm({
                 )
               }
             />
+            <Input
+              type="number"
+              min={1}
+              max={ORG_EVENT_MAX_REGISTRATIONS}
+              step={1}
+              className="w-28 shrink-0"
+              aria-label={t("wanted")}
+              title={t("wanted")}
+              placeholder={t("wantedPlaceholder")}
+              value={role.wanted}
+              onChange={(event) =>
+                setRoles((current) =>
+                  current.map((candidate, at) =>
+                    at === index
+                      ? { ...candidate, wanted: event.target.value }
+                      : candidate,
+                  ),
+                )
+              }
+            />
             <Button
               type="button"
               variant="ghost"
@@ -518,7 +613,7 @@ export function EventForm({
             onClick={() =>
               setRoles((current) => [
                 ...current,
-                { key: nextKey(), label: "", icon: "crosshair" },
+                { key: nextKey(), label: "", icon: "crosshair", wanted: "" },
               ])
             }
           >
@@ -713,6 +808,9 @@ function RegistrationForm({
                 />
                 <RoleIcon icon={candidate.icon} className="size-3.5" />
                 {candidate.label}
+                <span className="text-xs text-white/60">
+                  {roleCount(candidate, event.roleCounts)}
+                </span>
               </label>
             ))}
           </div>
@@ -800,10 +898,10 @@ function OrganizerSummary({ event }: { event: OrgEventView }) {
   const counted = [
     ...event.roles.map((role) => ({
       role: role as OrgEventRole | null,
-      count: summary.roleCounts[role.id] ?? 0,
+      count: roleCount(role, summary.roleCounts),
     })),
     ...(summary.roleCounts[""]
-      ? [{ role: null, count: summary.roleCounts[""] }]
+      ? [{ role: null, count: String(summary.roleCounts[""]) }]
       : []),
   ];
 
@@ -998,6 +1096,23 @@ export function EventDetail({
             ({t("registrations", { count: event.registrationCount })})
           </span>
         </h2>
+        {event.roles.length > 0 ? (
+          <ul className="flex flex-wrap gap-3 text-sm">
+            {event.roles.map((role) => (
+              <li key={role.id} className="flex items-center gap-1">
+                <RoleTag role={role} />
+                <span className="font-semibold">
+                  {roleCount(role, event.roleCounts)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {event.roles.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            <MissingChips event={event} />
+          </div>
+        ) : null}
         {event.canRegister ? (
           event.participants.length === 0 ? (
             <p className="text-sm text-white/70">{t("noParticipants")}</p>

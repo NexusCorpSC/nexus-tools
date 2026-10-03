@@ -1554,6 +1554,7 @@
     }
   },
   "OrgEvents": {
+    "missing": "{count, plural, one {# {role} missing} other {# {role} missing}}",
     "title": "Events",
     "home": "Home",
     "organizations": "Organizations",
@@ -1579,6 +1580,8 @@
     "forbidden": "Only its creator and the organization's editors can edit this event.",
     "notMember": "Only members of the organization can plan an event.",
     "Form": {
+      "wanted": "Wanted",
+      "wantedPlaceholder": "—",
       "newTitle": "Plan an event",
       "editTitle": "Edit the event",
       "title": "Title",
@@ -1595,7 +1598,7 @@
       "visibilityPrivate": "Private: organization members only",
       "visibilityPublic": "Public: visible to everyone",
       "roles": "Roles",
-      "rolesHint": "If you offer roles, each participant picks one. The event's squad will reuse them.",
+      "rolesHint": "If you offer roles, each participant picks one. The event's squad will reuse them. The wanted count is not a cap: the page shows what is missing.",
       "addRole": "Add a role",
       "roleLabel": "Role name",
       "chooseIcon": "Choose the icon",
