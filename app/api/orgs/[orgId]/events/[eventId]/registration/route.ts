@@ -35,7 +35,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
 /**
  * DELETE /api/orgs/:orgId/events/:eventId/registration
  * Withdraws the caller. Their answers are kept but no longer counted.
- * Idempotent; answers with the event as the caller now sees it.
+ * Idempotent; responds with the event as the caller now sees it. Closed once
+ * the event is over, like registering.
  */
 export async function DELETE(_request: Request, { params }: Params) {
   const caller = await resolveAuthor();

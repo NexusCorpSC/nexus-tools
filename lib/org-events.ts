@@ -723,18 +723,22 @@ export async function registerToOrgEvent(
 /**
  * Désinscrit le membre. Ses réponses restent, hors des comptes. Idempotent :
  * pas inscrit, ou déjà désinscrit, ne change rien.
+ *
+ * Fermé une fois l'évènement terminé, comme l'inscription : qui était inscrit
+ * fait alors partie du compte rendu.
  */
 export async function withdrawFromOrgEvent(
   orgId: string,
   eventId: string,
   readerId: string,
-): Promise<{ view: OrgEventView } | { refusal: "not-found" }> {
+): Promise<{ view: OrgEventView } | { refusal: "not-found" | "closed" }> {
   const [access, doc] = await Promise.all([
     getOrgAccess(orgId, readerId),
     findEvent(orgId, eventId),
   ]);
 
   if (!access || !doc || !canRead(doc, access)) return { refusal: "not-found" };
+  if (new Date(doc.endsAt) <= new Date()) return { refusal: "closed" };
 
   const now = new Date().toISOString();
   const updated = await collection().findOneAndUpdate(

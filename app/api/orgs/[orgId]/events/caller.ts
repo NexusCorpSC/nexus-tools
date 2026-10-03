@@ -63,7 +63,7 @@ export function refusal(
       );
     case "closed":
       return NextResponse.json(
-        { error: "The event is over: registrations are closed" },
+        { error: "The event is over: registrations can no longer change" },
         { status: 409 },
       );
     case "full":
