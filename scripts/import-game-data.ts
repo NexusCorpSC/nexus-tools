@@ -3,10 +3,10 @@
  *
  *   npm run import:game-data -- <all|blueprints|missions|images> [options]
  *
- *   --source S         la source de tout : `wiki` (l'API du Star Citizen
- *                      Wiki) ou `scmdb` (les fichiers de scmdb.net)
- *   --blueprints-source S  la source des blueprints (défaut : wiki)
- *   --missions-source S    la source des factions et missions (défaut : scmdb)
+ *   --source S         la source de tout : `wiki` (défaut, l'API du Star
+ *                      Citizen Wiki) ou `scmdb` (les fichiers de scmdb.net)
+ *   --blueprints-source S  la source des seuls blueprints
+ *   --missions-source S    la source des seules factions et missions
  *   --version V        version du jeu à importer (défaut : celle que la source
  *                      sert par défaut, le dernier LIVE), par ex.
  *                      4.10.1-LIVE.12660092
@@ -25,14 +25,14 @@
  *   --dry-run          tout calculer et afficher le rapport, n'écrire nulle part
  *
  * Sources :
- *   - l'API du Star Citizen Wiki (`scripts/game-data/wiki.ts`), lue par ses
- *     listes à 200 lignes par page : une dizaine de requêtes pour les
- *     blueprints, plus le détail des seuls blueprints nouveaux ou dont la
- *     recette a changé ;
- *   - scmdb.net (`scripts/game-data/scmdb.ts`), pour les missions : il les
- *     découpe comme la base, résout leurs titres et a leurs récompenses, là
- *     où le wiki regroupe les variantes et n'a souvent pas de montant. Deux
- *     fichiers par version, gardés dans `.cache/game-data/scmdb/`.
+ *   - l'API du Star Citizen Wiki (`scripts/game-data/wiki.ts`), par défaut,
+ *     lue par ses listes à 200 lignes par page : une cinquantaine de
+ *     requêtes pour tout, plus le détail des seuls blueprints nouveaux ou
+ *     dont la recette a changé ;
+ *   - scmdb.net (`scripts/game-data/scmdb.ts`), en secours : deux fichiers
+ *     par version, gardés dans `.cache/game-data/scmdb/`. Il découpe les
+ *     missions plus finement que le wiki, qui regroupe les variantes d'une
+ *     même mission.
  * Les deux partagent les GUID des blueprints : on peut les combiner.
  *
  * Ce que l'import garantit (`scripts/game-data/plan.ts`) :
@@ -122,7 +122,7 @@ function parseArgs(argv: string[]): Options {
   const options: Options = {
     target: target as Target,
     blueprintsSource: "wiki",
-    missionsSource: "scmdb",
+    missionsSource: "wiki",
     allowMassRemoval: false,
     refreshRecipes: false,
     mirrorImages: false,
@@ -458,8 +458,9 @@ async function main() {
     );
   }
   // La sous-catégorie (taille, famille d'arme ou d'armure) n'est pas au
-  // wiki ; quand les fichiers scmdb sont déjà là pour les missions, ils la
-  // donnent sans requête de plus. Sinon une fiche garde la sienne.
+  // wiki ; quand les fichiers scmdb sont déjà là (missions prises chez
+  // scmdb), ils la donnent sans requête de plus. Sinon une fiche garde la
+  // sienne.
   const scmdbData = loaded.get("scmdb");
   if (bpData?.source === "wiki" && scmdbData) {
     const subcategories = new Map(

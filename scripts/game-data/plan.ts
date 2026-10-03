@@ -507,6 +507,9 @@ export function planBlueprints(
 export const factionKey = (name: string) =>
   name.trim().replace(/\s+/g, " ").toLowerCase();
 
+/** `<= PLACEHOLDER =>`, `[PH] Hostile` : des factions que le jeu n'a pas encore nommées. */
+const isPlaceholderFaction = (name: string) => /<=.*=>|^\[PH\]/i.test(name);
+
 export type FactionChanges = Changes<FactionDoc> & {
   byGameId: Map<string, FactionDoc>;
   byName: Map<string, FactionDoc>;
@@ -544,6 +547,12 @@ export function planFactions(
 
   const inserts: FactionDoc[] = [];
   for (const faction of data.factions) {
+    // Leurs missions restent sans faction.
+    if (isPlaceholderFaction(faction.name)) {
+      note(report, "ignorées (nom provisoire du jeu)", faction.name);
+      byGameId.delete(faction.gameId);
+      continue;
+    }
     let doc = matched.get(faction.gameId);
     if (!doc) {
       const named = byExistingName.get(factionKey(faction.name));
@@ -576,7 +585,8 @@ export function planFactions(
   const byName = new Map<string, FactionDoc>();
   for (const doc of all) {
     const key = factionKey(doc.name);
-    if (!byName.has(key)) byName.set(key, doc);
+    if (!byName.has(key) && !isPlaceholderFaction(doc.name))
+      byName.set(key, doc);
   }
 
   const updates = tracker.updates();

@@ -1,9 +1,8 @@
 /**
  * Les données du jeu telles que l'import les consomme, quelle que soit la
  * source qui les fournit : l'API du Star Citizen Wiki (`wiki.ts`, par
- * défaut pour les blueprints) ou scmdb.net (`scmdb.ts`, par défaut pour les
- * missions). Les deux partagent les GUID de blueprints, qui viennent des
- * fichiers du jeu.
+ * défaut) ou scmdb.net (`scmdb.ts`). Les deux partagent les GUID de
+ * blueprints, qui viennent des fichiers du jeu.
  *
  * Une source ne sait pas tout : un champ `undefined` veut dire « inconnu de
  * la source », et l'import garde alors ce que la fiche en base en dit ; `null`

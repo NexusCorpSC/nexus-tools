@@ -259,10 +259,10 @@ s'importent avec `scwiki --types Turret,MissileLauncher`.
 
 ## Import des blueprints, factions et missions
 
-Les blueprints de `/crafting` viennent de l'[API du Star Citizen
-Wiki](https://api.star-citizen.wiki), les factions et les missions de
-`/missions` de [scmdb.net](https://scmdb.net). Les deux partagent les GUID des
-blueprints, tirés des fichiers du jeu.
+Les blueprints de `/crafting`, les factions et les missions de `/missions`
+viennent de l'[API du Star Citizen Wiki](https://api.star-citizen.wiki).
+[scmdb.net](https://scmdb.net) reste branché en secours (`--source scmdb`) :
+les deux partagent les GUID des blueprints, tirés des fichiers du jeu.
 
 ```bash
 npm run import:game-data -- all --dry-run    # le rapport de ce qui changerait, sans rien écrire
@@ -270,16 +270,30 @@ npm run import:game-data -- all              # dernière version LIVE : blueprin
 npm run import:game-data -- images           # illustrations des blueprints qui n'en ont pas
 ```
 
-Le wiki est lu par ses listes, à 200 lignes par page : une dizaine de
-requêtes pour tous les blueprints. La recette complète d'un blueprint n'est
-qu'à son détail ; elle n'est demandée que pour les blueprints nouveaux ou dont
-les ingrédients ont changé (`--refresh-recipes` pour toutes les redemander).
+Le wiki est lu par ses listes, à 200 lignes par page : une cinquantaine de
+requêtes pour tout. La recette complète d'un blueprint n'est qu'à son détail ;
+elle n'est demandée que pour les blueprints nouveaux ou dont les ingrédients
+ont changé (`--refresh-recipes` pour toutes les redemander).
 
-Les missions restent sur scmdb : le wiki regroupe les variantes autrement que
-la base (569 missions auraient été fusionnées en 4.10.1), laisse certains
-titres non résolus (`[Contractor|BountyTitle]`) et n'a pas le montant de la
-récompense pour deux tiers d'entre elles. `--missions-source wiki` (ou
-`--source wiki|scmdb` pour tout) permet de changer.
+Ce que le wiki n'a pas :
+
+- **Le montant de la récompense** de beaucoup de missions : une mission déjà
+  en base garde le sien.
+- **Le type de mission du jeu** (Mercenary, Delivery…) : sa liste n'a que la
+  famille de la mission (Security, Hauling…), qui sert de type. La catégorie
+  (career, story, event) reste celle déjà en base.
+- **La sous-catégorie des blueprints** : une fiche garde la sienne.
+- **Certains titres** que le jeu remplit à l'affichage
+  (`[Contractor|BountyTitle]`) : ils ne remplacent pas le titre en base et ne
+  créent pas de mission.
+
+Le wiki regroupe aussi les variantes d'une mission sous une seule fiche, là où
+les premiers imports (scmdb) en faisaient plusieurs : au passage au wiki, ces
+fiches sont fusionnées et leurs liens redirigent vers la mission qui les
+regroupe.
+
+`--blueprints-source` et `--missions-source` choisissent la source de chaque
+partie.
 
 Options utiles : `--version 4.10.1-LIVE.12660092` (une version précise),
 `--dir dossier` (avec scmdb, des fichiers `merged-<V>.json` et
