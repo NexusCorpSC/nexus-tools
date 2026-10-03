@@ -387,6 +387,11 @@ async function ensureContributions(database: Db) {
   const points = database.collection("pointEvents");
   await points.createIndex({ userId: 1, at: -1 });
   await points.createIndex({ at: -1 });
+  // Un seul bonus de première image par lieu.
+  await points.createIndex(
+    { placeSlug: 1, reason: 1 },
+    { unique: true, partialFilterExpression: { reason: "firstMedia" } },
+  );
 }
 
 const STEPS: [string, (database: Db) => Promise<void>][] = [

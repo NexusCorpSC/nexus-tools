@@ -55,17 +55,22 @@ async function forEachId(
   const slugs: string[] = [];
   let skipped = 0;
 
-  for (const id of unique) {
-    try {
-      const contribution = await apply(id);
-      slugs.push(contribution.target.slug);
-    } catch (error) {
-      if (!(error instanceof ContributionError)) throw error;
-      skipped += 1;
+  try {
+    for (const id of unique) {
+      try {
+        const contribution = await apply(id);
+        slugs.push(contribution.target.slug);
+      } catch (error) {
+        if (!(error instanceof ContributionError)) throw error;
+        skipped += 1;
+      }
     }
+  } finally {
+    // Une erreur au milieu du lot n'annule pas ce qui est déjà publié : les
+    // pages concernées doivent le montrer.
+    revalidate(slugs);
   }
 
-  revalidate(slugs);
   return { done: slugs.length, skipped };
 }
 

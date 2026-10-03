@@ -2437,7 +2437,8 @@
       "invalidMedia": "Une des images n'a pas pu être acceptée. Retirez-la et réessayez.",
       "tooManyPending": "Vous avez déjà cinq envois en attente de relecture. Attendez qu'ils soient relus.",
       "notFound": "Cette contribution n'existe plus.",
-      "notPending": "Cette contribution a déjà été traitée."
+      "notPending": "Cette contribution a déjà été traitée.",
+      "ownContribution": "Une contribution se fait relire par quelqu’un d’autre que son auteur."
     },
     "reasons": {
       "offTopic": "Hors sujet : ce n'est pas ce lieu",

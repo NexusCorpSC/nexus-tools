@@ -214,6 +214,7 @@ export default async function PlacePage({
               signedIn={Boolean(session?.user)}
               defaultCredit={session?.user?.name}
               myPending={myPending}
+              firstBonus={media.length === 0 && !place.imageUrl}
             />
           </div>
 

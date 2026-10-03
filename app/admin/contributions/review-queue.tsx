@@ -4,7 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useFormatter, useNow, useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
+import { useNow } from "@/app/orgs/[orgId]/events/shared";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,9 @@ export function ReviewQueue({
 }) {
   const t = useTranslations("Contributions.Admin");
   const format = useFormatter();
-  const now = useNow({ updateInterval: 60_000 });
+  // `null` au rendu serveur : une durée relative calculée des deux côtés
+  // différerait de quelques secondes à l'hydratation.
+  const now = useNow();
   const router = useRouter();
   const [grouping, setGrouping] = useState<Grouping>("author");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -112,9 +115,11 @@ export function ReviewQueue({
     [items, grouping, t],
   );
 
-  const late = items.filter(
-    (item) => now.getTime() - Date.parse(item.createdAt) > LATE_MS,
-  ).length;
+  const late =
+    now === null
+      ? 0
+      : items.filter((item) => now - Date.parse(item.createdAt) > LATE_MS)
+          .length;
   const images = items.reduce((sum, item) => sum + item.media.length, 0);
   const authors = new Set(items.map((item) => item.userId)).size;
 
@@ -241,7 +246,7 @@ export function ReviewQueue({
             (sum, item) => sum + item.media.length,
             0,
           );
-          const isLate = now.getTime() - group.oldest > LATE_MS;
+          const isLate = now !== null && now - group.oldest > LATE_MS;
           const level =
             group.authorPoints !== undefined
               ? levelForPoints(group.authorPoints)
@@ -296,7 +301,7 @@ export function ReviewQueue({
                     isLate ? "text-amber-200" : "text-[#9ED0FF]/60",
                   )}
                 >
-                  {format.relativeTime(group.oldest, now)}
+                  {now !== null && format.relativeTime(group.oldest, now)}
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {grouping !== "none" && (
@@ -372,10 +377,11 @@ export function ReviewQueue({
                         <p className="text-xs text-[#9ED0FF]/65">
                           {[
                             item.userName,
-                            format.relativeTime(
-                              Date.parse(item.createdAt),
-                              now,
-                            ),
+                            now !== null &&
+                              format.relativeTime(
+                                Date.parse(item.createdAt),
+                                now,
+                              ),
                             item.gameVersion &&
                               t("gameVersion", { version: item.gameVersion }),
                             ...item.media
@@ -449,6 +455,9 @@ export function ReviewQueue({
       )}
 
       <RejectDialog
+        // Un formulaire neuf à chaque ouverture : le motif et le message
+        // d'un refus ne doivent pas partir avec le suivant.
+        key={rejecting?.join(",") ?? "closed"}
         ids={rejecting}
         pending={pending}
         onClose={() => setRejecting(null)}

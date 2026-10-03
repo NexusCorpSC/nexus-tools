@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { listPendingContributions } from "@/lib/contributions";
+import { hasPermission } from "@/lib/permissions";
+import { CONTRIBUTIONS_REVIEW_PERMISSION } from "@/types/contributions";
 import { ReviewQueue } from "./review-queue";
 
 export const metadata: Metadata = {
@@ -14,6 +17,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminContributionsPage() {
+  // Le layout d'admin ne suffit pas : une navigation peut ne rendre que la
+  // page. Même contrôle que les actions de relecture.
+  if (!(await hasPermission(CONTRIBUTIONS_REVIEW_PERMISSION))) notFound();
+
   const t = await getTranslations("Contributions.Admin");
   const { items, total } = await listPendingContributions();
 

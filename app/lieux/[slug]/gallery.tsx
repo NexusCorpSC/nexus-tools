@@ -83,6 +83,7 @@ export function PlaceGallery({
   signedIn,
   defaultCredit,
   myPending,
+  firstBonus,
 }: {
   slug: string;
   placeName: string;
@@ -90,6 +91,8 @@ export function PlaceGallery({
   signedIn: boolean;
   defaultCredit?: string;
   myPending: number;
+  /** Le lieu n'a ni galerie ni vignette : la première image rapporte plus. */
+  firstBonus: boolean;
 }) {
   const t = useTranslations("Contributions.Gallery");
   const [viewed, setViewed] = useState<PlaceMedia | null>(null);
@@ -134,9 +137,7 @@ export function PlaceGallery({
             {t("add")}
             <PointsChip
               points={
-                media.length === 0
-                  ? POINTS.media + POINTS.firstMedia
-                  : POINTS.media
+                firstBonus ? POINTS.media + POINTS.firstMedia : POINTS.media
               }
             />
           </Button>
@@ -218,6 +219,9 @@ function AddMediaDialog({
   const [credit, setCredit] = useState(defaultCredit ?? "");
   const [gameVersion, setGameVersion] = useState("");
   const [sending, setSending] = useState(false);
+  // Le temps de lire les dimensions : une seconde sélection compterait sur
+  // des brouillons pas encore ajoutés et dépasserait le maximum.
+  const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Les aperçus sont des URL d'objets : elles se libèrent quand l'image quitte
@@ -249,6 +253,7 @@ function AddMediaDialog({
     const room = MAX_MEDIA_PER_CONTRIBUTION - drafts.length;
     if (files.length > room) setError(tErrors("tooManyMedia"));
 
+    setPicking(true);
     const added: Draft[] = [];
     for (const file of files.slice(0, Math.max(0, room))) {
       if (!ACCEPTED.includes(file.type) || file.size > MAX_BYTES) {
@@ -271,6 +276,7 @@ function AddMediaDialog({
       }
     }
     setDrafts((current) => [...current, ...added]);
+    setPicking(false);
   }
 
   async function send() {
@@ -385,7 +391,7 @@ function AddMediaDialog({
                 multiple
                 accept={ACCEPTED.join(",")}
                 className="sr-only"
-                disabled={sending}
+                disabled={sending || picking}
                 onChange={pick}
               />
             </label>

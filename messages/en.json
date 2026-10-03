@@ -2406,7 +2406,8 @@
       "invalidMedia": "One of the images could not be accepted. Remove it and try again.",
       "tooManyPending": "You already have five uploads awaiting review. Wait for them to be reviewed.",
       "notFound": "This contribution no longer exists.",
-      "notPending": "This contribution has already been handled."
+      "notPending": "This contribution has already been handled.",
+      "ownContribution": "A contribution must be reviewed by someone other than its author."
     },
     "reasons": {
       "offTopic": "Off topic: not this place",

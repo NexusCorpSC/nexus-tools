@@ -176,6 +176,12 @@ export const MAX_PENDING_RECRUIT = 5;
 /** À partir de ce niveau, les images sont publiées sans relecture préalable. */
 export const DIRECT_MEDIA_LEVEL = 2;
 
+/**
+ * Pas plus d'images publiées sans relecture par jour et par joueur (hors
+ * niveau 5) : au-delà, elles attendent dans la file comme les autres.
+ */
+export const DIRECT_MEDIA_DAILY_CAP = 12;
+
 export const CONTRIBUTIONS_REVIEW_PERMISSION = "contributions:review";
 
 export type ContributorStanding = {
@@ -199,6 +205,7 @@ export const CONTRIBUTION_ERRORS = [
   "tooManyPending",
   "notFound",
   "notPending",
+  "ownContribution",
 ] as const;
 
 export type ContributionErrorCode = (typeof CONTRIBUTION_ERRORS)[number];

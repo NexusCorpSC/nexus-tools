@@ -2,10 +2,11 @@ import "server-only";
 import { ObjectId } from "mongodb";
 import { del } from "@vercel/blob";
 import db from "@/lib/db";
-import { getPlaceBySlug, setPlaceImage } from "@/lib/places";
+import { getPlaceBySlug, setPlaceImageIfMissing } from "@/lib/places";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import {
   ACCEPTANCE_WINDOW,
+  DIRECT_MEDIA_DAILY_CAP,
   DIRECT_MEDIA_LEVEL,
   LEVELS,
   MAX_GAME_VERSION_LENGTH,
@@ -48,6 +49,14 @@ import {
  * listés dans `next.config.ts`, et ferait de la galerie un hébergeur de liens.
  */
 const BLOB_HOST = "gwgsmex5adyadzri.public.blob.vercel-storage.com";
+
+/**
+ * Le chemin exact que `/api/lieux/upload` accorde, suffixe aléatoire compris.
+ * Un simple préfixe laisserait passer `#…`, `%2F` ou des segments en plus : la
+ * même image sous une autre adresse, que le refus enverrait ensuite à `del()`.
+ */
+const MEDIA_PATH =
+  /^\/lieux\/([a-z0-9-]{1,120})\/media\/[A-Za-z0-9_-]{1,120}\.(?:jpe?g|png|webp)$/i;
 
 const MAX_IMAGE_SIDE = 20_000;
 
@@ -104,7 +113,12 @@ interface DbPointEvent {
   userId: ObjectId;
   contributionId: ObjectId;
   delta: number;
-  reason: "published";
+  /**
+   * `firstMedia` porte le slug du lieu : un index unique sur ce couple fait
+   * qu'un seul auteur touche le bonus, même publié en même temps qu'un autre.
+   */
+  reason: "published" | "firstMedia";
+  placeSlug?: string;
   at: Date;
 }
 
@@ -286,11 +300,15 @@ function normalizeMediaInput(slug: string, input: unknown): PlaceMediaInput {
   } catch {
     throw new ContributionError("invalidMedia", 400);
   }
+  const path = MEDIA_PATH.exec(url.pathname);
   if (
     url.protocol !== "https:" ||
     url.hostname !== BLOB_HOST ||
-    url.search ||
-    !url.pathname.startsWith(`/lieux/${slug}/media/`)
+    url.port ||
+    url.username ||
+    url.password ||
+    /[?#]/.test(raw.url) ||
+    path?.[1] !== slug
   ) {
     throw new ContributionError("invalidMedia", 400);
   }
@@ -309,7 +327,8 @@ function normalizeMediaInput(slug: string, input: unknown): PlaceMediaInput {
   }
 
   return {
-    url: url.toString(),
+    // Une seule écriture par image : c'est elle que l'index unique compare.
+    url: `${url.origin}${url.pathname}`,
     width,
     height,
     caption: cleanText(raw.caption, MAX_MEDIA_CAPTION_LENGTH),
@@ -347,10 +366,19 @@ export async function submitPlaceMedia(
   if (reused > 0) throw new ContributionError("invalidMedia", 400);
 
   const standing = await getStanding(author.id);
-  const direct = standing.level >= DIRECT_MEDIA_LEVEL;
-  if (!direct && standing.pending >= MAX_PENDING_RECRUIT) {
+  if (
+    standing.level < DIRECT_MEDIA_LEVEL &&
+    standing.pending >= MAX_PENDING_RECRUIT
+  ) {
     throw new ContributionError("tooManyPending", 429);
   }
+  // Au-delà du plafond du jour, l'envoi n'est pas refusé : il passe par la
+  // file, comme celui d'une Recrue.
+  const direct =
+    standing.level >= DIRECT_MEDIA_LEVEL &&
+    (standing.level >= 5 ||
+      (await countDirectMediaToday(author.id)) + images.length <=
+        DIRECT_MEDIA_DAILY_CAP);
 
   const now = new Date();
   const contributionId = new ObjectId();
@@ -382,8 +410,16 @@ export async function submitPlaceMedia(
     createdAt: now,
   };
 
-  await placeMedia().insertMany(media);
-  await contributions().insertOne(contribution);
+  try {
+    await placeMedia().insertMany(media);
+    await contributions().insertOne(contribution);
+  } catch (error) {
+    // Pas d'image en attente sans contribution : personne ne la relirait.
+    await placeMedia().deleteMany({ contributionId });
+    // Deux envois simultanés de la même image : l'index unique tranche.
+    if (isDuplicateKey(error)) throw new ContributionError("invalidMedia", 400);
+    throw error;
+  }
 
   const result = direct
     ? await publish(contribution, null)
@@ -392,74 +428,134 @@ export async function submitPlaceMedia(
   return { contribution: result, standing: await getStanding(author.id) };
 }
 
+function isDuplicateKey(error: unknown): boolean {
+  return (error as { code?: unknown } | null)?.code === 11000;
+}
+
+/** Les images publiées sans relecture par ce joueur depuis 24 heures. */
+async function countDirectMediaToday(userId: ObjectId): Promise<number> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [row] = await contributions()
+    .aggregate<{ count: number }>([
+      {
+        $match: {
+          userId,
+          status: "published",
+          publishedAt: { $gte: since },
+          "review.by": { $exists: false },
+        },
+      },
+      { $group: { _id: null, count: { $sum: { $size: "$mediaIds" } } } },
+    ])
+    .toArray();
+  return row?.count ?? 0;
+}
+
 // ─── Relecture ──────────────────────────────────────────────────────────────
 
 /**
- * Publie une contribution en attente : ses images rejoignent la galerie, le
- * lieu prend la première comme vignette s'il n'en avait pas, et l'auteur est
- * crédité. `reviewer` est absent pour une publication directe.
+ * Publie une contribution en attente : ses images rejoignent la galerie, et
+ * l'auteur est crédité. `reviewer` est absent pour une publication directe.
  *
  * Le passage de `pending` à `published` est le verrou : deux relecteurs qui
- * publient en même temps ne créditent l'auteur qu'une fois.
+ * publient en même temps ne créditent l'auteur qu'une fois. Tout ce qui dépend
+ * de l'état du lieu (bonus de première image, vignette) se décide après lui,
+ * par des écritures conditionnelles plutôt que sur une lecture faite avant.
  */
 async function publish(
   contribution: DbContribution,
   reviewer: Contributor | null,
 ): Promise<Contribution> {
   const slug = contribution.target.slug;
-  const [alreadyPublished, place] = await Promise.all([
-    placeMedia().countDocuments({ placeSlug: slug, status: "published" }),
-    getPlaceBySlug(slug),
-  ]);
-
-  const firstOfPlace = alreadyPublished === 0 && !place?.imageUrl;
-  const points =
-    contribution.mediaIds.length * POINTS.media +
-    (firstOfPlace ? POINTS.firstMedia : 0);
   const now = new Date();
 
-  const updated = await contributions().findOneAndUpdate(
+  const locked = await contributions().findOneAndUpdate(
     { _id: contribution._id, status: "pending" },
     {
       $set: {
         status: "published",
-        points,
         publishedAt: now,
         ...(reviewer
           ? { review: { by: reviewer.id, byName: reviewer.name, at: now } }
           : {}),
       },
     },
-    { returnDocument: "after" },
   );
-  if (!updated) throw new ContributionError("notPending", 409);
+  if (!locked) throw new ContributionError("notPending", 409);
 
   await placeMedia().updateMany(
     { _id: { $in: contribution.mediaIds } },
     { $set: { status: "published" } },
   );
 
-  if (place && !place.imageUrl) {
-    const cover = await placeMedia().findOne(
-      { _id: { $in: contribution.mediaIds } },
-      { sort: { createdAt: 1 } },
-    );
-    if (cover) await setPlaceImage(slug, cover.url);
-  }
-
+  const mediaPoints = contribution.mediaIds.length * POINTS.media;
+  const bonus = (await claimFirstMedia(contribution, now))
+    ? POINTS.firstMedia
+    : 0;
   await pointEvents().insertOne({
     userId: contribution.userId,
     contributionId: contribution._id,
-    delta: points,
+    delta: mediaPoints,
     reason: "published",
     at: now,
   });
   await users().updateOne(
     { _id: contribution.userId },
-    { $inc: { "contrib.points": points } },
+    { $inc: { "contrib.points": mediaPoints + bonus } },
+  );
+  const updated = await contributions().findOneAndUpdate(
+    { _id: contribution._id },
+    { $set: { points: mediaPoints + bonus } },
+    { returnDocument: "after" },
   );
 
-  return toContribution(updated);
+  // La vignette se voit partout où le lieu est cité : elle ne vient que d'une
+  // image qu'un humain a regardée, et ne remplace jamais celle d'un admin.
+  if (reviewer) {
+    const cover = await placeMedia().findOne(
+      { _id: { $in: contribution.mediaIds } },
+      { sort: { createdAt: 1 } },
+    );
+    if (cover) await setPlaceImageIfMissing(slug, cover.url);
+  }
+
+  return toContribution(updated!);
+}
+
+/**
+ * Le bonus de première image d'un lieu qui n'en avait aucune. Au plus un
+ * auteur le touche : l'index unique de `pointEvents` sur `(placeSlug, reason)`
+ * départage deux publications simultanées.
+ */
+async function claimFirstMedia(
+  contribution: DbContribution,
+  at: Date,
+): Promise<boolean> {
+  const slug = contribution.target.slug;
+  const [others, place] = await Promise.all([
+    placeMedia().countDocuments({
+      placeSlug: slug,
+      status: "published",
+      contributionId: { $ne: contribution._id },
+    }),
+    getPlaceBySlug(slug),
+  ]);
+  if (others > 0 || !place || place.imageUrl) return false;
+
+  try {
+    await pointEvents().insertOne({
+      userId: contribution.userId,
+      contributionId: contribution._id,
+      delta: POINTS.firstMedia,
+      reason: "firstMedia",
+      placeSlug: slug,
+      at,
+    });
+    return true;
+  } catch (error) {
+    if (isDuplicateKey(error)) return false;
+    throw error;
+  }
 }
 
 async function findPending(id: string): Promise<DbContribution> {
@@ -474,7 +570,12 @@ export async function publishContribution(
   id: string,
   reviewer: Contributor,
 ): Promise<Contribution> {
-  return publish(await findPending(id), reviewer);
+  const contribution = await findPending(id);
+  // Se relire soi-même, c'est contourner la relecture et se créditer.
+  if (contribution.userId.equals(reviewer.id)) {
+    throw new ContributionError("ownContribution", 403);
+  }
+  return publish(contribution, reviewer);
 }
 
 /**

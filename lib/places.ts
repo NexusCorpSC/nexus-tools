@@ -1704,6 +1704,31 @@ export async function setPlaceImage(
   return matchedCount > 0;
 }
 
+/**
+ * Pose la vignette d'un lieu qui n'en a pas encore. Conditionnelle en base :
+ * une vignette posée entre-temps, par un admin ou une autre publication, reste.
+ */
+export async function setPlaceImageIfMissing(
+  slug: string,
+  imageUrl: string,
+): Promise<boolean> {
+  const url = optionalUrl(imageUrl);
+  if (!url) throw new Error(`URL d'image invalide : ${imageUrl}`);
+
+  const { modifiedCount } = await collection().updateOne(
+    {
+      slug,
+      $or: [
+        { imageUrl: { $exists: false } },
+        { imageUrl: { $type: "null" } },
+        { imageUrl: "" },
+      ],
+    },
+    { $set: { imageUrl: url, updatedAt: new Date().toISOString() } },
+  );
+  return modifiedCount > 0;
+}
+
 /** Les lieux qui empruntent un plan à celui-ci, avec les plans qu'ils visent. */
 async function borrowersOf(
   slug: string,
