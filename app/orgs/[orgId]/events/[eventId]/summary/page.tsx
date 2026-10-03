@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { getOrgEventSummary, getOrgEventView } from "@/lib/org-events";
+import {
+  getEventSquad,
+  getOrgEventSummary,
+  getOrgEventView,
+} from "@/lib/org-events";
 import { OrganizerSummary } from "../../organizer";
 import { EventsShell, orgName, readerIdFromSession } from "../../shell";
 
@@ -24,6 +28,7 @@ export default async function OrgEventSummaryPage({ params }: Params) {
     getOrgEventSummary(orgId, eventId, readerId),
   ]);
   if (!name || !event) notFound();
+  const squad = await getEventSquad(event.squadId);
 
   return (
     <EventsShell
@@ -35,7 +40,11 @@ export default async function OrgEventSummaryPage({ params }: Params) {
       ]}
     >
       {"summary" in outcome ? (
-        <OrganizerSummary event={event} summary={outcome.summary} />
+        <OrganizerSummary
+          event={event}
+          summary={outcome.summary}
+          squad={squad}
+        />
       ) : (
         <p className="text-white/70">{t("forbidden")}</p>
       )}

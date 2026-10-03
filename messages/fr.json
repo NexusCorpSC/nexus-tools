@@ -1720,7 +1720,8 @@
       "error": "L'inscription a échoué : {message}",
       "signIn": "Connectez-vous pour vous inscrire.",
       "showAsPlanned": "L'afficher comme ma prochaine session",
-      "shownAsPlanned": "Ajouté à votre statut comme session prévue. Vos amis et l'orga le voient."
+      "shownAsPlanned": "Ajouté à votre statut comme session prévue. Vos amis et l'orga le voient.",
+      "squadReady": "L'escouade de l'évènement est prête : l'ouvrir"
     },
     "Summary": {
       "title": "Résumé de l'organisateur",
@@ -1744,7 +1745,15 @@
       "active": "Actif",
       "withdrawnStatus": "Désinscrit",
       "withdrawn": "{count, plural, one {# désinscrit} other {# désinscrits}} · réponses gardées, hors des comptes",
-      "empty": "Aucune inscription active."
+      "empty": "Aucune inscription active.",
+      "createSquad": "Créer l'escouade",
+      "squadTitle": "Créer l'escouade de l'évènement",
+      "squadHint": "{count, plural, one {Une escouade de # inscrit} other {Une escouade de # inscrits}} menée par vous{hasRoles, select, yes {, avec les rôles {roles}} other {}}. Chacun garde le rôle choisi à l'inscription et la retrouve dans sa liste d'escouades, sans quitter la sienne. Au-delà de 20, plusieurs escouades réunies en raid.",
+      "squadCreated": "L'escouade est prête",
+      "squadCreatedDetail": "{count, plural, one {{name}, code} other {# escouades réunies en raid, la première avec le code}}",
+      "squadLeftOut": "{count, plural, one {# inscrit n'a pas trouvé de place} other {# inscrits n'ont pas trouvé de place}} : un raid compte au plus 6 escouades.",
+      "openSquad": "Ouvrir l'escouade",
+      "squadError": "La création de l'escouade a échoué : {message}"
     }
   },
   "NewOrganization": {

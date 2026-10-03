@@ -8,6 +8,7 @@ import {
   normalizeCode,
 } from "@/lib/join-codes";
 import {
+  createRaid,
   deleteRaid,
   getRaid,
   setRaidLeadSquad,
@@ -17,6 +18,8 @@ import {
   BASE_SQUAD_ROLES,
   RAID_MAX_SQUADS,
   SQUAD_MAX_MEMBERS,
+  SQUAD_MAX_ROLES,
+  SQUAD_NAME_MAX_LENGTH,
   type RaidView,
   type ReadyCheck,
   type Squad,
@@ -270,9 +273,7 @@ export async function getSquadsForUser(userId: string): Promise<Squad[]> {
   const docs = await collection().find({ "members.userId": userId }).toArray();
 
   return docs
-    .sort((a, b) =>
-      joinedAtOf(a, userId).localeCompare(joinedAtOf(b, userId)),
-    )
+    .sort((a, b) => joinedAtOf(a, userId).localeCompare(joinedAtOf(b, userId)))
     .map(toSquad);
 }
 
@@ -297,7 +298,10 @@ export function membershipsOf(squads: Squad[]): SquadMembership[] {
  * is not in is refused by the route instead: acting on some other squad than
  * the one asked for is not a recovery.
  */
-export function pickSquad(squads: Squad[], squadId?: string | null): Squad | null {
+export function pickSquad(
+  squads: Squad[],
+  squadId?: string | null,
+): Squad | null {
   if (squadId) {
     const named = squads.find((squad) => squad.id === squadId);
     if (named) return named;
@@ -372,6 +376,123 @@ export async function createSquad(
   await leaveAllSquads(userId);
 
   return insertSquad(userId, name, memberName, null);
+}
+
+/** Whether a squad still exists: the last member out deletes it. */
+export async function squadExists(squadId: string): Promise<boolean> {
+  if (!ObjectId.isValid(squadId)) return false;
+  return (
+    (await collection().countDocuments(
+      { _id: new ObjectId(squadId) },
+      { limit: 1 },
+    )) > 0
+  );
+}
+
+/** The names a raid's squads take, in order. */
+const SQUAD_LETTERS = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"];
+
+export interface EventSquadsOutcome {
+  /** The squad the organiser leads first — the raid's lead squad, if any. */
+  squad: Squad;
+  /** Every squad created, `squad` first. */
+  squads: Squad[];
+  raidId: string | null;
+  /** Registrants past what six squads of twenty can hold. */
+  leftOut: number;
+}
+
+/**
+ * Builds the squads of an organization event: the organiser leads, every
+ * registrant is in with the role they picked.
+ *
+ * Nobody leaves the squad they are in: being put in the event's squad is an
+ * invitation they can act on, not a move made for them — the same multiple
+ * membership a raid's organiser already has. Past `SQUAD_MAX_MEMBERS`, the
+ * registrants are split, role by role, into squads under one raid, each led by
+ * the organiser until they hand it over.
+ *
+ * `roles` are the squad's roles past the base ones, and `members[].role` an id
+ * among `BASE_SQUAD_ROLES` or `roles` — the caller maps the event's roles.
+ */
+export async function createSquadsForEvent(input: {
+  name: string;
+  leader: { userId: string; name: string; role: string };
+  roles: SquadRole[];
+  members: { userId: string; name: string; role: string }[];
+}): Promise<EventSquadsOutcome> {
+  const roles = [
+    ...BASE_SQUAD_ROLES.map((role) => ({ ...role })),
+    ...input.roles,
+  ].slice(0, SQUAD_MAX_ROLES);
+  const known = new Set(roles.map((role) => role.id));
+  const roleOf = (role: string) => (known.has(role) ? role : "");
+
+  const others = input.members.filter(
+    (member) => member.userId !== input.leader.userId,
+  );
+  // The leader sits in every squad, so each has one seat less for the others.
+  const seats = SQUAD_MAX_MEMBERS - 1;
+  const count = Math.min(
+    RAID_MAX_SQUADS,
+    Math.max(1, Math.ceil(others.length / seats)),
+  );
+  const chunks = Array.from({ length: count }, (_, index) =>
+    others.slice(index * seats, (index + 1) * seats),
+  );
+  const leftOut = Math.max(0, others.length - count * seats);
+
+  const baseName = input.name.slice(0, SQUAD_NAME_MAX_LENGTH);
+  const nameOf = (index: number) =>
+    count === 1
+      ? baseName
+      : `${input.name.slice(0, SQUAD_NAME_MAX_LENGTH - 10)} · ${SQUAD_LETTERS[index]}`;
+
+  const now = new Date().toISOString();
+  const ids = chunks.map(() => new ObjectId());
+  const raid =
+    count > 1 ? await createRaid(input.name, ids[0].toString()) : null;
+
+  const squads: Squad[] = [];
+  for (const [index, chunk] of chunks.entries()) {
+    const members = [
+      {
+        ...newMember(input.leader.userId, input.leader.name, now),
+        role: roleOf(input.leader.role),
+      },
+      ...chunk.map((member) => ({
+        ...newMember(member.userId, member.name, now),
+        role: roleOf(member.role),
+      })),
+    ];
+
+    let inserted: DbSquad | null = null;
+    for (let attempt = 0; attempt < CODE_ATTEMPTS && !inserted; attempt += 1) {
+      const doc: DbSquad = {
+        _id: ids[index],
+        name: nameOf(index),
+        code: newCode(),
+        leaderId: input.leader.userId,
+        announcements: "",
+        members,
+        roles: roles.map((role) => ({ ...role })),
+        raidId: raid?.id ?? null,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      try {
+        await collection().insertOne(doc);
+        inserted = doc;
+      } catch (error) {
+        if (duplicateOf(error) !== "code") throw error;
+      }
+    }
+    if (!inserted) throw new Error("could not allocate a free squad code");
+    squads.push(toSquad(inserted));
+  }
+
+  return { squad: squads[0], squads, raidId: raid?.id ?? null, leftOut };
 }
 
 export type CreateInRaidOutcome = { squad: Squad } | { refusal: "full" };
@@ -506,7 +627,10 @@ export async function leaveAllSquads(userId: string): Promise<void> {
  * Idempotent: a squad the caller is not in, or that does not exist, is left
  * alone.
  */
-export async function leaveSquad(userId: string, squadId: string): Promise<void> {
+export async function leaveSquad(
+  userId: string,
+  squadId: string,
+): Promise<void> {
   if (!ObjectId.isValid(squadId)) return;
 
   const squad = await collection().findOne({

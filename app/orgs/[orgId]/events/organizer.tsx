@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type {
@@ -14,9 +14,11 @@ import type {
 } from "@/types/org-events";
 import {
   RoleTag,
+  errorOf,
   kicker,
   missingFor,
   panel,
+  primaryButton,
   roleById,
   useCountdown,
   useDuration,
@@ -37,9 +39,12 @@ function csvCell(value: string): string {
 export function OrganizerSummary({
   event,
   summary,
+  squad,
 }: {
   event: OrgEventView;
   summary: OrgEventSummary;
+  /** L'escouade déjà tirée de l'évènement, si elle existe encore. */
+  squad: EventSquad | null;
 }) {
   const t = useTranslations("OrgEvents.Summary");
   const now = useNow();
@@ -135,16 +140,26 @@ export function OrganizerSummary({
           </Link>
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
         </div>
-        <Button
-          variant="outline"
-          onClick={exportCsv}
-          disabled={
-            summary.registrations.length + summary.withdrawn.length === 0
-          }
-        >
-          <Download className="size-4" />
-          {t("exportCsv")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {squad === null && summary.registrationCount > 0 ? (
+            <Button asChild className={primaryButton}>
+              <a href="#escouade">
+                <Users className="size-4" />
+                {t("createSquad")}
+              </a>
+            </Button>
+          ) : null}
+          <Button
+            variant="outline"
+            onClick={exportCsv}
+            disabled={
+              summary.registrations.length + summary.withdrawn.length === 0
+            }
+          >
+            <Download className="size-4" />
+            {t("exportCsv")}
+          </Button>
+        </div>
       </header>
 
       <section
@@ -320,7 +335,119 @@ export function OrganizerSummary({
           </details>
         ) : null}
       </section>
+
+      {summary.registrationCount > 0 || squad ? (
+        <SquadCard event={event} summary={summary} initial={squad} />
+      ) : null}
     </div>
+  );
+}
+
+type EventSquad = { id: string; name: string; code: string };
+
+/** Tirer l'escouade de l'évènement, ou dire laquelle l'a été. */
+function SquadCard({
+  event,
+  summary,
+  initial,
+}: {
+  event: OrgEventView;
+  summary: OrgEventSummary;
+  initial: EventSquad | null;
+}) {
+  const t = useTranslations("OrgEvents.Summary");
+  const [squad, setSquad] = useState(initial);
+  const [squadCount, setSquadCount] = useState(1);
+  const [leftOut, setLeftOut] = useState(0);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const roles = event.roles.map((role) => role.label);
+  const people = summary.registrationCount;
+
+  async function create() {
+    setPending(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/orgs/${event.orgId}/events/${event.id}/squad`,
+        { method: "POST" },
+      );
+      if (!response.ok) throw new Error(await errorOf(response));
+      const body: {
+        squad: EventSquad;
+        squadCount: number;
+        leftOut: number;
+      } = await response.json();
+      setSquad(body.squad);
+      setSquadCount(body.squadCount);
+      setLeftOut(body.leftOut);
+    } catch (failure) {
+      setError(
+        t("squadError", {
+          message: failure instanceof Error ? failure.message : "?",
+        }),
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (squad) {
+    return (
+      <section
+        id="escouade"
+        className={cn(
+          panel,
+          "flex scroll-mt-6 flex-wrap items-center justify-between gap-4 p-5",
+        )}
+      >
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">{t("squadCreated")}</h2>
+          <p className="text-sm text-white/70">
+            {t("squadCreatedDetail", { name: squad.name, count: squadCount })}{" "}
+            <span className="rounded-md bg-[#071A2B] px-2 py-0.5 font-mono text-[#9ED0FF]">
+              {squad.code}
+            </span>
+          </p>
+          {leftOut > 0 ? (
+            <p className="text-sm text-[#F7D2AE]">
+              {t("squadLeftOut", { count: leftOut })}
+            </p>
+          ) : null}
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/squads">{t("openSquad")}</Link>
+        </Button>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      id="escouade"
+      className="flex scroll-mt-6 flex-wrap items-center justify-between gap-4 rounded-2xl border border-dashed border-[#9ED0FF]/35 p-5"
+    >
+      <div className="max-w-xl space-y-1">
+        <h2 className="text-lg font-semibold">{t("squadTitle")}</h2>
+        <p className="text-sm text-white/70">
+          {t("squadHint", {
+            count: people,
+            roles: roles.join(", "),
+            hasRoles: roles.length > 0 ? "yes" : "no",
+          })}
+        </p>
+        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      </div>
+      <Button
+        className={primaryButton}
+        disabled={pending}
+        onClick={() => void create()}
+      >
+        <Users className="size-4" />
+        {t("createSquad")}
+      </Button>
+    </section>
   );
 }
 

@@ -13,6 +13,7 @@ import {
   Pencil,
   Trash2,
   User,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -542,6 +543,15 @@ function RegistrationPanel({
             </p>
           </div>
         </div>
+        {event.squadId ? (
+          <Link
+            href="/squads"
+            className="flex items-center gap-2 rounded-xl bg-[#1D5A3A]/50 px-3 py-2.5 text-sm text-[#D5F5E3] hover:bg-[#1D5A3A]/70"
+          >
+            <Users className="size-4 shrink-0" />
+            {t("squadReady")}
+          </Link>
+        ) : null}
         {shownAsPlanned ? (
           <p className="rounded-xl bg-[#071A2B]/70 px-3 py-2.5 text-sm text-[#F7D2AE]">
             {t("shownAsPlanned")}

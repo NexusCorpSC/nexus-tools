@@ -3,8 +3,13 @@ import { ObjectId } from "mongodb";
 import db from "@/lib/db";
 import { newCode } from "@/lib/join-codes";
 import { getPlaceBySlug } from "@/lib/places";
+import { createSquadsForEvent, squadExists } from "@/lib/squads";
 import type { Organization } from "@/app/orgs/page";
-import { isSquadRoleIcon } from "@/types/squad";
+import {
+  BASE_SQUAD_ROLES,
+  isSquadRoleIcon,
+  type SquadRole,
+} from "@/types/squad";
 import {
   ORG_EVENT_ANSWER_MAX_LENGTH,
   ORG_EVENT_DESCRIPTION_MAX_LENGTH,
@@ -898,4 +903,132 @@ export async function findMyUpcomingEvent(
     startsAt: doc.startsAt,
     endsAt: doc.endsAt,
   };
+}
+
+// ─── Escouade ─────────────────────────────────────────────────────────────────
+
+export type EventSquadOutcome =
+  | {
+      view: OrgEventView;
+      squad: { id: string; name: string; code: string };
+      squadCount: number;
+      leftOut: number;
+    }
+  | { refusal: "not-found" | "forbidden" | "already" | "empty" };
+
+/**
+ * Tire l'escouade d'un évènement : l'organisateur qui la crée la mène, chaque
+ * inscrit actif y entre avec son rôle. Au-delà de 20, plusieurs escouades
+ * sous un raid — voir `createSquadsForEvent`.
+ *
+ * Les rôles de l'évènement deviennent ceux de l'escouade ; un rôle qui porte
+ * le nom d'un rôle de base (« Médic ») reprend celui-là plutôt que d'en créer
+ * un second.
+ *
+ * Une fois : tant que l'escouade existe, c'est `already`. Quand elle a été
+ * dissoute (le dernier membre parti), on peut en tirer une nouvelle.
+ */
+export async function createSquadFromEvent(
+  orgId: string,
+  eventId: string,
+  caller: { userId: string; name: string },
+): Promise<EventSquadOutcome> {
+  const [access, doc] = await Promise.all([
+    getOrgAccess(orgId, caller.userId),
+    findEvent(orgId, eventId),
+  ]);
+
+  if (!access || !doc || !canRead(doc, access)) return { refusal: "not-found" };
+  if (!canManage(doc, access, caller.userId)) return { refusal: "forbidden" };
+  if (doc.squadId && (await squadExists(doc.squadId))) {
+    return { refusal: "already" };
+  }
+
+  const registrations = activeRegistrations(doc);
+  if (registrations.length === 0) return { refusal: "empty" };
+
+  const baseByLabel = new Map(
+    BASE_SQUAD_ROLES.map((role) => [role.label.toLocaleLowerCase(), role.id]),
+  );
+  const roleIds = new Map<string, string>();
+  const extraRoles: SquadRole[] = [];
+  for (const role of toEvent(doc).roles) {
+    const base = baseByLabel.get(role.label.trim().toLocaleLowerCase());
+    if (base) {
+      roleIds.set(role.id, base);
+    } else {
+      roleIds.set(role.id, role.id);
+      extraRoles.push({
+        id: role.id,
+        label: role.label,
+        icon: role.icon,
+        base: false,
+      });
+    }
+  }
+
+  // Rôle par rôle, dans l'ordre de l'évènement, puis par ordre d'inscription :
+  // une escouade coupée en deux garde ses mineurs ensemble.
+  const order = new Map(doc.roles.map((role, index) => [role.id, index]));
+  const members = [...registrations]
+    .sort(
+      (a, b) =>
+        (order.get(a.role) ?? doc.roles.length) -
+          (order.get(b.role) ?? doc.roles.length) ||
+        a.registeredAt.localeCompare(b.registeredAt),
+    )
+    .map((registration) => ({
+      userId: registration.userId,
+      name: registration.name,
+      role: roleIds.get(registration.role) ?? "",
+    }));
+
+  const mine = registrations.find(
+    (registration) => registration.userId === caller.userId,
+  );
+  const created = await createSquadsForEvent({
+    name: doc.title,
+    leader: {
+      userId: caller.userId,
+      name: caller.name,
+      role: mine ? (roleIds.get(mine.role) ?? "") : "",
+    },
+    roles: extraRoles,
+    members,
+  });
+
+  const now = new Date().toISOString();
+  const updated = await collection().findOneAndUpdate(
+    { _id: doc._id },
+    { $set: { squadId: created.squad.id, updatedAt: now } },
+    { returnDocument: "after" },
+  );
+
+  return {
+    view: toView(updated ?? doc, access, caller.userId),
+    squad: {
+      id: created.squad.id,
+      name: created.squad.name,
+      code: created.squad.code,
+    },
+    squadCount: created.squads.length,
+    leftOut: created.leftOut,
+  };
+}
+
+/** Le nom et le code de l'escouade d'un évènement, si elle existe encore. */
+export async function getEventSquad(
+  squadId: string | null,
+): Promise<{ id: string; name: string; code: string } | null> {
+  if (!squadId || !ObjectId.isValid(squadId)) return null;
+  const squad = await db
+    .db()
+    .collection<{ _id: ObjectId; name: string; code: string }>("squads")
+    .findOne(
+      { _id: new ObjectId(squadId) },
+      { projection: { name: 1, code: 1 } },
+    );
+  return squad
+    ? { id: squad._id.toString(), name: squad.name, code: squad.code }
+    : null;
 }

@@ -1719,7 +1719,8 @@
       "error": "Registration failed: {message}",
       "signIn": "Sign in to register.",
       "showAsPlanned": "Show it as my next session",
-      "shownAsPlanned": "Added to your status as a planned session. Your friends and the organization see it."
+      "shownAsPlanned": "Added to your status as a planned session. Your friends and the organization see it.",
+      "squadReady": "The event's squad is ready: open it"
     },
     "Summary": {
       "title": "Organizer summary",
@@ -1743,7 +1744,15 @@
       "active": "Active",
       "withdrawnStatus": "Withdrawn",
       "withdrawn": "{count, plural, one {# withdrawn} other {# withdrawn}} · answers kept, not counted",
-      "empty": "No active registration."
+      "empty": "No active registration.",
+      "createSquad": "Create the squad",
+      "squadTitle": "Create the event's squad",
+      "squadHint": "A squad of {count} led by you{hasRoles, select, yes {, with the roles {roles}} other {}}. Everyone keeps the role they picked and finds it in their squad list, without leaving their own. Past 20, several squads grouped in a raid.",
+      "squadCreated": "The squad is ready",
+      "squadCreatedDetail": "{count, plural, one {{name}, code} other {# squads grouped in a raid, the first with code}}",
+      "squadLeftOut": "{count, plural, one {# participant found no room} other {# participants found no room}}: a raid holds at most 6 squads.",
+      "openSquad": "Open the squad",
+      "squadError": "Creating the squad failed: {message}"
     }
   },
   "NewOrganization": {
