@@ -6,7 +6,7 @@ import { Clock, MapPin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoleIcon } from "@/app/squads/role-icon";
 import { cn } from "@/lib/utils";
-import type { OrgEventView } from "@/types/org-events";
+import type { CommunityEventOrg, OrgEventView } from "@/types/org-events";
 import {
   Avatar,
   Chip,
@@ -24,7 +24,7 @@ import {
 
 export type CalendarView = "upcoming" | "mine" | "past";
 
-function isRegistered(event: OrgEventView): boolean {
+export function isRegistered(event: OrgEventView): boolean {
   return !!event.myRegistration && !event.myRegistration.withdrawn;
 }
 
@@ -251,7 +251,8 @@ function WeekStrip({ week, events }: { week: Date[]; events: OrgEventView[] }) {
   );
 }
 
-function DaySection({
+/** Les évènements d'un jour ; ceux qui portent `org` sont ceux de la communauté. */
+export function DaySection({
   id,
   date,
   now,
@@ -260,7 +261,7 @@ function DaySection({
   id: string;
   date: Date;
   now: number;
-  events: OrgEventView[];
+  events: (OrgEventView & { org?: ColoredOrg })[];
 }) {
   const t = useTranslations("OrgEvents.Calendar");
   const { day } = useFormats();
@@ -282,13 +283,26 @@ function DaySection({
         {relative ? `${relative} · ${formatted}` : label}
       </h2>
       {events.map((event) => (
-        <EventRow key={event.id} event={event} now={now} />
+        <EventRow key={event.id} event={event} now={now} org={event.org} />
       ))}
     </section>
   );
 }
 
-function EventRow({ event, now }: { event: OrgEventView; now: number }) {
+/**
+ * Une ligne du calendrier. Avec `org`, celui de la communauté : l'organisation
+ * passe au-dessus du titre, et qui n'en est pas membre lit qu'il ne peut pas
+ * s'y inscrire.
+ */
+export function EventRow({
+  event,
+  now,
+  org,
+}: {
+  event: OrgEventView;
+  now: number;
+  org?: ColoredOrg;
+}) {
   const t = useTranslations("OrgEvents");
   const tCalendar = useTranslations("OrgEvents.Calendar");
   const href = `/orgs/${event.orgId}/events/${event.id}`;
@@ -316,6 +330,7 @@ function EventRow({ event, now }: { event: OrgEventView; now: number }) {
       <TimeColumn startsAt={event.startsAt} endsAt={event.endsAt} />
 
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1.5">
+        {org ? <OrgLine org={org} /> : null}
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={href}
@@ -381,8 +396,74 @@ function EventRow({ event, now }: { event: OrgEventView; now: number }) {
             {t("Registration.register")}
           </Link>
         ) : null}
+        {org && !org.isMember && !ended ? (
+          <span className="text-xs text-white/60">
+            {tCalendar("membersOnly")}
+          </span>
+        ) : null}
       </div>
     </article>
+  );
+}
+
+/** Une couleur stable par organisation : les points du mois et son badge. */
+const ORG_COLORS = [
+  "#9ED0FF",
+  "#F2B880",
+  "#B9A7F5",
+  "#8FD9B6",
+  "#F5A3B5",
+  "#E8D77A",
+];
+
+export function orgColor(orgId: string): string {
+  let hash = 0;
+  for (const char of orgId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return ORG_COLORS[hash % ORG_COLORS.length];
+}
+
+/**
+ * Les couleurs des organisations d'une page, dans l'ordre donné : les
+ * premières ne se répètent pas, là où un hachage pourrait donner la même à deux
+ * organisations voisines.
+ */
+export function orgColors(orgIds: string[]): Map<string, string> {
+  const colors = new Map<string, string>();
+  for (const id of orgIds) {
+    if (!colors.has(id)) {
+      colors.set(id, ORG_COLORS[colors.size % ORG_COLORS.length]);
+    }
+  }
+  return colors;
+}
+
+/** Une organisation de la communauté, avec la couleur que la page lui donne. */
+export type ColoredOrg = CommunityEventOrg & { color?: string };
+
+/** Le badge d'une organisation : son tag sur sa couleur. */
+export function OrgTag({ org }: { org: ColoredOrg }) {
+  return (
+    <span
+      className="inline-flex h-5 min-w-6 items-center justify-center rounded-[5px] px-1.5 font-mono text-[10px] font-bold tracking-wide text-[#071A2B]"
+      style={{ backgroundColor: org.color ?? orgColor(org.id) }}
+    >
+      {org.tag || org.name.slice(0, 3).toUpperCase()}
+    </span>
+  );
+}
+
+function OrgLine({ org }: { org: ColoredOrg }) {
+  const t = useTranslations("OrgEvents.Calendar");
+  return (
+    <span className="relative z-10 inline-flex items-center gap-1.5 self-start text-[13px] text-white/70">
+      <OrgTag org={org} />
+      <Link href={`/orgs/${org.id}/events`} className="hover:text-white">
+        {org.name}
+      </Link>
+      {org.isMember ? (
+        <span className="text-white/50">· {t("yourOrg")}</span>
+      ) : null}
+    </span>
   );
 }
 

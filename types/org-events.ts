@@ -185,3 +185,28 @@ export interface MyUpcomingEvent {
   startsAt: string;
   endsAt: string;
 }
+
+/** L'organisation d'un évènement de la page Communauté › Évènements. */
+export interface CommunityEventOrg {
+  id: string;
+  name: string;
+  tag: string;
+  image: string;
+  /** Le lecteur en est membre : il voit ses évènements privés et s'y inscrit. */
+  isMember: boolean;
+}
+
+/** Un évènement du calendrier de la communauté, avec son organisation. */
+export interface CommunityEventView extends OrgEventView {
+  org: CommunityEventOrg;
+}
+
+/**
+ * Le calendrier de la communauté : les évènements publics de toutes les
+ * organisations et, pour un lecteur connecté, tous ceux des siennes.
+ */
+export interface CommunityCalendar {
+  events: CommunityEventView[];
+  /** Les organisations du lecteur, même sans évènement : les filtres. */
+  myOrgs: CommunityEventOrg[];
+}

@@ -128,6 +128,10 @@ async function ensureOrgEvents(database: Db) {
       { "registrations.userId": 1, startsAt: 1 },
       { name: "orgEvents_registrant" },
     );
+  // Le calendrier de la communauté : les évènements publics de toutes les orgas.
+  await database
+    .collection("orgEvents")
+    .createIndex({ visibility: 1, startsAt: 1 }, { name: "orgEvents_public" });
 }
 
 // ─── Plans de vol ─────────────────────────────────────────────────────────────
