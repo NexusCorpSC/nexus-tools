@@ -29,7 +29,10 @@ export interface Friend {
   userId: string;
   name: string;
   avatar: string | null;
-  /** La première organisation que le lecteur partage avec lui, s'il y en a. */
+  /**
+   * L'organisation affichée avec son pseudo : celle qu'il a choisie dans son
+   * profil, sinon la première que le lecteur partage avec lui, s'il y en a.
+   */
   sharedOrg: string | null;
   /** Depuis quand vous êtes amis, ISO. */
   friendsSince: string;

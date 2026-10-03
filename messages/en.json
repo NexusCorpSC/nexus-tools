@@ -1539,6 +1539,13 @@
       "empty": "No friends yet. Share your code or enter a friend's.",
       "nobodyPlaying": "No friend is playing right now.",
       "planned": "Planned session · <time></time>"
+    },
+    "DisplayOrg": {
+      "label": "Shown with my name",
+      "auto": "Automatic: the first one in common",
+      "hint": "Your friends see it next to your name. On automatic, or if you leave the chosen organization, each sees the first organization you have in common.",
+      "saved": "Displayed organization updated.",
+      "error": "Saving failed. Try again."
     }
   },
   "Organizations": {
