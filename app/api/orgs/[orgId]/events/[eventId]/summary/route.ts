@@ -15,7 +15,11 @@ export async function GET(_request: Request, { params }: Params) {
   if ("refused" in caller) return caller.refused;
 
   const { orgId, eventId } = await params;
-  const outcome = await getOrgEventSummary(orgId, eventId, caller.author.userId);
+  const outcome = await getOrgEventSummary(
+    orgId,
+    eventId,
+    caller.author.userId,
+  );
   if ("refusal" in outcome) return refusal(outcome.refusal);
 
   return NextResponse.json(outcome.summary);

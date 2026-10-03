@@ -185,26 +185,33 @@ async function findEvent(
   return collection().findOne({ _id: new ObjectId(eventId), orgId });
 }
 
-/** Ce que le calendrier montre par défaut : ce qui n'est pas encore fini. */
 const LIST_LIMIT = 200;
+
+/** Par défaut, le calendrier part d'un jour en arrière : ce qui vient de finir y est encore. */
+const DEFAULT_LOOKBACK_MS = 24 * 3_600_000;
 
 /**
  * Les évènements d'une organisation qui recouvrent `[from, to[`, du plus tôt
- * au plus tard. Un non-membre n'y voit que les publics.
+ * au plus tard ; sans `from`, depuis la veille. Un non-membre n'y voit que les
+ * publics.
  *
  * `null` quand l'organisation n'existe pas.
  */
 export async function listOrgEvents(
   orgId: string,
   readerId: string | null,
-  range: { from: Date; to: Date | null },
+  range: { from: Date | null; to: Date | null },
 ): Promise<OrgEventView[] | null> {
   const access = await getOrgAccess(orgId, readerId);
   if (!access) return null;
 
   const filter: Record<string, unknown> = {
     orgId,
-    endsAt: { $gt: range.from.toISOString() },
+    endsAt: {
+      $gt: (
+        range.from ?? new Date(Date.now() - DEFAULT_LOOKBACK_MS)
+      ).toISOString(),
+    },
   };
   if (range.to) filter.startsAt = { $lt: range.to.toISOString() };
   if (!access.isMember) filter.visibility = "public";
@@ -300,7 +307,8 @@ function readLine(
 ): Parsed<string> {
   const value = body[key];
   if (value === undefined || value === null) return { value: "" };
-  if (typeof value !== "string") return { error: `\`${key}\` must be a string` };
+  if (typeof value !== "string")
+    return { error: `\`${key}\` must be a string` };
 
   const line = value.replace(/\s+/g, " ").trim();
   if (line.length > max) {
@@ -458,7 +466,9 @@ export type WriteOutcome =
 
 async function resolvePlace(
   slug: string | null,
-): Promise<{ place: DbOrgEvent["meetingPlace"] } | { refusal: "unknown-place" }> {
+): Promise<
+  { place: DbOrgEvent["meetingPlace"] } | { refusal: "unknown-place" }
+> {
   if (!slug) return { place: null };
   const place = await getPlaceBySlug(slug);
   if (!place) return { refusal: "unknown-place" };

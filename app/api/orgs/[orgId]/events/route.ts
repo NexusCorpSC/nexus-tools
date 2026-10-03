@@ -8,9 +8,6 @@ import { readJson, readerId, refusal, resolveAuthor } from "./caller";
 
 type Params = { params: Promise<{ orgId: string }> };
 
-/** Par défaut, le calendrier part d'un jour en arrière : ce qui vient de finir y est encore. */
-const DEFAULT_LOOKBACK_MS = 24 * 3_600_000;
-
 function readDateParam(value: string | null): Date | null | false {
   if (!value) return null;
   const parsed = Date.parse(value);
@@ -39,7 +36,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
 
   const events = await listOrgEvents(orgId, await readerId(), {
-    from: from ?? new Date(Date.now() - DEFAULT_LOOKBACK_MS),
+    from,
     to,
   });
 
