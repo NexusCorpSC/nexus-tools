@@ -1266,7 +1266,9 @@
     "planPlate": "Plate",
     "planPlateDownload": "Download as PNG",
     "planPlateExporting": "Exporting…",
-    "planPlateFailed": "The export failed."
+    "planPlateFailed": "The export failed.",
+    "imagesTitle": "Images",
+    "imagesCount": "{count, plural, one {# image} other {# images}}"
   },
   "Shopping": {
     "home": "Home",
@@ -2371,5 +2373,92 @@
   "PlannedSession": {
     "tomorrow": "tomorrow {time}",
     "onDay": "{day} {time}"
+  },
+  "Contributions": {
+    "Gallery": {
+      "open": "View image",
+      "by": "by {name}",
+      "empty": "No images of this place yet. Be the first to add one.",
+      "add": "Add images",
+      "signInToAdd": "Sign in to add images",
+      "myPending": "{count, plural, one {Your image is awaiting review} other {Your # images are awaiting review}}",
+      "dialogTitle": "Add images",
+      "dialogDescription": "{name} · up to {max} images per upload",
+      "pick": "Choose",
+      "remove": "Remove image",
+      "constraints": "JPEG, PNG or WebP, 12 MB max.",
+      "captionFor": "Caption for image {index}",
+      "captionPlaceholder": "Metro platform to downtown",
+      "credit": "Credit",
+      "gameVersion": "Game version",
+      "rules": "In-game captures only, without personal UI or other players' names. New contributors' uploads are reviewed before publication; points are credited on publication.",
+      "cancel": "Cancel",
+      "send": "{count, plural, =0 {Send} one {Send image} other {Send # images}}",
+      "sendFailed": "Upload failed. Please try again.",
+      "published": "{count, plural, one {Image published} other {# images published}} · +{points} points",
+      "sentForReview": "{count, plural, one {Image sent} other {# images sent}} for review"
+    },
+    "errors": {
+      "unauthenticated": "Sign in to contribute.",
+      "placeNotFound": "This place no longer exists.",
+      "noMedia": "Choose at least one image.",
+      "tooManyMedia": "Six images at most per upload.",
+      "invalidMedia": "One of the images could not be accepted. Remove it and try again.",
+      "tooManyPending": "You already have five uploads awaiting review. Wait for them to be reviewed.",
+      "notFound": "This contribution no longer exists.",
+      "notPending": "This contribution has already been handled."
+    },
+    "reasons": {
+      "offTopic": "Off topic: not this place",
+      "quality": "Low quality: blurry, dark, too small",
+      "personalInterface": "Personal UI or player name visible",
+      "duplicate": "Duplicate of an existing image",
+      "copyright": "Used without permission",
+      "other": "Other (explain)"
+    },
+    "Admin": {
+      "title": "Contributions",
+      "header": "{count, plural, one {# contribution awaiting review} other {# contributions awaiting review}}",
+      "headerEmpty": "Nothing awaiting review.",
+      "backToAdmin": "Back to admin",
+      "empty": "The queue is empty. New contributions will show up here.",
+      "allPending": "All contributions",
+      "kpiPending": "pending",
+      "kpiLate": "older than 3 days",
+      "kpiImages": "images to review",
+      "kpiAuthors": "authors",
+      "truncated": "Showing the oldest {shown} of {total}.",
+      "selectAll": "Select all",
+      "groupBy": "Group by",
+      "groupings": {
+        "author": "Author",
+        "target": "Place",
+        "none": "None"
+      },
+      "selectGroup": "Select group {name}",
+      "selectOne": "Select this contribution",
+      "groupSummary": "{contributions, plural, one {# contribution} other {# contributions}} · {images, plural, one {# image} other {# images}}",
+      "details": "Details",
+      "collapse": "Collapse",
+      "publishGroup": "{count, plural, one {Publish} other {Publish all #}}",
+      "publish": "Publish",
+      "reject": "Reject",
+      "gameVersion": "patch {version}",
+      "selectionLabel": "Actions on selection",
+      "selection": "{count, plural, one {# contribution selected} other {# contributions selected}} · {images, plural, one {# image} other {# images}}",
+      "clearSelection": "Clear",
+      "rejectSelection": "Reject…",
+      "publishSelection": "Publish selection",
+      "published": "{count, plural, =0 {No contribution published} one {Contribution published} other {# contributions published}}",
+      "rejected": "{count, plural, =0 {No contribution rejected} one {Contribution rejected} other {# contributions rejected}}",
+      "skipped": "{count, plural, one {One contribution was already handled} other {# contributions were already handled}}",
+      "failed": "The action failed. Please try again.",
+      "rejectTitle": "{count, plural, one {Reject contribution} other {Reject # contributions}}",
+      "rejectDescription": "The author will see the reason and your message. Rejected images are deleted.",
+      "rejectReason": "Reason",
+      "rejectMessage": "Message to the author (required for “Other”)",
+      "cancel": "Cancel",
+      "rejectConfirm": "{count, plural, one {Reject} other {Reject all #}}"
+    }
   }
 }

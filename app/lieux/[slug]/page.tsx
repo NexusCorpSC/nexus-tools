@@ -5,13 +5,16 @@ import { getTranslations } from "next-intl/server";
 import { MapIcon } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { Button } from "@/components/ui/button";
+import { ObjectId } from "mongodb";
 import { auth } from "@/lib/auth";
+import { countMyPendingMedia, listPlaceMedia } from "@/lib/contributions";
 import { hasPermission } from "@/lib/permissions";
 import { getPlaceDetails, getPlacePlans } from "@/lib/places";
 import { placeTrail } from "@/lib/place-icons";
 import { KeyFigure } from "@/app/items/[slug]/sections";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import { PlaceAdminMenu } from "./components";
+import { PlaceGallery } from "./gallery";
 import { PlanViewer } from "./plan-viewer";
 import {
   PlaceBreadcrumb,
@@ -81,6 +84,16 @@ export default async function PlacePage({
   // c'est l'API qui dira, à l'ouverture du dialogue, ce que ce quelqu'un peut.
   const session = await auth.api.getSession({ headers: await headers() });
   const tab: Tab = TABS.includes(onglet as Tab) ? (onglet as Tab) : "apercu";
+
+  const [media, myPending] =
+    tab === "apercu"
+      ? await Promise.all([
+          listPlaceMedia(place.slug),
+          session?.user
+            ? countMyPendingMedia(place.slug, new ObjectId(session.user.id))
+            : 0,
+        ])
+      : [[], 0];
 
   /*
     Le plan regardé vit dans l'adresse. On ne descend que dans l'arborescence
@@ -184,6 +197,26 @@ export default async function PlacePage({
 
       {tab === "apercu" && (
         <div className="space-y-6">
+          <div>
+            <SectionTitle
+              aside={
+                media.length > 0
+                  ? t("imagesCount", { count: media.length })
+                  : undefined
+              }
+            >
+              {t("imagesTitle")}
+            </SectionTitle>
+            <PlaceGallery
+              slug={place.slug}
+              placeName={place.name}
+              media={media}
+              signedIn={Boolean(session?.user)}
+              defaultCredit={session?.user?.name}
+              myPending={myPending}
+            />
+          </div>
+
           <div>
             <SectionTitle>{t("descriptionTitle")}</SectionTitle>
             {place.description ? (

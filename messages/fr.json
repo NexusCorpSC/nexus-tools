@@ -1261,7 +1261,9 @@
     "planPlate": "Planche",
     "planPlateDownload": "Télécharger en PNG",
     "planPlateExporting": "Export…",
-    "planPlateFailed": "L’export a échoué."
+    "planPlateFailed": "L’export a échoué.",
+    "imagesTitle": "Images",
+    "imagesCount": "{count, plural, one {# image} other {# images}}"
   },
   "Industry": {
     "home": "Accueil",
@@ -2402,5 +2404,92 @@
   "PlannedSession": {
     "tomorrow": "demain {time}",
     "onDay": "{day} {time}"
+  },
+  "Contributions": {
+    "Gallery": {
+      "open": "Voir l'image",
+      "by": "par {name}",
+      "empty": "Aucune image pour ce lieu. Soyez le premier à en ajouter une.",
+      "add": "Ajouter des images",
+      "signInToAdd": "Connectez-vous pour ajouter des images",
+      "myPending": "{count, plural, one {Votre image est en attente de relecture} other {Vos # images sont en attente de relecture}}",
+      "dialogTitle": "Ajouter des images",
+      "dialogDescription": "{name} · jusqu'à {max} images par envoi",
+      "pick": "Choisir",
+      "remove": "Retirer l'image",
+      "constraints": "JPEG, PNG ou WebP, 12 Mo au plus.",
+      "captionFor": "Légende de l'image {index}",
+      "captionPlaceholder": "Quai du métro vers le centre-ville",
+      "credit": "Crédit",
+      "gameVersion": "Version du jeu",
+      "rules": "Une capture du jeu uniquement, sans interface personnelle ni pseudo d'autres joueurs. Les envois des nouveaux contributeurs sont relus avant publication ; les points sont crédités à la publication.",
+      "cancel": "Annuler",
+      "send": "{count, plural, =0 {Envoyer} one {Envoyer l'image} other {Envoyer # images}}",
+      "sendFailed": "L'envoi a échoué. Réessayez.",
+      "published": "{count, plural, one {Image publiée} other {# images publiées}} · +{points} points",
+      "sentForReview": "{count, plural, one {Image envoyée} other {# images envoyées}} pour relecture"
+    },
+    "errors": {
+      "unauthenticated": "Connectez-vous pour contribuer.",
+      "placeNotFound": "Ce lieu n'existe plus.",
+      "noMedia": "Choisissez au moins une image.",
+      "tooManyMedia": "Six images au plus par envoi.",
+      "invalidMedia": "Une des images n'a pas pu être acceptée. Retirez-la et réessayez.",
+      "tooManyPending": "Vous avez déjà cinq envois en attente de relecture. Attendez qu'ils soient relus.",
+      "notFound": "Cette contribution n'existe plus.",
+      "notPending": "Cette contribution a déjà été traitée."
+    },
+    "reasons": {
+      "offTopic": "Hors sujet : ce n'est pas ce lieu",
+      "quality": "Qualité insuffisante : floue, sombre, trop petite",
+      "personalInterface": "Interface personnelle ou pseudo visible",
+      "duplicate": "Doublon d'une image existante",
+      "copyright": "Reprise sans autorisation",
+      "other": "Autre (précisez)"
+    },
+    "Admin": {
+      "title": "Contributions",
+      "header": "{count, plural, one {# contribution en attente de relecture} other {# contributions en attente de relecture}}",
+      "headerEmpty": "Rien en attente de relecture.",
+      "backToAdmin": "Retour à l'admin",
+      "empty": "La file est vide. Les nouvelles contributions apparaîtront ici.",
+      "allPending": "Toutes les contributions",
+      "kpiPending": "en attente",
+      "kpiLate": "depuis plus de 3 jours",
+      "kpiImages": "images à relire",
+      "kpiAuthors": "auteurs",
+      "truncated": "Les {shown} plus anciennes sur {total} sont affichées.",
+      "selectAll": "Tout sélectionner",
+      "groupBy": "Grouper par",
+      "groupings": {
+        "author": "Auteur",
+        "target": "Lieu",
+        "none": "Aucun"
+      },
+      "selectGroup": "Sélectionner le groupe {name}",
+      "selectOne": "Sélectionner cette contribution",
+      "groupSummary": "{contributions, plural, one {# contribution} other {# contributions}} · {images, plural, one {# image} other {# images}}",
+      "details": "Détails",
+      "collapse": "Replier",
+      "publishGroup": "{count, plural, one {Publier} other {Publier les #}}",
+      "publish": "Publier",
+      "reject": "Refuser",
+      "gameVersion": "patch {version}",
+      "selectionLabel": "Actions sur la sélection",
+      "selection": "{count, plural, one {# contribution sélectionnée} other {# contributions sélectionnées}} · {images, plural, one {# image} other {# images}}",
+      "clearSelection": "Désélectionner",
+      "rejectSelection": "Refuser…",
+      "publishSelection": "Publier la sélection",
+      "published": "{count, plural, =0 {Aucune contribution publiée} one {Contribution publiée} other {# contributions publiées}}",
+      "rejected": "{count, plural, =0 {Aucune contribution refusée} one {Contribution refusée} other {# contributions refusées}}",
+      "skipped": "{count, plural, one {Une contribution avait déjà été traitée} other {# contributions avaient déjà été traitées}}",
+      "failed": "L'action a échoué. Réessayez.",
+      "rejectTitle": "{count, plural, one {Refuser la contribution} other {Refuser # contributions}}",
+      "rejectDescription": "L'auteur verra le motif et votre message. Les images refusées sont supprimées.",
+      "rejectReason": "Motif",
+      "rejectMessage": "Message à l'auteur (obligatoire pour « Autre »)",
+      "cancel": "Annuler",
+      "rejectConfirm": "{count, plural, one {Refuser} other {Refuser les #}}"
+    }
   }
 }

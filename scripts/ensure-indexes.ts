@@ -367,6 +367,28 @@ async function ensureFriends(database: Db) {
 
 // ─── Lancement ────────────────────────────────────────────────────────────────
 
+// ─── Contributions ────────────────────────────────────────────────────────────
+
+/**
+ * La file d'attente se lit par statut, la plus ancienne d'abord ; le suivi d'un
+ * joueur et le calcul de sa fiabilité, par auteur. La galerie d'un lieu se lit
+ * par lieu et statut, et une même image ne s'envoie pas deux fois.
+ */
+async function ensureContributions(database: Db) {
+  const contributions = database.collection("contributions");
+  await contributions.createIndex({ status: 1, createdAt: 1 });
+  await contributions.createIndex({ userId: 1, createdAt: -1 });
+  await contributions.createIndex({ "target.type": 1, "target.slug": 1 });
+
+  const media = database.collection("placeMedia");
+  await media.createIndex({ placeSlug: 1, status: 1, createdAt: 1 });
+  await media.createIndex({ url: 1 }, { unique: true });
+
+  const points = database.collection("pointEvents");
+  await points.createIndex({ userId: 1, at: -1 });
+  await points.createIndex({ at: -1 });
+}
+
 const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
@@ -381,6 +403,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["cargoShips", ensureCargoShips],
   ["parcels", ensureParcels],
   ["friends", ensureFriends],
+  ["contributions", ensureContributions],
 ];
 
 async function main() {

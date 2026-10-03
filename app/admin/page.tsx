@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { countPendingContributions } from "@/lib/contributions";
 
 export const metadata: Metadata = {
   title: "Administration",
@@ -8,7 +9,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminPage() {
+  const pending = await countPendingContributions();
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-xl rounded-2xl border border-[#9ED0FF]/20 bg-[#0B3A5A]/70 p-8 text-center shadow-xl shadow-black/20 backdrop-blur-sm">
@@ -21,6 +26,17 @@ export default function AdminPage() {
         </p>
 
         <div className="flex flex-col gap-3">
+          <Button asChild>
+            <Link href="/admin/contributions" className="w-full">
+              Relire les contributions
+              {pending > 0 && (
+                <span className="rounded-full bg-amber-300 px-2 font-mono text-xs font-bold text-amber-950">
+                  {pending}
+                </span>
+              )}
+            </Link>
+          </Button>
+
           <Button asChild>
             <Link href="/admin/blueprints" className="w-full">
               Gérer les Blueprints

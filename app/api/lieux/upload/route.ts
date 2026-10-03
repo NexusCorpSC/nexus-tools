@@ -13,6 +13,15 @@ const PLAN =
   /^lieux\/[a-z0-9-]{1,120}\/plans\/[A-Za-z0-9_-]{6,40}\.[a-z0-9]{1,6}$/i;
 
 /**
+ * Une image de la galerie, envoyée par n'importe quel joueur connecté. Le nom
+ * est libre et Vercel y ajoute un suffixe aléatoire : deux joueurs qui
+ * envoient `hall.png` ne s'écrasent pas, et personne ne remplace une image
+ * déjà publiée en devinant son chemin.
+ */
+const MEDIA =
+  /^lieux\/[a-z0-9-]{1,120}\/media\/[A-Za-z0-9_-]{1,60}\.(?:jpe?g|png|webp)$/i;
+
+/**
  * Le chemin dans le blob est une fonction du slug et de l'identifiant du plan,
  * sans suffixe aléatoire : renvoyer une image la remplace en place. Supprimer
  * un plan laisse donc la sienne orpheline — c'est le même compromis que pour
@@ -26,6 +35,23 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
+        if (MEDIA.test(pathname)) {
+          const session = await auth.api.getSession({
+            headers: await headers(),
+          });
+          if (!session?.user) throw new Error("Unauthorized");
+
+          // La contribution vérifie ensuite que le lieu existe et que l'image
+          // lui est bien destinée ; ici, on ne fait que limiter ce qu'on
+          // accepte de stocker.
+          return {
+            allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
+            maximumSizeInBytes: 12_000_000,
+            addRandomSuffix: true,
+            allowOverwrite: false,
+          };
+        }
+
         await auth.api.getSession({ headers: await headers() });
         await requirePermission(PLACES_EDIT_PERMISSION);
 
