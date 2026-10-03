@@ -28,6 +28,9 @@ import {
   type OrgEventRegistration,
   type OrgEventRole,
   type OrgEventSummary,
+  type CommunityCalendar,
+  type CommunityEventOrg,
+  type CommunityEventView,
   type MyUpcomingEvent,
   type OrgEventView,
   type OrgEventVisibility,
@@ -268,6 +271,104 @@ export async function listPastOrgEvents(
     .toArray();
 
   return docs.map((doc) => toView(doc, access, readerId));
+}
+
+/** Jusqu'où regarde le calendrier de la communauté : trois mois devant soi. */
+export const COMMUNITY_DAYS = 92;
+
+function toCommunityOrg(
+  org: Pick<Organization, "_id" | "name" | "tag" | "image">,
+  isMember: boolean,
+): CommunityEventOrg {
+  return {
+    id: org._id,
+    name: org.name,
+    tag: org.tag ?? "",
+    image: org.image ?? "",
+    isMember,
+  };
+}
+
+/**
+ * Le calendrier de la communauté, de la veille à `COMMUNITY_DAYS` jours : les
+ * évènements publics de toutes les organisations et, pour un lecteur
+ * connecté, tous ceux de ses organisations — du plus tôt au plus tard.
+ */
+export async function listCommunityEvents(
+  readerId: string | null,
+): Promise<CommunityCalendar> {
+  const organizations = db.db().collection<Organization>("organizations");
+  const readerOid =
+    readerId && ObjectId.isValid(readerId) ? new ObjectId(readerId) : null;
+
+  const mine = readerOid
+    ? await organizations
+        .find(
+          { "members.userId": readerOid },
+          {
+            projection: {
+              name: 1,
+              tag: 1,
+              image: 1,
+              members: { $elemMatch: { userId: readerOid } },
+            },
+          },
+        )
+        .sort({ name: 1 })
+        .toArray()
+    : [];
+  const accessByOrg = new Map<string, OrgAccess>(
+    mine.map((org) => [
+      org._id,
+      { isMember: true, isEditor: !!org.members?.[0]?.editor },
+    ]),
+  );
+
+  const now = Date.now();
+  const docs = await collection()
+    .find({
+      $or: [
+        { visibility: "public" },
+        { orgId: { $in: [...accessByOrg.keys()] } },
+      ],
+      endsAt: { $gt: new Date(now - DEFAULT_LOOKBACK_MS).toISOString() },
+      startsAt: {
+        $lt: new Date(now + COMMUNITY_DAYS * 86_400_000).toISOString(),
+      },
+    })
+    .sort({ startsAt: 1 })
+    .limit(LIST_LIMIT)
+    .toArray();
+
+  const myOrgs = mine.map((org) => toCommunityOrg(org, true));
+  const orgs = new Map(myOrgs.map((org) => [org.id, org]));
+  const others = [
+    ...new Set(docs.map((doc) => doc.orgId).filter((id) => !orgs.has(id))),
+  ];
+  if (others.length > 0) {
+    const found = await organizations
+      .find(
+        { _id: { $in: others } },
+        { projection: { name: 1, tag: 1, image: 1 } },
+      )
+      .toArray();
+    for (const org of found) orgs.set(org._id, toCommunityOrg(org, false));
+  }
+
+  const outsider: OrgAccess = { isMember: false, isEditor: false };
+  const events: CommunityEventView[] = [];
+  for (const doc of docs) {
+    const org = orgs.get(doc.orgId);
+    // Une organisation supprimée laisse ses évènements sans personne à qui
+    // les rattacher : ils ne s'affichent plus.
+    if (!org) continue;
+    events.push({
+      ...toView(doc, accessByOrg.get(doc.orgId) ?? outsider, readerId),
+      org,
+    });
+  }
+
+  return { events, myOrgs };
 }
 
 /** `null` quand l'évènement n'existe pas ou que le lecteur ne peut pas le voir. */

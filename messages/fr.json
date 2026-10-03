@@ -36,7 +36,7 @@
         },
         "community": {
           "label": "Communauté",
-          "blurb": "Jouer ensemble : amis, escouade et organisations."
+          "blurb": "Jouer ensemble : amis, escouade, organisations et sorties."
         }
       },
       "items": {
@@ -107,6 +107,10 @@
         "organizations": {
           "label": "Organisations",
           "description": "Membres, rangs et stocks partagés"
+        },
+        "events": {
+          "label": "Évènements",
+          "description": "Les sorties à venir, publiques et de vos orgas"
         }
       }
     }
@@ -1633,7 +1637,9 @@
       "by": "par {name}",
       "nobodyYet": "Personne encore",
       "noneMine": "Vous n'êtes inscrit à aucun évènement à venir.",
-      "nonePast": "Aucun évènement passé."
+      "nonePast": "Aucun évènement passé.",
+      "membersOnly": "Réservé aux membres",
+      "yourOrg": "votre orga"
     },
     "Facts": {
       "label": "En bref",
@@ -1754,6 +1760,40 @@
       "squadLeftOut": "{count, plural, one {# inscrit n'a pas trouvé de place} other {# inscrits n'ont pas trouvé de place}} : un raid compte au plus 6 escouades.",
       "openSquad": "Ouvrir l'escouade",
       "squadError": "La création de l'escouade a échoué : {message}"
+    },
+    "Community": {
+      "community": "Communauté",
+      "metaTitle": "Évènements de la communauté",
+      "metaDescription": "Les sorties publiques des organisations Star Citizen sur Nexus Tools, et celles de vos organisations.",
+      "tabs": "Quels évènements",
+      "all": "Tout",
+      "mine": "Mes organisations",
+      "public": "Publics",
+      "publicOnly": "Évènements publics de toutes les organisations",
+      "previousMonth": "Mois précédent",
+      "nextMonth": "Mois suivant",
+      "dayEvents": "{day} : {count, plural, one {# sortie} other {# sorties}}",
+      "monthHint": "Un point par organisation qui sort ce jour-là. Cliquez un jour pour y aller.",
+      "orgsTitle": "Organisations",
+      "otherOrgs": "Autres organisations",
+      "publicHint": "publics",
+      "onlyRegistered": "Seulement mes inscriptions",
+      "signInTitle": "Et vos organisations ?",
+      "signInText": "Connectez-vous pour voir aussi les sorties privées de vos organisations et vous y inscrire.",
+      "signIn": "Se connecter",
+      "noOrgTitle": "Vous ne voyez que les sorties publiques",
+      "noOrgText": "Rejoignez une organisation pour voir ses sorties privées et vous inscrire.",
+      "findOrg": "Trouver une organisation",
+      "showMore": "{count, plural, one {Afficher la suite · # sortie} other {Afficher la suite · # sorties}}",
+      "noneTitle": "Aucune sortie prévue",
+      "noneText": "Ni vos organisations ni les autres n'ont publié d'évènement à venir.",
+      "nonePublicTitle": "Aucune sortie publique à venir",
+      "nonePublicText": "Les organisations publient ici leurs évènements ouverts à tous.",
+      "noMatchTitle": "Aucune sortie ne correspond",
+      "noMatchText": "Réaffichez une organisation ou décochez « Seulement mes inscriptions ».",
+      "planFor": "Pour quelle organisation ?",
+      "month": "Le mois",
+      "monthAndFilters": "Le mois et les filtres"
     }
   },
   "NewOrganization": {

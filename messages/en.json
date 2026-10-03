@@ -36,7 +36,7 @@
         },
         "community": {
           "label": "Community",
-          "blurb": "Play together: friends, squad and organizations."
+          "blurb": "Play together: friends, squad, organizations and outings."
         }
       },
       "items": {
@@ -107,6 +107,10 @@
         "organizations": {
           "label": "Organizations",
           "description": "Members, ranks and shared stock"
+        },
+        "events": {
+          "label": "Events",
+          "description": "Upcoming outings, public and from your orgs"
         }
       }
     }
@@ -1632,7 +1636,9 @@
       "by": "by {name}",
       "nobodyYet": "No one yet",
       "noneMine": "You're not registered to any upcoming event.",
-      "nonePast": "No past event."
+      "nonePast": "No past event.",
+      "membersOnly": "Members only",
+      "yourOrg": "your org"
     },
     "Facts": {
       "label": "At a glance",
@@ -1753,6 +1759,40 @@
       "squadLeftOut": "{count, plural, one {# participant found no room} other {# participants found no room}}: a raid holds at most 6 squads.",
       "openSquad": "Open the squad",
       "squadError": "Creating the squad failed: {message}"
+    },
+    "Community": {
+      "community": "Community",
+      "metaTitle": "Community events",
+      "metaDescription": "Public outings of Star Citizen organizations on Nexus Tools, and those of your organizations.",
+      "tabs": "Which events",
+      "all": "All",
+      "mine": "My organizations",
+      "public": "Public",
+      "publicOnly": "Public events from every organization",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "dayEvents": "{day}: {count, plural, one {# outing} other {# outings}}",
+      "monthHint": "One dot per organization going out that day. Click a day to jump to it.",
+      "orgsTitle": "Organizations",
+      "otherOrgs": "Other organizations",
+      "publicHint": "public",
+      "onlyRegistered": "Only my registrations",
+      "signInTitle": "What about your organizations?",
+      "signInText": "Sign in to also see your organizations' private outings and register.",
+      "signIn": "Sign in",
+      "noOrgTitle": "You only see public outings",
+      "noOrgText": "Join an organization to see its private outings and register.",
+      "findOrg": "Find an organization",
+      "showMore": "{count, plural, one {Show more · # outing} other {Show more · # outings}}",
+      "noneTitle": "No outing planned",
+      "noneText": "Neither your organizations nor the others have published an upcoming event.",
+      "nonePublicTitle": "No upcoming public outing",
+      "nonePublicText": "Organizations publish their events open to everyone here.",
+      "noMatchTitle": "No outing matches",
+      "noMatchText": "Show an organization again or untick “Only my registrations”.",
+      "planFor": "For which organization?",
+      "month": "The month",
+      "monthAndFilters": "Month and filters"
     }
   },
   "NewOrganization": {
