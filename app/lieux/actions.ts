@@ -7,6 +7,7 @@ import {
   deletePlace,
   removeBorrowedPlan,
   savePlacePlans,
+  setPlacesImage,
   sharePlanToPlaces,
   updatePlace,
   type PlaceInput,
@@ -147,6 +148,27 @@ export async function removeBorrowedPlanAction(
     const place = await removeBorrowedPlan(slug, planId);
     revalidatePlace(place.slug);
     return { ok: true, slug: place.slug };
+  } catch (error) {
+    return { ok: false, error: toMessage(error) };
+  }
+}
+
+/**
+ * Pose une même vignette sur plusieurs lieux, depuis la liste d'admin. Le
+ * client reçoit les slugs touchés : ceux qui ont disparu entre la sélection et
+ * l'envoi ne sont pas comptés comme habillés.
+ */
+export async function setPlacesImageAction(
+  slugs: string[],
+  imageUrl: string,
+): Promise<{ ok: true; updated: string[] } | { ok: false; error: string }> {
+  await requirePermission(PLACES_EDIT_PERMISSION);
+
+  try {
+    const updated = await setPlacesImage(slugs, imageUrl);
+    revalidatePlace();
+    for (const slug of updated) revalidatePath(`/lieux/${slug}`);
+    return { ok: true, updated };
   } catch (error) {
     return { ok: false, error: toMessage(error) };
   }
