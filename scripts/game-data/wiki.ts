@@ -15,6 +15,8 @@
  *
  * Les réputations demandent le détail de chaque faction qui en a une
  * (`/api/factions/<uuid>`, une quarantaine) : la liste ne donne pas le barème.
+ * Elles relisent aussi la liste des missions, pour les pistes qu'une faction
+ * fait monter en dehors de son barème (Security chez Eckhart).
  *
  * Ce que les listes n'ont pas :
  *   - la recette complète d'un blueprint (emplacements, qualité minimale)
@@ -44,6 +46,7 @@ import {
   type GameData,
   type GameMission,
   type GameReputationFaction,
+  type GameReputationTrack,
 } from "./source";
 
 const WIKI_API = "https://api.star-citizen.wiki/api";
@@ -534,14 +537,65 @@ export async function loadWiki(
 // ─── Réputations ──────────────────────────────────────────────────────────────
 
 /**
+ * Les pistes que le barème d'une faction couvre déjà ou qui ne sont pas des
+ * carrières : la réputation générique et l'affinité avec un personnage.
+ */
+const NOT_A_TRACK = new Set(["FactionReputation", "Affinity"]);
+
+/**
+ * Les pistes que les missions font monter, d'après la réputation qu'elles
+ * donnent (`reputation_gained`) et les rangs qu'elles demandent. Une ligne
+ * d'une autre forme est passée : ces pistes complètent les barèmes, elles ne
+ * justifient pas d'arrêter l'import.
+ */
+function toReputationTracks(rows: unknown[]): GameReputationTrack[] {
+  const tracks = new Map<
+    string,
+    { factionIds: Set<string>; standings: Set<string> }
+  >();
+  for (const raw of rows) {
+    if (!isObject(raw) || raw.released !== true || raw.not_for_release === true)
+      continue;
+    if (!Array.isArray(raw.reputation_gained)) continue;
+    const standings = [raw.min_standing, raw.max_standing]
+      .map((standing) => (isObject(standing) ? standing.name : undefined))
+      .filter(isString);
+    for (const gained of raw.reputation_gained) {
+      if (!isObject(gained) || !isString(gained.scope)) continue;
+      if (!isString(gained.faction_uuid) || NOT_A_TRACK.has(gained.scope))
+        continue;
+      let track = tracks.get(gained.scope);
+      if (!track)
+        tracks.set(
+          gained.scope,
+          (track = { factionIds: new Set(), standings: new Set() }),
+        );
+      track.factionIds.add(gained.faction_uuid);
+      for (const name of standings) track.standings.add(name.trim());
+    }
+  }
+  return [...tracks]
+    .map(([scope, track]) => ({
+      scope,
+      factionIds: [...track.factionIds].sort(),
+      standings: [...track.standings].sort(),
+    }))
+    .sort((a, b) => a.scope.localeCompare(b.scope));
+}
+
+/**
  * Les factions qui suivent la réputation des joueurs, chacune avec son
- * barème : la liste filtrée, puis le détail de chacune.
+ * barème (la liste filtrée, puis le détail de chacune), et les autres pistes
+ * que leurs missions font monter (la liste des missions).
  */
 export async function loadWikiReputations(
   version: string,
   stats: WikiStats,
   warnings: string[],
-): Promise<GameReputationFaction[]> {
+): Promise<{
+  factions: GameReputationFaction[];
+  tracks: GameReputationTrack[];
+}> {
   const listed = keepValid<RawFaction>(
     "Factions à réputation",
     await list(
@@ -559,12 +613,14 @@ export async function loadWikiReputations(
       return isObject(raw) ? raw.data : raw;
     }),
   );
-  return keepValid<RawFactionDetail>(
+  const factions = keepValid<RawFactionDetail>(
     "Barèmes de réputation",
     details,
     factionDetailProblem,
     warnings,
   ).map(toReputationFaction);
+  const tracks = toReputationTracks(await list("missions", { version }, stats));
+  return { factions, tracks };
 }
 
 // ─── Recettes ─────────────────────────────────────────────────────────────────

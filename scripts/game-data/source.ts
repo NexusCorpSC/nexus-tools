@@ -73,6 +73,21 @@ export type GameReputationFaction = {
   } | null;
 };
 
+/**
+ * Une piste de réputation que des missions font monter, en dehors du barème
+ * de la faction (la piste Security d'Eckhart, dont le barème est `Standing`).
+ * Le wiki ne donne pas le barème de ces pistes : seulement les rangs que les
+ * missions demandent, assez pour reconnaître un barème déjà connu.
+ */
+export type GameReputationTrack = {
+  /** Nom technique de la piste (`Security`, `BountyHunter`), stable. */
+  scope: string;
+  /** Les factions (GUID) dont des missions font monter cette piste. */
+  factionIds: string[];
+  /** Les noms des rangs demandés par ces missions, toutes factions confondues. */
+  standings: string[];
+};
+
 export type GameMission = {
   /** Identifiant principal du contrat chez la source. */
   id: string;

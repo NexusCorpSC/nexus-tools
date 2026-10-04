@@ -13,8 +13,12 @@
  *     sinon par son nom, sinon parce qu'elle est la seule de la faction ;
  *   - rien n'est supprimé : une faction qui disparaît du wiki est marquée
  *     `removedInVersion`, une faction saisie à la main que le wiki ne connaît
- *     pas reste telle quelle, comme les carrières qu'il ne donne pas (il n'en
- *     donne qu'une par faction) ;
+ *     pas reste telle quelle, comme les carrières qu'il ne donne pas ;
+ *   - le wiki ne donne qu'un barème par faction ; les autres pistes viennent
+ *     des missions (Security chez Eckhart, dont le barème est `Standing`).
+ *     Leur barème n'est pas au wiki : la piste prend celui, déjà dans la
+ *     liste, dont les rangs sont ceux que ses missions demandent (le barème
+ *     Security de Northrock) ; sans barème reconnu, le rapport la signale ;
  *   - le standing (Hostile, Neutral, Ally) n'est pas au wiki : celui d'une
  *     faction existante est gardé.
  */
@@ -26,7 +30,7 @@ import type {
   PlayerReputations,
 } from "@/types/reputations";
 import { factionKey, newReport, note, sameValue, type Report } from "./plan";
-import type { GameReputationFaction } from "./source";
+import type { GameReputationFaction, GameReputationTrack } from "./source";
 
 /** Le standing des factions créées, celui que toutes les factions saisies à la main avaient. */
 export const DEFAULT_STANDINGS = ["Hostile", "Neutral", "Ally"];
@@ -159,13 +163,17 @@ export type ReputationChanges = {
   report: Report;
 };
 
+/** Un barème prêt à fusionner : celui d'une faction au wiki, ou celui d'une piste. */
+type CareerLadder = { scope: string; name: string; levels: FactionLevel[] };
+
 function mergeCareer(
   faction: Faction,
-  ladder: Ladder,
+  ladder: CareerLadder,
   moves: ReputationMoves,
   report: Report,
+  added = "carrières ajoutées",
 ) {
-  const levels = toLevels(ladder);
+  const { levels } = ladder;
   const careers = faction.careers;
   const career =
     careers.find((c) => c.gameScope === ladder.scope) ??
@@ -184,7 +192,7 @@ function mergeCareer(
       return;
     }
     careers.push({ name: ladder.name, gameScope: ladder.scope, levels });
-    note(report, "carrières ajoutées", `${faction.name} / ${ladder.name}`);
+    note(report, added, `${faction.name} / ${ladder.name}`);
     return;
   }
 
@@ -234,6 +242,49 @@ function mergeCareer(
     note(report, "barèmes mis à jour", `${faction.name} / ${career.name}`);
 }
 
+type TrackTemplate = { faction: Faction; career: FactionCareer };
+
+/**
+ * Le barème d'une piste des missions : la carrière de la liste dont au moins
+ * deux rangs, et au moins la moitié, sont demandés par ses missions, celle
+ * qui en a le plus. À égalité, un barème du wiki passe avant une saisie à la
+ * main, qui passe avant la copie faite pour une autre piste (elle peut dater
+ * d'avant la dernière mise à jour du barème copié).
+ */
+function trackTemplate(
+  track: GameReputationTrack,
+  factions: Faction[],
+  ownScope: Map<Faction, string>,
+): TrackTemplate | undefined {
+  const wanted = new Set(track.standings.map(factionKey));
+  let best: TrackTemplate | undefined;
+  let bestScore = 0;
+  for (const faction of factions) {
+    for (const career of faction.careers) {
+      // Le barème générique : ses rangs reviennent dans les prérequis de toutes les missions.
+      if (career.gameScope === "FactionReputation") continue;
+      const found = career.levels.filter((level) =>
+        wanted.has(factionKey(level.name)),
+      ).length;
+      if (found < 2 || found * 2 < career.levels.length) continue;
+      const origin =
+        career.gameScope && career.gameScope === ownScope.get(faction)
+          ? 2
+          : career.gameScope
+            ? 0
+            : 1;
+      const score = found * 3 + origin;
+      if (score > bestScore) {
+        best = { faction, career };
+        bestScore = score;
+      }
+    }
+  }
+  return (
+    best && { faction: best.faction, career: structuredClone(best.career) }
+  );
+}
+
 /**
  * La nouvelle liste des factions, et ce que les réputations des joueurs
  * doivent suivre.
@@ -242,6 +293,7 @@ export function planReputations(
   existing: Faction[],
   source: GameReputationFaction[],
   version: string,
+  tracks: GameReputationTrack[] = [],
 ): ReputationChanges {
   const report = newReport();
   const factions = structuredClone(existing);
@@ -255,6 +307,9 @@ export function planReputations(
   for (const faction of factions)
     if (faction.gameId) byGameId.set(faction.gameId, faction);
   const claimed = new Set<Faction>();
+  /** La faction de chaque GUID du wiki, et le nom technique de son barème. */
+  const listed = new Map<string, Faction>();
+  const ownScope = new Map<Faction, string>();
   // Les GUID d'abord : un nom ne prend pas la faction qu'un GUID désigne.
   for (const record of source) {
     const faction = byGameId.get(record.gameId);
@@ -363,8 +418,56 @@ export function planReputations(
       else (faction as Record<string, unknown>)[key] = record[key];
     }
     delete faction.removedInVersion;
-    if (ladder) mergeCareer(faction, ladder, moves, report);
+    listed.set(record.gameId, faction);
+    if (record.ladder) ownScope.set(faction, record.ladder.scope);
+    if (ladder)
+      mergeCareer(
+        faction,
+        { scope: ladder.scope, name: ladder.name, levels: toLevels(ladder) },
+        moves,
+        report,
+      );
     if (!created && !sameValue(before, faction)) note(report, "mises à jour");
+  }
+
+  // Les pistes des missions, d'après les barèmes une fois ceux du wiki à jour,
+  // tous choisis avant d'en copier un.
+  factions.sort((a, b) => a.name.localeCompare(b.name));
+  const templates = new Map(
+    tracks.map((track) => [
+      track.scope,
+      trackTemplate(track, factions, ownScope),
+    ]),
+  );
+  for (const track of tracks) {
+    const template = templates.get(track.scope);
+    for (const gameId of track.factionIds) {
+      const faction = listed.get(gameId);
+      // Une faction sans réputation au wiki, ou ignorée plus haut.
+      if (!faction) continue;
+      // La piste est déjà le barème de la faction (Hauling chez Covalex).
+      if (ownScope.get(faction) === track.scope) continue;
+      if (template?.faction === faction) continue;
+      if (!template) {
+        note(
+          report,
+          "pistes des missions sans barème connu (non ajoutées)",
+          `${faction.name} / ${track.scope}`,
+        );
+        continue;
+      }
+      mergeCareer(
+        faction,
+        {
+          scope: track.scope,
+          name: template.career.name,
+          levels: structuredClone(template.career.levels),
+        },
+        moves,
+        report,
+        "pistes ajoutées depuis les missions",
+      );
+    }
   }
 
   for (const faction of factions) {
