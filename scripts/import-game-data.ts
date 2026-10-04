@@ -475,12 +475,23 @@ async function planReputationImport(
   warnings: string[],
 ) {
   const database = db.db();
-  const factions = await loadWikiReputations(version, stats, warnings);
-  console.log(`${factions.length} factions à réputation`);
+  const { factions, tracks } = await loadWikiReputations(
+    version,
+    stats,
+    warnings,
+  );
+  console.log(
+    `${factions.length} factions à réputation, ${tracks.length} pistes de missions`,
+  );
   const config = await database
     .collection<{ key: string; factions: Faction[] }>("configuration")
     .findOne({ key: "reputations" });
-  const plan = planReputations(config?.factions ?? [], factions, version);
+  const plan = planReputations(
+    config?.factions ?? [],
+    factions,
+    version,
+    tracks,
+  );
 
   // Pour le rapport : l'écriture relit les joueurs juste avant d'écrire.
   const users = await planPlayerMoves(plan.moves);

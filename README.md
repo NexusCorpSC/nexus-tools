@@ -295,9 +295,16 @@ retrouvée par son GUID, sinon par son nom ; ses rangs sont remplacés par ceux
 du jeu, et les réputations déjà saisies par les joueurs suivent les factions,
 carrières et rangs renommés (un rang que le jeu n'a plus devient le rang
 retrouvé juste en dessous). Le wiki ne donne qu'un barème par faction : les
-autres carrières saisies à la main restent, comme le standing (Hostile,
-Neutral, Ally), qu'il ne donne pas. Rien n'est supprimé : une faction qui
-disparaît du wiki est marquée `removedInVersion`.
+autres pistes viennent des missions, qui disent quelle réputation elles font
+monter (Security chez Eckhart Security, dont le barème est `Standing`). Le
+wiki n'a pas le barème de ces pistes : chacune prend celui de la liste dont
+les rangs sont ceux que ses missions demandent (Security de Northrock,
+Bounty Hunting de MicroTech Protection Services). Une piste sans barème
+reconnu (Courier, Hired Muscle) est seulement signalée au rapport : saisir
+son barème à la main pour une faction suffit pour que l'import suivant
+l'ajoute aux autres. Les carrières saisies à la main restent, comme le
+standing (Hostile, Neutral, Ally), que le wiki ne donne pas. Rien n'est
+supprimé : une faction qui disparaît du wiki est marquée `removedInVersion`.
 
 Le wiki regroupe aussi les variantes d'une mission sous une seule fiche, là où
 les premiers imports (scmdb) en faisaient plusieurs : au passage au wiki, ces
