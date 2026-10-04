@@ -215,22 +215,29 @@ export type PendingContribution = Contribution & {
 
 /** Le barème de la spec, pour ce qui existe déjà. */
 export const POINTS = {
-  media: 10,
+  media: 2,
   /** En plus, pour la première image d'un lieu qui n'en avait aucune. */
-  firstMedia: 5,
-  placeCreate: 20,
-  itemCreate: 20,
+  firstMedia: 3,
+  placeCreate: 3,
+  itemCreate: 3,
   /** Un plan dessiné, dès qu'il compte une pièce. */
-  planDrawn: 60,
-  planImage: 30,
+  planDrawn: 5,
+  /** Un plan image, avec ses repères. */
+  planImage: 3,
   /** Une section d'objet qui était vide. */
-  section: 10,
+  section: 1,
   /** Toute autre correction de champs, plan repris compris. */
-  edit: 5,
+  edit: 1,
   /** Une organisation créée, à sa validation. */
-  orgCreate: 20,
+  orgCreate: 2,
   /** Une donnée confirmée, dans la limite de `CONFIRM_DAILY_CAP` par jour. */
-  confirm: 2,
+  confirm: 1,
+  /**
+   * Une relecture décidée (publiée ou refusée) par un joueur à partir de
+   * `REVIEW_LEVEL`, dans la limite de `REVIEW_DAILY_CAP` par jour. Reprise si
+   * la publication est annulée.
+   */
+  review: 1,
 } as const;
 
 /**
@@ -291,6 +298,17 @@ export const DIRECT_EDIT_DAILY_CAP = 20;
 
 /** Renommer un lieu ou un objet, déplacer un lieu, changer un type d'objet. */
 export const RENAME_LEVEL = 4;
+
+/**
+ * À partir de ce niveau, un joueur relit les contributions des autres sur
+ * `/contributions/review`, et chaque relecture décidée lui rapporte
+ * `POINTS.review`.
+ */
+export const REVIEW_LEVEL = 4;
+/** Au-delà, une relecture est décidée mais ne rapporte plus rien ce jour-là. */
+export const REVIEW_DAILY_CAP = 20;
+/** Un joueur relecteur décide au plus de ça d'un coup ; les modérateurs, d'une file entière. */
+export const PLAYER_REVIEW_BATCH = 20;
 
 /** Une contribution à corriger sans reprise après ce délai est refusée. */
 export const CHANGES_REQUESTED_TTL_DAYS = 14;
@@ -403,7 +421,7 @@ export const CONFIRM_TARGETS: Record<
 };
 
 /** Au-delà, une confirmation est enregistrée mais ne rapporte plus rien. */
-export const CONFIRM_DAILY_CAP = 20;
+export const CONFIRM_DAILY_CAP = 5;
 /** Le même joueur ne confirme pas la même donnée plus d'une fois par semaine. */
 export const CONFIRM_COOLDOWN_DAYS = 7;
 /** Trois joueurs qui disent « plus exact » ouvrent un signalement. */

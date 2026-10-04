@@ -135,7 +135,7 @@ export const REPORT_BAN_DAYS = 7;
 /** Une suspension de contributeur, décidée sur un dossier. */
 export const CONTRIBUTOR_SUSPENSION_DAYS = 7;
 /** Ce que rapporte un signalement retenu. */
-export const REPORT_UPHELD_POINTS = 5;
+export const REPORT_UPHELD_POINTS = 1;
 
 export const MAX_REPORT_COMMENT_LENGTH = 500;
 export const MAX_RESOLUTION_NOTE_LENGTH = 500;

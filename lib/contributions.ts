@@ -57,6 +57,8 @@ import {
   MIN_ACCEPTANCE_RATE,
   MIN_REVIEWED_FOR_RATE,
   POINTS,
+  REVIEW_DAILY_CAP,
+  REVIEW_LEVEL,
   REPEAT_EDIT_WINDOW_MS,
   type Contribution,
   type ContributionChange,
@@ -927,7 +929,79 @@ export async function publishContribution(
   if (contribution.userId.equals(reviewer.id)) {
     throw new ContributionError("ownContribution", 403);
   }
-  return publish(contribution, reviewer, versionFilter(version).updatedAt);
+  const published = await publish(
+    contribution,
+    reviewer,
+    versionFilter(version).updatedAt,
+  );
+  if (published.status === "published") {
+    await creditReview(reviewer, contribution._id);
+  }
+  return published;
+}
+
+/**
+ * Une relecture décidée rapporte au joueur relecteur, à partir de
+ * `REVIEW_LEVEL` et dans la limite de `REVIEW_DAILY_CAP` par jour. Les
+ * modérateurs relisent au titre de leur rôle : ils ne gagnent rien. Une
+ * contribution ne se décide qu'une fois : publiée ou refusée. Ne lève jamais :
+ * la décision est déjà acquise.
+ */
+async function creditReview(reviewer: Contributor, contributionId: ObjectId) {
+  if (!reviewer.player) return;
+  try {
+    const standing = await getStanding(reviewer.id);
+    if (standing.level < REVIEW_LEVEL) return;
+    const now = new Date();
+    const today = await pointEvents().countDocuments({
+      userId: reviewer.id,
+      reason: "review",
+      at: { $gte: new Date(now.getTime() - DAY_MS) },
+    });
+    if (today >= REVIEW_DAILY_CAP) return;
+    await pointEvents().insertOne({
+      userId: reviewer.id,
+      contributionId,
+      delta: POINTS.review,
+      reason: "review",
+      at: now,
+    });
+    await users().updateOne(
+      { _id: reviewer.id },
+      { $inc: { "contrib.points": POINTS.review } },
+    );
+    await refreshProgress(reviewer.id);
+  } catch (error) {
+    console.error("Crédit de relecture impossible", error);
+  }
+}
+
+/**
+ * Une publication annulée n'aurait pas dû passer : le point de qui l'a
+ * publiée repart avec ceux de l'auteur.
+ */
+async function withdrawReview(contributionId: ObjectId, at: Date) {
+  try {
+    const credited = await pointEvents()
+      .find({ contributionId, reason: "review" })
+      .toArray();
+    for (const event of credited) {
+      await pointEvents().insertOne({
+        userId: event.userId,
+        contributionId,
+        delta: -event.delta,
+        reason: "reverted",
+        at,
+      });
+      await users().updateOne(
+        { _id: event.userId },
+        { $inc: { "contrib.points": -event.delta } },
+      );
+      await refreshProgress(event.userId);
+    }
+  } catch (error) {
+    console.error("Retrait du point de relecture impossible", error);
+  }
 }
 
 /** Supprime des images du stockage, sans faire échouer ce qui est déjà acquis. */
@@ -1012,6 +1086,9 @@ export async function rejectContribution(
 
   // Un refus pèse sur la fiabilité, donc parfois sur le niveau.
   await refreshProgress(contribution.userId);
+  if (!contribution.userId.equals(reviewer.id)) {
+    await creditReview(reviewer, contribution._id);
+  }
   return toContribution(updated);
 }
 
@@ -1167,6 +1244,7 @@ export async function revertContribution(
   }
   // Une annulation compte comme un refus dans la fiabilité, points ou non.
   await refreshProgress(contribution.userId);
+  await withdrawReview(contribution._id, now);
 
   return toContribution(updated!);
 }
@@ -1251,22 +1329,29 @@ async function withMedia(
 /** La file d'attente, la plus ancienne d'abord, avec de quoi juger sur pièce. */
 export async function listPendingContributions(
   limit = 300,
+  /** Un relecteur joueur ne voit pas ses propres contributions. */
+  exceptUserId?: ObjectId,
 ): Promise<{ items: PendingContribution[]; total: number }> {
   await expireChangesRequested();
+  const filter: Filter<DbContribution> = {
+    status: "pending",
+    ...(exceptUserId ? { userId: { $ne: exceptUserId } } : {}),
+  };
   const [docs, total] = await Promise.all([
-    contributions()
-      .find({ status: "pending" })
-      .sort({ createdAt: 1 })
-      .limit(limit)
-      .toArray(),
-    contributions().countDocuments({ status: "pending" }),
+    contributions().find(filter).sort({ createdAt: 1 }).limit(limit).toArray(),
+    contributions().countDocuments(filter),
   ]);
 
   return { total, items: await withMedia(docs) };
 }
 
-export async function countPendingContributions(): Promise<number> {
-  return contributions().countDocuments({ status: "pending" });
+export async function countPendingContributions(
+  exceptUserId?: ObjectId,
+): Promise<number> {
+  return contributions().countDocuments({
+    status: "pending",
+    ...(exceptUserId ? { userId: { $ne: exceptUserId } } : {}),
+  });
 }
 
 export const JOURNAL_STATUSES = [
