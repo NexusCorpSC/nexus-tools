@@ -23,6 +23,7 @@ import {
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getPlacesBySlugs } from "@/lib/places";
+import { missionBlueprintsLookup } from "@/lib/missions";
 import { placeTrail } from "@/lib/place-icons";
 import { recordView } from "@/lib/page-views";
 import { PointsChip } from "@/components/points-chip";
@@ -43,47 +44,6 @@ async function getMission(
     return null;
   }
 
-  const blueprintLookupPipeline = userId
-    ? [
-        { $match: { $expr: { $in: ["$_id", "$$blueprintIds"] } } },
-        {
-          $lookup: {
-            from: "user-blueprints",
-            let: { bpId: { $toString: "$_id" } },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ["$blueprintId", "$$bpId"] },
-                      { $eq: ["$userId", userId] },
-                    ],
-                  },
-                },
-              },
-            ],
-            as: "ownership",
-          },
-        },
-        {
-          $addFields: {
-            owned: {
-              $cond: [
-                {
-                  $or: [
-                    { $eq: ["$isDefault", true] },
-                    { $gt: [{ $size: "$ownership" }, 0] },
-                  ],
-                },
-                true,
-                false,
-              ],
-            },
-          },
-        },
-      ]
-    : [{ $match: { $expr: { $in: ["$_id", "$$blueprintIds"] } } }];
-
   const [mission] = await db
     .db()
     .collection("missions")
@@ -98,14 +58,7 @@ async function getMission(
         },
       },
       { $unwind: { path: "$faction", preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: "blueprints",
-          let: { blueprintIds: "$blueprints" },
-          pipeline: blueprintLookupPipeline,
-          as: "blueprintDetails",
-        },
-      },
+      missionBlueprintsLookup(userId),
       { $addFields: { replacedBy: { $toString: "$replacedBy" } } },
     ])
     .toArray();

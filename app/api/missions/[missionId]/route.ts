@@ -1,6 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { missionBlueprintsLookup } from "@/lib/missions";
 
 export async function GET(
   _request: NextRequest,
@@ -14,6 +17,10 @@ export async function GET(
   } catch {
     return NextResponse.json({ error: "Invalid mission ID" }, { status: 400 });
   }
+
+  // L'app envoie le cookie de session : chaque blueprint porte
+  // alors `owned`, comme sur la fiche du site.
+  const session = await auth.api.getSession({ headers: await headers() });
 
   const [mission] = await db
     .db()
@@ -29,14 +36,7 @@ export async function GET(
         },
       },
       { $unwind: { path: "$faction", preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: "blueprints",
-          localField: "blueprints",
-          foreignField: "_id",
-          as: "blueprintDetails",
-        },
-      },
+      missionBlueprintsLookup(session?.user?.id),
     ])
     .toArray();
 
