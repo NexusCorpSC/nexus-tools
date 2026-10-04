@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { ReportError, parseResolveInput, resolveReport } from "@/lib/reports";
 import { CONTRIBUTIONS_REVIEW_PERMISSION } from "@/types/contributions";
+import { PLACES_EDIT_PERMISSION } from "@/types/places";
+import { ITEMS_EDIT_PERMISSION } from "@/types/items";
 
 /**
  * POST /api/admin/reports/:id/resolve
@@ -38,6 +40,10 @@ export async function POST(
         id,
         { id: new ObjectId(session.user.id), name: session.user.name },
         parseResolveInput(body),
+        {
+          places: await hasPermission(PLACES_EDIT_PERMISSION),
+          items: await hasPermission(ITEMS_EDIT_PERMISSION),
+        },
       ),
     );
   } catch (error) {

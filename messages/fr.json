@@ -2741,6 +2741,9 @@
       "invalidAction": "Cette décision n'est pas possible ici.",
       "contributionRequired": "Choisissez la contribution à annuler.",
       "actionFailed": "La décision n'a pas pu être appliquée.",
+      "busy": "Un modérateur tranche ce signalement en ce moment. Réessayez dans un instant.",
+      "ownDossier": "Vous avez signalé cet élément ou contribué à ce qui est en cause : un autre modérateur doit trancher.",
+      "notAllowed": "Retirer ce type d'élément demande le droit de l'éditer dans l'admin.",
       "failed": "L'envoi a échoué. Réessayez."
     },
     "Mine": {
@@ -2811,7 +2814,8 @@
         "correct": "Dossier clos, signalement retenu.",
         "revert": "Contribution annulée, signalement retenu.",
         "delete": "Élément retiré, signalement retenu."
-      }
+      },
+      "ownDossier": "Vous avez signalé cet élément ou contribué à ce qui est en cause : un autre modérateur doit trancher ce dossier."
     }
   }
 }

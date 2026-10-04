@@ -36,7 +36,10 @@ export async function GET(request: NextRequest, { params }: Params) {
   const isMember = org.members.some((m) =>
     new ObjectId(m.userId).equals(session.user.id)
   );
-  if (!isMember && !org.public) {
+  // Masquée par un signalement, elle n'est plus publique pour personne
+  // d'autre que ses membres.
+  const hidden = (org as { reportHidden?: boolean }).reportHidden === true;
+  if (!isMember && (!org.public || hidden)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

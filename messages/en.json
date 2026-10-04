@@ -2710,6 +2710,9 @@
       "invalidAction": "That decision isn't possible here.",
       "contributionRequired": "Pick the contribution to revert.",
       "actionFailed": "The decision couldn't be applied.",
+      "busy": "A moderator is deciding this report right now. Try again in a moment.",
+      "ownDossier": "You reported this or contributed to what is at fault: another moderator must decide.",
+      "notAllowed": "Removing this kind of element needs the right to edit it in admin.",
       "failed": "Sending failed. Try again."
     },
     "Mine": {
@@ -2780,7 +2783,8 @@
         "correct": "Case closed, report upheld.",
         "revert": "Contribution reverted, report upheld.",
         "delete": "Element removed, report upheld."
-      }
+      },
+      "ownDossier": "You reported this or contributed to what is at fault: another moderator must decide this case."
     }
   }
 }

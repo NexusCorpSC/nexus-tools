@@ -88,7 +88,7 @@ export async function getOrgAccess(
   const org = await db
     .db()
     .collection<Organization>("organizations")
-    .findOne({ _id: orgId }, { projection: { members: 1 } });
+    .findOne({ _id: orgId }, { projection: { members: 1, reportHidden: 1 } });
 
   if (!org) return null;
 
@@ -97,6 +97,10 @@ export async function getOrgAccess(
         new ObjectId(candidate.userId).equals(readerId),
       )
     : undefined;
+  // Masquée par un signalement, elle n'existe plus que pour ses membres.
+  if (!member && (org as { reportHidden?: boolean }).reportHidden === true) {
+    return null;
+  }
 
   return { isMember: !!member, isEditor: !!member?.editor };
 }

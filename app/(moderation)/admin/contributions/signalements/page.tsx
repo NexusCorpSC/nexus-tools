@@ -5,7 +5,11 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { hasPermission, isAdmin } from "@/lib/permissions";
-import { getReportDetail, listOpenReports } from "@/lib/reports";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { canDelete, getReportDetail, listOpenReports } from "@/lib/reports";
+import { PLACES_EDIT_PERMISSION } from "@/types/places";
+import { ITEMS_EDIT_PERMISSION } from "@/types/items";
 import { cn } from "@/lib/utils";
 import { CONTRIBUTIONS_REVIEW_PERMISSION } from "@/types/contributions";
 import {
@@ -50,9 +54,22 @@ export default async function ReportsPage({
   const { items, total } = await listOpenReports();
   const selectedId =
     items.find((item) => item.id === dossier)?.id ?? items[0]?.id;
-  const detail = selectedId
-    ? await getReportDetail(selectedId, await isAdmin())
-    : null;
+  const [detail, session, rights] = await Promise.all([
+    selectedId
+      ? isAdmin().then((admin) => getReportDetail(selectedId, admin))
+      : null,
+    auth.api.getSession({ headers: await headers() }),
+    Promise.all([
+      hasPermission(PLACES_EDIT_PERMISSION),
+      hasPermission(ITEMS_EDIT_PERMISSION),
+    ]).then(([places, items]) => ({ places, items })),
+  ]);
+  // Ce qu'on a signalé ou écrit se fait trancher par quelqu'un d'autre.
+  const own =
+    !!detail &&
+    !!session?.user &&
+    (detail.report.entries.some((entry) => entry.userId === session.user.id) ||
+      detail.authors.some((author) => author.id === session.user.id));
 
   return (
     <div className="flex min-h-screen justify-center px-4 py-12">
@@ -235,26 +252,36 @@ export default async function ReportsPage({
                   )}
                 </div>
 
-                <ResolvePanel
-                  key={detail.report.id}
-                  reportId={detail.report.id}
-                  actions={[
-                    ...REPORT_ACTIONS_BY_TARGET[detail.report.target.type],
-                  ]}
-                  gone={detail.gone}
-                  history={detail.history
-                    .filter(
-                      (contribution) => contribution.status === "published",
-                    )
-                    .map((contribution) => ({
-                      id: contribution.id,
-                      label: `${tMine(`kinds.${contribution.kind}`)} · ${contribution.userName ?? "?"}`,
+                {own ? (
+                  <p className="border-t border-[#9ED0FF]/15 pt-4 text-sm text-[#F7D2AE]">
+                    {t("Admin.ownDossier")}
+                  </p>
+                ) : (
+                  <ResolvePanel
+                    key={detail.report.id}
+                    reportId={detail.report.id}
+                    actions={REPORT_ACTIONS_BY_TARGET[
+                      detail.report.target.type
+                    ].filter(
+                      (action) =>
+                        action !== "delete" ||
+                        canDelete(detail.report.target, rights),
+                    )}
+                    gone={detail.gone}
+                    history={detail.history
+                      .filter(
+                        (contribution) => contribution.status === "published",
+                      )
+                      .map((contribution) => ({
+                        id: contribution.id,
+                        label: `${tMine(`kinds.${contribution.kind}`)} · ${contribution.userName ?? "?"}`,
+                      }))}
+                    authors={detail.authors.map((author) => ({
+                      id: author.id,
+                      label: author.name ?? author.id,
                     }))}
-                  authors={detail.authors.map((author) => ({
-                    id: author.id,
-                    label: author.name ?? author.id,
-                  }))}
-                />
+                  />
+                )}
               </section>
             )}
           </div>

@@ -13,6 +13,8 @@ import {
   targetHref,
 } from "@/lib/reports";
 import { CONTRIBUTIONS_REVIEW_PERMISSION } from "@/types/contributions";
+import { PLACES_EDIT_PERMISSION } from "@/types/places";
+import { ITEMS_EDIT_PERMISSION } from "@/types/items";
 import type { ReportErrorCode } from "@/types/reports";
 
 export type ResolveActionResult =
@@ -38,6 +40,10 @@ export async function resolveReportAction(
       id,
       { id: new ObjectId(session.user.id), name: session.user.name },
       parseResolveInput(input),
+      {
+        places: await hasPermission(PLACES_EDIT_PERMISSION),
+        items: await hasPermission(ITEMS_EDIT_PERMISSION),
+      },
     );
   } catch (error) {
     if (!(error instanceof ReportError)) throw error;

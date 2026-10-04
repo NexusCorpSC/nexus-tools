@@ -35,6 +35,7 @@ import {
   MAX_RESOLUTION_NOTE_LENGTH,
   REPORT_ACTIONS_BY_TARGET,
   REPORT_BAN_DAYS,
+  REPORT_COOLDOWN_DAYS,
   REPORT_MASK_WEIGHT,
   REPORT_STRIKES,
   REPORT_UPHELD_POINTS,
@@ -461,6 +462,19 @@ export async function submitReport(
   });
   if (today >= REPORTS_PER_DAY) throw new ReportError("dailyLimit", 429);
 
+  // Un dossier classé ne se rouvre pas aussitôt par les mêmes comptes :
+  // sinon deux Éclaireurs remasqueraient la même image à chaque classement.
+  const dismissedRecently = await reports().countDocuments({
+    "target.type": target.type,
+    "target.id": target.id,
+    status: "dismissed",
+    "entries.userId": reporter.id,
+    "resolution.at": {
+      $gte: new Date(now.getTime() - REPORT_COOLDOWN_DAYS * DAY_MS),
+    },
+  });
+  if (dismissedRecently > 0) throw new ReportError("alreadyReported", 409);
+
   const standing = await getStanding(reporter.id);
   const entry: DbReportEntry = {
     userId: reporter.id,
@@ -491,6 +505,9 @@ export async function submitReport(
           "target.type": target.type,
           "target.id": target.id,
           status: "open",
+          // Un dossier en cours de décision ne prend plus de signalement :
+          // la décision ne le verrait ni ne le compterait.
+          resolving: { $ne: true },
           "entries.userId": { $ne: reporter.id },
         },
         {
@@ -505,26 +522,43 @@ export async function submitReport(
       if (!isDuplicateKey(error)) throw error;
       // Le dossier ouvert existe : soit le joueur y figure déjà, soit un
       // autre l'a ouvert au même instant, et on s'y ajoute au second essai.
-      const mine = await reports().countDocuments({
-        "target.type": target.type,
-        "target.id": target.id,
-        status: "open",
-        "entries.userId": reporter.id,
-      });
-      if (mine > 0) throw new ReportError("alreadyReported", 409);
+      const open = await reports().findOne(
+        { "target.type": target.type, "target.id": target.id, status: "open" },
+        { projection: { resolving: 1, "entries.userId": 1 } },
+      );
+      if (open?.entries.some((entry) => entry.userId.equals(reporter.id))) {
+        throw new ReportError("alreadyReported", 409);
+      }
+      if (open?.resolving) throw new ReportError("busy", 409);
     }
   }
-  if (!report) throw new ReportError("alreadyReported", 409);
+  if (!report) throw new ReportError("busy", 409);
 
   if (
     report.weight >= REPORT_MASK_WEIGHT &&
     MASKABLE_TARGETS.includes(report.target.type)
   ) {
     const claimed = await reports().findOneAndUpdate(
-      { _id: report._id, status: "open", hidden: false },
+      {
+        _id: report._id,
+        status: "open",
+        hidden: false,
+        resolving: { $ne: true },
+      },
       { $set: { hidden: true } },
     );
-    if (claimed) await mask(claimed);
+    if (claimed) {
+      await mask(claimed);
+      // Une décision prise pendant le masquage ne l'a peut-être pas vu : si
+      // le dossier a été classé ou corrigé entre-temps, on démasque.
+      const after = await reports().findOne({ _id: claimed._id });
+      if (
+        after &&
+        (after.status === "dismissed" || after.resolution?.action === "correct")
+      ) {
+        await unmask({ ...after, hidden: true });
+      }
+    }
   }
 
   return {
@@ -815,17 +849,29 @@ async function removeMedia(mediaId: ObjectId, moderator: Contributor) {
     console.error("Suppression d'image impossible", error);
   }
   try {
-    await pointEvents().insertOne({
-      userId: media.userId,
-      contributionId: media.contributionId,
-      delta: -POINTS.media,
-      reason: "removed",
-      at: new Date(),
-    });
-    await users().updateOne(
-      { _id: media.userId },
-      { $inc: { "contrib.points": -POINTS.media } },
+    // Les points de l'image sortent aussi de la contribution : l'annuler plus
+    // tard ne reprendra que ce qu'elle rapporte encore.
+    const debited = await contributions().findOneAndUpdate(
+      {
+        _id: media.contributionId,
+        status: "published",
+        points: { $gte: POINTS.media },
+      },
+      { $inc: { points: -POINTS.media } },
     );
+    if (debited) {
+      await pointEvents().insertOne({
+        userId: media.userId,
+        contributionId: media.contributionId,
+        delta: -POINTS.media,
+        reason: "removed",
+        at: new Date(),
+      });
+      await users().updateOne(
+        { _id: media.userId },
+        { $inc: { "contrib.points": -POINTS.media } },
+      );
+    }
   } catch (error) {
     console.error("Décompte d'image impossible", error);
   }
@@ -966,10 +1012,33 @@ async function sanctionAuthor(
  * dossier reste ouvert et rien n'est crédité —, puis le dossier est clos, ses
  * signaleurs crédités ou comptés, et l'auteur sanctionné s'il y a lieu.
  */
+export type ModerationRights = { places: boolean; items: boolean };
+
+/** Retirer une image ou une organisation est de la modération ; le reste, de l'édition. */
+export function canDelete(
+  target: ReportTarget,
+  rights: ModerationRights,
+): boolean {
+  switch (target.type) {
+    case "place":
+    case "plan":
+      return rights.places;
+    case "item":
+      return rights.items;
+    default:
+      return true;
+  }
+}
+
 export async function resolveReport(
   id: string,
   moderator: Contributor,
   input: ResolveReportInput,
+  /**
+   * Ce que le modérateur peut supprimer : retirer un lieu, un plan ou un objet
+   * demande les mêmes droits que dans l'admin (`places:edit`, `items:edit`).
+   */
+  rights: ModerationRights = { places: false, items: false },
 ): Promise<Report> {
   if (!ObjectId.isValid(id)) throw new ReportError("notFound", 404);
   const reportId = new ObjectId(id);
@@ -993,9 +1062,22 @@ export async function resolveReport(
       throw new ReportError("invalidAction", 400);
     }
 
+    if (input.action === "delete" && !canDelete(report.target, rights)) {
+      throw new ReportError("notAllowed", 403);
+    }
+
     const history = await historyOf(report.target);
+    const authors = await authorsOf(report.target, history);
+    // On ne tranche ni ce qu'on a signalé, ni ce qu'on a écrit : comme une
+    // contribution, un dossier se fait juger par quelqu'un d'autre.
+    if (
+      report.entries.some((entry) => entry.userId.equals(moderator.id)) ||
+      authors.some((author) => author.id === String(moderator.id))
+    ) {
+      throw new ReportError("ownDossier", 403);
+    }
+
     if (input.sanction) {
-      const authors = await authorsOf(report.target, history);
       const chosen =
         authors.find((author) => author.id === input.authorId) ??
         (authors.length === 1 ? authors[0] : undefined);
@@ -1058,13 +1140,15 @@ export async function resolveReport(
 
   // Retirée ou annulée, l'image n'a plus rien à démasquer ; classée ou
   // corrigée, elle revient.
+  // Le dossier tel qu'il est clos : c'est lui qui dit s'il a été masqué.
+  const closed = updated ?? report;
   if (input.action === "dismiss" || input.action === "correct") {
-    await unmask(report);
+    await unmask(closed);
   }
 
   try {
-    if (upheld) await rewardReporters(report, now);
-    else await strikeReporters(report, now);
+    if (upheld) await rewardReporters(closed, now);
+    else await strikeReporters(closed, now);
   } catch (error) {
     console.error("Suite de signalement impossible", error);
   }

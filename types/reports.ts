@@ -124,6 +124,8 @@ export const MASKABLE_TARGETS: readonly ReportTargetType[] = [
 ];
 
 export const REPORTS_PER_DAY = 10;
+/** Après un classement, le même compte ne resignale pas la même cible avant. */
+export const REPORT_COOLDOWN_DAYS = 30;
 /** Trois signalements classés d'affilée suspendent le droit de signaler. */
 export const REPORT_STRIKES = 3;
 export const REPORT_BAN_DAYS = 7;
@@ -150,6 +152,9 @@ export const REPORT_ERRORS = [
   "invalidAction",
   "contributionRequired",
   "actionFailed",
+  "busy",
+  "ownDossier",
+  "notAllowed",
 ] as const;
 
 export type ReportErrorCode = (typeof REPORT_ERRORS)[number];
