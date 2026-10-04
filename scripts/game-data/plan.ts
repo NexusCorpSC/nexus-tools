@@ -49,6 +49,8 @@ export type BlueprintDoc = {
   removedInVersion?: string;
   generatedObtention?: string;
   source?: ImportSource;
+  /** Posé par `merge:blueprints` le temps de fusionner cette fiche dans une autre. */
+  mergedInto?: ObjectId;
 };
 
 export type FactionDoc = {
@@ -187,7 +189,8 @@ function guardRemovals(label: string, removed: number, active: number) {
 
 // ─── Blueprints ───────────────────────────────────────────────────────────────
 
-const autoDescription = (name: string) => `Blueprint pour fabriquer ${name}`;
+export const autoDescription = (name: string) =>
+  `Blueprint pour fabriquer ${name}`;
 
 /** Le suffixe qui départage deux homonymes : `BP_CRAFT_COOL_TYDT_S02_HeatSink_SCItem` → `cool-tydt-s02-heatsink`. */
 function tagSuffix(tag: string): string {
@@ -243,8 +246,8 @@ function sameRecipe(
     : record.fingerprint === recipeFingerprint(recipe);
 }
 
-function groupByName(records: GameBlueprint[]) {
-  const byName = new Map<string, GameBlueprint[]>();
+export function groupByName<T extends { name?: string | null }>(records: T[]) {
+  const byName = new Map<string, T[]>();
   for (const record of records) {
     if (!record.name) continue;
     const list = byName.get(record.name) ?? [];
@@ -309,29 +312,29 @@ export function planBlueprints(
   const unmatched: BlueprintDoc[] = [];
   for (const doc of docs) {
     if (doc.gameId) continue;
+    // Une fusion de `merge:blueprints` interrompue : le GUID qu'elle a retiré
+    // de cette fiche va à la fiche gardée, il ne doit pas lui revenir.
+    if (doc.mergedInto) {
+      note(
+        report,
+        "fusions interrompues, laissées telles quelles (relancer npm run merge:blueprints)",
+        doc.name,
+      );
+      continue;
+    }
     const named = legacyByName.get(doc.name);
     if (!named) {
       unmatched.push(doc);
       continue;
     }
-    let candidates = named.filter((record) => !byGameId.has(record.gameId));
-    if (candidates.length > 1) {
-      candidates = candidates.filter((record) =>
-        sameRecipe(record, doc.recipe),
-      );
-      // Même nom et même recette : des variantes que rien ne distingue sur
-      // la fiche. L'ancien import, qui cherchait par nom, a écrit chacune par
-      // dessus la précédente : la fiche porte la dernière.
-      if (candidates.length > 1) {
-        note(
-          report,
-          "homonymes à recette identique, départagés par l'ordre de l'ancien export",
-          doc.name,
-        );
-        candidates = candidates.slice(-1);
-      }
-    }
-    adopt(doc, named, candidates);
+    // Même nom et même recette : des variantes que rien ne distingue sur la
+    // fiche. L'ancien import, qui cherchait par nom, a écrit chacune par
+    // dessus la précédente : la fiche porte la dernière.
+    adopt(doc, named, {
+      adopted: "fiches existantes rattachées à leur GUID",
+      tieBreak: "l'ordre de l'ancien export",
+      pick: (candidates) => candidates[candidates.length - 1],
+    });
   }
   // Après l'ancien export, pour ne pas prendre le GUID d'une fiche qu'il
   // aurait rattachée.
@@ -345,49 +348,56 @@ export function planBlueprints(
       );
       continue;
     }
-    let candidates = named.filter((record) => !byGameId.has(record.gameId));
-    if (candidates.length > 1) {
-      candidates = candidates.filter((record) =>
-        sameRecipe(record, doc.recipe),
-      );
-    }
-    if (candidates.length === 1) {
-      note(
-        report,
-        "fiches absentes de l'ancien export, rattachées par leur nom",
-      );
-    }
-    adopt(doc, named, candidates);
+    // Sans ancien export pour les départager, des variantes identiques sont
+    // prises dans l'ordre de leur GUID : la suivante reçoit sa propre fiche.
+    adopt(doc, named, {
+      adopted: "fiches absentes de l'ancien export, rattachées par leur nom",
+      tieBreak: "leur GUID",
+      pick: (candidates) =>
+        [...candidates].sort((a, b) => a.gameId.localeCompare(b.gameId))[0],
+    });
   }
 
   function adopt(
     doc: BlueprintDoc,
     named: GameBlueprint[],
-    candidates: GameBlueprint[],
+    how: {
+      adopted: string;
+      tieBreak: string;
+      pick: (candidates: GameBlueprint[]) => GameBlueprint;
+    },
   ) {
+    const free = named.filter((record) => !byGameId.has(record.gameId));
+    let candidates = free;
+    if (candidates.length > 1) {
+      candidates = candidates.filter((record) =>
+        sameRecipe(record, doc.recipe),
+      );
+      if (candidates.length > 1) {
+        note(
+          report,
+          `homonymes à recette identique, départagés par ${how.tieBreak}`,
+          doc.name,
+        );
+        candidates = [how.pick(candidates)];
+      }
+    }
     if (candidates.length === 1) {
       tracker.change(doc, "gameId", candidates[0].gameId);
       tracker.change(doc, "gameName", doc.name);
       byGameId.set(candidates[0].gameId, doc);
-      note(report, "fiches existantes rattachées à leur GUID");
-    } else if (candidates.length > 1) {
+      note(report, how.adopted);
+    } else if (free.length) {
       note(
         report,
         "fiches existantes ambiguës, laissées telles quelles",
         doc.name,
       );
-    } else if (named.some((record) => recordIds.has(record.gameId))) {
-      // Le blueprint de la source a déjà sa fiche : celle-ci fait doublon
-      // (voir `npm run merge:blueprints`).
+    } else {
+      // Chaque blueprint de ce nom a déjà sa fiche : celle-ci fait doublon.
       note(
         report,
         "doublons : fiche sans GUID d'un blueprint qui a déjà la sienne (npm run merge:blueprints)",
-        doc.name,
-      );
-    } else {
-      note(
-        report,
-        "fiches sans équivalent dans la source (saisies à la main ?)",
         doc.name,
       );
     }

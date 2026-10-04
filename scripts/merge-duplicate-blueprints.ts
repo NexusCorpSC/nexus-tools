@@ -32,10 +32,14 @@
 import type { Collection } from "mongodb";
 import { ObjectId } from "mongodb";
 import db from "@/lib/db";
-import type { BlueprintDoc } from "./game-data/plan";
+import {
+  autoDescription,
+  groupByName,
+  type BlueprintDoc,
+} from "./game-data/plan";
 import { recipeFingerprint } from "./game-data/source";
 
-type Doc = BlueprintDoc & { mergedInto?: ObjectId; mergedGameId?: string };
+type Doc = BlueprintDoc & { mergedGameId?: string };
 
 type Pair = { kept: Doc; merged: Doc };
 
@@ -75,10 +79,7 @@ function findPairs(docs: Doc[]) {
   const orphans = docs.filter(
     (doc) => !doc.gameId && !doc.mergedInto && !busy.has(doc),
   );
-  const orphansByName = new Map<string, Doc[]>();
-  for (const doc of orphans) {
-    orphansByName.set(doc.name, [...(orphansByName.get(doc.name) ?? []), doc]);
-  }
+  const orphansByName = groupByName(orphans);
 
   const taken = new Set<Doc>();
   for (const kept of orphans) {
@@ -97,8 +98,9 @@ function findPairs(docs: Doc[]) {
         );
       continue;
     }
-    const homonyms = orphansByName.get(kept.name)!.length > 1;
-    if (candidates.length > 1 || homonyms) {
+    // Dès que le nom désigne plusieurs blueprints du jeu (ou plusieurs
+    // fiches sans GUID), seule la recette dit lequel est le bon.
+    if (named.length > 1 || orphansByName.get(kept.name)!.length > 1) {
       const fingerprint = recipeFingerprint(kept.recipe);
       candidates = candidates.filter(
         (doc) => recipeFingerprint(doc.recipe) === fingerprint,
@@ -106,7 +108,7 @@ function findPairs(docs: Doc[]) {
     }
     if (candidates.length !== 1) {
       skipped.push(
-        `${kept.name} (${kept.slug}) : ${candidates.length ? "plusieurs fiches importées à la même recette" : "aucune fiche importée à la même recette"}`,
+        `${kept.name} (${kept.slug}) : ${candidates.length ? "plusieurs fiches importées à la même recette" : "homonymes, aucune fiche importée à la même recette"}`,
       );
       continue;
     }
@@ -116,8 +118,43 @@ function findPairs(docs: Doc[]) {
   return { pairs, skipped };
 }
 
+/**
+ * Ce qu'un administrateur a pu saisir sur la fiche importée : repris quand
+ * la fiche gardée n'a rien à cet endroit (`taken`), perdu sinon (`lost`, pour
+ * le rapport).
+ */
+function adminFields({ kept, merged }: Pair) {
+  const taken: Record<string, unknown> = {};
+  const lost: string[] = [];
+  const isEmpty = (value: unknown) =>
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === 0 ||
+    (typeof value === "object" && !Object.keys(value).length);
+  const isDefault = {
+    description: (doc: Doc) =>
+      isEmpty(doc.description) ||
+      doc.description === autoDescription(doc.gameName ?? doc.name),
+    statistics: (doc: Doc) => isEmpty(doc.statistics),
+    tier: (doc: Doc) => isEmpty(doc.tier),
+    imageUrl: (doc: Doc) => isEmpty(doc.imageUrl),
+    obtention: (doc: Doc) =>
+      isEmpty(doc.obtention) || doc.obtention === doc.generatedObtention,
+  };
+  for (const [field, isUnset] of Object.entries(isDefault)) {
+    const key = field as keyof typeof isDefault;
+    if (isUnset(merged)) continue;
+    if (isUnset(kept)) taken[key] = merged[key];
+    else if (JSON.stringify(kept[key]) !== JSON.stringify(merged[key]))
+      lost.push(key);
+  }
+  return { taken, lost };
+}
+
 /** Le `$set` qui fait de la fiche gardée celle du blueprint du jeu. */
-function keptFields({ kept, merged }: Pair) {
+function keptFields(pair: Pair) {
+  const { kept, merged } = pair;
   const set: Record<string, unknown> = {
     gameId: merged.gameId ?? merged.mergedGameId,
   };
@@ -129,7 +166,7 @@ function keptFields({ kept, merged }: Pair) {
   }
   if (!kept.subcategory && merged.subcategory)
     set.subcategory = merged.subcategory;
-  if (!kept.imageUrl && merged.imageUrl) set.imageUrl = merged.imageUrl;
+  Object.assign(set, adminFields(pair).taken);
   set.previousSlugs = [
     ...new Set([
       ...(kept.previousSlugs ?? []),
@@ -182,13 +219,12 @@ async function merge(
         .toArray()
     ).map((entry) => entry.userId),
   );
-  for (const entry of owned) {
-    if (already.has(entry.userId)) {
-      await owners.deleteOne({ _id: entry._id });
-    } else {
-      await owners.updateOne({ _id: entry._id }, { $set: { blueprintId: to } });
-    }
-  }
+  // Les joueurs qui avaient les deux fiches gardent la leur.
+  await owners.deleteMany({
+    blueprintId: from,
+    userId: { $in: [...already] },
+  });
+  await owners.updateMany({ blueprintId: from }, { $set: { blueprintId: to } });
 
   for (const mission of await missions
     .find({ blueprints: merged._id })
@@ -248,6 +284,7 @@ async function main() {
   const { pairs, skipped } = findPairs(docs);
 
   for (const { kept, merged } of pairs) {
+    const { lost } = adminFields({ kept, merged });
     const owners = await collections.owners.countDocuments({
       blueprintId: merged._id.toHexString(),
     });
@@ -257,8 +294,8 @@ async function main() {
       recipeFingerprint(kept.recipe) !== recipeFingerprint(merged.recipe)
         ? "recette mise à jour"
         : "",
-      merged.obtention && merged.obtention !== merged.generatedObtention
-        ? "obtention saisie sur la fiche importée, perdue"
+      lost.length
+        ? `saisi sur la fiche importée et perdu : ${lost.join(", ")}`
         : "",
     ].filter(Boolean);
     console.log(
