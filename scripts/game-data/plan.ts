@@ -243,6 +243,17 @@ function sameRecipe(
     : record.fingerprint === recipeFingerprint(recipe);
 }
 
+function groupByName(records: GameBlueprint[]) {
+  const byName = new Map<string, GameBlueprint[]>();
+  for (const record of records) {
+    if (!record.name) continue;
+    const list = byName.get(record.name) ?? [];
+    list.push(record);
+    byName.set(record.name, list);
+  }
+  return byName;
+}
+
 /**
  * Rapproche les blueprints de la source des fiches en base.
  *
@@ -290,20 +301,20 @@ export function planBlueprints(
 
   // Fiches importées avant les GUID : retrouvées par le nom sous lequel
   // elles ont été importées, et départagées par leur recette quand plusieurs
-  // blueprints portaient ce nom.
-  const pool = legacy ?? incoming;
-  const poolByName = new Map<string, GameBlueprint[]>();
-  for (const record of pool) {
-    if (!record.name) continue;
-    const list = poolByName.get(record.name) ?? [];
-    list.push(record);
-    poolByName.set(record.name, list);
-  }
+  // blueprints portaient ce nom. Une fiche absente de l'ancien export (créée
+  // depuis, à la main ou par un autre script) est retrouvée ensuite par son
+  // nom dans la source : sinon l'import en crée une seconde.
+  const legacyByName = groupByName(legacy ?? incoming);
+  const incomingByName = legacy ? groupByName(incoming) : undefined;
+  const unmatched: BlueprintDoc[] = [];
   for (const doc of docs) {
     if (doc.gameId) continue;
-    let candidates = (poolByName.get(doc.name) ?? []).filter(
-      (record) => !byGameId.has(record.gameId),
-    );
+    const named = legacyByName.get(doc.name);
+    if (!named) {
+      unmatched.push(doc);
+      continue;
+    }
+    let candidates = named.filter((record) => !byGameId.has(record.gameId));
     if (candidates.length > 1) {
       candidates = candidates.filter((record) =>
         sameRecipe(record, doc.recipe),
@@ -320,6 +331,40 @@ export function planBlueprints(
         candidates = candidates.slice(-1);
       }
     }
+    adopt(doc, named, candidates);
+  }
+  // Après l'ancien export, pour ne pas prendre le GUID d'une fiche qu'il
+  // aurait rattachée.
+  for (const doc of unmatched) {
+    const named = incomingByName?.get(doc.name);
+    if (!named) {
+      note(
+        report,
+        "fiches sans équivalent dans la source (saisies à la main ?)",
+        doc.name,
+      );
+      continue;
+    }
+    let candidates = named.filter((record) => !byGameId.has(record.gameId));
+    if (candidates.length > 1) {
+      candidates = candidates.filter((record) =>
+        sameRecipe(record, doc.recipe),
+      );
+    }
+    if (candidates.length === 1) {
+      note(
+        report,
+        "fiches absentes de l'ancien export, rattachées par leur nom",
+      );
+    }
+    adopt(doc, named, candidates);
+  }
+
+  function adopt(
+    doc: BlueprintDoc,
+    named: GameBlueprint[],
+    candidates: GameBlueprint[],
+  ) {
     if (candidates.length === 1) {
       tracker.change(doc, "gameId", candidates[0].gameId);
       tracker.change(doc, "gameName", doc.name);
@@ -329,6 +374,14 @@ export function planBlueprints(
       note(
         report,
         "fiches existantes ambiguës, laissées telles quelles",
+        doc.name,
+      );
+    } else if (named.some((record) => recordIds.has(record.gameId))) {
+      // Le blueprint de la source a déjà sa fiche : celle-ci fait doublon
+      // (voir `npm run merge:blueprints`).
+      note(
+        report,
+        "doublons : fiche sans GUID d'un blueprint qui a déjà la sienne (npm run merge:blueprints)",
         doc.name,
       );
     } else {
