@@ -21,9 +21,8 @@ import type { ContributionKind, LevelKey } from "@/types/contributions";
  * - `tour` : une contribution sur chaque planète d'un système, un par système ;
  * - `versatile` : au moins une contribution publiée de chaque nature ;
  * - `guardian` : cinq signalements retenus ;
- * - `reliable` : cinquante contributions relues d'affilée sans un refus.
- *
- * Le succès Fondateur arrive avec la création d'organisations ouverte à tous.
+ * - `reliable` : cinquante contributions relues d'affilée sans un refus ;
+ * - `founder` : une organisation créée, validée, qui atteint dix membres.
  */
 export const ACHIEVEMENT_KEYS = [
   "firstStep",
@@ -33,6 +32,7 @@ export const ACHIEVEMENT_KEYS = [
   "versatile",
   "guardian",
   "reliable",
+  "founder",
 ] as const;
 
 export type AchievementKey = (typeof ACHIEVEMENT_KEYS)[number];
@@ -47,6 +47,7 @@ export type AchievementTier = (typeof PIONEER_TIERS)[number]["tier"];
 
 export const GUARDIAN_GOAL = 5;
 export const RELIABLE_GOAL = 50;
+export const FOUNDER_MEMBERS = 10;
 /** Une ville ou un système plus petit n'a pas de succès à lui. */
 export const MIN_DISTRICTS = 2;
 export const MIN_PLANETS = 2;

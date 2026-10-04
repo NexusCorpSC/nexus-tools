@@ -15,10 +15,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createPlaceAction, updatePlaceAction } from "@/app/lieux/actions";
-import { PLACE_SERVICES, PLACE_TYPES, toPlaceSlug } from "@/types/places";
+import {
+  MAX_PLACE_TIP_LENGTH,
+  MAX_SOLD_ITEMS,
+  PLACE_SERVICES,
+  PLACE_TYPES,
+  toPlaceSlug,
+} from "@/types/places";
 import type { Place, PlaceService, PlaceType } from "@/types/places";
 import { PlaceImageUpload } from "./place-image-upload";
 import { PlacePicker } from "@/app/lieux/place-picker";
+import {
+  ItemMultiPicker,
+  type PickedItem,
+} from "@/app/items/item-multi-picker";
 import {
   ContributionMetaFields,
   useContribute,
@@ -51,10 +61,13 @@ export function PlaceForm({
   place: published,
   parentName,
   contribution,
+  itemNames = {},
 }: {
   place?: Place;
   parentName?: string;
   contribution?: PlaceContribution;
+  /** Le nom des objets vendus, par slug, pour les montrer sans les relire. */
+  itemNames?: Record<string, string>;
 }) {
   const t = useTranslations("Places");
   const tForm = useTranslations("Contributions.Form");
@@ -90,6 +103,13 @@ export function PlaceForm({
   );
   const [description, setDescription] = useState(place?.description ?? "");
   const [shopCategory, setShopCategory] = useState(place?.shopCategory ?? "");
+  const [soldItems, setSoldItems] = useState<PickedItem[]>(
+    (place?.soldItems ?? []).map((slug) => ({
+      slug,
+      name: itemNames[slug] ?? slug,
+    })),
+  );
+  const [tip, setTip] = useState(place?.tip ?? "");
   const [imageUrl, setImageUrl] = useState(place?.imageUrl);
   const [services, setServices] = useState<PlaceService[]>(
     place?.services ?? [],
@@ -114,6 +134,8 @@ export function PlaceForm({
           parentSlug: parentSlug ?? null,
           description,
           shopCategory,
+          soldItems: soldItems.map((item) => item.slug),
+          tip,
           services,
         };
         const result =
@@ -152,6 +174,8 @@ export function PlaceForm({
         parentSlug: parentSlug ?? null,
         description,
         shopCategory,
+        soldItems: soldItems.map((item) => item.slug),
+        tip,
         imageUrl,
         services,
       };
@@ -265,6 +289,21 @@ export function PlaceForm({
         </div>
       )}
 
+      {type === "shop" && (
+        <div className="space-y-1.5">
+          <Label>{t("Admin.fieldSoldItems")}</Label>
+          <ItemMultiPicker
+            value={soldItems}
+            onChange={setSoldItems}
+            max={MAX_SOLD_ITEMS}
+            placeholder={t("Admin.fieldSoldItemsPlaceholder")}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("Admin.fieldSoldItemsHint")}
+          </p>
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <Label htmlFor="place-description">{t("Admin.fieldDescription")}</Label>
         <Textarea
@@ -273,6 +312,20 @@ export function PlaceForm({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="place-tip">{t("Admin.fieldTip")}</Label>
+        <Textarea
+          id="place-tip"
+          rows={3}
+          maxLength={MAX_PLACE_TIP_LENGTH}
+          value={tip}
+          onChange={(event) => setTip(event.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          {t("Admin.fieldTipHint")}
+        </p>
       </div>
 
       <fieldset className="space-y-2">

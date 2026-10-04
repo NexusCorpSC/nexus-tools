@@ -20,6 +20,7 @@ import {
   Store,
   Tag,
   Trophy,
+  Puzzle as PuzzleIcon,
   User,
   UserRound,
   Users,
@@ -109,6 +110,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { id: "organizations", href: "/orgs", icon: Building2 },
       { id: "events", href: "/events", icon: CalendarDays },
       { id: "leaderboard", href: "/classement", icon: Trophy },
+      { id: "missing", href: "/ce-qui-manque", icon: PuzzleIcon },
     ],
   },
 ];

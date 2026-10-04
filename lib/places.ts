@@ -8,6 +8,7 @@ import type {
 } from "mongodb";
 import db from "@/lib/db";
 import { isPlanGlyph, type PlanGlyph } from "@/lib/plan-symbols";
+import { toItemSlug } from "@/types/items";
 import {
   isDoorKind,
   isPlaceService,
@@ -29,7 +30,9 @@ import {
   MAX_PLACE_PAGE_SIZE,
   MAX_PLACE_PLANS,
   MAX_PLACE_TEXT_LENGTH,
+  MAX_PLACE_TIP_LENGTH,
   MAX_PLACE_TREE_NODES,
+  MAX_SOLD_ITEMS,
   PLACE_PAGE_SIZE,
   toPlaceSlug,
   type Place,
@@ -145,6 +148,19 @@ function normalizeServices(value: unknown): PlaceService[] | undefined {
   return services.length > 0 ? services : undefined;
 }
 
+/** Ce que vend un magasin : des slugs d'objets, sans doublon. */
+function normalizeSoldItems(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const slugs = Array.from(
+    new Set(
+      value
+        .map((entry) => toItemSlug(text(entry, MAX_PLACE_NAME_LENGTH)))
+        .filter(Boolean),
+    ),
+  ).slice(0, MAX_SOLD_ITEMS);
+  return slugs.length > 0 ? slugs : undefined;
+}
+
 // ─── Saisie ──────────────────────────────────────────────────────────────────
 
 export type PlaceInput = {
@@ -155,6 +171,8 @@ export type PlaceInput = {
   imageUrl?: string;
   services?: unknown;
   shopCategory?: string;
+  soldItems?: unknown;
+  tip?: string;
   parentSlug?: string | null;
   source?: unknown;
 };
@@ -168,6 +186,8 @@ type NormalizedPlace = {
   imageUrl?: string;
   services?: PlaceService[];
   shopCategory?: string;
+  soldItems?: string[];
+  tip?: string;
   parentSlug?: string;
   source?: Place["source"];
 };
@@ -197,6 +217,9 @@ export function normalizePlaceInput(input: PlaceInput): NormalizedPlace {
       type === "shop"
         ? optionalText(input.shopCategory, MAX_PLACE_NAME_LENGTH)
         : undefined,
+    soldItems:
+      type === "shop" ? normalizeSoldItems(input.soldItems) : undefined,
+    tip: optionalText(input.tip, MAX_PLACE_TIP_LENGTH),
     parentSlug: input.parentSlug
       ? toPlaceSlug(text(input.parentSlug, MAX_PLACE_NAME_LENGTH))
       : undefined,
@@ -1587,6 +1610,51 @@ async function refreshChildCount(slug: string): Promise<void> {
  * qu'elle a changé, et une modification faite entre-temps sur un autre champ
  * survit à sa publication. Le reste de `input` n'est alors que validé.
  */
+/** Les lieux demandés, dans l'ordre des slugs — les inconnus sont sautés. */
+export async function getPlacesBySlugs(
+  slugs: string[] | undefined,
+): Promise<
+  Pick<
+    Place,
+    "slug" | "name" | "type" | "systemName" | "bodyName" | "parentName"
+  >[]
+> {
+  if (!slugs?.length) return [];
+  const found = await collection()
+    .find(
+      { slug: { $in: slugs } },
+      {
+        projection: {
+          _id: 0,
+          slug: 1,
+          name: 1,
+          type: 1,
+          systemName: 1,
+          bodyName: 1,
+          parentName: 1,
+        },
+      },
+    )
+    .toArray();
+  const bySlug = new Map(found.map((place) => [place.slug, place]));
+  return slugs.flatMap((slug) => {
+    const place = bySlug.get(slug);
+    return place ? [place] : [];
+  });
+}
+
+/** Les services d'un lieu confirmés tels quels par un joueur. */
+export async function confirmPlaceServices(
+  slug: string,
+  at: Date,
+): Promise<boolean> {
+  const { matchedCount } = await collection().updateOne(
+    { slug },
+    { $set: { servicesConfirmedAt: at.toISOString() } },
+  );
+  return matchedCount > 0;
+}
+
 export async function updatePlace(
   currentSlug: string,
   input: PlaceInput,
@@ -1975,6 +2043,9 @@ export async function upsertImportedPlace(
       description: existing.description ?? normalized.description,
       imageUrl: existing.imageUrl ?? normalized.imageUrl,
       services: existing.services ?? normalized.services,
+      // Ce que la communauté a ajouté, aucune source ne le connaît.
+      soldItems: existing.soldItems,
+      tip: existing.tip,
       source: keep,
     });
   };

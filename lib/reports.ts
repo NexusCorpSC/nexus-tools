@@ -9,6 +9,7 @@ import {
   setPlaceImageIfMissing,
 } from "@/lib/places";
 import { deleteItem, getItemBySlug } from "@/lib/items";
+import { getBlueprintBySlug } from "@/lib/crafting";
 import {
   cleanText,
   contributions,
@@ -294,6 +295,14 @@ async function resolveTarget(
         }),
       };
     }
+    case "blueprint": {
+      const blueprint = await getBlueprintBySlug(id);
+      if (!blueprint) return null;
+      return {
+        target: { type, id: blueprint.slug, name: blueprint.name },
+        owners: [],
+      };
+    }
     case "org": {
       const org = await organizations().findOne({ _id: id });
       if (!org) return null;
@@ -328,6 +337,8 @@ export function targetHref(target: ReportTarget): string {
       return `/items/${target.id}`;
     case "org":
       return `/orgs/${target.id}`;
+    case "blueprint":
+      return `/crafting/blueprints/${target.id}`;
   }
 }
 
@@ -353,6 +364,8 @@ export function targetEditHref(
       return admin
         ? `/admin/items/${target.id}/edit`
         : `/items/${target.id}/contribuer`;
+    case "blueprint":
+      return `/crafting/blueprints/${target.id}/edit`;
     default:
       return undefined;
   }
@@ -658,6 +671,8 @@ function historyFilter(target: ReportTarget): Filter<DbContribution> | null {
       };
     case "item":
       return { "target.type": "item", "target.slug": target.id };
+    case "blueprint":
+      return { "target.type": "blueprint", "target.slug": target.id };
     default:
       return null;
   }
@@ -919,6 +934,8 @@ async function deleteTarget(report: DbReport, moderator: Contributor) {
           { $set: { public: false, reportHidden: true } },
         );
         return;
+      case "blueprint":
+        throw new ReportError("actionFailed", 400);
     }
   } catch (error) {
     if (error instanceof ReportError) throw error;

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { requirePermission } from "@/lib/permissions";
 import { getPlaceBySlug } from "@/lib/places";
+import { getItemNames } from "@/lib/items";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import { PlaceForm } from "../../components/place-form";
 
@@ -30,7 +31,10 @@ export default async function EditPlacePage({
   const place = await getPlaceBySlug(slug);
   if (!place) notFound();
 
-  const t = await getTranslations("Places");
+  const [t, itemNames] = await Promise.all([
+    getTranslations("Places"),
+    getItemNames(place.soldItems),
+  ]);
 
   return (
     <div className="m-2 mx-auto max-w-3xl space-y-6 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
@@ -50,7 +54,11 @@ export default async function EditPlacePage({
 
       <h1 className="text-2xl font-bold">{t("Admin.editPageTitle")}</h1>
 
-      <PlaceForm place={place} parentName={place.parentName} />
+      <PlaceForm
+        place={place}
+        parentName={place.parentName}
+        itemNames={itemNames}
+      />
     </div>
   );
 }

@@ -7,10 +7,12 @@ import {
   Map as MapIcon,
   Shapes,
   ShieldCheck,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  FOUNDER_MEMBERS,
   GUARDIAN_GOAL,
   PIONEER_TIERS,
   RELIABLE_GOAL,
@@ -26,6 +28,7 @@ const ICONS: Record<AchievementKey, LucideIcon> = {
   versatile: Shapes,
   guardian: ShieldCheck,
   reliable: BadgeCheck,
+  founder: Users,
 };
 
 /** Le titre et la description d'un succès, dans la langue du lecteur. */
@@ -39,7 +42,9 @@ export async function achievementText(achievement: Achievement) {
         ? GUARDIAN_GOAL
         : achievement.key === "reliable"
           ? RELIABLE_GOAL
-          : (achievement.progress?.goal ?? 1);
+          : achievement.key === "founder"
+            ? FOUNDER_MEMBERS
+            : (achievement.progress?.goal ?? 1);
   const values = {
     name: achievement.name ?? "",
     tier: achievement.tier ? t(`tiers.${achievement.tier}`) : "",

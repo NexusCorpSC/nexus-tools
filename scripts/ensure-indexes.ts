@@ -438,6 +438,35 @@ async function ensureReports(database: Db) {
   await grants.createIndex({ at: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
 }
 
+async function ensureCommunity(database: Db) {
+  // Les visites par fiche et par jour, pour « Ce qui manque » : trois mois
+  // suffisent à classer les trous.
+  const views = database.collection("pageViews");
+  await views.createIndex({ type: 1, slug: 1, day: 1 }, { unique: true });
+  await views.createIndex({ type: 1, day: -1 });
+  await views.createIndex(
+    { day: 1 },
+    { expireAfterSeconds: 90 * 24 * 60 * 60 },
+  );
+
+  // Les organisations qu'un joueur a créées.
+  await database.collection("organizations").createIndex({ createdBy: 1 });
+  // Les missions qui se jouent dans un lieu.
+  await database.collection("missions").createIndex({ placeSlugs: 1 });
+
+  // Les confirmations d'une donnée, et celles d'un joueur dans la journée.
+  await database.collection("contributions").createIndex({
+    kind: 1,
+    "target.type": 1,
+    "target.slug": 1,
+    "proposal.subject": 1,
+    createdAt: -1,
+  });
+  await database
+    .collection("contributions")
+    .createIndex({ kind: 1, userId: 1, createdAt: -1 });
+}
+
 const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
@@ -454,6 +483,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["friends", ensureFriends],
   ["contributions", ensureContributions],
   ["reports", ensureReports],
+  ["community", ensureCommunity],
 ];
 
 async function main() {

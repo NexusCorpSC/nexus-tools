@@ -116,6 +116,10 @@
         "leaderboard": {
           "label": "Classement",
           "description": "Les contributeurs du mois et de toujours"
+        },
+        "missing": {
+          "label": "Ce qui manque",
+          "description": "Les fiches à compléter les plus visitées"
         }
       }
     },
@@ -1253,7 +1257,12 @@
       "markerKind": {
         "service": "Un service",
         "glyph": "Un symbole"
-      }
+      },
+      "fieldSoldItems": "Objets vendus",
+      "fieldSoldItemsPlaceholder": "Chercher un objet…",
+      "fieldSoldItemsHint": "Ce qu'on trouve en rayon, pas les prix : ils changent à chaque patch.",
+      "fieldTip": "Astuce",
+      "fieldTipHint": "Ce qu'un joueur aimerait savoir en arrivant : où se poser, quel ascenseur prendre."
     },
     "useAsBackground": "Fond de plan de vol",
     "useAsBackgroundHint": "Utiliser ce relevé comme fond d'un plan de vol.",
@@ -1272,7 +1281,11 @@
     "planPlateFailed": "L’export a échoué.",
     "imagesTitle": "Images",
     "imagesCount": "{count, plural, one {# image} other {# images}}",
-    "missingPlace": "Il manque un lieu ici ?"
+    "missingPlace": "Il manque un lieu ici ?",
+    "tipTitle": "Astuce de joueur",
+    "soldTitle": "Ce qu'on y vend",
+    "soldCount": "{count, plural, one {# objet} other {# objets}}",
+    "missionsTitle": "Missions qui s'y jouent"
   },
   "Industry": {
     "home": "Accueil",
@@ -1577,7 +1590,11 @@
     "notFound": "Organisation inexistante.",
     "Edit": {
       "save": "Enregistrer les modifications",
-      "forbidden": "Vous n'êtes pas autorisé à modifier cette organisation."
+      "forbidden": "Vous n'êtes pas autorisé à modifier cette organisation.",
+      "public": "Organisation publique",
+      "publicHint": "Visible de tous dans la liste des organisations et au classement.",
+      "publicPending": "Elle pourra devenir publique une fois validée par la modération.",
+      "publicRejected": "Sa validation a été refusée : elle reste privée."
     },
     "events": "Évènements",
     "Presence": {
@@ -1597,6 +1614,27 @@
       "plannedTitle": "Sessions prévues",
       "plannedEvent": "{title} · évènement",
       "noPlannedActivity": "Session prévue"
+    },
+    "Validation": {
+      "pending": {
+        "title": "En attente de validation",
+        "body": "Votre organisation est privée en attendant qu'un modérateur la valide. Ses membres l'utilisent déjà normalement."
+      },
+      "changesRequested": {
+        "title": "Validation : à corriger",
+        "body": "La modération demande une modification avant de valider l'organisation :",
+        "cta": "Modifier le profil"
+      },
+      "rejected": {
+        "title": "Validation refusée",
+        "body": "L'organisation reste privée, à ses membres.",
+        "cta": "Modifier le profil"
+      },
+      "validated": {
+        "title": "Organisation validée",
+        "body": "Vous pouvez maintenant la rendre publique.",
+        "cta": "La rendre publique"
+      }
     }
   },
   "OrgEvents": {
@@ -1816,8 +1854,22 @@
   },
   "NewOrganization": {
     "title": "Nouvelle organisation",
-    "error": "Pour le moment, les organisations ne peuvent être créées qu'avec un accès bêta assigné par la Nexus Corporation. Contactez-nous pour la création de votre compte !",
-    "backToOrgs": "Retour aux organisations"
+    "backToOrgs": "Retour aux organisations",
+    "intro": "Tout joueur peut créer une organisation, {max} au plus par compte. Elle sert tout de suite ses membres : évènements, présence, inventaire.",
+    "validationHint": "Elle reste privée jusqu'à sa validation par la modération ; ensuite, vous choisissez de la rendre publique. Sa validation vous rapporte",
+    "suspended": "Vos contributions sont suspendues par la modération : vous ne pouvez pas créer d'organisation pour le moment.",
+    "limitReached": "Vous avez déjà créé {max} organisations : c'est la limite par compte.",
+    "name": "Nom",
+    "tag": "Tag",
+    "tagHint": "De 2 à 10 lettres ou chiffres, comme en jeu. Le nom et le tag ne doivent pas déjà être pris.",
+    "description": "Description",
+    "logo": "Logo",
+    "logoHint": "JPEG, PNG ou WebP, 2,5 Mo au plus. Facultatif : vous pourrez l'ajouter plus tard.",
+    "logoTooLarge": "Le logo pèse 2,5 Mo au plus.",
+    "failed": "La création a échoué. Réessayez.",
+    "creating": "Création…",
+    "create": "Créer l'organisation",
+    "remaining": "{count, plural, one {Encore # création possible sur ce compte.} other {Encore # créations possibles sur ce compte.}}"
   },
   "Reputations": {
     "home": "Accueil",
@@ -2135,7 +2187,21 @@
     "factionsNoResults": "Aucune faction trouvée.",
     "blueprintOwned": "Possédé",
     "blueprintNotOwned": "Non possédé",
-    "removedFromGame": "Cette mission n'est plus proposée en jeu depuis la version {version}."
+    "removedFromGame": "Cette mission n'est plus proposée en jeu depuis la version {version}.",
+    "placesTitle": "Où elle se joue",
+    "contribute": "Compléter",
+    "noPlaces": "Personne n'a encore indiqué où se joue cette mission.",
+    "Contribute": {
+      "back": "← {title}",
+      "title": "Compléter « {title} »",
+      "places": "Lieux de la mission",
+      "remove": "Retirer",
+      "placesPlaceholder": "Ajouter un lieu…",
+      "placesHint": "Là où on la prend, et là où elle se joue.",
+      "tip": "Astuce",
+      "tipHint": "Ce qui aide à la réussir : un piège, un raccourci, un équipement utile.",
+      "cancel": "Annuler"
+    }
   },
   "Notes": {
     "home": "Accueil",
@@ -2458,7 +2524,10 @@
       "revertConflict": "La fiche a changé depuis cette publication.",
       "revertFailed": "L'annulation a échoué.",
       "applyFailed": "La fiche n'a pas pu être mise à jour. Réessayez.",
-      "suspended": "Vos contributions sont suspendues par la modération pour le moment."
+      "suspended": "Vos contributions sont suspendues par la modération pour le moment.",
+      "missionNotFound": "Cette mission n'existe plus.",
+      "tooManyOrgs": "Vous avez déjà créé deux organisations : c'est la limite par compte.",
+      "alreadyConfirmed": "Vous l'avez déjà fait cette semaine. Merci !"
     },
     "reasons": {
       "inaccurate": "Inexact ou invérifiable",
@@ -2519,7 +2588,10 @@
         "placeEdit": "Correction de lieu",
         "plan": "Plan",
         "itemCreate": "Nouvel objet",
-        "itemEdit": "Correction d'objet"
+        "itemEdit": "Correction d'objet",
+        "missionEdit": "Mission complétée",
+        "orgCreate": "Nouvelle organisation",
+        "confirm": "Confirmation"
       },
       "inParent": "dans {name}",
       "requestChanges": "À corriger",
@@ -2621,7 +2693,11 @@
       "vehicle": "Véhicule",
       "weapon": "Arme",
       "resource": "Ressource",
-      "images": "Images publiées"
+      "images": "Images publiées",
+      "tag": "Tag",
+      "soldItems": "Objets vendus",
+      "tip": "Astuce",
+      "placeSlugs": "Lieux"
     },
     "Mine": {
       "title": "Mes contributions",
@@ -2645,7 +2721,10 @@
         "placeEdit": "Correction de lieu",
         "plan": "Plan",
         "itemCreate": "Nouvel objet",
-        "itemEdit": "Correction d'objet"
+        "itemEdit": "Correction d'objet",
+        "missionEdit": "Mission complétée",
+        "orgCreate": "Nouvelle organisation",
+        "confirm": "Confirmation"
       },
       "statuses": {
         "pending": "En relecture",
@@ -2719,6 +2798,10 @@
       "reliable": {
         "title": "Fiable",
         "description": "{goal} contributions relues d'affilée sans un refus."
+      },
+      "founder": {
+        "title": "Fondateur",
+        "description": "Une organisation créée et validée qui atteint {goal} membres."
       }
     },
     "Leaderboard": {
@@ -2804,6 +2887,39 @@
         "reasonRequired": "Indiquez un motif.",
         "invalidDays": "De 1 à 90 jours."
       }
+    },
+    "Confirm": {
+      "never": "Jamais confirmé",
+      "confirmedOn": "Confirmé le {date, date, medium}",
+      "confirmedAgo": "Confirmé {ago}",
+      "outdatedVotes": "{count, plural, one {# joueur dit que ce n'est plus exact} other {# joueurs disent que ce n'est plus exact}}",
+      "signIn": "Connectez-vous pour confirmer",
+      "alreadyDone": "Vous l'avez confirmé cette semaine. Merci !",
+      "send": "Envoyer",
+      "cancel": "Annuler",
+      "accurate": "Toujours exact",
+      "failed": "L'envoi a échoué. Réessayez.",
+      "thanksAccurate": "{points, plural, =0 {Merci, c'est confirmé.} other {Merci ! Confirmé, +# points}}",
+      "thanksOutdated": "{points, plural, =0 {Merci, c'est noté.} other {Merci, c'est noté. +# points}}",
+      "thanksReported": "Merci, c'est noté. Un signalement est ouvert pour que la modération reprenne la fiche.",
+      "prices": {
+        "title": "Cours des comptoirs",
+        "outdated": "Nouveau prix",
+        "commentPlaceholder": "Quel prix avez-vous relevé, et où ?",
+        "fix": "Corriger les cours"
+      },
+      "services": {
+        "title": "Services du lieu",
+        "outdated": "Plus exact",
+        "commentPlaceholder": "Qu'est-ce qui a changé sur place ?",
+        "fix": "Corriger les services"
+      },
+      "sources": {
+        "title": "Où l'obtenir",
+        "outdated": "Plus exact",
+        "commentPlaceholder": "Où l'avez-vous obtenu, ou que dit le jeu maintenant ?",
+        "fix": "Corriger"
+      }
     }
   },
   "Reports": {
@@ -2821,7 +2937,8 @@
       "placeMedia": "Image",
       "plan": "Plan",
       "item": "Objet",
-      "org": "Organisation"
+      "org": "Organisation",
+      "blueprint": "Blueprint"
     },
     "subtitle": "{name} · un modérateur examine chaque signalement",
     "question": "Quel est le problème ?",
@@ -2962,6 +3079,43 @@
         "delete": "Élément retiré, signalement retenu."
       },
       "ownDossier": "Vous avez signalé cet élément ou contribué à ce qui est en cause : un autre modérateur doit trancher ce dossier."
+    }
+  },
+  "Missing": {
+    "title": "Ce qui manque",
+    "intro": "Les trous du catalogue que les joueurs croisent le plus, les fiches les plus visitées d'abord. Chacun rapporte des points à qui le comble.",
+    "tabsLabel": "Ce qui manque",
+    "total": "{count, plural, =0 {Rien à combler.} one {# fiche à compléter en tout.} other {# fiches à compléter en tout.}}",
+    "empty": "Rien ne manque ici. Merci à tous ceux qui ont contribué !",
+    "views": "{count, plural, one {# visite} other {# visites}} sur 30 jours",
+    "pricesFrom": "Cours confirmés {when}",
+    "pricesNever": "Cours jamais confirmés",
+    "kinds": {
+      "placeImage": {
+        "tab": "Lieux sans image",
+        "hint": "Une capture suffit : la première image d'un lieu rapporte un bonus.",
+        "cta": "Ajouter une image"
+      },
+      "placePlan": {
+        "tab": "Lieux sans plan",
+        "hint": "Stations, spatioports, avant-postes et bâtiments où l'on se perd.",
+        "cta": "Proposer un plan"
+      },
+      "itemSection": {
+        "tab": "Fiches à compléter",
+        "hint": "Véhicules, armes et ressources dont la fiche n'a pas encore ses chiffres.",
+        "cta": "Compléter"
+      },
+      "stalePrices": {
+        "tab": "Cours à confirmer",
+        "hint": "Des cours que personne n'a confirmés depuis deux semaines.",
+        "cta": "Confirmer"
+      },
+      "missionPlace": {
+        "tab": "Missions sans lieu",
+        "hint": "Des missions dont on ne sait pas encore où elles se jouent.",
+        "cta": "Indiquer le lieu"
+      }
     }
   }
 }

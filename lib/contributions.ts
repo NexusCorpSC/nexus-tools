@@ -27,6 +27,7 @@ import {
   improvesValuedPlan,
   buildItemCreate,
   buildItemEdit,
+  buildMissionEdit,
   buildPlaceCreate,
   buildPlaceEdit,
   buildPlan,
@@ -61,6 +62,7 @@ import {
   type ContributionChange,
   type ContributionKind,
   type ContributionStatus,
+  type ContributionTargetType,
   type ContributorStanding,
   type PendingContribution,
   type PlaceMedia,
@@ -71,6 +73,7 @@ import {
 } from "@/types/contributions";
 
 import { evaluateAchievements, isReached } from "@/lib/achievements";
+import { organizations } from "@/lib/orgs";
 
 export { ContributionError, type Contributor } from "@/lib/contribution-store";
 
@@ -139,7 +142,7 @@ export async function countMyPendingMedia(
  */
 export async function listMyOpenContributions(
   userId: ObjectId,
-  target: { type: "place" | "item"; slug: string },
+  target: { type: ContributionTargetType; slug: string },
 ): Promise<Contribution[]> {
   await expireChangesRequested();
   const docs = await contributions()
@@ -490,7 +493,8 @@ export type CatalogSubmission =
   | { kind: "placeEdit"; slug: string; input: unknown }
   | { kind: "plan"; slug: string; plan: unknown }
   | { kind: "itemCreate"; input: unknown }
-  | { kind: "itemEdit"; slug: string; input: unknown };
+  | { kind: "itemEdit"; slug: string; input: unknown }
+  | { kind: "missionEdit"; missionId: string; input: unknown };
 
 export type CatalogSubmissionMeta = {
   /** La contribution reprise : en attente, ou renvoyée à corriger. */
@@ -514,6 +518,8 @@ async function buildDraft(
       return buildItemCreate(submission.input);
     case "itemEdit":
       return buildItemEdit(submission.slug, submission.input, level);
+    case "missionEdit":
+      return buildMissionEdit(submission.missionId, submission.input);
     default:
       // L'envoi vient du navigateur : une nature inconnue est une saisie
       // invalide, pas une erreur du serveur.
@@ -761,6 +767,7 @@ async function credit(
     }
     case "placeEdit":
     case "itemEdit":
+    case "missionEdit":
       return {
         base: (await isRepeatEdit(contribution)) ? 0 : contribution.points,
         bonus: 0,
@@ -978,6 +985,23 @@ export async function rejectContribution(
     );
     await deleteBlobs(media.map((image) => image.url));
   }
+  // Une organisation refusée reste à ses membres, privée : ses éditeurs lisent
+  // pourquoi sur sa page.
+  if (contribution.kind === "orgCreate") {
+    await organizations().updateOne(
+      { _id: contribution.target.slug },
+      {
+        $set: {
+          public: false,
+          validation: {
+            status: "rejected",
+            at: now,
+            message: updated.review?.message,
+          },
+        },
+      },
+    );
+  }
 
   // Un refus pèse sur la fiabilité, donc parfois sur le niveau.
   await refreshProgress(contribution.userId);
@@ -1146,21 +1170,36 @@ export async function revertContribution(
  */
 export async function expireChangesRequested(): Promise<number> {
   const now = new Date();
-  const { modifiedCount } = await contributions().updateMany(
-    {
-      status: "changesRequested",
-      "review.at": {
-        $lt: new Date(now.getTime() - CHANGES_REQUESTED_TTL_DAYS * DAY_MS),
-      },
+  const expired = {
+    status: "changesRequested" as const,
+    "review.at": {
+      $lt: new Date(now.getTime() - CHANGES_REQUESTED_TTL_DAYS * DAY_MS),
     },
-    {
-      $set: {
-        status: "rejected",
-        updatedAt: now,
-        "review.reason": "expired",
-      },
+  };
+  // Une organisation dont la demande expire est refusée comme par un
+  // relecteur : sinon elle resterait « en attente » sans demande à relire.
+  const orgIds = await contributions().distinct("target.slug", {
+    ...expired,
+    kind: "orgCreate",
+  });
+  const { modifiedCount } = await contributions().updateMany(expired, {
+    $set: {
+      status: "rejected",
+      updatedAt: now,
+      "review.reason": "expired",
     },
-  );
+  });
+  if (orgIds.length > 0) {
+    await organizations().updateMany(
+      { _id: { $in: orgIds }, "validation.status": "pending" },
+      {
+        $set: {
+          public: false,
+          validation: { status: "rejected", at: now },
+        },
+      },
+    );
+  }
   return modifiedCount;
 }
 

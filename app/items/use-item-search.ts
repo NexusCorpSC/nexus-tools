@@ -16,13 +16,15 @@ export function useItemSearch({
   enabled = true,
   limit = 12,
 }: {
-  kind: string;
+  /** Absent : tout le catalogue. */
+  kind?: string;
   category?: string;
   query: string;
   enabled?: boolean;
   limit?: number;
 }): { results: ItemSummary[]; isLoading: boolean } {
-  const params = new URLSearchParams({ kind, limit: String(limit) });
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (kind) params.set("kind", kind);
   const trimmed = query.trim();
   if (trimmed) params.set("query", trimmed);
   else if (category) params.set("category", category);

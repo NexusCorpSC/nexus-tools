@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
+import { isOrgValidated } from "@/lib/orgs";
 
 export const metadata: Metadata = {
   title: "Modifier l'organisation",
@@ -142,6 +143,8 @@ export default async function EditOrgPage({
     );
   }
 
+  const validated = isOrgValidated(organization);
+
   return (
     <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
       <Breadcrumb>
@@ -231,6 +234,26 @@ export default async function EditOrgPage({
               defaultValue={organization.description}
               className="w-full px-3 py-2 border rounded-md resize-y"
             />
+          </div>
+
+          <div className="grid gap-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                name="public"
+                defaultChecked={organization.public === true}
+                disabled={!validated}
+                className="size-4 accent-[#C2E2FF]"
+              />
+              {t("Edit.public")}
+            </label>
+            <p className="text-xs text-muted-foreground">
+              {validated
+                ? t("Edit.publicHint")
+                : organization.validation?.status === "rejected"
+                  ? t("Edit.publicRejected")
+                  : t("Edit.publicPending")}
+            </p>
           </div>
 
           <Button type="submit" className="w-full">

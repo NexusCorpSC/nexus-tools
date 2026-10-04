@@ -2,7 +2,11 @@
 
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import type { Contribution, ContributionChange } from "@/types/contributions";
+import type {
+  ConfirmProposal,
+  Contribution,
+  ContributionChange,
+} from "@/types/contributions";
 
 /** Le nom lisible d'un champ, « vehicle.speedMax » compris. */
 export function useFieldLabel() {
@@ -71,9 +75,28 @@ export function ContributionBody({
   media?: { id: string; url: string; caption?: string }[];
 }) {
   const t = useTranslations("Contributions.Admin");
+  const tConfirm = useTranslations("Contributions.Confirm");
+  const confirm =
+    contribution.kind === "confirm"
+      ? (contribution.proposal as ConfirmProposal | undefined)
+      : undefined;
 
   return (
     <div className="space-y-2">
+      {confirm && (
+        <p className="text-xs text-[#CCE7FF]">
+          {tConfirm(`${confirm.subject}.title`)}
+          {" · "}
+          <span
+            className={confirm.accurate ? "text-emerald-200" : "text-[#F7D2AE]"}
+          >
+            {confirm.accurate
+              ? tConfirm("accurate")
+              : tConfirm(`${confirm.subject}.outdated`)}
+          </span>
+          {confirm.comment && <> · « {confirm.comment} »</>}
+        </p>
+      )}
       {media.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {media.map((image) => (

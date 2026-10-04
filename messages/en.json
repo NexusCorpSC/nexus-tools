@@ -116,6 +116,10 @@
         "leaderboard": {
           "label": "Leaderboard",
           "description": "This month's and all-time contributors"
+        },
+        "missing": {
+          "label": "What's missing",
+          "description": "The most visited pages to complete"
         }
       }
     },
@@ -1258,7 +1262,12 @@
       "markerKind": {
         "service": "A service",
         "glyph": "A symbol"
-      }
+      },
+      "fieldSoldItems": "Items sold",
+      "fieldSoldItemsPlaceholder": "Search an item…",
+      "fieldSoldItemsHint": "What's on the shelves, not the prices: they change every patch.",
+      "fieldTip": "Tip",
+      "fieldTipHint": "What a player would like to know on arrival: where to land, which elevator to take."
     },
     "useAsBackground": "Flight plan background",
     "useAsBackgroundHint": "Use this survey as a flight plan's background.",
@@ -1277,7 +1286,11 @@
     "planPlateFailed": "The export failed.",
     "imagesTitle": "Images",
     "imagesCount": "{count, plural, one {# image} other {# images}}",
-    "missingPlace": "A location is missing here?"
+    "missingPlace": "A location is missing here?",
+    "tipTitle": "Player tip",
+    "soldTitle": "What's sold here",
+    "soldCount": "{count, plural, one {# item} other {# items}}",
+    "missionsTitle": "Missions played here"
   },
   "Shopping": {
     "home": "Home",
@@ -1576,7 +1589,11 @@
     "notFound": "Organization not found.",
     "Edit": {
       "save": "Save",
-      "forbidden": "You are not allowed to edit this organization."
+      "forbidden": "You are not allowed to edit this organization.",
+      "public": "Public organization",
+      "publicHint": "Visible to everyone in the organization list and the leaderboard.",
+      "publicPending": "It can become public once moderators validate it.",
+      "publicRejected": "Its validation was refused: it stays private."
     },
     "events": "Events",
     "Presence": {
@@ -1596,6 +1613,27 @@
       "plannedTitle": "Planned sessions",
       "plannedEvent": "{title} · event",
       "noPlannedActivity": "Planned session"
+    },
+    "Validation": {
+      "pending": {
+        "title": "Awaiting validation",
+        "body": "Your organization is private until a moderator validates it. Its members already use it normally."
+      },
+      "changesRequested": {
+        "title": "Validation: changes requested",
+        "body": "Moderators ask for a change before validating the organization:",
+        "cta": "Edit the profile"
+      },
+      "rejected": {
+        "title": "Validation refused",
+        "body": "The organization stays private, for its members.",
+        "cta": "Edit the profile"
+      },
+      "validated": {
+        "title": "Organization validated",
+        "body": "You can now make it public.",
+        "cta": "Make it public"
+      }
     }
   },
   "OrgEvents": {
@@ -1815,8 +1853,22 @@
   },
   "NewOrganization": {
     "title": "New organization",
-    "error": "For now, organizations can only be created with beta access assigned by Nexus Corporation. Contact us to create your account!",
-    "backToOrgs": "Back to organizations"
+    "backToOrgs": "Back to organizations",
+    "intro": "Any player can create an organization, up to {max} per account. It serves its members right away: events, presence, inventory.",
+    "validationHint": "It stays private until moderators validate it; then you choose to make it public. Its validation earns you",
+    "suspended": "Your contributions are suspended by moderators: you can't create an organization for now.",
+    "limitReached": "You've already created {max} organizations: that's the limit per account.",
+    "name": "Name",
+    "tag": "Tag",
+    "tagHint": "2 to 10 letters or digits, as in game. The name and tag must not be taken already.",
+    "description": "Description",
+    "logo": "Logo",
+    "logoHint": "JPEG, PNG or WebP, 2.5 MB max. Optional: you can add it later.",
+    "logoTooLarge": "The logo is 2.5 MB max.",
+    "failed": "Creation failed. Try again.",
+    "creating": "Creating…",
+    "create": "Create organization",
+    "remaining": "{count, plural, one {# more creation possible on this account.} other {# more creations possible on this account.}}"
   },
   "Reputations": {
     "home": "Home",
@@ -2104,7 +2156,21 @@
     "factionsNoResults": "No factions found.",
     "blueprintOwned": "Owned",
     "blueprintNotOwned": "Not owned",
-    "removedFromGame": "This mission is no longer offered in game since version {version}."
+    "removedFromGame": "This mission is no longer offered in game since version {version}.",
+    "placesTitle": "Where it's played",
+    "contribute": "Add details",
+    "noPlaces": "Nobody has said where this mission is played yet.",
+    "Contribute": {
+      "back": "← {title}",
+      "title": "Add details to “{title}”",
+      "places": "Mission locations",
+      "remove": "Remove",
+      "placesPlaceholder": "Add a location…",
+      "placesHint": "Where you take it, and where it's played.",
+      "tip": "Tip",
+      "tipHint": "What helps to complete it: a trap, a shortcut, useful gear.",
+      "cancel": "Cancel"
+    }
   },
   "Notes": {
     "home": "Home",
@@ -2427,7 +2493,10 @@
       "revertConflict": "The entry changed since this was published.",
       "revertFailed": "The revert failed.",
       "applyFailed": "The entry couldn't be updated. Try again.",
-      "suspended": "Your contributions are suspended by moderation for now."
+      "suspended": "Your contributions are suspended by moderation for now.",
+      "missionNotFound": "This mission no longer exists.",
+      "tooManyOrgs": "You've already created two organizations: that's the limit per account.",
+      "alreadyConfirmed": "You already did this week. Thanks!"
     },
     "reasons": {
       "inaccurate": "Inaccurate or unverifiable",
@@ -2488,7 +2557,10 @@
         "placeEdit": "Location edit",
         "plan": "Plan",
         "itemCreate": "New item",
-        "itemEdit": "Item edit"
+        "itemEdit": "Item edit",
+        "missionEdit": "Mission details",
+        "orgCreate": "New organization",
+        "confirm": "Confirmation"
       },
       "inParent": "in {name}",
       "requestChanges": "Needs changes",
@@ -2590,7 +2662,11 @@
       "vehicle": "Vehicle",
       "weapon": "Weapon",
       "resource": "Resource",
-      "images": "Published images"
+      "images": "Published images",
+      "tag": "Tag",
+      "soldItems": "Items sold",
+      "tip": "Tip",
+      "placeSlugs": "Locations"
     },
     "Mine": {
       "title": "My contributions",
@@ -2614,7 +2690,10 @@
         "placeEdit": "Location edit",
         "plan": "Plan",
         "itemCreate": "New item",
-        "itemEdit": "Item edit"
+        "itemEdit": "Item edit",
+        "missionEdit": "Mission details",
+        "orgCreate": "New organization",
+        "confirm": "Confirmation"
       },
       "statuses": {
         "pending": "In review",
@@ -2688,6 +2767,10 @@
       "reliable": {
         "title": "Reliable",
         "description": "{goal} reviewed contributions in a row without a rejection."
+      },
+      "founder": {
+        "title": "Founder",
+        "description": "An organization you created, validated, reaching {goal} members."
       }
     },
     "Leaderboard": {
@@ -2773,6 +2856,39 @@
         "reasonRequired": "Give a reason.",
         "invalidDays": "From 1 to 90 days."
       }
+    },
+    "Confirm": {
+      "never": "Never confirmed",
+      "confirmedOn": "Confirmed on {date, date, medium}",
+      "confirmedAgo": "Confirmed {ago}",
+      "outdatedVotes": "{count, plural, one {# player says this is out of date} other {# players say this is out of date}}",
+      "signIn": "Sign in to confirm",
+      "alreadyDone": "You confirmed this week. Thanks!",
+      "send": "Send",
+      "cancel": "Cancel",
+      "accurate": "Still accurate",
+      "failed": "Sending failed. Try again.",
+      "thanksAccurate": "{points, plural, =0 {Thanks, confirmed.} other {Thanks! Confirmed, +# points}}",
+      "thanksOutdated": "{points, plural, =0 {Thanks, noted.} other {Thanks, noted. +# points}}",
+      "thanksReported": "Thanks, noted. A report is open so moderators can update the page.",
+      "prices": {
+        "title": "Trading prices",
+        "outdated": "New price",
+        "commentPlaceholder": "What price did you see, and where?",
+        "fix": "Fix the prices"
+      },
+      "services": {
+        "title": "Services here",
+        "outdated": "Out of date",
+        "commentPlaceholder": "What changed on site?",
+        "fix": "Fix the services"
+      },
+      "sources": {
+        "title": "Where to get it",
+        "outdated": "Out of date",
+        "commentPlaceholder": "Where did you get it, or what does the game say now?",
+        "fix": "Fix"
+      }
     }
   },
   "Reports": {
@@ -2790,7 +2906,8 @@
       "placeMedia": "Image",
       "plan": "Map",
       "item": "Item",
-      "org": "Organization"
+      "org": "Organization",
+      "blueprint": "Blueprint"
     },
     "subtitle": "{name} · a moderator reviews every report",
     "question": "What's wrong?",
@@ -2931,6 +3048,43 @@
         "delete": "Element removed, report upheld."
       },
       "ownDossier": "You reported this or contributed to what is at fault: another moderator must decide this case."
+    }
+  },
+  "Missing": {
+    "title": "What's missing",
+    "intro": "The catalog gaps players run into most, most visited pages first. Each one earns points for whoever fills it.",
+    "tabsLabel": "What's missing",
+    "total": "{count, plural, =0 {Nothing to fill.} one {# page to complete in all.} other {# pages to complete in all.}}",
+    "empty": "Nothing missing here. Thanks to everyone who contributed!",
+    "views": "{count, plural, one {# visit} other {# visits}} over 30 days",
+    "pricesFrom": "Prices confirmed {when}",
+    "pricesNever": "Prices never confirmed",
+    "kinds": {
+      "placeImage": {
+        "tab": "Places without an image",
+        "hint": "A screenshot is enough: a place's first image earns a bonus.",
+        "cta": "Add an image"
+      },
+      "placePlan": {
+        "tab": "Places without a map",
+        "hint": "Stations, spaceports, outposts and buildings where people get lost.",
+        "cta": "Propose a map"
+      },
+      "itemSection": {
+        "tab": "Pages to complete",
+        "hint": "Vehicles, weapons and resources whose page lacks its figures.",
+        "cta": "Complete"
+      },
+      "stalePrices": {
+        "tab": "Prices to confirm",
+        "hint": "Prices nobody has confirmed for two weeks.",
+        "cta": "Confirm"
+      },
+      "missionPlace": {
+        "tab": "Missions without a location",
+        "hint": "Missions nobody has located yet.",
+        "cta": "Add the location"
+      }
     }
   }
 }

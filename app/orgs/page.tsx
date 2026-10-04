@@ -7,7 +7,14 @@ import { ObjectId } from "bson";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export const metadata: Metadata = {
   title: "Organisations",
@@ -21,6 +28,8 @@ export const metadata: Metadata = {
   },
 };
 
+import type { DbOrganization } from "@/lib/orgs";
+
 export type Organization = {
   _id: string;
   name: string;
@@ -30,6 +39,10 @@ export type Organization = {
   members: { userId: ObjectId; rank: string; editor: boolean }[];
   public: boolean;
   joinCode?: string;
+  reportHidden?: boolean;
+  /** Créée par un joueur, depuis l'ouverture à tous ; absente avant. */
+  createdBy?: ObjectId;
+  validation?: DbOrganization["validation"];
 };
 
 export type JoinRequest = {

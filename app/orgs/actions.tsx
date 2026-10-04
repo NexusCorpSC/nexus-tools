@@ -7,6 +7,7 @@ import { ObjectId } from "bson";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { randomUUID } from "crypto";
+import { onOrgMembersChanged } from "@/lib/org-contributions";
 
 export async function handleRemoveMember(formData: FormData) {
   const session = await auth.api.getSession({
@@ -202,6 +203,8 @@ export async function handleJoinRequest(
       .db()
       .collection<JoinRequest>("joinRequests")
       .deleteOne({ _id: new ObjectId(requestId) });
+    // Un membre de plus rapproche son créateur du succès Fondateur.
+    await onOrgMembersChanged(orgId);
   }
 
   revalidatePath(`/orgs/${orgId}`);

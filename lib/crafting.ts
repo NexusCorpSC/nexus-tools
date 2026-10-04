@@ -297,6 +297,7 @@ function toBlueprint(
     statistics: blueprint.statistics,
     recipe: blueprint.recipe,
     obtention: blueprint.obtention,
+    obtentionConfirmedAt: blueprint.obtentionConfirmedAt,
     isDefault: blueprint.isDefault,
   };
 }
@@ -319,6 +320,21 @@ export async function getBlueprintBySlug(
   const blueprint =
     candidates.find((candidate) => candidate.slug === slug) ?? candidates[0];
   return blueprint ? toBlueprint(blueprint) : null;
+}
+
+/** Où obtenir un blueprint, confirmé tel quel par un joueur. */
+export async function confirmBlueprintObtention(
+  slug: string,
+  at: Date,
+): Promise<boolean> {
+  const { matchedCount } = await db
+    .db()
+    .collection<Blueprint>("blueprints")
+    .updateOne(
+      { slug, obtention: { $exists: true } },
+      { $set: { obtentionConfirmedAt: at.toISOString() } },
+    );
+  return matchedCount > 0;
 }
 
 /**

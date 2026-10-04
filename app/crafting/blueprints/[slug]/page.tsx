@@ -20,6 +20,7 @@ import {
 } from "./server-components";
 import { BlueprintImageCover } from "@/app/crafting/blueprints/[slug]/components";
 import type { Metadata } from "next";
+import { ConfirmBlock } from "@/components/confirm-block";
 import { redirect } from "next/navigation";
 
 export async function generateMetadata({
@@ -154,6 +155,11 @@ export default async function BlueprintDetailPage({
           <p className="prose prose-invert leading-relaxed whitespace-pre-line">
             {blueprint.obtention}
           </p>
+          <ConfirmBlock
+            subject="sources"
+            slug={blueprint.slug}
+            className="mt-3 max-w-xl"
+          />
         </div>
       )}
 

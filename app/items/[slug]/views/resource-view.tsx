@@ -1,3 +1,4 @@
+import { ConfirmBlock } from "@/components/confirm-block";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
@@ -318,6 +319,18 @@ export async function ResourceView({
                   label={tr("marketsEmpty")}
                   slug={item.slug}
                   canEdit={canEdit}
+                />
+              )}
+              {markets.length > 0 && (
+                <ConfirmBlock
+                  subject="prices"
+                  slug={item.slug}
+                  fixHref={
+                    canEdit
+                      ? `/admin/items/${item.slug}/edit`
+                      : `/items/${item.slug}/contribuer`
+                  }
+                  className="mt-3"
                 />
               )}
             </div>

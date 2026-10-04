@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { isOrgValidated } from "@/lib/orgs";
+import { syncOrgValidation } from "@/lib/org-contributions";
 
 export async function updateOrgProfileAction(formData: FormData) {
   const orgId = formData.get("orgId") as string;
@@ -42,6 +44,14 @@ export async function updateOrgProfileAction(formData: FormData) {
     description,
     tag,
   };
+  // Seule une organisation validée passe publique : c'est ce que la
+  // modération a regardé. Elle peut toujours redevenir privée.
+  const wantsPublic = formData.get("public") === "on";
+  if (!wantsPublic) {
+    update.public = false;
+  } else if (isOrgValidated(organization)) {
+    update.public = true;
+  }
 
   if (avatar.size > 0) {
     console.log(avatar.type);
@@ -69,6 +79,9 @@ export async function updateOrgProfileAction(formData: FormData) {
     },
   );
 
+  await syncOrgValidation(orgId);
+
   revalidatePath(`/orgs/${orgId}/edit`);
   revalidatePath(`/orgs/${orgId}`);
+  revalidatePath("/orgs");
 }

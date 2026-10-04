@@ -42,6 +42,8 @@ export type Blueprint = {
   recipe?: BlueprintRecipe;
   /** Où obtenir ce blueprint */
   obtention?: string;
+  /** Quand un joueur a confirmé `obtention` pour la dernière fois. */
+  obtentionConfirmedAt?: string;
   isDefault?: boolean;
   // Les champs suivants ne sont posés que par l'import des données du jeu
   // (`npm run import:game-data`), sur les blueprints qui en viennent.

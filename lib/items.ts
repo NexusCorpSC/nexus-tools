@@ -1104,6 +1104,37 @@ export async function getItemsBySlugs(slugs: string[]): Promise<Item[]> {
     .filter((item): item is Item => item !== undefined);
 }
 
+/**
+ * Les cours d'une ressource confirmés tels quels par un joueur : seule leur
+ * date change. Rien d'autre ne bouge, et la fiche n'est pas « modifiée ».
+ */
+export async function confirmResourcePrices(
+  slug: string,
+  at: Date,
+): Promise<boolean> {
+  const { matchedCount } = await collection().updateOne(
+    { slug, "resource.markets.0": { $exists: true } },
+    { $set: { "resource.pricesUpdatedAt": at.toISOString() } },
+  );
+  return matchedCount > 0;
+}
+
+/** Les résumés des fiches demandées, dans l'ordre des slugs. */
+export async function getItemSummaries(
+  slugs: string[] | undefined,
+): Promise<ItemSummary[]> {
+  if (!slugs?.length) return [];
+  return (await getItemsBySlugs(slugs)).map(toSummary);
+}
+
+/** Le nom de chaque fiche demandée, par slug. */
+export async function getItemNames(
+  slugs: string[] | undefined,
+): Promise<Record<string, string>> {
+  const items = await getItemSummaries(slugs);
+  return Object.fromEntries(items.map((item) => [item.slug, item.name]));
+}
+
 function toSummary(item: Item): ItemSummary {
   return {
     id: item.id,
