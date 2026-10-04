@@ -767,6 +767,7 @@ async function credit(
     }
     case "placeEdit":
     case "itemEdit":
+    case "missionEdit":
       return {
         base: (await isRepeatEdit(contribution)) ? 0 : contribution.points,
         bonus: 0,
@@ -1169,21 +1170,36 @@ export async function revertContribution(
  */
 export async function expireChangesRequested(): Promise<number> {
   const now = new Date();
-  const { modifiedCount } = await contributions().updateMany(
-    {
-      status: "changesRequested",
-      "review.at": {
-        $lt: new Date(now.getTime() - CHANGES_REQUESTED_TTL_DAYS * DAY_MS),
-      },
+  const expired = {
+    status: "changesRequested" as const,
+    "review.at": {
+      $lt: new Date(now.getTime() - CHANGES_REQUESTED_TTL_DAYS * DAY_MS),
     },
-    {
-      $set: {
-        status: "rejected",
-        updatedAt: now,
-        "review.reason": "expired",
-      },
+  };
+  // Une organisation dont la demande expire est refusée comme par un
+  // relecteur : sinon elle resterait « en attente » sans demande à relire.
+  const orgIds = await contributions().distinct("target.slug", {
+    ...expired,
+    kind: "orgCreate",
+  });
+  const { modifiedCount } = await contributions().updateMany(expired, {
+    $set: {
+      status: "rejected",
+      updatedAt: now,
+      "review.reason": "expired",
     },
-  );
+  });
+  if (orgIds.length > 0) {
+    await organizations().updateMany(
+      { _id: { $in: orgIds }, "validation.status": "pending" },
+      {
+        $set: {
+          public: false,
+          validation: { status: "rejected", at: now },
+        },
+      },
+    );
+  }
   return modifiedCount;
 }
 
