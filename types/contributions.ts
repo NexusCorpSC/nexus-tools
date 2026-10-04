@@ -232,7 +232,11 @@ export const POINTS = {
   orgCreate: 2,
   /** Une donnée confirmée, dans la limite de `CONFIRM_DAILY_CAP` par jour. */
   confirm: 1,
-  /** Une relecture décidée (publiée ou refusée), à partir de `REVIEW_LEVEL`. */
+  /**
+   * Une relecture décidée (publiée ou refusée) par un joueur à partir de
+   * `REVIEW_LEVEL`, dans la limite de `REVIEW_DAILY_CAP` par jour. Reprise si
+   * la publication est annulée.
+   */
   review: 1,
 } as const;
 
@@ -301,6 +305,10 @@ export const RENAME_LEVEL = 4;
  * `POINTS.review`.
  */
 export const REVIEW_LEVEL = 4;
+/** Au-delà, une relecture est décidée mais ne rapporte plus rien ce jour-là. */
+export const REVIEW_DAILY_CAP = 20;
+/** Un joueur relecteur décide au plus de ça d'un coup ; les modérateurs, d'une file entière. */
+export const PLAYER_REVIEW_BATCH = 20;
 
 /** Une contribution à corriger sans reprise après ce délai est refusée. */
 export const CHANGES_REQUESTED_TTL_DAYS = 14;

@@ -10,6 +10,7 @@ import { requireContributor } from "@/app/contributions/session";
 import { ReviewQueue } from "@/app/(moderation)/admin/contributions/review-queue";
 import {
   CONTRIBUTIONS_REVIEW_PERMISSION,
+  PLAYER_REVIEW_BATCH,
   POINTS,
   REVIEW_LEVEL,
 } from "@/types/contributions";
@@ -40,7 +41,12 @@ export default async function ReviewPage() {
 
   const t = await getTranslations("Contributions.Review");
   const tAdmin = await getTranslations("Contributions.Admin");
-  const { items, total } = await listPendingContributions(300, userId);
+  // Un joueur relit par lots de `PLAYER_REVIEW_BATCH` : sa sélection ne
+  // dépasse jamais ce que l'action accepte.
+  const { items, total } = await listPendingContributions(
+    moderator ? 300 : PLAYER_REVIEW_BATCH,
+    userId,
+  );
 
   return (
     <div className="m-2 mx-auto max-w-6xl space-y-6 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">

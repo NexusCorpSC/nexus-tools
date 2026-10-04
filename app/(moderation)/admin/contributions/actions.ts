@@ -18,6 +18,7 @@ import {
 } from "@/lib/contributions";
 import {
   CONTRIBUTIONS_REVIEW_PERMISSION,
+  PLAYER_REVIEW_BATCH,
   REVIEW_LEVEL,
   REVIEWER_REJECT_REASONS,
   type Contribution,
@@ -124,7 +125,10 @@ async function forEachId(
   /** Ce que le journal de modération retient de chaque contribution traitée. */
   log: { by: Contributor; action: string; note?: string },
 ): Promise<ReviewActionResult> {
-  const unique = [...new Set(ids)].slice(0, MAX_BATCH);
+  const unique = [...new Set(ids)].slice(
+    0,
+    log.by.player ? PLAYER_REVIEW_BATCH : MAX_BATCH,
+  );
   const done: Contribution[] = [];
   const failed: ReviewActionResult["failed"] = [];
   let skipped = 0;

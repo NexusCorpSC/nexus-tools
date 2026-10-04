@@ -2981,7 +2981,7 @@
     },
     "Review": {
       "title": "Relire les contributions",
-      "intro": "En tant qu'Archiviste, vous relisez les contributions des autres joueurs : publiez ce qui est juste, renvoyez à corriger ou refusez le reste. Chaque relecture décidée rapporte",
+      "intro": "En tant qu'Archiviste, vous relisez les contributions des autres joueurs : publiez ce qui est juste, renvoyez à corriger ou refusez le reste. Chaque relecture décidée, 20 par jour au plus, rapporte",
       "back": "Retour à mes contributions"
     }
   },

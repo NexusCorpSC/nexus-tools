@@ -57,6 +57,7 @@ import {
   MIN_ACCEPTANCE_RATE,
   MIN_REVIEWED_FOR_RATE,
   POINTS,
+  REVIEW_DAILY_CAP,
   REVIEW_LEVEL,
   REPEAT_EDIT_WINDOW_MS,
   type Contribution,
@@ -940,20 +941,30 @@ export async function publishContribution(
 }
 
 /**
- * Une relecture décidée rapporte au relecteur, à partir de
- * `REVIEW_LEVEL`. Une contribution ne se décide qu'une fois : publiée
- * ou refusée. Ne lève jamais : la décision est déjà acquise.
+ * Une relecture décidée rapporte au joueur relecteur, à partir de
+ * `REVIEW_LEVEL` et dans la limite de `REVIEW_DAILY_CAP` par jour. Les
+ * modérateurs relisent au titre de leur rôle : ils ne gagnent rien. Une
+ * contribution ne se décide qu'une fois : publiée ou refusée. Ne lève jamais :
+ * la décision est déjà acquise.
  */
 async function creditReview(reviewer: Contributor, contributionId: ObjectId) {
+  if (!reviewer.player) return;
   try {
     const standing = await getStanding(reviewer.id);
     if (standing.level < REVIEW_LEVEL) return;
+    const now = new Date();
+    const today = await pointEvents().countDocuments({
+      userId: reviewer.id,
+      reason: "review",
+      at: { $gte: new Date(now.getTime() - DAY_MS) },
+    });
+    if (today >= REVIEW_DAILY_CAP) return;
     await pointEvents().insertOne({
       userId: reviewer.id,
       contributionId,
       delta: POINTS.review,
       reason: "review",
-      at: new Date(),
+      at: now,
     });
     await users().updateOne(
       { _id: reviewer.id },
@@ -962,6 +973,34 @@ async function creditReview(reviewer: Contributor, contributionId: ObjectId) {
     await refreshProgress(reviewer.id);
   } catch (error) {
     console.error("Crédit de relecture impossible", error);
+  }
+}
+
+/**
+ * Une publication annulée n'aurait pas dû passer : le point de qui l'a
+ * publiée repart avec ceux de l'auteur.
+ */
+async function withdrawReview(contributionId: ObjectId, at: Date) {
+  try {
+    const credited = await pointEvents()
+      .find({ contributionId, reason: "review" })
+      .toArray();
+    for (const event of credited) {
+      await pointEvents().insertOne({
+        userId: event.userId,
+        contributionId,
+        delta: -event.delta,
+        reason: "reverted",
+        at,
+      });
+      await users().updateOne(
+        { _id: event.userId },
+        { $inc: { "contrib.points": -event.delta } },
+      );
+      await refreshProgress(event.userId);
+    }
+  } catch (error) {
+    console.error("Retrait du point de relecture impossible", error);
   }
 }
 
@@ -1205,6 +1244,7 @@ export async function revertContribution(
   }
   // Une annulation compte comme un refus dans la fiabilité, points ou non.
   await refreshProgress(contribution.userId);
+  await withdrawReview(contribution._id, now);
 
   return toContribution(updated!);
 }
