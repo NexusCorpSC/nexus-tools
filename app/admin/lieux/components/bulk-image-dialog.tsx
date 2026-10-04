@@ -32,7 +32,7 @@ export function BulkImageDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   places: PlaceSummary[];
-  onApplied: () => void;
+  onApplied: (slugs: string[], imageUrl: string) => void;
 }) {
   const t = useTranslations("Places.Admin");
   const [imageUrl, setImageUrl] = useState<string | undefined>();
@@ -58,7 +58,7 @@ export function BulkImageDialog({
           missing > 0 ? t("bulkMissing", { count: missing }) : undefined,
       });
       setImageUrl(undefined);
-      onApplied();
+      onApplied(result.updated, imageUrl);
       onOpenChange(false);
     } finally {
       setIsApplying(false);

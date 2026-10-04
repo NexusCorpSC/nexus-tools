@@ -34,6 +34,15 @@ export function PlacesManager() {
     () => new Map(),
   );
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  // Les images posées depuis l'ouverture de la page. La liste n'est pas
+  // rechargée après coup : sans elles, un lieu recoché garderait l'image
+  // d'avant, et la confirmation suivante tairait qu'elle va la remplacer.
+  const [applied, setApplied] = useState<Map<string, string>>(() => new Map());
+
+  function withApplied(place: PlaceSummary): PlaceSummary {
+    const imageUrl = applied.get(place.slug);
+    return imageUrl ? { ...place, imageUrl } : place;
+  }
 
   const allShownSelected =
     results.length > 0 && results.every((place) => selected.has(place.slug));
@@ -43,7 +52,7 @@ export function PlacesManager() {
     setSelected((current) => {
       const next = new Map(current);
       if (next.has(place.slug)) next.delete(place.slug);
-      else next.set(place.slug, place);
+      else next.set(place.slug, withApplied(place));
       return next;
     });
   }
@@ -53,7 +62,7 @@ export function PlacesManager() {
       const next = new Map(current);
       for (const place of results) {
         if (allShownSelected) next.delete(place.slug);
-        else next.set(place.slug, place);
+        else next.set(place.slug, withApplied(place));
       }
       return next;
     });
@@ -189,7 +198,14 @@ export function PlacesManager() {
         open={isImageDialogOpen}
         onOpenChange={setIsImageDialogOpen}
         places={[...selected.values()]}
-        onApplied={() => setSelected(new Map())}
+        onApplied={(slugs, imageUrl) => {
+          setApplied((before) => {
+            const next = new Map(before);
+            for (const slug of slugs) next.set(slug, imageUrl);
+            return next;
+          });
+          setSelected(new Map());
+        }}
       />
     </div>
   );

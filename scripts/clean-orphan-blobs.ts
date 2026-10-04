@@ -8,7 +8,7 @@
  * abandonne le formulaire, ou si son relevé envoie un nouvel aperçu à chaque
  * enregistrement, les fichiers restent dans le stockage sans fiche ni
  * contribution pour les porter. Un plan supprimé laisse aussi la sienne. On
- * ne touche qu'aux images de galerie, de plans et aux vignettes communes,
+ * ne touche qu'aux images de galerie, de plans et aux vignettes,
  * jamais à une image de moins de 48 heures : elle appartient peut-être à un
  * envoi en cours.
  *
@@ -24,12 +24,12 @@ const MIN_AGE_MS = 48 * 60 * 60 * 1000;
 const BLOB_URL =
   /https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/[^"\s)\\]+/gi;
 /**
- * Les images de galerie et de plans, et les vignettes communes posées en
- * masse : une nouvelle ne remplace pas l'ancienne, qui reste sans lieu. Une
- * vignette propre à un lieu ne se remplace qu'en place : elle n'est jamais
- * orpheline.
+ * Les images de galerie et de plans, les vignettes communes posées en masse
+ * et les vignettes propres à un lieu : une image commune posée par-dessus
+ * laisse l'ancienne vignette du lieu sans personne pour l'afficher.
  */
-const CANDIDATE = /^lieux\/(?:[a-z0-9-]+\/(?:media|plans)|_communes)\/[^/]+$/i;
+const CANDIDATE =
+  /^lieux\/(?:[a-z0-9-]+\/(?:media|plans)\/[^/]+|_communes\/[^/]+|[a-z0-9-]+\/image\.[a-z0-9]+)$/i;
 
 function collect(into: Set<string>, value: unknown) {
   for (const match of JSON.stringify(value).matchAll(BLOB_URL)) {

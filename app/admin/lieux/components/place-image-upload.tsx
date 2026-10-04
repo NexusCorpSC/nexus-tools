@@ -152,6 +152,12 @@ export function PlaceImageUpload({
   );
 }
 
+const SHARED_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
 /**
  * Une vignette commune à plusieurs lieux. Elle n'appartient à aucun d'eux : son
  * chemin ne porte pas de slug, et le suffixe aléatoire ajouté à l'envoi garde
@@ -172,7 +178,14 @@ export function SharedPlaceImageUpload({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    // Le chemin commun n'accepte que ces extensions : un JPEG nommé `.jfif`
+    // prend celle de son type plutôt que d'être refusé.
+    const extension = SHARED_EXTENSIONS[file.type];
+    if (!extension) {
+      setError(t("imageTypeRejected"));
+      event.target.value = "";
+      return;
+    }
     setIsUploading(true);
     setError(null);
 
