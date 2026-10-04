@@ -2,12 +2,7 @@ import "server-only";
 import { ObjectId, type Filter } from "mongodb";
 import { del } from "@vercel/blob";
 import db from "@/lib/db";
-import {
-  clearPlaceImageIf,
-  deletePlace,
-  getPlaceBySlug,
-  setPlaceImageIfMissing,
-} from "@/lib/places";
+import { clearPlaceImageIf, deletePlace, getPlaceBySlug } from "@/lib/places";
 import { deleteItem, getItemBySlug } from "@/lib/items";
 import { getBlueprintBySlug } from "@/lib/crafting";
 import {
@@ -24,6 +19,7 @@ import {
 import { updatePlans } from "@/lib/contribution-catalog";
 import {
   ContributionError,
+  ensurePlaceCover,
   getStanding,
   refreshProgress,
   revertContribution,
@@ -386,6 +382,7 @@ async function mask(report: DbReport) {
         { _id: report._id },
         { $set: { coverCleared: true } },
       );
+      await ensurePlaceCover(media.placeSlug);
     }
   } else if (target.type === "org") {
     await organizations().updateOne(
@@ -405,7 +402,18 @@ async function unmask(report: DbReport) {
       { returnDocument: "after" },
     );
     if (report.coverCleared && media?.status === "published") {
-      await setPlaceImageIfMissing(media.placeSlug, media.url);
+      // Pendant le masquage, l'image suivante a pu prendre la bannière : la
+      // première image la reprend, mais pas sur une bannière d'admin.
+      const place = await getPlaceBySlug(media.placeSlug);
+      const fromGallery =
+        place?.imageUrl &&
+        (await placeMedia().countDocuments({
+          placeSlug: media.placeSlug,
+          url: place.imageUrl,
+        })) > 0;
+      if (fromGallery)
+        await clearPlaceImageIf(media.placeSlug, place.imageUrl!);
+      await ensurePlaceCover(media.placeSlug);
     }
   } else if (target.type === "org") {
     await organizations().updateOne(
@@ -860,7 +868,9 @@ async function removeMedia(mediaId: ObjectId, moderator: Contributor) {
     { $set: { status: "reverted" }, $unset: { hiddenByReport: "" } },
   );
   if (!media) throw new ReportError("actionFailed", 409);
-  await clearPlaceImageIf(media.placeSlug, media.url);
+  if (await clearPlaceImageIf(media.placeSlug, media.url)) {
+    await ensurePlaceCover(media.placeSlug);
+  }
   try {
     await del(media.url);
   } catch (error) {
