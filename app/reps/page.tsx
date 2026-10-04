@@ -6,7 +6,14 @@ import { getFactions, getPlayerReputations } from "@/lib/reputations";
 import { FactionsList } from "@/app/reps/components/factions-list";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export const metadata: Metadata = {
   title: "Réputations",
@@ -43,7 +50,7 @@ export default async function ReputationPage() {
 
   const factions = await getFactions();
 
-  if (!factions) {
+  if (factions.length === 0) {
     return (
       <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
         <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
@@ -69,9 +76,12 @@ export default async function ReputationPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
-
-      <p>{t("selectCurrentLevelInstructions")}</p>
+      <div className="flex max-w-2xl flex-col gap-1.5">
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-[15px] leading-relaxed text-white/75">
+          {t("selectCurrentLevelInstructions")}
+        </p>
+      </div>
 
       <FactionsList factions={factions} playerReputation={playerReputation} />
     </div>

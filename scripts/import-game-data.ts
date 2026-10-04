@@ -1,7 +1,8 @@
 /**
- * Importe les blueprints, les factions et les missions du jeu.
+ * Importe les blueprints, les factions, les missions et les barèmes de
+ * réputation du jeu.
  *
- *   npm run import:game-data -- <all|blueprints|missions|images> [options]
+ *   npm run import:game-data -- <all|blueprints|missions|reputations|images> [options]
  *
  *   --source S         la source de tout : `wiki` (défaut, l'API du Star
  *                      Citizen Wiki) ou `scmdb` (les fichiers de scmdb.net)
@@ -49,7 +50,13 @@
  *
  * L'ordre `all` est celui qu'il faut : blueprints, puis factions et missions
  * (qui pointent vers les blueprints), puis les textes d'obtention et les
- * liens des objets du catalogue vers les blueprints dont le slug a changé.
+ * liens des objets du catalogue vers les blueprints dont le slug a changé,
+ * puis les réputations.
+ *
+ * `reputations` tient à jour la liste des factions de /reps (le document
+ * `configuration` de clé `reputations`) depuis les barèmes du wiki, seule
+ * source qui les donne, et fait suivre aux réputations des joueurs les
+ * factions, carrières et rangs renommés (`scripts/game-data/reputations.ts`).
  *
  * `images` est à part, parce qu'il interroge un autre site : il donne une
  * illustration aux blueprints qui n'en ont pas (`scripts/game-data/images.ts`).
@@ -69,9 +76,16 @@ import {
 import {
   loadWiki,
   loadWikiRecipes,
+  loadWikiReputations,
   resolveWikiVersion,
   type WikiStats,
 } from "./game-data/wiki";
+import {
+  movePlayerReputations,
+  planReputations,
+  type ReputationMoves,
+} from "./game-data/reputations";
+import type { Faction, PlayerReputations } from "@/types/reputations";
 import {
   MassRemovalError,
   planBlueprints,
@@ -83,6 +97,7 @@ import {
   type FactionDoc,
   type MissionDoc,
   type Report,
+  sameValue,
 } from "./game-data/plan";
 import { planBlueprintImages } from "./game-data/images";
 import {
@@ -96,7 +111,7 @@ import {
 /** Un arrêt voulu, avant toute écriture : son message suffit. */
 class ImportStopped extends Error {}
 
-type Target = "all" | "blueprints" | "missions" | "images";
+type Target = "all" | "blueprints" | "missions" | "reputations" | "images";
 
 type SourceName = GameData["source"];
 
@@ -114,11 +129,15 @@ type Options = {
 };
 
 const USAGE =
-  "Usage : npm run import:game-data -- <all|blueprints|missions|images> [--source wiki|scmdb] [--blueprints-source wiki|scmdb] [--missions-source wiki|scmdb] [--version V] [--dir DOSSIER] [--refresh-recipes] [--legacy DOSSIER | --no-legacy] [--allow-mass-removal] [--mirror-images] [--dry-run]";
+  "Usage : npm run import:game-data -- <all|blueprints|missions|reputations|images> [--source wiki|scmdb] [--blueprints-source wiki|scmdb] [--missions-source wiki|scmdb] [--version V] [--dir DOSSIER] [--refresh-recipes] [--legacy DOSSIER | --no-legacy] [--allow-mass-removal] [--mirror-images] [--dry-run]";
 
 function parseArgs(argv: string[]): Options {
   const [target, ...rest] = argv;
-  if (!["all", "blueprints", "missions", "images"].includes(target ?? "")) {
+  if (
+    !["all", "blueprints", "missions", "reputations", "images"].includes(
+      target ?? "",
+    )
+  ) {
     console.error(USAGE);
     process.exit(1);
   }
@@ -185,6 +204,7 @@ function parseArgs(argv: string[]): Options {
 /** Les sources que la cible demande. */
 function sourcesFor(options: Options): SourceName[] {
   const sources = new Set<SourceName>();
+  if (options.target === "reputations") return [];
   if (options.target !== "missions") sources.add(options.blueprintsSource);
   if (options.target !== "blueprints") sources.add(options.missionsSource);
   return [...sources];
@@ -441,6 +461,96 @@ async function importImages(options: Options) {
   if (failed > 0) process.exitCode = 2;
 }
 
+// ─── Réputations ──────────────────────────────────────────────────────────────
+
+type UserReputationsDoc = { _id: unknown; reputations?: PlayerReputations };
+
+/**
+ * La nouvelle liste des factions de /reps, et les joueurs dont les
+ * réputations suivent un renommage. Rien n'est écrit.
+ */
+async function planReputationImport(
+  version: string,
+  stats: WikiStats,
+  warnings: string[],
+) {
+  const database = db.db();
+  const factions = await loadWikiReputations(version, stats, warnings);
+  console.log(`${factions.length} factions à réputation`);
+  const config = await database
+    .collection<{ key: string; factions: Faction[] }>("configuration")
+    .findOne({ key: "reputations" });
+  const plan = planReputations(config?.factions ?? [], factions, version);
+
+  // Pour le rapport : l'écriture relit les joueurs juste avant d'écrire.
+  const users = await planPlayerMoves(plan.moves);
+  if (users.length > 0)
+    plan.report.counts["joueurs dont la réputation suit un renommage"] =
+      users.length;
+  return { ...plan, version };
+}
+
+/**
+ * Les réputations des joueurs qui suivent un renommage, faction par
+ * faction : seules les factions touchées sont réécrites, pas tout l'objet,
+ * pour ne pas écraser un rang saisi sur une autre faction pendant l'import.
+ */
+async function planPlayerMoves(moves: ReputationMoves): Promise<DocUpdate[]> {
+  if (moves.factions.size + moves.careers.size + moves.levels.size === 0)
+    return [];
+  const docs = await db
+    .db()
+    .collection<UserReputationsDoc>("users")
+    .find(
+      { reputations: { $exists: true } },
+      { projection: { reputations: 1 } },
+    )
+    .toArray();
+  const updates: DocUpdate[] = [];
+  for (const doc of docs) {
+    const before = doc.reputations ?? {};
+    const after = movePlayerReputations(before, moves);
+    if (!after) continue;
+    const update: DocUpdate = {
+      _id: doc._id as DocUpdate["_id"],
+      set: {},
+      unset: [],
+    };
+    for (const name of new Set([
+      ...Object.keys(before),
+      ...Object.keys(after),
+    ])) {
+      if (!(name in after)) update.unset.push(`reputations.${name}`);
+      else if (!sameValue(before[name], after[name]))
+        update.set[`reputations.${name}`] = after[name];
+    }
+    updates.push(update);
+  }
+  return updates;
+}
+
+async function writeReputations(
+  plan: Awaited<ReturnType<typeof planReputationImport>>,
+) {
+  const database = db.db();
+  // Les joueurs d'abord : si l'écriture s'arrête en route, la liste garde
+  // les anciens noms et relancer l'import refait les déplacements.
+  await write(
+    database.collection("users"),
+    [],
+    await planPlayerMoves(plan.moves),
+  );
+  if (plan.changed) {
+    await database
+      .collection("configuration")
+      .updateOne(
+        { key: "reputations" },
+        { $set: { factions: plan.factions } },
+        { upsert: true },
+      );
+  }
+}
+
 // ─── Lancement ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -461,8 +571,8 @@ async function main() {
   for (const source of sourcesFor(options)) {
     loaded.set(source, await loadSource(source, options, stats));
   }
-  const withBlueprints = options.target !== "missions";
-  const withMissions = options.target !== "blueprints";
+  const withBlueprints = !["missions", "reputations"].includes(options.target);
+  const withMissions = !["blueprints", "reputations"].includes(options.target);
   const bpData = withBlueprints
     ? loaded.get(options.blueprintsSource)!
     : undefined;
@@ -580,6 +690,39 @@ async function main() {
     );
   }
 
+  // Les barèmes ne sont qu'au wiki, quelle que soit la source du reste.
+  let reputations: Awaited<ReturnType<typeof planReputationImport>> | undefined;
+  // Avec `all` sur scmdb, la version demandée est celle de scmdb : les
+  // barèmes prennent celle que le wiki sert par défaut, et `--dir` (hors
+  // ligne) s'en passe.
+  const withReputations =
+    options.target === "reputations" ||
+    (options.target === "all" && (loaded.has("wiki") || !options.dir));
+  if (options.target === "all" && !withReputations)
+    console.log(
+      "\nRéputations : ignorées avec --dir (le wiki seul les donne).",
+    );
+  if (withReputations) {
+    const wikiVersion =
+      loaded.get("wiki")?.version ??
+      (await resolveWikiVersion(
+        options.target === "reputations" ? options.version : undefined,
+        stats,
+      ));
+    if (!loaded.has("wiki"))
+      console.log(
+        `Réputations : API du Star Citizen Wiki, version ${wikiVersion}`,
+      );
+    const warnings: string[] = [];
+    const before = stats.requests;
+    reputations = await planReputationImport(wikiVersion, stats, warnings);
+    console.log(
+      `Requêtes à l'API du wiki pour les réputations : ${stats.requests - before}`,
+    );
+    for (const warning of warnings) console.warn(`  ⚠ ${warning}`);
+    printReport("Réputations", reputations.report);
+  }
+
   if (options.dryRun) {
     console.log("\nSimulation : rien n'a été écrit.");
     await db.close();
@@ -596,10 +739,11 @@ async function main() {
     await write(blueprintsCollection, [], obtention.updates);
   }
   await write(database.collection("gameItems"), [], itemUpdates);
+  if (reputations) await writeReputations(reputations);
 
-  console.log(
-    `Terminé : version ${[...new Set([...loaded.values()].map((data) => data.version))].join(" / ")} importée.`,
-  );
+  const versions = new Set([...loaded.values()].map((data) => data.version));
+  if (reputations) versions.add(reputations.version);
+  console.log(`Terminé : version ${[...versions].join(" / ")} importée.`);
   await db.close();
 }
 

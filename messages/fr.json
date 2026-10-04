@@ -1878,8 +1878,48 @@
     "connectToUse": "Connectez-vous pour garder note de vos réputation et partagez-les avec votre organisation.",
     "backToHome": "Retour à l'accueil",
     "noFactions": "Les factions ne sont pas configurées par l'administrateur.",
-    "selectCurrentLevelInstructions": "Sélectionnez le niveau actuellement atteint (complété) pour chaque faction.",
-    "clearSelection": "Effacer"
+    "selectCurrentLevelInstructions": "Votre rang auprès de chaque faction, tel qu'il s'affiche dans l'onglet Réputation du mobiGlas. Cliquez sur la barre pour le changer : l'enregistrement est immédiat.",
+    "trackedFactions": "Factions suivies",
+    "maxedRanks": "Rangs max",
+    "searchLabel": "Rechercher une faction, une carrière ou un rang",
+    "searchPlaceholder": "Faction, carrière ou rang…",
+    "viewLabel": "Afficher",
+    "view": {
+      "all": "Toutes",
+      "started": "Commencées",
+      "todo": "À commencer"
+    },
+    "familyLabel": "Type de carrière",
+    "family": {
+      "all": "Toutes",
+      "guild": "Guildes",
+      "hauling": "Transport",
+      "faction": "Contrats de faction",
+      "trade": "Commerce"
+    },
+    "group": {
+      "guild": "Guildes et métiers",
+      "hauling": "Transport",
+      "faction": "Contrats de faction",
+      "trade": "Commerce"
+    },
+    "noMatchTitle": "Aucune faction ne correspond",
+    "noMatchHint": "Essayez un autre nom, ou affichez toutes les factions.",
+    "lawful": "légale",
+    "unlawful": "illégale",
+    "removed": "retirée du jeu en {version}",
+    "maxBadge": "Rang max",
+    "noCareer": "Aucune carrière pour cette faction.",
+    "rankOf": "Rang {career} chez {faction}",
+    "ladderOf": "Barème {career}",
+    "nextRank": "Prochain rang : {rank}",
+    "nextRankWithRep": "Prochain rang : {rank} · {rep} de réputation",
+    "topRank": "Plus haut rang de ce barème.",
+    "standing": "Standing",
+    "requiredRep": "réputation requise",
+    "startingRank": "au départ",
+    "savedHint": "Le rang choisi est enregistré tout de suite et visible par les membres de vos organisations.",
+    "saveFailed": "La réputation n'a pas pu être enregistrée. Réessayez."
   },
   "OrganizationReputations": {
     "title": "Réputation des membres",

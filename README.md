@@ -266,7 +266,8 @@ les deux partagent les GUID des blueprints, tirés des fichiers du jeu.
 
 ```bash
 npm run import:game-data -- all --dry-run    # le rapport de ce qui changerait, sans rien écrire
-npm run import:game-data -- all              # dernière version LIVE : blueprints, factions, missions
+npm run import:game-data -- all              # dernière version LIVE : blueprints, factions, missions, réputations
+npm run import:game-data -- reputations      # seulement la liste des factions de /reps
 npm run import:game-data -- images           # illustrations des blueprints qui n'en ont pas
 ```
 
@@ -286,6 +287,17 @@ Ce que le wiki n'a pas :
 - **Certains titres** que le jeu remplit à l'affichage
   (`[Contractor|BountyTitle]`) : ils ne remplacent pas le titre en base et ne
   créent pas de mission.
+
+**Réputations.** La liste des factions de /reps (document `configuration` de
+clé `reputations`) suit les factions du wiki qui ont un barème de réputation,
+lu au détail de chacune (une quarantaine de requêtes). Une faction est
+retrouvée par son GUID, sinon par son nom ; ses rangs sont remplacés par ceux
+du jeu, et les réputations déjà saisies par les joueurs suivent les factions,
+carrières et rangs renommés (un rang que le jeu n'a plus devient le rang
+retrouvé juste en dessous). Le wiki ne donne qu'un barème par faction : les
+autres carrières saisies à la main restent, comme le standing (Hostile,
+Neutral, Ally), qu'il ne donne pas. Rien n'est supprimé : une faction qui
+disparaît du wiki est marquée `removedInVersion`.
 
 Le wiki regroupe aussi les variantes d'une mission sous une seule fiche, là où
 les premiers imports (scmdb) en faisaient plusieurs : au passage au wiki, ces

@@ -13,6 +13,9 @@
  *   - `/api/factions`, une page.
  * Une cinquantaine de requêtes pour tout le catalogue, au lieu d'une par fiche.
  *
+ * Les réputations demandent le détail de chaque faction qui en a une
+ * (`/api/factions/<uuid>`, une quarantaine) : la liste ne donne pas le barème.
+ *
  * Ce que les listes n'ont pas :
  *   - la recette complète d'un blueprint (emplacements, qualité minimale)
  *     n'est qu'au détail. La liste donne les ingrédients, assez pour savoir
@@ -40,6 +43,7 @@ import {
   type GameBlueprint,
   type GameData,
   type GameMission,
+  type GameReputationFaction,
 } from "./source";
 
 const WIKI_API = "https://api.star-citizen.wiki/api";
@@ -85,6 +89,27 @@ type RawMission = {
 };
 
 type RawFaction = { uuid: string; name: string };
+
+type RawStanding = {
+  name: string;
+  /** `null` pour les barèmes dont les rangs n'ont pas de nom affiché. */
+  display_name: string | null;
+  min_reputation: number;
+};
+
+type RawFactionDetail = RawFaction & {
+  description?: string | null;
+  lawful?: boolean | null;
+  focus?: string | null;
+  headquarters?: string | null;
+  default_reaction?: string | null;
+  reputation_ladder?: {
+    scope_name: string;
+    display_name: string;
+    initial_reputation?: number | null;
+    standings: RawStanding[];
+  } | null;
+};
 
 type RawRequirement = {
   kind: string;
@@ -156,6 +181,37 @@ function factionProblem(raw: unknown): string | null {
   if (!isObject(raw)) return "pas un objet";
   if (!isString(raw.uuid)) return "uuid";
   if (!isString(raw.name)) return "name";
+  return null;
+}
+
+function factionDetailProblem(raw: unknown): string | null {
+  const base = factionProblem(raw);
+  if (base) return base;
+  const faction = raw as Record<string, unknown>;
+  for (const key of [
+    "description",
+    "focus",
+    "headquarters",
+    "default_reaction",
+  ])
+    if (!isStringOrNull(faction[key] ?? null)) return key;
+  const ladder = faction.reputation_ladder;
+  if (ladder == null) return null;
+  if (!isObject(ladder)) return "reputation_ladder";
+  if (!isString(ladder.scope_name)) return "reputation_ladder.scope_name";
+  if (!isString(ladder.display_name)) return "reputation_ladder.display_name";
+  if (ladder.initial_reputation != null && !isNumber(ladder.initial_reputation))
+    return "reputation_ladder.initial_reputation";
+  if (!Array.isArray(ladder.standings)) return "reputation_ladder.standings";
+  for (const standing of ladder.standings) {
+    if (
+      !isObject(standing) ||
+      !isString(standing.name) ||
+      !isStringOrNull(standing.display_name ?? null) ||
+      !isNumber(standing.min_reputation)
+    )
+      return "reputation_ladder.standings[]";
+  }
   return null;
 }
 
@@ -266,6 +322,33 @@ function toMission(
     illegal: raw.illegal ?? false,
     rewardUEC: reward > 0 ? reward : undefined,
     blueprintGameIds: [...blueprintGameIds],
+  };
+}
+
+function toReputationFaction(raw: RawFactionDetail): GameReputationFaction {
+  const text = (value: string | null | undefined) =>
+    value?.trim() ? cleanGameText(value) : undefined;
+  const ladder = raw.reputation_ladder;
+  return {
+    gameId: raw.uuid,
+    name: raw.name.trim(),
+    description: text(raw.description),
+    lawful: raw.lawful ?? undefined,
+    focus: text(raw.focus),
+    headquarters: text(raw.headquarters),
+    defaultReaction: text(raw.default_reaction),
+    ladder: ladder
+      ? {
+          scope: ladder.scope_name,
+          name: ladder.display_name.trim(),
+          initialReputation: ladder.initial_reputation ?? 0,
+          levels: ladder.standings.map((standing) => ({
+            gameName: standing.name,
+            name: standing.display_name?.trim() ?? "",
+            minReputation: standing.min_reputation,
+          })),
+        }
+      : null,
   };
 }
 
@@ -446,6 +529,42 @@ export async function loadWiki(
   }
 
   return data;
+}
+
+// ─── Réputations ──────────────────────────────────────────────────────────────
+
+/**
+ * Les factions qui suivent la réputation des joueurs, chacune avec son
+ * barème : la liste filtrée, puis le détail de chacune.
+ */
+export async function loadWikiReputations(
+  version: string,
+  stats: WikiStats,
+  warnings: string[],
+): Promise<GameReputationFaction[]> {
+  const listed = keepValid<RawFaction>(
+    "Factions à réputation",
+    await list(
+      "factions",
+      { version, "filter[has_reputation]": "true" },
+      stats,
+    ),
+    factionProblem,
+    warnings,
+  );
+  const details = await pool(
+    listed.map((faction) => async () => {
+      stats.requests += 1;
+      const raw = await fetchJson(url(`factions/${faction.uuid}`, { version }));
+      return isObject(raw) ? raw.data : raw;
+    }),
+  );
+  return keepValid<RawFactionDetail>(
+    "Barèmes de réputation",
+    details,
+    factionDetailProblem,
+    warnings,
+  ).map(toReputationFaction);
 }
 
 // ─── Recettes ─────────────────────────────────────────────────────────────────
