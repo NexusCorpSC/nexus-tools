@@ -6,6 +6,7 @@ import { getItemDetails } from "@/lib/items";
 import { ItemForm } from "@/app/admin/items/components/item-form";
 import { ContributionNotice } from "@/app/contributions/notice";
 import {
+  openEditOn,
   requireContributor,
   resumableContribution,
 } from "@/app/contributions/session";
@@ -40,7 +41,9 @@ export default async function ContributeItemPage({
   const item = await getItemDetails(slug);
   if (!item) notFound();
 
-  const resumed = await resumableContribution(c, userId, "itemEdit", slug);
+  const resumed = c
+    ? await resumableContribution(c, userId, "itemEdit", slug)
+    : await openEditOn(userId, "itemEdit", slug);
   const t = await getTranslations("Contributions.Form");
 
   return (

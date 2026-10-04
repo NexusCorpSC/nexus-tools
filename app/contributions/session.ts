@@ -3,7 +3,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { auth } from "@/lib/auth";
-import { getMyContribution, getStanding } from "@/lib/contributions";
+import {
+  getMyContribution,
+  getStanding,
+  listMyOpenContributions,
+} from "@/lib/contributions";
 import type {
   Contribution,
   ContributionKind,
@@ -60,4 +64,21 @@ export async function resumableContribution(
     return null;
   }
   return contribution;
+}
+
+/**
+ * La correction que ce joueur a encore ouverte sur cette fiche. Un formulaire
+ * ouvert sans `?c=` la reprend : sinon l'envoi la remplacerait sans qu'il ait
+ * vu ce qu'elle proposait.
+ */
+export async function openEditOn(
+  userId: ObjectId,
+  kind: "placeEdit" | "itemEdit",
+  slug: string,
+): Promise<Contribution | null> {
+  const open = await listMyOpenContributions(userId, {
+    type: kind === "placeEdit" ? "place" : "item",
+    slug,
+  });
+  return open.find((entry) => entry.kind === kind) ?? null;
 }

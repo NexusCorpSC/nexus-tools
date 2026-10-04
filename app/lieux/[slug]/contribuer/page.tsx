@@ -6,6 +6,7 @@ import { getPlaceDetails } from "@/lib/places";
 import { PlaceForm } from "@/app/admin/lieux/components/place-form";
 import { ContributionNotice } from "@/app/contributions/notice";
 import {
+  openEditOn,
   requireContributor,
   resumableContribution,
 } from "@/app/contributions/session";
@@ -40,7 +41,9 @@ export default async function ContributePlacePage({
   const place = await getPlaceDetails(slug);
   if (!place) notFound();
 
-  const resumed = await resumableContribution(c, userId, "placeEdit", slug);
+  const resumed = c
+    ? await resumableContribution(c, userId, "placeEdit", slug)
+    : await openEditOn(userId, "placeEdit", slug);
   const t = await getTranslations("Contributions.Form");
 
   return (

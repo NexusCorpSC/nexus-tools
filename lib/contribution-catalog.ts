@@ -14,6 +14,7 @@ import {
   getPlaceBySlug,
   normalizePlaceInput,
   normalizePlacePlan,
+  PlansChangedError,
   savePlacePlans,
   updatePlace,
   type PlaceInput,
@@ -21,6 +22,7 @@ import {
 import {
   BLOB_HOST,
   ContributionError,
+  placeMedia,
   type DbContribution,
 } from "@/lib/contribution-store";
 import { toItemSlug, type Item } from "@/types/items";
@@ -141,7 +143,13 @@ function describe(
     return keys.flatMap((key) =>
       sameValue(left[key], right[key])
         ? []
-        : [{ field: `${field}.${key}`, before: show(left[key]), after: show(right[key]) }],
+        : [
+            {
+              field: `${field}.${key}`,
+              before: show(left[key]),
+              after: show(right[key]),
+            },
+          ],
     );
   }
   return sameValue(before, after)
@@ -154,7 +162,9 @@ function describeAll(
   before: Record<string, unknown>,
   after: Record<string, unknown>,
 ): ContributionChange[] {
-  return fields.flatMap((field) => describe(field, before[field], after[field]));
+  return fields.flatMap((field) =>
+    describe(field, before[field], after[field]),
+  );
 }
 
 function pick<T extends object>(value: T, keys: string[]) {
@@ -298,7 +308,8 @@ export async function buildPlaceEdit(
 
 // ─── Plans ──────────────────────────────────────────────────────────────────
 
-const PLAN_FILE = /^\/lieux\/([a-z0-9-]{1,120})\/plans\/[A-Za-z0-9_-]{1,160}\.(?:jpe?g|png|webp)$/i;
+const PLAN_FILE =
+  /^\/lieux\/([a-z0-9-]{1,120})\/plans\/[A-Za-z0-9_-]{1,160}\.(?:jpe?g|png|webp)$/i;
 
 /** Les adresses d'images d'un plan : fond, aperçu rendu, calque de relevé. */
 function planUrls(plan: PlacePlan): string[] {
@@ -529,8 +540,81 @@ function applyError(error: unknown): ContributionError {
   );
 }
 
+/**
+ * L'« avant » d'une correction, relu au moment de publier : la fiche a pu
+ * changer depuis l'envoi. Sans ça, l'annulation remettrait une valeur que
+ * quelqu'un d'autre avait déjà remplacée, et son travail serait perdu.
+ */
+export async function currentBefore(
+  contribution: DbContribution,
+): Promise<Pick<DbContribution, "before" | "changes"> | null> {
+  const { target } = contribution;
+  const after = contribution.after ?? {};
+  const fields = contribution.fields ?? [];
+
+  switch (contribution.kind) {
+    case "placeEdit":
+    case "itemEdit": {
+      const entry =
+        contribution.kind === "placeEdit"
+          ? await getPlaceBySlug(target.slug)
+          : await getItemBySlug(target.slug);
+      if (!entry) return null;
+      const before = pick(entry, fields);
+      return { before, changes: describeAll(fields, before, after) };
+    }
+    case "plan": {
+      const place = await getPlaceBySlug(target.slug);
+      if (!place) return null;
+      const existing = place.plans?.find(
+        (entry) => entry.id === target.planId,
+      ) as PlacePlan | undefined;
+      return {
+        before: existing ? { plan: existing } : undefined,
+        changes: describe(
+          "plan",
+          planSummary(existing),
+          planSummary(after.plan as PlacePlan),
+        ),
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Réécrit les plans d'un lieu à partir de ceux qu'il a maintenant, sans
+ * écraser un plan publié en même temps par quelqu'un d'autre : si le lieu a
+ * bougé entre la lecture et l'écriture, on relit et on recommence.
+ */
+async function updatePlans(
+  slug: string,
+  change: (stored: NonNullable<Place["plans"]>) => NonNullable<Place["plans"]>,
+): Promise<void> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const place = await getPlaceBySlug(slug);
+    if (!place) throw new ContributionError("placeNotFound", 404);
+    try {
+      await savePlacePlans(place.slug, change(place.plans ?? []), {
+        expectedUpdatedAt: place.updatedAt ?? null,
+      });
+      return;
+    } catch (error) {
+      if (!(error instanceof PlansChangedError)) throw error;
+    }
+  }
+  throw new ContributionError(
+    "applyFailed",
+    409,
+    new PlansChangedError().message,
+  );
+}
+
 /** Écrit une contribution publiée. Lève si la fiche a changé au point de ne plus l'accepter. */
-export async function applyCatalog(contribution: DbContribution): Promise<void> {
+export async function applyCatalog(
+  contribution: DbContribution,
+): Promise<void> {
   const { target } = contribution;
   const proposal = (contribution.proposal ?? {}) as Record<string, unknown>;
   const fields = contribution.fields ?? [];
@@ -552,14 +636,12 @@ export async function applyCatalog(contribution: DbContribution): Promise<void> 
         return;
       }
       case "plan": {
-        const place = await getPlaceBySlug(target.slug);
-        if (!place) throw new ContributionError("placeNotFound", 404);
         const plan = proposal as unknown as PlacePlan;
-        const stored = place.plans ?? [];
-        const next = stored.some((entry) => entry.id === plan.id)
-          ? stored.map((entry) => (entry.id === plan.id ? plan : entry))
-          : [...stored, plan];
-        await savePlacePlans(place.slug, next);
+        await updatePlans(target.slug, (stored) =>
+          stored.some((entry) => entry.id === plan.id)
+            ? stored.map((entry) => (entry.id === plan.id ? plan : entry))
+            : [...stored, plan],
+        );
         return;
       }
       case "itemCreate": {
@@ -609,6 +691,41 @@ export async function revertConflicts(
       if (!item) return gone;
       return describeAll(fields, after, item as Record<string, unknown>);
     }
+    case "placeCreate": {
+      // Supprimer le lieu emporterait ce que d'autres y ont mis depuis.
+      const place = await getPlaceBySlug(target.slug);
+      if (!place) return gone;
+      const fields = Object.keys(after);
+      const added: ContributionChange[] = [];
+      const plans = place.plans?.length ?? 0;
+      if (plans > 0) {
+        added.push({ field: "plan", before: undefined, after: String(plans) });
+      }
+      const images = await placeMedia().countDocuments({
+        placeSlug: place.slug,
+        status: "published",
+      });
+      if (images > 0) {
+        added.push({
+          field: "images",
+          before: undefined,
+          after: String(images),
+        });
+      }
+      return [
+        ...describeAll(fields, after, place as Record<string, unknown>),
+        ...added,
+      ];
+    }
+    case "itemCreate": {
+      const item = await getItemBySlug(target.slug);
+      if (!item) return gone;
+      return describeAll(
+        Object.keys(after),
+        after,
+        item as Record<string, unknown>,
+      );
+    }
     case "plan": {
       const place = await getPlaceBySlug(target.slug);
       const current = place?.plans?.find((entry) => entry.id === target.planId);
@@ -653,14 +770,14 @@ export async function revertCatalog(
         return;
       }
       case "plan": {
-        const place = await getPlaceBySlug(target.slug);
-        if (!place) throw new ContributionError("placeNotFound", 404);
         const previous = before.plan as PlacePlan | undefined;
-        const stored = place.plans ?? [];
-        const next = previous
-          ? stored.map((entry) => (entry.id === previous.id ? previous : entry))
-          : stored.filter((entry) => entry.id !== target.planId);
-        await savePlacePlans(place.slug, next);
+        await updatePlans(target.slug, (stored) =>
+          previous
+            ? stored.map((entry) =>
+                entry.id === previous.id ? previous : entry,
+              )
+            : stored.filter((entry) => entry.id !== target.planId),
+        );
         return;
       }
       case "itemCreate": {
@@ -682,6 +799,12 @@ export async function revertCatalog(
       ? new ContributionError("revertFailed", 409, failure.detail)
       : failure;
   }
+}
+
+/** Un plan qui valait déjà quelque chose avant cette contribution : un relevé existant, corrigé. */
+export function improvesValuedPlan(contribution: DbContribution): boolean {
+  const previous = contribution.before?.plan as PlacePlan | undefined;
+  return previous !== undefined && planValue(previous) > 0;
 }
 
 /** La clé du bonus d'un plan : un plan ne rapporte sa valeur qu'une fois. */

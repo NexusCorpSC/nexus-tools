@@ -1857,12 +1857,26 @@ async function assertPlansAreSafe(
 export async function savePlacePlans(
   slug: string,
   plans: unknown,
+  options: {
+    /**
+     * Le `updatedAt` du lieu lu avant de calculer `plans` : si quelqu'un a
+     * écrit entre-temps, on lève `PlansChangedError` plutôt que d'écraser
+     * ses plans. `null` pour un lieu qui n'en a jamais eu.
+     */
+    expectedUpdatedAt?: string | null;
+  } = {},
 ): Promise<Place> {
   const normalized = normalizePlans(plans, slug);
   await assertPlansAreSafe(slug, normalized);
 
+  const guard =
+    options.expectedUpdatedAt === undefined
+      ? {}
+      : options.expectedUpdatedAt === null
+        ? { updatedAt: { $exists: false } }
+        : { updatedAt: options.expectedUpdatedAt };
   const updated = await collection().findOneAndUpdate(
-    { slug },
+    { slug, ...guard } as Filter<PlaceDbModel>,
     {
       $set: {
         plans: normalized,
@@ -1872,9 +1886,24 @@ export async function savePlacePlans(
     },
     { returnDocument: "after", projection: { _id: 0 } },
   );
-  if (!updated) throw new Error("Lieu introuvable");
+  if (!updated) {
+    if (
+      options.expectedUpdatedAt !== undefined &&
+      (await getPlaceBySlug(slug))
+    ) {
+      throw new PlansChangedError();
+    }
+    throw new Error("Lieu introuvable");
+  }
 
   return updated as Place;
+}
+
+/** Les plans du lieu ont changé pendant qu'on préparait les nôtres. */
+export class PlansChangedError extends Error {
+  constructor() {
+    super("Les plans de ce lieu viennent de changer");
+  }
 }
 
 // ─── Import ──────────────────────────────────────────────────────────────────

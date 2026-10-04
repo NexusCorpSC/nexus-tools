@@ -129,6 +129,11 @@ export function ReviewQueue({
   const images = items.reduce((sum, item) => sum + item.media.length, 0);
   const authors = new Set(items.map((item) => item.userId)).size;
 
+  const byId = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items],
+  );
+
   function toggle(ids: string[], on: boolean) {
     setSelected((current) => {
       const next = new Set(current);
@@ -155,7 +160,10 @@ export function ReviewQueue({
   function publish(ids: string[]) {
     startTransition(async () => {
       try {
-        report(await publishContributionsAction(ids), "published");
+        const versions = Object.fromEntries(
+          ids.map((id) => [id, byId.get(id)?.updatedAt]),
+        );
+        report(await publishContributionsAction(ids, versions), "published");
       } catch {
         toast.error(t("failed"));
       }
@@ -186,11 +194,6 @@ export function ReviewQueue({
       }
     });
   }
-
-  const byId = useMemo(
-    () => new Map(items.map((item) => [item.id, item])),
-    [items],
-  );
 
   // P publie, C demande une correction, R refuse — la contribution visée.
   useEffect(() => {

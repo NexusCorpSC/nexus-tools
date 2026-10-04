@@ -94,11 +94,17 @@ async function forEachId(
   return { done: done.length, skipped };
 }
 
+/**
+ * `versions` porte l'`updatedAt` de chaque contribution telle que le relecteur
+ * l'a vue : une contribution reprise entre-temps est comptée comme déjà
+ * traitée plutôt que publiée sans avoir été relue.
+ */
 export async function publishContributionsAction(
   ids: string[],
+  versions: Record<string, string | undefined> = {},
 ): Promise<ReviewActionResult> {
   const by = await reviewer();
-  return forEachId(ids, (id) => publishContribution(id, by));
+  return forEachId(ids, (id) => publishContribution(id, by, versions[id]));
 }
 
 export async function rejectContributionsAction(

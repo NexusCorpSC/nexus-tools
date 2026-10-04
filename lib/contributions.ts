@@ -23,6 +23,8 @@ import {
 } from "@/lib/contribution-store";
 import {
   applyCatalog,
+  currentBefore,
+  improvesValuedPlan,
   buildItemCreate,
   buildItemEdit,
   buildPlaceCreate,
@@ -437,6 +439,10 @@ async function buildDraft(
       return buildItemCreate(submission.input);
     case "itemEdit":
       return buildItemEdit(submission.slug, submission.input, level);
+    default:
+      // L'envoi vient du navigateur : une nature inconnue est une saisie
+      // invalide, pas une erreur du serveur.
+      throw new ContributionError("invalidInput", 400);
   }
 }
 
@@ -541,9 +547,10 @@ export async function submitCatalogContribution(
         _id: resumed._id,
         status: { $in: ["pending", "changesRequested"] },
       },
-      // Reprise, elle repart en relecture ; le message du relecteur reste
-      // lisible jusqu'à la prochaine décision.
-      { $set: { ...fields, status: "pending" } },
+      // Reprise, elle repart en relecture comme neuve : le relecteur d'avant
+      // n'a pas vu cette version, et une publication directe ne doit pas
+      // passer pour relue.
+      { $set: { ...fields, status: "pending" }, $unset: { review: "" } },
       { returnDocument: "after" },
     );
     if (!updated) throw new ContributionError("notPending", 409);
@@ -663,7 +670,11 @@ async function credit(
         bonus: await claimFirstMedia(contribution, at),
       };
     case "plan": {
-      const bonus = await claimPlan(contribution, at);
+      // Corriger un relevé qui valait déjà quelque chose — celui d'un admin,
+      // qui n'a jamais réclamé de bonus — reste une correction.
+      const bonus = improvesValuedPlan(contribution)
+        ? 0
+        : await claimPlan(contribution, at);
       if (bonus > 0) return { base: 0, bonus };
       // Un plan repris, ou un relevé encore vide : une correction.
       const isNew = !contribution.before?.plan;
@@ -695,12 +706,21 @@ async function credit(
 async function publish(
   contribution: DbContribution,
   reviewer: Contributor | null,
+  /** La version que le relecteur a vue : une reprise entre-temps l'invalide. */
+  version?: Date,
 ): Promise<Contribution> {
   const locked = await contributions().findOneAndUpdate(
-    { _id: contribution._id, status: "pending" },
+    {
+      _id: contribution._id,
+      status: "pending",
+      ...(version ? { updatedAt: version } : {}),
+    },
     { $set: { status: "publishing" } },
+    { returnDocument: "after" },
   );
   if (!locked) throw new ContributionError("notPending", 409);
+  // Ce qui est publié, c'est la version verrouillée, pas celle lue avant.
+  contribution = locked;
 
   const now = new Date();
   try {
@@ -710,6 +730,14 @@ async function publish(
         { $set: { status: "published" } },
       );
     } else {
+      const refreshed = await currentBefore(contribution);
+      if (refreshed) {
+        contribution = { ...contribution, ...refreshed };
+        await contributions().updateOne(
+          { _id: contribution._id },
+          { $set: refreshed },
+        );
+      }
       await applyCatalog(contribution);
     }
   } catch (error) {
@@ -720,29 +748,13 @@ async function publish(
     throw error;
   }
 
-  const { base, bonus } = await credit(contribution, now);
-  if (base > 0) {
-    await pointEvents().insertOne({
-      userId: contribution.userId,
-      contributionId: contribution._id,
-      delta: base,
-      reason: "published",
-      at: now,
-    });
-  }
-  if (base + bonus > 0) {
-    await users().updateOne(
-      { _id: contribution.userId },
-      { $inc: { "contrib.points": base + bonus } },
-    );
-  }
-
-  const updated = await contributions().findOneAndUpdate(
+  // La fiche est écrite : la contribution est publiée, quoi qu'il arrive au
+  // crédit. Elle ne doit jamais rester coincée en `publishing`.
+  await contributions().updateOne(
     { _id: contribution._id },
     {
       $set: {
         status: "published",
-        points: base + bonus,
         publishedAt: now,
         updatedAt: now,
         ...(reviewer
@@ -750,8 +762,32 @@ async function publish(
           : {}),
       },
     },
-    { returnDocument: "after" },
   );
+
+  try {
+    const { base, bonus } = await credit(contribution, now);
+    if (base > 0) {
+      await pointEvents().insertOne({
+        userId: contribution.userId,
+        contributionId: contribution._id,
+        delta: base,
+        reason: "published",
+        at: now,
+      });
+    }
+    if (base + bonus > 0) {
+      await users().updateOne(
+        { _id: contribution.userId },
+        { $inc: { "contrib.points": base + bonus } },
+      );
+    }
+    await contributions().updateOne(
+      { _id: contribution._id },
+      { $set: { points: base + bonus } },
+    );
+  } catch (error) {
+    console.error("Crédit de contribution impossible", error);
+  }
 
   // La vignette se voit partout où le lieu est cité : elle ne vient que d'une
   // image qu'un humain a regardée, et ne remplace jamais celle d'un admin.
@@ -765,6 +801,7 @@ async function publish(
     }
   }
 
+  const updated = await contributions().findOne({ _id: contribution._id });
   return toContribution(updated!);
 }
 
@@ -784,13 +821,20 @@ async function findPending(id: string): Promise<DbContribution> {
 export async function publishContribution(
   id: string,
   reviewer: Contributor,
+  /** `updatedAt` de la version relue ; une reprise depuis la fait refuser. */
+  version?: string,
 ): Promise<Contribution> {
   const contribution = await findPending(id);
   // Se relire soi-même, c'est contourner la relecture et se créditer.
   if (contribution.userId.equals(reviewer.id)) {
     throw new ContributionError("ownContribution", 403);
   }
-  return publish(contribution, reviewer);
+  const seen = version ? new Date(version) : undefined;
+  return publish(
+    contribution,
+    reviewer,
+    seen && !Number.isNaN(seen.getTime()) ? seen : undefined,
+  );
 }
 
 /** Supprime des images du stockage, sans faire échouer ce qui est déjà acquis. */
@@ -916,6 +960,7 @@ export async function revertContribution(
     throw new ContributionError("notPublished", 409);
   }
   if (contribution.kind !== "media" && !force) {
+    // Pour une création, le conflit, c'est ce que d'autres y ont ajouté.
     if ((await revertConflicts(contribution)).length > 0) {
       throw new ContributionError("revertConflict", 409);
     }
@@ -954,21 +999,9 @@ export async function revertContribution(
     throw error;
   }
 
+  // La fiche est remise : la contribution est annulée, quoi qu'il arrive au
+  // décompte des points. Elle ne doit jamais rester coincée en `publishing`.
   const now = new Date();
-  if (contribution.points > 0) {
-    await pointEvents().insertOne({
-      userId: contribution.userId,
-      contributionId: contribution._id,
-      delta: -contribution.points,
-      reason: "reverted",
-      at: now,
-    });
-    await users().updateOne(
-      { _id: contribution.userId },
-      { $inc: { "contrib.points": -contribution.points } },
-    );
-  }
-
   const updated = await contributions().findOneAndUpdate(
     { _id: contribution._id },
     {
@@ -980,6 +1013,42 @@ export async function revertContribution(
     },
     { returnDocument: "after" },
   );
+
+  // Un lieu supprimé n'a plus de galerie : ses images partent avec lui.
+  if (contribution.kind === "placeCreate") {
+    const media = await placeMedia()
+      .find(
+        { placeSlug: contribution.target.slug, status: { $ne: "reverted" } },
+        { projection: { url: 1 } },
+      )
+      .toArray();
+    if (media.length > 0) {
+      await placeMedia().updateMany(
+        { _id: { $in: media.map((image) => image._id) } },
+        { $set: { status: "reverted" } },
+      );
+      await deleteBlobs(media.map((image) => image.url));
+    }
+  }
+
+  if (contribution.points > 0) {
+    try {
+      await pointEvents().insertOne({
+        userId: contribution.userId,
+        contributionId: contribution._id,
+        delta: -contribution.points,
+        reason: "reverted",
+        at: now,
+      });
+      await users().updateOne(
+        { _id: contribution.userId },
+        { $inc: { "contrib.points": -contribution.points } },
+      );
+    } catch (error) {
+      console.error("Décompte de contribution impossible", error);
+    }
+  }
+
   return toContribution(updated!);
 }
 

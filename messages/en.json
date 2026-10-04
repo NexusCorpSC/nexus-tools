@@ -2578,7 +2578,8 @@
       "setName": "Set",
       "vehicle": "Vehicle",
       "weapon": "Weapon",
-      "resource": "Resource"
+      "resource": "Resource",
+      "images": "Published images"
     },
     "Mine": {
       "title": "My contributions",
