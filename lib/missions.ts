@@ -166,7 +166,9 @@ export function missionBlueprintsLookup(userId?: string) {
   return {
     $lookup: {
       from: "blueprints",
-      let: { blueprintIds: "$blueprints" },
+      // Comme l'ancien localField de l'API : une mission sans tableau
+      // `blueprints` n'en joint aucun au lieu de faire échouer `$in`.
+      let: { blueprintIds: { $ifNull: ["$blueprints", []] } },
       pipeline: [
         { $match: { $expr: { $in: ["$_id", "$$blueprintIds"] } } },
         ...ownership,
