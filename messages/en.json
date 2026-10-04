@@ -2421,7 +2421,8 @@
       "notPublished": "This contribution isn't published.",
       "revertConflict": "The entry changed since this was published.",
       "revertFailed": "The revert failed.",
-      "applyFailed": "The entry couldn't be updated. Try again."
+      "applyFailed": "The entry couldn't be updated. Try again.",
+      "suspended": "Your contributions are suspended by moderation for now."
     },
     "reasons": {
       "inaccurate": "Inaccurate or unverifiable",
@@ -2514,7 +2515,11 @@
       "conflictPublished": "Published by the contribution",
       "conflictNow": "Now",
       "conflictConfirm": "Revert anyway",
-      "actionFailedFor": "“{name}”: {reason}"
+      "actionFailedFor": "“{name}”: {reason}",
+      "tabQueue": "Queue",
+      "tabReports": "Reports",
+      "tabJournal": "Log",
+      "tabsLabel": "Moderation"
     },
     "Form": {
       "source": "Source (optional)",
@@ -2622,6 +2627,160 @@
       "planImage": "Upload a plan image",
       "planDrawn": "Draw the plan",
       "improvePlan": "Improve this plan"
+    }
+  },
+  "Reports": {
+    "menu": "More actions",
+    "report": "Report",
+    "title": {
+      "place": "Report this place",
+      "placeMedia": "Report this image",
+      "plan": "Report this map",
+      "item": "Report this item",
+      "org": "Report this organization"
+    },
+    "types": {
+      "place": "Place",
+      "placeMedia": "Image",
+      "plan": "Map",
+      "item": "Item",
+      "org": "Organization"
+    },
+    "subtitle": "{name} · a moderator reviews every report",
+    "question": "What's wrong?",
+    "comment": "Details (optional except for “Other”)",
+    "commentRequired": "Details (required for “Other”)",
+    "cancel": "Cancel",
+    "send": "Send report",
+    "sending": "Sending…",
+    "doneTitle": "Thanks, noted",
+    "doneBody": "You'll see the decision in My contributions. If the report is upheld, it earns you {points} points.",
+    "doneFix": "Already know what's right? Suggest the fix directly.",
+    "proposeFix": "Suggest the fix",
+    "close": "Close",
+    "signIn": "Sign in",
+    "contested": "Disputed information: players report an error on this page, a moderator is checking.",
+    "contestedPlan": "Disputed map: players report an error, a moderator is checking.",
+    "reasons": {
+      "wrong": {
+        "label": "Wrong information",
+        "hint": "A wrong service, name, value or parent"
+      },
+      "outdated": {
+        "label": "Outdated since a patch",
+        "hint": "It was true, it isn't anymore"
+      },
+      "duplicate": {
+        "label": "Duplicate",
+        "hint": "This already exists under another name"
+      },
+      "media": {
+        "label": "Off-topic or poor-quality image",
+        "hint": "Off topic, unreadable, personal UI visible"
+      },
+      "offensive": {
+        "label": "Offensive content",
+        "hint": "Insults, hate speech"
+      },
+      "copyright": {
+        "label": "Copyright",
+        "hint": "Taken from a site or image without permission"
+      },
+      "spam": {
+        "label": "Spam",
+        "hint": "Advertising, unrelated links"
+      },
+      "other": {
+        "label": "Other",
+        "hint": "Explain in the field below"
+      }
+    },
+    "errors": {
+      "unauthenticated": "Sign in to report.",
+      "invalidTarget": "This can't be reported.",
+      "targetNotFound": "This no longer exists.",
+      "invalidReason": "Pick a reason.",
+      "commentRequired": "Describe the problem for “Other”.",
+      "ownContent": "You can't report your own content: suggest a fix instead.",
+      "alreadyReported": "You already reported this. A moderator is on it.",
+      "dailyLimit": "Ten reports a day at most. Try again tomorrow.",
+      "reportingSuspended": "Three of your reports in a row were dismissed: you can't report for 7 days.",
+      "notFound": "This case no longer exists.",
+      "notOpen": "This case was already decided.",
+      "invalidAction": "That decision isn't possible here.",
+      "contributionRequired": "Pick the contribution to revert.",
+      "actionFailed": "The decision couldn't be applied.",
+      "failed": "Sending failed. Try again."
+    },
+    "Mine": {
+      "title": "My reports",
+      "hint": "An upheld report earns {points} points. Three dismissed reports in a row suspend reporting for 7 days.",
+      "statuses": {
+        "open": "Under review",
+        "resolved": "Upheld",
+        "dismissed": "Dismissed"
+      },
+      "suspended": "Your contributions are suspended by moderation until {date, date, medium}.",
+      "banned": "You can't report until {date, date, medium}: three of your reports in a row were dismissed.",
+      "warning": "Moderation warning of {date, date, medium}."
+    },
+    "Admin": {
+      "title": "Reports",
+      "header": "{count, plural, one {# open case} other {# open cases}}, heaviest first.",
+      "headerEmpty": "No open case.",
+      "hidden": "Hidden",
+      "weight": "weight {weight}",
+      "reporters": "{count, plural, one {# player} other {# players}}",
+      "gone": "This no longer exists in this form.",
+      "open": "View on site",
+      "edit": "Fix it yourself",
+      "reasonsTitle": "What it's reported for",
+      "entryBy": "by {name} (weight {weight}) · {date, date, short}",
+      "historyTitle": "Contribution history",
+      "historyBy": "by {name} · {date, date, short}",
+      "noHistory": "No contribution recorded on this element.",
+      "backToAdmin": "Back to admin",
+      "decision": "Decision",
+      "actions": {
+        "dismiss": {
+          "label": "Dismiss",
+          "hint": "Nothing wrong. Reporters earn nothing, a hidden element comes back.",
+          "submit": "Dismiss the case"
+        },
+        "correct": {
+          "label": "Fixed",
+          "hint": "You fixed it yourself. The report is upheld.",
+          "submit": "Mark as fixed"
+        },
+        "revert": {
+          "label": "Revert the contribution at fault",
+          "hint": "The previous state comes back and the author's points are taken back.",
+          "submit": "Revert the contribution"
+        },
+        "delete": {
+          "label": "Remove the element",
+          "hint": "Deletes the page, image or map. An organization leaves the public view, its members keep it.",
+          "submit": "Remove the element"
+        }
+      },
+      "contribution": "Contribution to revert",
+      "sanction": "Towards the author",
+      "sanctions": {
+        "none": "Nothing more",
+        "warn": "Warn",
+        "suspend": "Suspend contributions for 7 days"
+      },
+      "author": "Author",
+      "note": "Note (optional, shown to a warned author)",
+      "conflict": "The page changed since this contribution: reverting would overwrite those changes.",
+      "conflictConfirm": "Revert anyway",
+      "confirmDelete": "Confirm removal",
+      "done": {
+        "dismiss": "Case dismissed.",
+        "correct": "Case closed, report upheld.",
+        "revert": "Contribution reverted, report upheld.",
+        "delete": "Element removed, report upheld."
+      }
     }
   }
 }

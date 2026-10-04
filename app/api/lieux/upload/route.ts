@@ -8,6 +8,18 @@ import { getStanding } from "@/lib/contributions";
 import { getPlaceBySlug } from "@/lib/places";
 import { DIRECT_MEDIA_LEVEL, MAX_PENDING_RECRUIT } from "@/types/contributions";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
+import db from "@/lib/db";
+
+/**
+ * Ce qu'un joueur sans droit d'édition peut téléverser par heure, images de
+ * galerie et de plans confondues. Un relevé envoie son aperçu à chaque
+ * enregistrement : la limite laisse dessiner, pas remplir le stockage.
+ */
+const UPLOADS_PER_HOUR = 60;
+const HOUR_MS = 60 * 60 * 1000;
+
+const uploadGrants = () =>
+  db.db().collection<{ userId: ObjectId; at: Date }>("uploadGrants");
 
 /** La vignette d'un lieu. */
 const COVER = /^lieux\/[a-z0-9-]{1,120}\/image\.[a-z0-9]{1,6}$/i;
@@ -57,19 +69,30 @@ export async function POST(request: Request): Promise<NextResponse> {
           if (!(await getPlaceBySlug(contributed[1]))) {
             throw new Error("Unknown place.");
           }
+          const userId = new ObjectId(session.user.id);
+          const standing = await getStanding(userId);
+          if (standing.suspendedUntil) {
+            throw new Error("Contributions suspended.");
+          }
           // Le plafond ne vaut que pour la galerie : un plan en cours de
           // relevé envoie son aperçu à chaque enregistrement, et c'est la
           // contribution qui le porte qui compte dans le plafond.
-          const standing = media
-            ? await getStanding(new ObjectId(session.user.id))
-            : null;
           if (
-            standing &&
+            media &&
             standing.level < DIRECT_MEDIA_LEVEL &&
             standing.pending >= MAX_PENDING_RECRUIT
           ) {
             throw new Error("Too many pending contributions.");
           }
+          const now = new Date();
+          const recent = await uploadGrants().countDocuments({
+            userId,
+            at: { $gte: new Date(now.getTime() - HOUR_MS) },
+          });
+          if (recent >= UPLOADS_PER_HOUR) {
+            throw new Error("Too many uploads, try again later.");
+          }
+          await uploadGrants().insertOne({ userId, at: now });
 
           return {
             allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],

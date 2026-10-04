@@ -370,7 +370,8 @@ export async function listCommunityEvents(
   if (others.length > 0) {
     const found = await organizations
       .find(
-        { _id: { $in: others } },
+        // Masquée par un signalement, elle ne s'affiche plus qu'à ses membres.
+        { _id: { $in: others }, reportHidden: { $ne: true } },
         { projection: { name: 1, tag: 1, image: 1 } },
       )
       .toArray();

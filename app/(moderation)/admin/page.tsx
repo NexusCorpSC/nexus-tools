@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { countPendingContributions } from "@/lib/contributions";
+import { countOpenReports } from "@/lib/reports";
+import { isAdmin } from "@/lib/permissions";
 
 export const metadata: Metadata = {
   title: "Administration",
@@ -12,7 +14,12 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const pending = await countPendingContributions();
+  // Un modérateur arrive ici aussi : il ne voit que la modération.
+  const [pending, reports, admin] = await Promise.all([
+    countPendingContributions(),
+    countOpenReports(),
+    isAdmin(),
+  ]);
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
@@ -38,28 +45,43 @@ export default async function AdminPage() {
           </Button>
 
           <Button asChild>
-            <Link href="/admin/blueprints" className="w-full">
-              Gérer les Blueprints
+            <Link href="/admin/contributions/signalements" className="w-full">
+              Traiter les signalements
+              {reports > 0 && (
+                <span className="rounded-full bg-[#F2B880] px-2 font-mono text-xs font-bold text-[#2A1606]">
+                  {reports}
+                </span>
+              )}
             </Link>
           </Button>
 
-          <Button asChild>
-            <Link href="/admin/items" className="w-full">
-              Gérer les objets
-            </Link>
-          </Button>
+          {admin && (
+            <>
+              <Button asChild>
+                <Link href="/admin/blueprints" className="w-full">
+                  Gérer les Blueprints
+                </Link>
+              </Button>
 
-          <Button asChild>
-            <Link href="/admin/lieux" className="w-full">
-              Gérer les lieux
-            </Link>
-          </Button>
+              <Button asChild>
+                <Link href="/admin/items" className="w-full">
+                  Gérer les objets
+                </Link>
+              </Button>
 
-          <Button asChild>
-            <Link href="/admin/cargo-ships" className="w-full">
-              Gérer les vaisseaux cargo
-            </Link>
-          </Button>
+              <Button asChild>
+                <Link href="/admin/lieux" className="w-full">
+                  Gérer les lieux
+                </Link>
+              </Button>
+
+              <Button asChild>
+                <Link href="/admin/cargo-ships" className="w-full">
+                  Gérer les vaisseaux cargo
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

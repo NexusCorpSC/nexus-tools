@@ -5,6 +5,7 @@ import {
   PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
+import { ReportMenu } from "@/components/report-menu";
 import { KIND_ACCENT } from "@/lib/item-accents";
 import { cn } from "@/lib/utils";
 import { POINTS } from "@/types/contributions";
@@ -551,6 +552,13 @@ export async function CommonSections({
           <PencilSquareIcon className="size-4" />
           {canEdit ? t("Admin.edit") : t("suggestEdit")}
         </Link>
+        <ReportMenu
+          type="item"
+          id={item.slug}
+          name={item.name}
+          fixHref={canEdit ? undefined : fillHref(item.slug, false)}
+          className="ml-auto"
+        />
       </div>
     </>
   );

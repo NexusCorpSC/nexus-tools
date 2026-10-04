@@ -15,6 +15,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { ReportMenu } from "@/components/report-menu";
 import { EditIcon } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -116,6 +117,13 @@ export default async function OrganizationPage({
     .toArray();
   const organization = organizations[0];
 
+  // On ne signale pas sa propre organisation.
+  const isMember = Boolean(
+    session?.user &&
+      organization?.members.some((member) =>
+        member.userId.equals(session.user?.id),
+      ),
+  );
   const userIsEditor =
     session?.user &&
     organization?.members.some(
@@ -219,6 +227,13 @@ export default async function OrganizationPage({
                 Editer
               </Link>
             </Button>
+          )}
+          {!isMember && (
+            <ReportMenu
+              type="org"
+              id={organization._id}
+              name={`${organization.name} [${organization.tag}]`}
+            />
           )}
         </div>
       </div>

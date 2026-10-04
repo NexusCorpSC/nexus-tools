@@ -588,7 +588,7 @@ export async function currentBefore(
  * écraser un plan publié en même temps par quelqu'un d'autre : si le lieu a
  * bougé entre la lecture et l'écriture, on relit et on recommence.
  */
-async function updatePlans(
+export async function updatePlans(
   slug: string,
   change: (stored: NonNullable<Place["plans"]>) => NonNullable<Place["plans"]>,
 ): Promise<void> {

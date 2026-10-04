@@ -50,7 +50,7 @@ export default async function OrganizationsPage() {
   const organizations = await db
     .db()
     .collection<Organization>("organizations")
-    .find({ public: true })
+    .find({ public: true, reportHidden: { $ne: true } })
     .project({ members: 0 })
     .limit(10)
     .toArray();

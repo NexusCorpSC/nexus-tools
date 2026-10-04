@@ -19,6 +19,8 @@ import { OpenContributionsBanner } from "@/app/contributions/open-banner";
 import { POINTS } from "@/types/contributions";
 import { PlaceGallery } from "./gallery";
 import { PlanViewer } from "./plan-viewer";
+import { ContestedBanner, ReportMenu } from "@/components/report-menu";
+import { getContested } from "@/lib/reports";
 import {
   PlaceBreadcrumb,
   PlaceEmpty,
@@ -122,6 +124,22 @@ export default async function PlacePage({
   // Le plan affiché, celui qu'« Améliorer ce plan » ouvre.
   const shownPlan =
     plans?.plans.find((entry) => entry.id === plan) ?? plans?.plans[0];
+  // Un plan emprunté se signale chez le lieu qui le tient.
+  const reportedPlan = shownPlan
+    ? shownPlan.borrowedFrom
+      ? { slug: shownPlan.borrowedFrom.slug, id: shownPlan.borrowedFrom.planId }
+      : { slug: plans!.slug, id: shownPlan.id }
+    : null;
+  const [contested, contestedPlans] = await Promise.all([
+    getContested("place", place.slug),
+    reportedPlan && reportedPlan.slug !== place.slug
+      ? getContested("place", reportedPlan.slug)
+      : null,
+  ]);
+  const planContested =
+    reportedPlan !== null &&
+    (contestedPlans ?? contested).planIds.includes(reportedPlan.id);
+  const tr = await getTranslations("Reports");
   const services = place.services ?? [];
   const trail = placeTrail(place);
 
@@ -149,12 +167,22 @@ export default async function PlacePage({
             <p className="text-sm text-nexus">{place.shopCategory}</p>
           )}
         </div>
-        {canEdit ? (
-          <PlaceAdminMenu slug={place.slug} />
-        ) : (
-          <PlaceContributeMenu slug={place.slug} />
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit ? (
+            <PlaceAdminMenu slug={place.slug} />
+          ) : (
+            <PlaceContributeMenu slug={place.slug} />
+          )}
+          <ReportMenu
+            type="place"
+            id={place.slug}
+            name={place.name}
+            fixHref={canEdit ? undefined : `/lieux/${place.slug}/contribuer`}
+          />
+        </div>
       </div>
+
+      {contested.contested && <ContestedBanner message={tr("contested")} />}
 
       <OpenContributionsBanner type="place" slug={place.slug} />
 
@@ -315,20 +343,32 @@ export default async function PlacePage({
           <SectionTitle>{t("planTitle")}</SectionTitle>
           {plans && plans.plans.length > 0 ? (
             <div className="space-y-3">
+              {planContested && (
+                <ContestedBanner message={tr("contestedPlan")} />
+              )}
               <PlanViewer
                 data={plans}
                 rootSlug={place.slug}
                 activePlanId={plan}
                 canBrief={Boolean(session)}
               />
-              {!canEdit && (
-                <PlanContributeLinks
-                  slug={plans.slug}
-                  improvePlanId={
-                    shownPlan?.borrowedFrom ? undefined : shownPlan?.id
-                  }
-                />
-              )}
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {!canEdit && (
+                  <PlanContributeLinks
+                    slug={plans.slug}
+                    improvePlanId={
+                      shownPlan?.borrowedFrom ? undefined : shownPlan?.id
+                    }
+                  />
+                )}
+                {reportedPlan && shownPlan && (
+                  <ReportMenu
+                    type="plan"
+                    id={`${reportedPlan.slug}:${reportedPlan.id}`}
+                    name={`${plans.name} · ${shownPlan.name}`}
+                  />
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#9ED0FF]/25 bg-[#092F49]/35 px-6 py-12 text-center">

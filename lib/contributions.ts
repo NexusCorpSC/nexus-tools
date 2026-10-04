@@ -109,7 +109,11 @@ const OPEN_STATUSES: ContributionStatus[] = [
 /** La galerie publiée d'un lieu, dans l'ordre où elle s'est constituée. */
 export async function listPlaceMedia(slug: string): Promise<PlaceMedia[]> {
   const docs = await placeMedia()
-    .find({ placeSlug: slug, status: "published" })
+    .find({
+      placeSlug: slug,
+      status: "published",
+      hiddenByReport: { $ne: true },
+    })
     .sort({ createdAt: 1 })
     .toArray();
   return docs.map(toPlaceMedia);
@@ -236,6 +240,7 @@ export async function getStanding(
 
   const entry = LEVELS.find((candidate) => candidate.level === level)!;
   const next = LEVELS.find((candidate) => candidate.level === earned.level + 1);
+  const suspendedUntil = user?.contrib?.suspendedUntil;
 
   return {
     points,
@@ -245,6 +250,10 @@ export async function getStanding(
       next && Number.isFinite(next.minPoints) ? next.minPoints : undefined,
     acceptanceRate,
     pending,
+    suspendedUntil:
+      suspendedUntil && suspendedUntil > new Date()
+        ? suspendedUntil.toISOString()
+        : undefined,
   };
 }
 
@@ -333,6 +342,7 @@ export async function submitPlaceMedia(
   if (reused > 0) throw new ContributionError("invalidMedia", 400);
 
   const standing = await getStanding(author.id);
+  if (standing.suspendedUntil) throw new ContributionError("suspended", 403);
   if (
     standing.level < DIRECT_MEDIA_LEVEL &&
     standing.pending >= MAX_PENDING_RECRUIT
@@ -491,6 +501,7 @@ export async function submitCatalogContribution(
   meta: CatalogSubmissionMeta = {},
 ): Promise<SubmitContributionResult> {
   const standing = await getStanding(author.id);
+  if (standing.suspendedUntil) throw new ContributionError("suspended", 403);
   const draft = await buildDraft(submission, standing.level);
 
   let resumeFilter: Filter<DbContribution> = sameTargetFilter(draft);

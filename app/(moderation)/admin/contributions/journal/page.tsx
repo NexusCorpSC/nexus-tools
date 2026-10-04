@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/button";
 import {
   JOURNAL_STATUSES,
   listJournal,
@@ -16,6 +15,7 @@ import {
   type ContributionKind,
 } from "@/types/contributions";
 import { JournalList } from "./journal-list";
+import { ModerationTabs } from "../moderation-tabs";
 
 export const metadata: Metadata = {
   title: "Admin — Journal des contributions",
@@ -71,6 +71,8 @@ export default async function ContributionsJournalPage({
   return (
     <div className="flex min-h-screen justify-center px-4 py-12">
       <div className="w-full max-w-6xl space-y-6 rounded-2xl border border-[#9ED0FF]/20 bg-[#0B3A5A]/70 p-6 shadow-xl shadow-black/20 backdrop-blur-sm sm:p-8">
+        <ModerationTabs current="journal" />
+
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-[#CCE7FF]">
@@ -78,9 +80,6 @@ export default async function ContributionsJournalPage({
             </h1>
             <p className="mt-1 text-[#9ED0FF]/70">{t("journalHeader")}</p>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/admin/contributions">{t("queueLink")}</Link>
-          </Button>
         </div>
 
         <div className="space-y-2">

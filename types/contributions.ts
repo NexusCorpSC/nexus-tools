@@ -279,6 +279,8 @@ export type ContributorStanding = {
   /** Sur les dernières contributions relues ; absent sans aucune relecture. */
   acceptanceRate?: number;
   pending: number;
+  /** Contributions suspendues par la modération jusque-là. */
+  suspendedUntil?: string;
 };
 
 /** Les erreurs que le formulaire sait expliquer, par leur code. */
@@ -302,6 +304,7 @@ export const CONTRIBUTION_ERRORS = [
   "revertConflict",
   "revertFailed",
   "applyFailed",
+  "suspended",
 ] as const;
 
 export type ContributionErrorCode = (typeof CONTRIBUTION_ERRORS)[number];

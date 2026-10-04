@@ -399,6 +399,38 @@ async function ensureContributions(database: Db) {
     { placeSlug: 1, reason: 1 },
     { unique: true, partialFilterExpression: { reason: "firstMedia" } },
   );
+  // Un signalement retenu ne rapporte qu'une fois à chacun.
+  await points.createIndex(
+    { reportId: 1, userId: 1 },
+    { unique: true, partialFilterExpression: { reason: "report" } },
+  );
+}
+
+// ─── Signalements ─────────────────────────────────────────────────────────────
+
+/**
+ * Un seul dossier ouvert par cible : c'est l'index qui fait s'empiler les
+ * signalements plutôt que de les dupliquer. L'onglet admin lit les dossiers
+ * ouverts par poids ; la page d'un joueur, les siens ; la limite du jour, ses
+ * signalements récents. Les jetons de téléversement s'effacent d'eux-mêmes.
+ */
+async function ensureReports(database: Db) {
+  const reports = database.collection("reports");
+  await reports.createIndex(
+    { "target.type": 1, "target.id": 1 },
+    { unique: true, partialFilterExpression: { status: "open" } },
+  );
+  await reports.createIndex({ status: 1, weight: -1, updatedAt: -1 });
+  await reports.createIndex({ "entries.userId": 1, "entries.at": -1 });
+  await reports.createIndex({ "target.type": 1, "target.slug": 1, status: 1 });
+
+  const log = database.collection("moderationLog");
+  await log.createIndex({ at: -1 });
+  await log.createIndex({ reportId: 1 });
+
+  const grants = database.collection("uploadGrants");
+  await grants.createIndex({ userId: 1, at: -1 });
+  await grants.createIndex({ at: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
 }
 
 const STEPS: [string, (database: Db) => Promise<void>][] = [
@@ -416,6 +448,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["parcels", ensureParcels],
   ["friends", ensureFriends],
   ["contributions", ensureContributions],
+  ["reports", ensureReports],
 ];
 
 async function main() {

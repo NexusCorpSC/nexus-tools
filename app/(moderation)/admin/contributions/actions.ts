@@ -23,6 +23,7 @@ import {
   type ContributionErrorCode,
   type RejectReason,
 } from "@/types/contributions";
+import { logModeration } from "@/lib/reports";
 
 export type ReviewActionResult = {
   done: number;
@@ -88,6 +89,8 @@ function revalidate(done: Contribution[]) {
 async function forEachId(
   ids: string[],
   apply: (id: string) => Promise<Contribution>,
+  /** Ce que le journal de modération retient de chaque contribution traitée. */
+  log: { by: Contributor; action: string; note?: string },
 ): Promise<ReviewActionResult> {
   const unique = [...new Set(ids)].slice(0, MAX_BATCH);
   const done: Contribution[] = [];
@@ -97,7 +100,21 @@ async function forEachId(
   try {
     for (const id of unique) {
       try {
-        done.push(await apply(id));
+        const contribution = await apply(id);
+        done.push(contribution);
+        await logModeration({
+          by: log.by.id,
+          byName: log.by.name,
+          action: log.action,
+          contributionId: new ObjectId(contribution.id),
+          userId: new ObjectId(contribution.userId),
+          target: {
+            type: contribution.target.type,
+            id: contribution.target.slug,
+            name: contribution.target.name,
+          },
+          note: log.note,
+        });
       } catch (error) {
         if (!(error instanceof ContributionError)) throw error;
         if (SKIPPED_CODES.includes(error.code)) {
@@ -132,7 +149,10 @@ export async function publishContributionsAction(
   versions: ReviewVersions = {},
 ): Promise<ReviewActionResult> {
   const by = await reviewer();
-  return forEachId(ids, (id) => publishContribution(id, by, versions[id]));
+  return forEachId(ids, (id) => publishContribution(id, by, versions[id]), {
+    by,
+    action: "contribution.publish",
+  });
 }
 
 export async function rejectContributionsAction(
@@ -146,8 +166,11 @@ export async function rejectContributionsAction(
   if (!(REVIEWER_REJECT_REASONS as readonly string[]).includes(reason)) {
     throw new Error("Invalid reason");
   }
-  return forEachId(ids, (id) =>
-    rejectContribution(id, by, reason as RejectReason, message, versions[id]),
+  return forEachId(
+    ids,
+    (id) =>
+      rejectContribution(id, by, reason as RejectReason, message, versions[id]),
+    { by, action: "contribution.reject", note: reason },
   );
 }
 
@@ -159,7 +182,10 @@ export async function requestChangesAction(
 ): Promise<ReviewActionResult> {
   const by = await reviewer();
   if (!message.trim()) throw new Error("Message required");
-  return forEachId(ids, (id) => requestChanges(id, by, message, versions[id]));
+  return forEachId(ids, (id) => requestChanges(id, by, message, versions[id]), {
+    by,
+    action: "contribution.requestChanges",
+  });
 }
 
 export type RevertActionResult =
@@ -182,7 +208,21 @@ export async function revertContributionAction(
 ): Promise<RevertActionResult> {
   const by = await reviewer();
   try {
-    revalidate([await revertContribution(id, by, force)]);
+    const reverted = await revertContribution(id, by, force);
+    revalidate([reverted]);
+    await logModeration({
+      by: by.id,
+      byName: by.name,
+      action: "contribution.revert",
+      contributionId: new ObjectId(reverted.id),
+      userId: new ObjectId(reverted.userId),
+      target: {
+        type: reverted.target.type,
+        id: reverted.target.slug,
+        name: reverted.target.name,
+      },
+      note: force ? "force" : undefined,
+    });
     return { ok: true };
   } catch (error) {
     if (!(error instanceof ContributionError)) throw error;

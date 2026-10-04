@@ -10,6 +10,7 @@ import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ReportMenu } from "@/components/report-menu";
 import {
   Dialog,
   DialogClose,
@@ -157,14 +158,21 @@ export function PlaceGallery({
         <DialogContent className="max-w-4xl">
           {viewed && (
             <>
-              <DialogHeader>
-                <DialogTitle>{viewed.caption ?? placeName}</DialogTitle>
-                <DialogDescription>
-                  {t("by", {
-                    name: viewed.credit ?? viewed.userName ?? "?",
-                  })}
-                </DialogDescription>
-              </DialogHeader>
+              <div className="flex items-start justify-between gap-3 pr-8">
+                <DialogHeader>
+                  <DialogTitle>{viewed.caption ?? placeName}</DialogTitle>
+                  <DialogDescription>
+                    {t("by", {
+                      name: viewed.credit ?? viewed.userName ?? "?",
+                    })}
+                  </DialogDescription>
+                </DialogHeader>
+                <ReportMenu
+                  type="placeMedia"
+                  id={viewed.id}
+                  name={viewed.caption ?? placeName}
+                />
+              </div>
               <Image
                 src={viewed.url}
                 alt={viewed.caption ?? placeName}

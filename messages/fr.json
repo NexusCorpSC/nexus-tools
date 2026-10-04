@@ -2452,7 +2452,8 @@
       "notPublished": "Cette contribution n'est pas publiée.",
       "revertConflict": "La fiche a changé depuis cette publication.",
       "revertFailed": "L'annulation a échoué.",
-      "applyFailed": "La fiche n'a pas pu être mise à jour. Réessayez."
+      "applyFailed": "La fiche n'a pas pu être mise à jour. Réessayez.",
+      "suspended": "Vos contributions sont suspendues par la modération pour le moment."
     },
     "reasons": {
       "inaccurate": "Inexact ou invérifiable",
@@ -2545,7 +2546,11 @@
       "conflictPublished": "Publié par la contribution",
       "conflictNow": "Aujourd'hui",
       "conflictConfirm": "Annuler quand même",
-      "actionFailedFor": "« {name} » : {reason}"
+      "actionFailedFor": "« {name} » : {reason}",
+      "tabQueue": "File d'attente",
+      "tabReports": "Signalements",
+      "tabJournal": "Journal",
+      "tabsLabel": "Modération"
     },
     "Form": {
       "source": "Source (facultatif)",
@@ -2653,6 +2658,160 @@
       "planImage": "Envoyer une image du plan",
       "planDrawn": "Dessiner le plan",
       "improvePlan": "Améliorer ce plan"
+    }
+  },
+  "Reports": {
+    "menu": "Plus d'actions",
+    "report": "Signaler",
+    "title": {
+      "place": "Signaler ce lieu",
+      "placeMedia": "Signaler cette image",
+      "plan": "Signaler ce plan",
+      "item": "Signaler cet objet",
+      "org": "Signaler cette organisation"
+    },
+    "types": {
+      "place": "Lieu",
+      "placeMedia": "Image",
+      "plan": "Plan",
+      "item": "Objet",
+      "org": "Organisation"
+    },
+    "subtitle": "{name} · un modérateur examine chaque signalement",
+    "question": "Quel est le problème ?",
+    "comment": "Précisez (facultatif sauf « Autre »)",
+    "commentRequired": "Précisez (obligatoire pour « Autre »)",
+    "cancel": "Annuler",
+    "send": "Envoyer le signalement",
+    "sending": "Envoi…",
+    "doneTitle": "Merci, c'est noté",
+    "doneBody": "Vous serez prévenu de la décision dans Mes contributions. Si le signalement est retenu, il vous rapporte {points} points.",
+    "doneFix": "Vous savez déjà ce qui est juste ? Proposez directement la correction.",
+    "proposeFix": "Proposer la correction",
+    "close": "Fermer",
+    "signIn": "Se connecter",
+    "contested": "Information contestée : des joueurs signalent une erreur sur cette fiche, un modérateur vérifie.",
+    "contestedPlan": "Plan contesté : des joueurs signalent une erreur, un modérateur vérifie.",
+    "reasons": {
+      "wrong": {
+        "label": "Information fausse",
+        "hint": "Un service, un nom, une valeur ou un parent incorrect"
+      },
+      "outdated": {
+        "label": "Obsolète depuis un patch",
+        "hint": "C'était vrai, ça ne l'est plus"
+      },
+      "duplicate": {
+        "label": "Doublon",
+        "hint": "Cet élément existe déjà sous un autre nom"
+      },
+      "media": {
+        "label": "Image hors sujet ou de mauvaise qualité",
+        "hint": "Hors sujet, illisible, interface personnelle visible"
+      },
+      "offensive": {
+        "label": "Contenu offensant",
+        "hint": "Insulte, propos haineux"
+      },
+      "copyright": {
+        "label": "Droits d'auteur",
+        "hint": "Reprise d'un site ou d'une image sans autorisation"
+      },
+      "spam": {
+        "label": "Spam",
+        "hint": "Publicité, liens sans rapport"
+      },
+      "other": {
+        "label": "Autre",
+        "hint": "Expliquez dans le champ ci-dessous"
+      }
+    },
+    "errors": {
+      "unauthenticated": "Connectez-vous pour signaler.",
+      "invalidTarget": "Cet élément ne peut pas être signalé.",
+      "targetNotFound": "Cet élément n'existe plus.",
+      "invalidReason": "Choisissez un motif.",
+      "commentRequired": "Précisez le problème pour le motif « Autre ».",
+      "ownContent": "On ne signale pas son propre contenu : proposez plutôt une correction.",
+      "alreadyReported": "Vous avez déjà signalé cet élément. Un modérateur s'en occupe.",
+      "dailyLimit": "Dix signalements par jour au plus. Réessayez demain.",
+      "reportingSuspended": "Trois de vos signalements ont été classés d'affilée : vous ne pouvez plus signaler pendant 7 jours.",
+      "notFound": "Ce dossier n'existe plus.",
+      "notOpen": "Ce dossier a déjà été tranché.",
+      "invalidAction": "Cette décision n'est pas possible ici.",
+      "contributionRequired": "Choisissez la contribution à annuler.",
+      "actionFailed": "La décision n'a pas pu être appliquée.",
+      "failed": "L'envoi a échoué. Réessayez."
+    },
+    "Mine": {
+      "title": "Mes signalements",
+      "hint": "Un signalement retenu rapporte {points} points. Trois signalements classés d'affilée suspendent le signalement pendant 7 jours.",
+      "statuses": {
+        "open": "En examen",
+        "resolved": "Retenu",
+        "dismissed": "Classé"
+      },
+      "suspended": "Vos contributions sont suspendues par la modération jusqu'au {date, date, medium}.",
+      "banned": "Vous ne pouvez plus signaler jusqu'au {date, date, medium} : trois de vos signalements ont été classés d'affilée.",
+      "warning": "Avertissement de la modération du {date, date, medium}."
+    },
+    "Admin": {
+      "title": "Signalements",
+      "header": "{count, plural, one {# dossier ouvert} other {# dossiers ouverts}}, les plus lourds d'abord.",
+      "headerEmpty": "Aucun dossier ouvert.",
+      "hidden": "Masqué",
+      "weight": "poids {weight}",
+      "reporters": "{count, plural, one {# joueur} other {# joueurs}}",
+      "gone": "Cet élément n'existe plus sous cette forme.",
+      "open": "Voir sur le site",
+      "edit": "Corriger soi-même",
+      "reasonsTitle": "Ce qu'on lui reproche",
+      "entryBy": "par {name} (poids {weight}) · {date, date, short}",
+      "historyTitle": "Historique des contributions",
+      "historyBy": "par {name} · {date, date, short}",
+      "noHistory": "Aucune contribution enregistrée sur cet élément.",
+      "backToAdmin": "Retour à l'admin",
+      "decision": "Décision",
+      "actions": {
+        "dismiss": {
+          "label": "Classer",
+          "hint": "Rien à reprocher. Les signaleurs ne gagnent rien, l'élément masqué revient.",
+          "submit": "Classer le dossier"
+        },
+        "correct": {
+          "label": "Corrigé",
+          "hint": "Vous avez corrigé l'élément vous-même. Le signalement est retenu.",
+          "submit": "Marquer comme corrigé"
+        },
+        "revert": {
+          "label": "Annuler la contribution en cause",
+          "hint": "L'état d'avant revient et les points de l'auteur repartent.",
+          "submit": "Annuler la contribution"
+        },
+        "delete": {
+          "label": "Retirer l'élément",
+          "hint": "Supprime la fiche, l'image ou le plan. Une organisation quitte la vue publique, ses membres la gardent.",
+          "submit": "Retirer l'élément"
+        }
+      },
+      "contribution": "Contribution à annuler",
+      "sanction": "Envers l'auteur",
+      "sanctions": {
+        "none": "Rien de plus",
+        "warn": "Avertir",
+        "suspend": "Suspendre ses contributions 7 jours"
+      },
+      "author": "Auteur",
+      "note": "Note (facultative, visible de l'auteur averti)",
+      "conflict": "La fiche a changé depuis cette contribution : l'annuler écraserait ces changements.",
+      "conflictConfirm": "Annuler quand même",
+      "confirmDelete": "Confirmer le retrait",
+      "done": {
+        "dismiss": "Dossier classé.",
+        "correct": "Dossier clos, signalement retenu.",
+        "revert": "Contribution annulée, signalement retenu.",
+        "delete": "Élément retiré, signalement retenu."
+      }
     }
   }
 }

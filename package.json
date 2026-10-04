@@ -13,7 +13,8 @@
     "import:places": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-places.ts",
     "import:catalogue": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-catalogue.ts",
     "import:game-data": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-game-data.ts",
-    "ensure:indexes": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/ensure-indexes.ts"
+    "ensure:indexes": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/ensure-indexes.ts",
+    "clean:blobs": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/clean-orphan-blobs.ts"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",

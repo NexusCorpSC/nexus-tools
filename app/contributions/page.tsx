@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { listMyContributions } from "@/lib/contributions";
+import {
+  getReportingStanding,
+  targetHref as reportTargetHref,
+} from "@/lib/reports";
+import { REPORT_UPHELD_POINTS, type ReportStatus } from "@/types/reports";
 import { cn } from "@/lib/utils";
 import {
   CHANGES_REQUESTED_TTL_DAYS,
@@ -33,8 +38,12 @@ const STATUS_TONE: Record<ContributionStatus, string> = {
  */
 export default async function MyContributionsPage() {
   const { userId, standing } = await requireContributor("/contributions");
-  const contributions = await listMyContributions(userId, 100);
+  const [contributions, reporting] = await Promise.all([
+    listMyContributions(userId, 100),
+    getReportingStanding(userId),
+  ]);
   const t = await getTranslations("Contributions.Mine");
+  const tReports = await getTranslations("Reports");
   const tLevels = await getTranslations("Contributions.levels");
   const format = await getFormatter();
 
@@ -75,6 +84,33 @@ export default async function MyContributionsPage() {
         />
         <Figure label={t("pending")} value={String(standing.pending)} />
       </div>
+
+      {(reporting.suspendedUntil ||
+        reporting.bannedUntil ||
+        reporting.warnings.length > 0) && (
+        <section className="space-y-1.5 rounded-xl border border-amber-300/30 bg-amber-300/[0.07] px-4 py-3 text-sm text-amber-50/90">
+          {reporting.suspendedUntil && (
+            <p>
+              {tReports("Mine.suspended", {
+                date: new Date(reporting.suspendedUntil),
+              })}
+            </p>
+          )}
+          {reporting.bannedUntil && (
+            <p>
+              {tReports("Mine.banned", {
+                date: new Date(reporting.bannedUntil),
+              })}
+            </p>
+          )}
+          {reporting.warnings.map((warning) => (
+            <p key={warning.at}>
+              {tReports("Mine.warning", { date: new Date(warning.at) })}
+              {warning.note && ` « ${warning.note} »`}
+            </p>
+          ))}
+        </section>
+      )}
 
       {toFix.length > 0 && (
         <section className="space-y-2">
@@ -121,9 +157,64 @@ export default async function MyContributionsPage() {
           </p>
         )}
       </section>
+
+      {reporting.reports.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-nexus-primary">
+            {tReports("Mine.title")}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {tReports("Mine.hint", { points: REPORT_UPHELD_POINTS })}
+          </p>
+          <ul className="space-y-2">
+            {reporting.reports.map((report) => (
+              <li
+                key={report.id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/35 px-4 py-3 text-sm"
+              >
+                <span
+                  className={cn(
+                    "inline-flex h-5 items-center rounded border px-1.5 text-[11px] font-semibold",
+                    REPORT_TONE[report.status],
+                  )}
+                >
+                  {tReports(`Mine.statuses.${report.status}`)}
+                </span>
+                <span className="text-muted-foreground">
+                  {tReports(`reasons.${report.reason}.label`)}
+                </span>
+                <Link
+                  href={reportTargetHref(report.target)}
+                  className="font-medium text-nexus hover:underline"
+                >
+                  {report.target.name}
+                </Link>
+                <span className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
+                  {report.status === "resolved" && (
+                    <span className="font-mono font-bold text-amber-200">
+                      +{REPORT_UPHELD_POINTS}
+                    </span>
+                  )}
+                  <time dateTime={report.decidedAt ?? report.at}>
+                    {format.dateTime(new Date(report.decidedAt ?? report.at), {
+                      dateStyle: "medium",
+                    })}
+                  </time>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
+
+const REPORT_TONE: Record<ReportStatus, string> = {
+  open: "border-sky-300/40 text-sky-200",
+  resolved: "border-emerald-300/40 text-emerald-200",
+  dismissed: "border-red-300/40 text-red-200",
+};
 
 function Figure({ label, value }: { label: string; value: string }) {
   return (

@@ -75,8 +75,11 @@ export default async function OrgLayout({
     );
   }
 
+  // Masquée par un signalement, elle n'est plus publique en attendant la
+  // décision : ses membres seuls la voient.
   if (
-    !organization.public &&
+    (!organization.public ||
+      (organization as { reportHidden?: boolean }).reportHidden === true) &&
     (!session?.user ||
       !organization.members.some((member) =>
         member.userId.equals(session.user?.id),

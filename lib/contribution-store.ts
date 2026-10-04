@@ -40,6 +40,13 @@ export interface DbUser {
     points?: number;
     /** Fixé par un admin, il passe avant les points. */
     trustLevel?: number;
+    /** Signalements classés d'affilée ; un signalement retenu la remet à zéro. */
+    reportStrikes?: number;
+    /** Plus de signalement jusque-là. */
+    reportBanUntil?: Date;
+    /** Plus de contribution jusque-là, sur décision de la modération. */
+    suspendedUntil?: Date;
+    warnings?: { at: Date; by: ObjectId; reportId: ObjectId; note?: string }[];
   };
 }
 
@@ -93,19 +100,31 @@ export interface DbPlaceMedia {
   contributionId: ObjectId;
   status: ContributionStatus;
   createdAt: Date;
+  /** Masquée par un dossier de signalement, en attendant la décision. */
+  hiddenByReport?: boolean;
 }
 
 export interface DbPointEvent {
   _id?: ObjectId;
   userId: ObjectId;
-  contributionId: ObjectId;
+  /** Absent pour un signalement retenu, qui porte `reportId`. */
+  contributionId?: ObjectId;
+  reportId?: ObjectId;
   delta: number;
   /**
    * `firstMedia` porte le slug du lieu et `plan` la clé du plan : un index
    * unique sur ces couples fait qu'un bonus ne se touche qu'une fois, même
    * publié en même temps qu'un autre.
    */
-  reason: "published" | "firstMedia" | "plan" | "reverted";
+  reason:
+    | "published"
+    | "firstMedia"
+    | "plan"
+    | "reverted"
+    /** Une image retirée sur signalement : ses points repartent. */
+    | "removed"
+    /** Un signalement retenu. */
+    | "report";
   placeSlug?: string;
   planKey?: string;
   at: Date;

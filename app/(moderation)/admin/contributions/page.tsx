@@ -7,6 +7,7 @@ import { listPendingContributions } from "@/lib/contributions";
 import { hasPermission } from "@/lib/permissions";
 import { CONTRIBUTIONS_REVIEW_PERMISSION } from "@/types/contributions";
 import { ReviewQueue } from "./review-queue";
+import { ModerationTabs } from "./moderation-tabs";
 
 export const metadata: Metadata = {
   title: "Admin — Contributions",
@@ -27,6 +28,8 @@ export default async function AdminContributionsPage() {
   return (
     <div className="flex min-h-screen justify-center px-4 py-12">
       <div className="w-full max-w-6xl space-y-6 rounded-2xl border border-[#9ED0FF]/20 bg-[#0B3A5A]/70 p-6 shadow-xl shadow-black/20 backdrop-blur-sm sm:p-8">
+        <ModerationTabs current="queue" />
+
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-[#CCE7FF]">{t("title")}</h1>
@@ -37,9 +40,6 @@ export default async function AdminContributionsPage() {
               <p className="mt-1 text-xs text-[#9ED0FF]/55">{t("shortcuts")}</p>
             )}
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/admin/contributions/journal">{t("journalLink")}</Link>
-          </Button>
         </div>
 
         <ReviewQueue items={items} total={total} />
