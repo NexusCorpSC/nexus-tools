@@ -124,7 +124,7 @@
         }
       }
     },
-    "contribBadge": "Mes contributions : {points} points, niveau {level}"
+    "contribBadge": "Mes contributions : {points, plural, one {# point} other {# points}}, niveau {level}"
   },
   "HomePage": {
     "title": "Bienvenue !",
@@ -640,7 +640,7 @@
     "Empty": {
       "fill": "Compléter",
       "editorHint": "Vous pouvez les renseigner dès maintenant.",
-      "visitorHint": "Vous pouvez les proposer : chaque section complétée rapporte 10 points.",
+      "visitorHint": "Vous pouvez les proposer : chaque section complétée rapporte 1 point.",
       "item": {
         "title": "Fiche à compléter",
         "description": "Cet objet n'a pas encore de description, de statistiques ni de provenance.",
@@ -2556,7 +2556,7 @@
       "cancel": "Annuler",
       "send": "{count, plural, =0 {Envoyer} one {Envoyer l'image} other {Envoyer # images}}",
       "sendFailed": "L'envoi a échoué. Réessayez.",
-      "published": "{count, plural, one {Image publiée} other {# images publiées}} · +{points} points",
+      "published": "{count, plural, one {Image publiée} other {# images publiées}} · +{points, plural, one {# point} other {# points}}",
       "sentForReview": "{count, plural, one {Image envoyée} other {# images envoyées}} pour relecture"
     },
     "errors": {
@@ -2692,7 +2692,7 @@
       "submit": "Envoyer la proposition",
       "sendFailed": "L'envoi a échoué. Réessayez.",
       "published": "Modification publiée",
-      "publishedWithPoints": "Modification publiée · +{points} points",
+      "publishedWithPoints": "Modification publiée · +{points, plural, one {# point} other {# points}}",
       "sentForReview": "Proposition envoyée pour relecture",
       "renameLocked": "Renommer, déplacer ou changer la nature d'une fiche demande le niveau 4.",
       "changesRequestedTitle": "Un relecteur vous demande de reprendre cette proposition",
@@ -2930,6 +2930,7 @@
         "reverted": "Annulation",
         "removed": "Image retirée",
         "report": "Signalement retenu",
+        "review": "Relecture",
         "adjust": "Ajustement"
       },
       "done": "C'est enregistré.",
@@ -2954,8 +2955,8 @@
       "cancel": "Annuler",
       "accurate": "Toujours exact",
       "failed": "L'envoi a échoué. Réessayez.",
-      "thanksAccurate": "{points, plural, =0 {Merci, c'est confirmé.} other {Merci ! Confirmé, +# points}}",
-      "thanksOutdated": "{points, plural, =0 {Merci, c'est noté.} other {Merci, c'est noté. +# points}}",
+      "thanksAccurate": "{points, plural, =0 {Merci, c'est confirmé.} one {Merci ! Confirmé, +# point} other {Merci ! Confirmé, +# points}}",
+      "thanksOutdated": "{points, plural, =0 {Merci, c'est noté.} one {Merci, c'est noté. +# point} other {Merci, c'est noté. +# points}}",
       "thanksReported": "Merci, c'est noté. Un signalement est ouvert pour que la modération reprenne la fiche.",
       "prices": {
         "title": "Cours des comptoirs",
@@ -3003,7 +3004,7 @@
     "send": "Envoyer le signalement",
     "sending": "Envoi…",
     "doneTitle": "Merci, c'est noté",
-    "doneBody": "Vous serez prévenu de la décision dans Mes contributions. Si le signalement est retenu, il vous rapporte {points} points.",
+    "doneBody": "Vous serez prévenu de la décision dans Mes contributions. Si le signalement est retenu, il vous rapporte {points, plural, one {# point} other {# points}}.",
     "doneFix": "Vous savez déjà ce qui est juste ? Proposez directement la correction.",
     "proposeFix": "Proposer la correction",
     "close": "Fermer",
@@ -3066,7 +3067,7 @@
     },
     "Mine": {
       "title": "Mes signalements",
-      "hint": "Un signalement retenu rapporte {points} points. Trois signalements classés d'affilée suspendent le signalement pendant 7 jours.",
+      "hint": "Un signalement retenu rapporte {points, plural, one {# point} other {# points}}. Trois signalements classés d'affilée suspendent le signalement pendant 7 jours.",
       "statuses": {
         "open": "En examen",
         "resolved": "Retenu",

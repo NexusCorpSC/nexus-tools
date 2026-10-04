@@ -142,6 +142,8 @@ export interface DbPointEvent {
     | "removed"
     /** Un signalement retenu. */
     | "report"
+    /** Une relecture décidée, créditée au relecteur. */
+    | "review"
     /** Un ajustement d'un admin, avec son motif. */
     | "adjust";
   /** Le motif d'un ajustement, et qui l'a fait. */

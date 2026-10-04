@@ -57,6 +57,7 @@ import {
   MIN_ACCEPTANCE_RATE,
   MIN_REVIEWED_FOR_RATE,
   POINTS,
+  REVIEW_POINTS_LEVEL,
   REPEAT_EDIT_WINDOW_MS,
   type Contribution,
   type ContributionChange,
@@ -927,7 +928,41 @@ export async function publishContribution(
   if (contribution.userId.equals(reviewer.id)) {
     throw new ContributionError("ownContribution", 403);
   }
-  return publish(contribution, reviewer, versionFilter(version).updatedAt);
+  const published = await publish(
+    contribution,
+    reviewer,
+    versionFilter(version).updatedAt,
+  );
+  if (published.status === "published") {
+    await creditReview(reviewer, contribution._id);
+  }
+  return published;
+}
+
+/**
+ * Une relecture décidée rapporte au relecteur, à partir de
+ * `REVIEW_POINTS_LEVEL`. Une contribution ne se décide qu'une fois : publiée
+ * ou refusée. Ne lève jamais : la décision est déjà acquise.
+ */
+async function creditReview(reviewer: Contributor, contributionId: ObjectId) {
+  try {
+    const standing = await getStanding(reviewer.id);
+    if (standing.level < REVIEW_POINTS_LEVEL) return;
+    await pointEvents().insertOne({
+      userId: reviewer.id,
+      contributionId,
+      delta: POINTS.review,
+      reason: "review",
+      at: new Date(),
+    });
+    await users().updateOne(
+      { _id: reviewer.id },
+      { $inc: { "contrib.points": POINTS.review } },
+    );
+    await refreshProgress(reviewer.id);
+  } catch (error) {
+    console.error("Crédit de relecture impossible", error);
+  }
 }
 
 /** Supprime des images du stockage, sans faire échouer ce qui est déjà acquis. */
@@ -1012,6 +1047,9 @@ export async function rejectContribution(
 
   // Un refus pèse sur la fiabilité, donc parfois sur le niveau.
   await refreshProgress(contribution.userId);
+  if (!contribution.userId.equals(reviewer.id)) {
+    await creditReview(reviewer, contribution._id);
+  }
   return toContribution(updated);
 }
 
