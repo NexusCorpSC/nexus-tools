@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { listMyContributions } from "@/lib/contributions";
+import {
+  countPendingContributions,
+  listMyContributions,
+} from "@/lib/contributions";
+import { PointsChip } from "@/components/points-chip";
 import {
   countMyContributions,
   getAchievements,
@@ -21,6 +25,8 @@ import {
   levelForPoints,
   type Contribution,
   type ContributionStatus,
+  REVIEW_LEVEL,
+  POINTS,
 } from "@/types/contributions";
 import type { Achievement, LeaderboardScope } from "@/types/gamification";
 import { AchievementCard } from "./achievements";
@@ -84,6 +90,11 @@ export default async function MyContributionsPage({
       getAchievements(userId),
       getLeaderboard("month", scope, userId),
     ]);
+  // Les Archivistes relisent les contributions des autres.
+  const toReview =
+    !standing.suspendedUntil && standing.level >= REVIEW_LEVEL
+      ? await countPendingContributions(userId)
+      : null;
   const t = await getTranslations("Contributions.Mine");
   const tReports = await getTranslations("Reports");
   const tLevels = await getTranslations("Contributions.levels");
@@ -121,6 +132,20 @@ export default async function MyContributionsPage({
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("intro")}</p>
       </div>
+
+      {toReview !== null && (
+        <Link
+          href="/contributions/review"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#9ED0FF]/25 bg-[#092F49]/50 px-4 py-3 text-sm hover:border-[#9ED0FF]/50"
+        >
+          <span className="font-semibold text-[#CCE7FF]">
+            {t("reviewLink")} <PointsChip points={POINTS.review} />
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {t("reviewHint", { count: toReview })}
+          </span>
+        </Link>
+      )}
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="min-w-0 flex-[999_1_560px] space-y-6">

@@ -8,6 +8,7 @@ import { hasPermission } from "@/lib/permissions";
 import {
   ContributionError,
   getContribution,
+  getStanding,
   listRevertConflicts,
   publishContribution,
   rejectContribution,
@@ -17,6 +18,8 @@ import {
 } from "@/lib/contributions";
 import {
   CONTRIBUTIONS_REVIEW_PERMISSION,
+  PLAYER_REVIEW_BATCH,
+  REVIEW_LEVEL,
   REVIEWER_REJECT_REASONS,
   type Contribution,
   type ContributionChange,
@@ -50,7 +53,8 @@ export type ReviewVersions = Record<string, string | undefined>;
 /** Plus que ça d'un coup, et on relit la file plutôt qu'une sélection. */
 const MAX_BATCH = 200;
 
-async function reviewer(): Promise<Contributor> {
+/** Un modérateur : seul à annuler une publication. */
+async function moderator(): Promise<Contributor> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (
     !session?.user ||
@@ -61,9 +65,38 @@ async function reviewer(): Promise<Contributor> {
   return { id: new ObjectId(session.user.id), name: session.user.name };
 }
 
+/**
+ * Un modérateur, ou un joueur Archiviste (`REVIEW_LEVEL`) non suspendu, qui
+ * relit depuis `/contributions/review`. Le joueur ne décide jamais de ses
+ * propres contributions : `own` le lui interdit aussi pour un refus.
+ */
+async function reviewer(): Promise<Contributor & { player: boolean }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+  const by = { id: new ObjectId(session.user.id), name: session.user.name };
+  if (await hasPermission(CONTRIBUTIONS_REVIEW_PERMISSION)) {
+    return { ...by, player: false };
+  }
+  const standing = await getStanding(by.id);
+  if (standing.suspendedUntil || standing.level < REVIEW_LEVEL) {
+    throw new Error("Unauthorized");
+  }
+  return { ...by, player: true };
+}
+
+/** Un joueur relecteur ne refuse ni ne renvoie ses propres contributions. */
+async function assertNotOwn(by: { id: ObjectId; player: boolean }, id: string) {
+  if (!by.player) return;
+  const contribution = await getContribution(id);
+  if (contribution && contribution.userId === String(by.id)) {
+    throw new ContributionError("ownContribution", 403);
+  }
+}
+
 /** Les pages qu'une décision change : la file, le journal, et la fiche visée. */
 function revalidate(done: Contribution[]) {
   revalidatePath("/admin/contributions");
+  revalidatePath("/contributions/review");
   revalidatePath("/admin/contributions/journal");
   revalidatePath("/admin");
   revalidatePath("/contributions");
@@ -92,7 +125,10 @@ async function forEachId(
   /** Ce que le journal de modération retient de chaque contribution traitée. */
   log: { by: Contributor; action: string; note?: string },
 ): Promise<ReviewActionResult> {
-  const unique = [...new Set(ids)].slice(0, MAX_BATCH);
+  const unique = [...new Set(ids)].slice(
+    0,
+    log.by.player ? PLAYER_REVIEW_BATCH : MAX_BATCH,
+  );
   const done: Contribution[] = [];
   const failed: ReviewActionResult["failed"] = [];
   let skipped = 0;
@@ -169,7 +205,15 @@ export async function rejectContributionsAction(
   return forEachId(
     ids,
     (id) =>
-      rejectContribution(id, by, reason as RejectReason, message, versions[id]),
+      assertNotOwn(by, id).then(() =>
+        rejectContribution(
+          id,
+          by,
+          reason as RejectReason,
+          message,
+          versions[id],
+        ),
+      ),
     { by, action: "contribution.reject", note: reason },
   );
 }
@@ -182,10 +226,17 @@ export async function requestChangesAction(
 ): Promise<ReviewActionResult> {
   const by = await reviewer();
   if (!message.trim()) throw new Error("Message required");
-  return forEachId(ids, (id) => requestChanges(id, by, message, versions[id]), {
-    by,
-    action: "contribution.requestChanges",
-  });
+  return forEachId(
+    ids,
+    (id) =>
+      assertNotOwn(by, id).then(() =>
+        requestChanges(id, by, message, versions[id]),
+      ),
+    {
+      by,
+      action: "contribution.requestChanges",
+    },
+  );
 }
 
 export type RevertActionResult =
@@ -206,7 +257,7 @@ export async function revertContributionAction(
   id: string,
   force = false,
 ): Promise<RevertActionResult> {
-  const by = await reviewer();
+  const by = await moderator();
   try {
     const reverted = await revertContribution(id, by, force);
     revalidate([reverted]);

@@ -142,6 +142,8 @@ export interface DbPointEvent {
     | "removed"
     /** Un signalement retenu. */
     | "report"
+    /** Une relecture décidée, créditée au relecteur. */
+    | "review"
     /** Un ajustement d'un admin, avec son motif. */
     | "adjust";
   /** Le motif d'un ajustement, et qui l'a fait. */
@@ -170,7 +172,15 @@ export class ContributionError extends Error {
   }
 }
 
-export type Contributor = { id: ObjectId; name?: string };
+export type Contributor = {
+  id: ObjectId;
+  name?: string;
+  /**
+   * Un joueur qui relit depuis `/contributions/review`, et non un modérateur :
+   * lui seul gagne des points de relecture.
+   */
+  player?: boolean;
+};
 
 export function cleanText(value: unknown, max: number): string | undefined {
   if (typeof value !== "string") return undefined;

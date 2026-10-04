@@ -124,7 +124,7 @@
         }
       }
     },
-    "contribBadge": "Mis contribuciones: {points} puntos, nivel {level}"
+    "contribBadge": "Mis contribuciones: {points, plural, one {# punto} other {# puntos}}, nivel {level}"
   },
   "HomePage": {
     "title": "¡Bienvenido!",
@@ -640,7 +640,7 @@
     "Empty": {
       "fill": "Completar",
       "editorHint": "Puedes rellenarlos ahora mismo.",
-      "visitorHint": "Puedes proponerlos: cada sección completada da 10 puntos.",
+      "visitorHint": "Puedes proponerlos: cada sección completada da 1 punto.",
       "item": {
         "title": "Ficha por completar",
         "description": "Este objeto aún no tiene descripción, estadísticas ni procedencia.",
@@ -2518,7 +2518,7 @@
       "cancel": "Cancelar",
       "send": "{count, plural, =0 {Enviar} one {Enviar la imagen} other {Enviar # imágenes}}",
       "sendFailed": "El envío ha fallado. Inténtalo de nuevo.",
-      "published": "{count, plural, one {Imagen publicada} other {# imágenes publicadas}} · +{points} puntos",
+      "published": "{count, plural, one {Imagen publicada} other {# imágenes publicadas}} · +{points, plural, one {# punto} other {# puntos}}",
       "sentForReview": "{count, plural, one {Imagen enviada} other {# imágenes enviadas}} para revisión"
     },
     "errors": {
@@ -2654,7 +2654,7 @@
       "submit": "Enviar la propuesta",
       "sendFailed": "El envío ha fallado. Inténtalo de nuevo.",
       "published": "Modificación publicada",
-      "publishedWithPoints": "Modificación publicada · +{points} puntos",
+      "publishedWithPoints": "Modificación publicada · +{points, plural, one {# punto} other {# puntos}}",
       "sentForReview": "Propuesta enviada para revisión",
       "renameLocked": "Renombrar, mover o cambiar el tipo de una ficha requiere el nivel 4.",
       "changesRequestedTitle": "Un revisor te pide que corrijas esta propuesta",
@@ -2768,7 +2768,9 @@
       "maxLevel": "El último nivel que se puede ganar. Pilar del 'verse lo asigna un admin.",
       "trustFixed": "Nivel fijado por un admin.",
       "historyHint": "Los puntos llegan al publicarse",
-      "pointsOnPublish": "+{points} al publicarse"
+      "pointsOnPublish": "+{points} al publicarse",
+      "reviewLink": "Revisar las contribuciones de otros",
+      "reviewHint": "{count, plural, =0 {Nada pendiente.} one {# contribución pendiente.} other {# contribuciones pendientes.}}"
     },
     "Place": {
       "menu": "Contribuir",
@@ -2892,6 +2894,7 @@
         "reverted": "Anulación",
         "removed": "Imagen retirada",
         "report": "Reporte aceptado",
+        "review": "Revisión",
         "adjust": "Ajuste"
       },
       "done": "Guardado.",
@@ -2916,8 +2919,8 @@
       "cancel": "Cancelar",
       "accurate": "Sigue siendo exacto",
       "failed": "El envío ha fallado. Inténtalo de nuevo.",
-      "thanksAccurate": "{points, plural, =0 {Gracias, queda confirmado.} other {¡Gracias! Confirmado, +# puntos}}",
-      "thanksOutdated": "{points, plural, =0 {Gracias, queda anotado.} other {Gracias, queda anotado. +# puntos}}",
+      "thanksAccurate": "{points, plural, =0 {Gracias, queda confirmado.} one {¡Gracias! Confirmado, +# punto} other {¡Gracias! Confirmado, +# puntos}}",
+      "thanksOutdated": "{points, plural, =0 {Gracias, queda anotado.} one {Gracias, queda anotado. +# punto} other {Gracias, queda anotado. +# puntos}}",
       "thanksReported": "Gracias, queda anotado. Se ha abierto un reporte para que la moderación revise la ficha.",
       "prices": {
         "title": "Precios de las terminales",
@@ -2937,6 +2940,11 @@
         "commentPlaceholder": "¿Dónde lo conseguiste, o qué dice el juego ahora?",
         "fix": "Corregir"
       }
+    },
+    "Review": {
+      "title": "Revisar contribuciones",
+      "intro": "Como Archivista, revisas las contribuciones de otros jugadores: publica lo que es correcto, devuelve para corregir o rechaza el resto. Cada revisión decidida, hasta 20 al día, da",
+      "back": "Volver a mis contribuciones"
     }
   },
   "Reports": {
@@ -2965,7 +2973,7 @@
     "send": "Enviar el reporte",
     "sending": "Enviando…",
     "doneTitle": "Gracias, queda anotado",
-    "doneBody": "Se te avisará de la decisión en Mis contribuciones. Si el reporte se acepta, te dará {points} puntos.",
+    "doneBody": "Se te avisará de la decisión en Mis contribuciones. Si el reporte se acepta, te dará {points, plural, one {# punto} other {# puntos}}.",
     "doneFix": "¿Ya sabes cuál es la información correcta? Propón directamente la corrección.",
     "proposeFix": "Proponer la corrección",
     "close": "Cerrar",
@@ -3028,7 +3036,7 @@
     },
     "Mine": {
       "title": "Mis reportes",
-      "hint": "Un reporte aceptado da {points} puntos. Tres reportes desestimados seguidos suspenden la posibilidad de reportar durante 7 días.",
+      "hint": "Un reporte aceptado da {points, plural, one {# punto} other {# puntos}}. Tres reportes desestimados seguidos suspenden la posibilidad de reportar durante 7 días.",
       "statuses": {
         "open": "En revisión",
         "resolved": "Aceptado",

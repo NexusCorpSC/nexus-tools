@@ -124,7 +124,7 @@
         }
       }
     },
-    "contribBadge": "My contributions: {points} points, level {level}"
+    "contribBadge": "My contributions: {points, plural, one {# point} other {# points}}, level {level}"
   },
   "Industry": {
     "home": "Home",
@@ -645,7 +645,7 @@
     "Empty": {
       "fill": "Fill in",
       "editorHint": "You can fill them in right now.",
-      "visitorHint": "You can add them: each completed section earns 10 points.",
+      "visitorHint": "You can add them: each completed section earns 1 point.",
       "item": {
         "title": "Fiche to complete",
         "description": "This object has no description, statistics or source yet.",
@@ -2525,7 +2525,7 @@
       "cancel": "Cancel",
       "send": "{count, plural, =0 {Send} one {Send image} other {Send # images}}",
       "sendFailed": "Upload failed. Please try again.",
-      "published": "{count, plural, one {Image published} other {# images published}} · +{points} points",
+      "published": "{count, plural, one {Image published} other {# images published}} · +{points, plural, one {# point} other {# points}}",
       "sentForReview": "{count, plural, one {Image sent} other {# images sent}} for review"
     },
     "errors": {
@@ -2661,7 +2661,7 @@
       "submit": "Send proposal",
       "sendFailed": "Sending failed. Try again.",
       "published": "Change published",
-      "publishedWithPoints": "Change published · +{points} points",
+      "publishedWithPoints": "Change published · +{points, plural, one {# point} other {# points}}",
       "sentForReview": "Proposal sent for review",
       "renameLocked": "Renaming, moving or changing the kind of an entry requires level 4.",
       "changesRequestedTitle": "A reviewer asked you to rework this proposal",
@@ -2775,7 +2775,9 @@
       "maxLevel": "The last level earned with points. Pillar of the 'verse is granted by an admin.",
       "trustFixed": "Level set by an admin.",
       "historyHint": "Points arrive on publication",
-      "pointsOnPublish": "+{points} on publication"
+      "pointsOnPublish": "+{points} on publication",
+      "reviewLink": "Review other players' contributions",
+      "reviewHint": "{count, plural, =0 {Nothing pending.} one {# contribution pending.} other {# contributions pending.}}"
     },
     "Place": {
       "menu": "Contribute",
@@ -2899,6 +2901,7 @@
         "reverted": "Revert",
         "removed": "Image removed",
         "report": "Upheld report",
+        "review": "Review",
         "adjust": "Adjustment"
       },
       "done": "Saved.",
@@ -2923,8 +2926,8 @@
       "cancel": "Cancel",
       "accurate": "Still accurate",
       "failed": "Sending failed. Try again.",
-      "thanksAccurate": "{points, plural, =0 {Thanks, confirmed.} other {Thanks! Confirmed, +# points}}",
-      "thanksOutdated": "{points, plural, =0 {Thanks, noted.} other {Thanks, noted. +# points}}",
+      "thanksAccurate": "{points, plural, =0 {Thanks, confirmed.} one {Thanks! Confirmed, +# point} other {Thanks! Confirmed, +# points}}",
+      "thanksOutdated": "{points, plural, =0 {Thanks, noted.} one {Thanks, noted. +# point} other {Thanks, noted. +# points}}",
       "thanksReported": "Thanks, noted. A report is open so moderators can update the page.",
       "prices": {
         "title": "Trading prices",
@@ -2944,6 +2947,11 @@
         "commentPlaceholder": "Where did you get it, or what does the game say now?",
         "fix": "Fix"
       }
+    },
+    "Review": {
+      "title": "Review contributions",
+      "intro": "As an Archivist, you review other players' contributions: publish what is right, send back for changes or reject the rest. Each decided review, up to 20 a day, earns",
+      "back": "Back to my contributions"
     }
   },
   "Reports": {
@@ -2972,7 +2980,7 @@
     "send": "Send report",
     "sending": "Sending…",
     "doneTitle": "Thanks, noted",
-    "doneBody": "You'll see the decision in My contributions. If the report is upheld, it earns you {points} points.",
+    "doneBody": "You'll see the decision in My contributions. If the report is upheld, it earns you {points, plural, one {# point} other {# points}}.",
     "doneFix": "Already know what's right? Suggest the fix directly.",
     "proposeFix": "Suggest the fix",
     "close": "Close",
@@ -3035,7 +3043,7 @@
     },
     "Mine": {
       "title": "My reports",
-      "hint": "An upheld report earns {points} points. Three dismissed reports in a row suspend reporting for 7 days.",
+      "hint": "An upheld report earns {points, plural, one {# point} other {# points}}. Three dismissed reports in a row suspend reporting for 7 days.",
       "statuses": {
         "open": "Under review",
         "resolved": "Upheld",
