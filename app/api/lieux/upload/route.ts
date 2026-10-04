@@ -29,6 +29,15 @@ const PLAN =
   /^lieux\/([a-z0-9-]{1,120})\/plans\/[A-Za-z0-9_-]{6,40}\.[a-z0-9]{1,6}$/i;
 
 /**
+ * Une vignette commune à plusieurs lieux, posée en masse depuis l'admin. Le
+ * soulignement la tient hors de portée de tout slug, et le suffixe aléatoire
+ * empêche une nouvelle image commune d'écraser celle que d'autres lieux
+ * affichent encore.
+ */
+const SHARED_COVER =
+  /^lieux\/_communes\/[A-Za-z0-9_-]{1,60}\.(?:jpe?g|png|webp)$/i;
+
+/**
  * Une image de la galerie, envoyée par n'importe quel joueur connecté. Le nom
  * est libre et Vercel y ajoute un suffixe aléatoire : deux joueurs qui
  * envoient `hall.png` ne s'écrasent pas, et personne ne remplace une image
@@ -103,6 +112,15 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
 
         if (!editor) throw new Error("Unauthorized");
+
+        if (SHARED_COVER.test(pathname)) {
+          return {
+            allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
+            maximumSizeInBytes: 12_000_000,
+            addRandomSuffix: true,
+            allowOverwrite: false,
+          };
+        }
 
         if (!COVER.test(pathname) && !PLAN.test(pathname)) {
           throw new Error("Invalid pathname.");

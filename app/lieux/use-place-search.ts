@@ -22,6 +22,8 @@ export function usePlaceSearch({
   exclude?: string;
 }) {
   const [results, setResults] = useState<PlaceSummary[]>([]);
+  /** Tous les lieux qui répondent, au-delà de ceux que `limit` laisse passer. */
+  const [total, setTotal] = useState(0);
   const [served, setServed] = useState<string | null>(null);
   const wanted = enabled ? query.trim() : null;
 
@@ -46,9 +48,11 @@ export function usePlaceSearch({
         setResults(
           data.places.filter((place) => !exclude || place.slug !== exclude),
         );
+        setTotal(data.total);
       } catch {
         if (controller.signal.aborted) return;
         setResults([]);
+        setTotal(0);
       } finally {
         if (!controller.signal.aborted) setServed(query.trim());
       }
@@ -60,5 +64,5 @@ export function usePlaceSearch({
     };
   }, [query, enabled, limit, exclude]);
 
-  return { results, isLoading: enabled && served !== wanted };
+  return { results, total, isLoading: enabled && served !== wanted };
 }

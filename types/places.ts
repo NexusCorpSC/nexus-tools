@@ -85,6 +85,11 @@ export const MAX_PLACE_TEXT_LENGTH = 4000;
 export const PLACE_PAGE_SIZE = 24;
 export const MAX_PLACE_PAGE_SIZE = 100;
 export const MAX_PLACE_TIP_LENGTH = 1000;
+/**
+ * Les lieux qu'une même image peut habiller d'un coup. Assez pour toutes les
+ * stations d'une même famille, pas assez pour repeindre le catalogue par erreur.
+ */
+export const MAX_BULK_IMAGE_PLACES = 200;
 /** Au-delà, ce n'est plus un magasin mais une liste de prix : c'est le travail d'UEX. */
 export const MAX_SOLD_ITEMS = 60;
 

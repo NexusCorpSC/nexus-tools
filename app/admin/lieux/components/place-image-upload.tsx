@@ -153,6 +153,58 @@ export function PlaceImageUpload({
 }
 
 /**
+ * Une vignette commune à plusieurs lieux. Elle n'appartient à aucun d'eux : son
+ * chemin ne porte pas de slug, et le suffixe aléatoire ajouté à l'envoi garde
+ * chaque image commune à sa propre adresse.
+ */
+export function SharedPlaceImageUpload({
+  imageUrl,
+  onChange,
+}: {
+  imageUrl?: string;
+  onChange: (url: string | undefined) => void;
+}) {
+  const t = useTranslations("Places.Admin");
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handlePick(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const blob = await upload(`lieux/_communes/image.${extension}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/lieux/upload",
+      });
+      onChange(blob.url);
+    } catch (uploadError) {
+      setError((uploadError as Error).message ?? t("imageUploadFailed"));
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
+    }
+  }
+
+  return (
+    <Frame
+      imageUrl={imageUrl}
+      isUploading={isUploading}
+      error={error}
+      onPick={handlePick}
+      onRemove={() => {
+        onChange(undefined);
+        setError(null);
+      }}
+    />
+  );
+}
+
+/**
  * Le fond d'un plan. Il voyage avec ses dimensions naturelles : elles donnent
  * le rapport d'aspect du cadre, et c'est tout — les repères sont en fractions,
  * donc une dimension fausse abîme la mise en page sans les déplacer.

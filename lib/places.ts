@@ -27,6 +27,7 @@ import {
   MAX_PLAN_LEVELS,
   MAX_ROOM_POINTS,
   MAX_PLACE_NAME_LENGTH,
+  MAX_BULK_IMAGE_PLACES,
   MAX_PLACE_PAGE_SIZE,
   MAX_PLACE_PLANS,
   MAX_PLACE_TEXT_LENGTH,
@@ -1790,6 +1791,44 @@ export async function setPlaceImage(
     { $set: { imageUrl: url, updatedAt: new Date().toISOString() } },
   );
   return matchedCount > 0;
+}
+
+/**
+ * Pose la même vignette sur plusieurs lieux d'un coup — toutes les stations
+ * d'une même famille, par exemple. Rend les slugs réellement touchés : un
+ * slug inconnu est sauté plutôt que de faire échouer le lot, et l'appelant
+ * n'a à revalider que ce qui a bougé.
+ *
+ * Comme `setPlaceImage`, la vignette posée est celle d'un admin : la première
+ * image contribuée ne la remplacera pas.
+ */
+export async function setPlacesImage(
+  slugs: string[],
+  imageUrl: string,
+): Promise<string[]> {
+  const url = optionalUrl(imageUrl);
+  if (!url) throw new Error(`URL d'image invalide : ${imageUrl}`);
+
+  const wanted = [...new Set(slugs)];
+  if (wanted.length > MAX_BULK_IMAGE_PLACES) {
+    throw new Error(
+      `Pas plus de ${MAX_BULK_IMAGE_PLACES} lieux à la fois (${wanted.length} demandés)`,
+    );
+  }
+  if (wanted.length === 0) return [];
+
+  const found = await collection()
+    .find({ slug: { $in: wanted } })
+    .project<{ slug: string }>({ _id: 0, slug: 1 })
+    .toArray();
+  const touched = found.map((place) => place.slug);
+  if (touched.length === 0) return [];
+
+  await collection().updateMany(
+    { slug: { $in: touched } },
+    { $set: { imageUrl: url, updatedAt: new Date().toISOString() } },
+  );
+  return touched;
 }
 
 /**
