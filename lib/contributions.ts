@@ -740,6 +740,19 @@ async function isRepeatEdit(contribution: DbContribution): Promise<boolean> {
   return repeat > 0;
 }
 
+/**
+ * Un lieu sans bannière prend la plus ancienne image publiée de sa galerie :
+ * la première contribuée, ou la suivante quand celle-là a été retirée. Ne
+ * remplace jamais une bannière déjà posée, par un admin ou une image.
+ */
+export async function ensurePlaceCover(slug: string): Promise<void> {
+  const first = await placeMedia().findOne(
+    { placeSlug: slug, status: "published", hiddenByReport: { $ne: true } },
+    { sort: { createdAt: 1, _id: 1 }, projection: { url: 1 } },
+  );
+  if (first) await setPlaceImageIfMissing(slug, first.url);
+}
+
 /** Les points d'une publication, bonus réservés compris. */
 async function credit(
   contribution: DbContribution,
@@ -873,16 +886,10 @@ async function publish(
   }
   await refreshProgress(contribution.userId);
 
-  // La vignette se voit partout où le lieu est cité : elle ne vient que d'une
-  // image qu'un humain a regardée, et ne remplace jamais celle d'un admin.
-  if (contribution.kind === "media" && reviewer) {
-    const cover = await placeMedia().findOne(
-      { _id: { $in: contribution.mediaIds } },
-      { sort: { createdAt: 1 } },
-    );
-    if (cover) {
-      await setPlaceImageIfMissing(contribution.target.slug, cover.url);
-    }
+  // La première image publiée d'un lieu en devient la bannière, relue ou
+  // publiée d'emblée ; jamais à la place d'une bannière déjà posée.
+  if (contribution.kind === "media") {
+    await ensurePlaceCover(contribution.target.slug);
   }
 
   const updated = await contributions().findOne({ _id: contribution._id });
@@ -1096,6 +1103,7 @@ export async function revertContribution(
       for (const image of media) {
         await clearPlaceImageIf(contribution.target.slug, image.url);
       }
+      await ensurePlaceCover(contribution.target.slug);
       await deleteBlobs(media.map((image) => image.url));
     } else {
       await revertCatalog(contribution);
