@@ -83,6 +83,7 @@ import {
 import {
   movePlayerReputations,
   planReputations,
+  type ReputationMoves,
 } from "./game-data/reputations";
 import type { Faction, PlayerReputations } from "@/types/reputations";
 import {
@@ -96,6 +97,7 @@ import {
   type FactionDoc,
   type MissionDoc,
   type Report,
+  sameValue,
 } from "./game-data/plan";
 import { planBlueprintImages } from "./game-data/images";
 import {
@@ -480,37 +482,64 @@ async function planReputationImport(
     .findOne({ key: "reputations" });
   const plan = planReputations(config?.factions ?? [], factions, version);
 
-  const moved =
-    plan.moves.factions.size + plan.moves.careers.size + plan.moves.levels.size;
-  const users: DocUpdate[] = [];
-  if (moved > 0) {
-    const docs = await database
-      .collection<UserReputationsDoc>("users")
-      .find(
-        { reputations: { $exists: true } },
-        { projection: { reputations: 1 } },
-      )
-      .toArray();
-    for (const doc of docs) {
-      const next = movePlayerReputations(doc.reputations ?? {}, plan.moves);
-      if (next)
-        users.push({
-          _id: doc._id as DocUpdate["_id"],
-          set: { reputations: next },
-          unset: [],
-        });
-    }
-  }
+  // Pour le rapport : l'écriture relit les joueurs juste avant d'écrire.
+  const users = await planPlayerMoves(plan.moves);
   if (users.length > 0)
     plan.report.counts["joueurs dont la réputation suit un renommage"] =
       users.length;
-  return { ...plan, users, version };
+  return { ...plan, version };
+}
+
+/**
+ * Les réputations des joueurs qui suivent un renommage, faction par
+ * faction : seules les factions touchées sont réécrites, pas tout l'objet,
+ * pour ne pas écraser un rang saisi sur une autre faction pendant l'import.
+ */
+async function planPlayerMoves(moves: ReputationMoves): Promise<DocUpdate[]> {
+  if (moves.factions.size + moves.careers.size + moves.levels.size === 0)
+    return [];
+  const docs = await db
+    .db()
+    .collection<UserReputationsDoc>("users")
+    .find(
+      { reputations: { $exists: true } },
+      { projection: { reputations: 1 } },
+    )
+    .toArray();
+  const updates: DocUpdate[] = [];
+  for (const doc of docs) {
+    const before = doc.reputations ?? {};
+    const after = movePlayerReputations(before, moves);
+    if (!after) continue;
+    const update: DocUpdate = {
+      _id: doc._id as DocUpdate["_id"],
+      set: {},
+      unset: [],
+    };
+    for (const name of new Set([
+      ...Object.keys(before),
+      ...Object.keys(after),
+    ])) {
+      if (!(name in after)) update.unset.push(`reputations.${name}`);
+      else if (!sameValue(before[name], after[name]))
+        update.set[`reputations.${name}`] = after[name];
+    }
+    updates.push(update);
+  }
+  return updates;
 }
 
 async function writeReputations(
   plan: Awaited<ReturnType<typeof planReputationImport>>,
 ) {
   const database = db.db();
+  // Les joueurs d'abord : si l'écriture s'arrête en route, la liste garde
+  // les anciens noms et relancer l'import refait les déplacements.
+  await write(
+    database.collection("users"),
+    [],
+    await planPlayerMoves(plan.moves),
+  );
   if (plan.changed) {
     await database
       .collection("configuration")
@@ -520,7 +549,6 @@ async function writeReputations(
         { upsert: true },
       );
   }
-  await write(database.collection("users"), [], plan.users);
 }
 
 // ─── Lancement ────────────────────────────────────────────────────────────────
@@ -664,10 +692,23 @@ async function main() {
 
   // Les barèmes ne sont qu'au wiki, quelle que soit la source du reste.
   let reputations: Awaited<ReturnType<typeof planReputationImport>> | undefined;
-  if (options.target === "all" || options.target === "reputations") {
+  // Avec `all` sur scmdb, la version demandée est celle de scmdb : les
+  // barèmes prennent celle que le wiki sert par défaut, et `--dir` (hors
+  // ligne) s'en passe.
+  const withReputations =
+    options.target === "reputations" ||
+    (options.target === "all" && (loaded.has("wiki") || !options.dir));
+  if (options.target === "all" && !withReputations)
+    console.log(
+      "\nRéputations : ignorées avec --dir (le wiki seul les donne).",
+    );
+  if (withReputations) {
     const wikiVersion =
       loaded.get("wiki")?.version ??
-      (await resolveWikiVersion(options.version, stats));
+      (await resolveWikiVersion(
+        options.target === "reputations" ? options.version : undefined,
+        stats,
+      ));
     if (!loaded.has("wiki"))
       console.log(
         `Réputations : API du Star Citizen Wiki, version ${wikiVersion}`,

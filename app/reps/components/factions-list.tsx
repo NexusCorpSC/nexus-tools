@@ -108,14 +108,25 @@ export function FactionsList({
     isMaxed(faction, reputations),
   ).length;
 
-  // Enregistré tout de suite à l'écran ; un échec remet l'état précédent.
-  async function save(next: PlayerReputations, request: () => Promise<void>) {
-    const previous = reputations;
-    setReputations(next);
+  // Enregistré tout de suite à l'écran ; un échec ne remet que l'entrée de
+  // cette faction, et seulement si rien ne l'a changée depuis.
+  async function save(
+    factionName: string,
+    entry: PlayerReputations[string],
+    request: () => Promise<void>,
+  ) {
+    const previous = reputations[factionName];
+    setReputations((current) => ({ ...current, [factionName]: entry }));
     try {
       await request();
     } catch {
-      setReputations(previous);
+      setReputations((current) => {
+        if (current[factionName] !== entry) return current;
+        const next = { ...current };
+        if (previous) next[factionName] = previous;
+        else delete next[factionName];
+        return next;
+      });
       toast.error(t("saveFailed"));
     }
   }
@@ -127,12 +138,10 @@ export function FactionsList({
   ) {
     const entry = reputations[faction.name];
     void save(
+      faction.name,
       {
-        ...reputations,
-        [faction.name]: {
-          standing: entry?.standing ?? faction.defaultStanding,
-          careers: { ...entry?.careers, [career.name]: { level } },
-        },
+        standing: entry?.standing ?? faction.defaultStanding,
+        careers: { ...entry?.careers, [career.name]: { level } },
       },
       () => setPlayerReputation(faction.name, career.name, level.name),
     );
@@ -140,12 +149,8 @@ export function FactionsList({
 
   function chooseStanding(faction: Faction, standing: string) {
     const entry = reputations[faction.name];
-    void save(
-      {
-        ...reputations,
-        [faction.name]: { careers: entry?.careers ?? {}, standing },
-      },
-      () => setPlayerReputationStandingAction(faction.name, standing),
+    void save(faction.name, { careers: entry?.careers ?? {}, standing }, () =>
+      setPlayerReputationStandingAction(faction.name, standing),
     );
   }
 

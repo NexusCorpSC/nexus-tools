@@ -296,6 +296,17 @@ export function planReputations(
         note(report, `ignorées (${problem})`, record.name);
         continue;
       }
+      // Deux factions du même nom partageraient les réputations des joueurs.
+      if (
+        factions.some((other) => nameKey(other.name) === nameKey(record.name))
+      ) {
+        note(
+          report,
+          "ignorées (nom déjà pris par une autre faction)",
+          record.name,
+        );
+        continue;
+      }
       const fresh: Faction = {
         name: record.name,
         standings: [...DEFAULT_STANDINGS],
