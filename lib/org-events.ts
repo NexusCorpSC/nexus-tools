@@ -88,7 +88,7 @@ export async function getOrgAccess(
   const org = await db
     .db()
     .collection<Organization>("organizations")
-    .findOne({ _id: orgId }, { projection: { members: 1 } });
+    .findOne({ _id: orgId }, { projection: { members: 1, reportHidden: 1 } });
 
   if (!org) return null;
 
@@ -97,6 +97,10 @@ export async function getOrgAccess(
         new ObjectId(candidate.userId).equals(readerId),
       )
     : undefined;
+  // Masquée par un signalement, elle n'existe plus que pour ses membres.
+  if (!member && (org as { reportHidden?: boolean }).reportHidden === true) {
+    return null;
+  }
 
   return { isMember: !!member, isEditor: !!member?.editor };
 }
@@ -370,7 +374,8 @@ export async function listCommunityEvents(
   if (others.length > 0) {
     const found = await organizations
       .find(
-        { _id: { $in: others } },
+        // Masquée par un signalement, elle ne s'affiche plus qu'à ses membres.
+        { _id: { $in: others }, reportHidden: { $ne: true } },
         { projection: { name: 1, tag: 1, image: 1 } },
       )
       .toArray();

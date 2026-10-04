@@ -367,6 +367,72 @@ async function ensureFriends(database: Db) {
 
 // ─── Lancement ────────────────────────────────────────────────────────────────
 
+// ─── Contributions ────────────────────────────────────────────────────────────
+
+/**
+ * La file d'attente se lit par statut, la plus ancienne d'abord ; le suivi d'un
+ * joueur et le calcul de sa fiabilité, par auteur. La galerie d'un lieu se lit
+ * par lieu et statut, et une même image ne s'envoie pas deux fois.
+ */
+async function ensureContributions(database: Db) {
+  const contributions = database.collection("contributions");
+  await contributions.createIndex({ status: 1, createdAt: 1 });
+  await contributions.createIndex({ userId: 1, createdAt: -1 });
+  await contributions.createIndex({ "target.type": 1, "target.slug": 1 });
+  // Le journal, du plus récent au plus ancien.
+  await contributions.createIndex({ status: 1, updatedAt: -1 });
+
+  const media = database.collection("placeMedia");
+  await media.createIndex({ placeSlug: 1, status: 1, createdAt: 1 });
+  await media.createIndex({ url: 1 }, { unique: true });
+
+  const points = database.collection("pointEvents");
+  await points.createIndex({ userId: 1, at: -1 });
+  await points.createIndex({ at: -1 });
+  // La valeur d'un plan ne se touche qu'une fois.
+  await points.createIndex(
+    { planKey: 1, reason: 1 },
+    { unique: true, partialFilterExpression: { reason: "plan" } },
+  );
+  // Un seul bonus de première image par lieu.
+  await points.createIndex(
+    { placeSlug: 1, reason: 1 },
+    { unique: true, partialFilterExpression: { reason: "firstMedia" } },
+  );
+  // Un signalement retenu ne rapporte qu'une fois à chacun.
+  await points.createIndex(
+    { reportId: 1, userId: 1 },
+    { unique: true, partialFilterExpression: { reason: "report" } },
+  );
+}
+
+// ─── Signalements ─────────────────────────────────────────────────────────────
+
+/**
+ * Un seul dossier ouvert par cible : c'est l'index qui fait s'empiler les
+ * signalements plutôt que de les dupliquer. L'onglet admin lit les dossiers
+ * ouverts par poids ; la page d'un joueur, les siens ; la limite du jour, ses
+ * signalements récents. Les jetons de téléversement s'effacent d'eux-mêmes.
+ */
+async function ensureReports(database: Db) {
+  const reports = database.collection("reports");
+  await reports.createIndex(
+    { "target.type": 1, "target.id": 1 },
+    { unique: true, partialFilterExpression: { status: "open" } },
+  );
+  await reports.createIndex({ status: 1, weight: -1, updatedAt: -1 });
+  await reports.createIndex({ "entries.userId": 1, "entries.at": -1 });
+  await reports.createIndex({ "target.type": 1, "target.slug": 1, status: 1 });
+
+  const log = database.collection("moderationLog");
+  await log.createIndex({ at: -1 });
+  await log.createIndex({ reportId: 1 });
+
+  const grants = database.collection("uploadGrants");
+  await grants.createIndex({ userId: 1, at: -1 });
+  await grants.createIndex({ at: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
+}
+
 const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
@@ -381,6 +447,8 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["cargoShips", ensureCargoShips],
   ["parcels", ensureParcels],
   ["friends", ensureFriends],
+  ["contributions", ensureContributions],
+  ["reports", ensureReports],
 ];
 
 async function main() {

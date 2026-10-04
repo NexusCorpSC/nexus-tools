@@ -49,12 +49,24 @@ export type SavePlansResult =
   | { ok: false; error: string };
 
 /**
+ * Où partent les plans une fois rendus. Par défaut, l'enregistrement d'un
+ * éditeur ; une contribution passe le sien, qui propose au lieu d'écrire.
+ */
+export type PlansSubmit = (
+  plans: StoredPlacePlan[],
+) => Promise<{ ok: true } | { ok: false; error: string }>;
+
+/**
  * L'habillage de la planche d'un relevé, et l'enregistrement de tous les plans
  * du lieu.
  *
  * @param placeName Le titre que porte une planche exportée : le lieu, pas le plan.
  */
-export function usePlanSaver(slug: string, placeName: string) {
+export function usePlanSaver(
+  slug: string,
+  placeName: string,
+  submit?: PlansSubmit,
+) {
   const t = useTranslations("Places");
 
   const plate = useCallback(
@@ -101,10 +113,13 @@ export function usePlanSaver(slug: string, placeName: string) {
         }),
       );
 
-      const result = await savePlacePlansAction(slug, rendered.map(toStored));
+      const stored = rendered.map(toStored);
+      const result = submit
+        ? await submit(stored)
+        : await savePlacePlansAction(slug, stored);
       return result.ok ? { ok: true, plans: rendered } : result;
     },
-    [plate, slug, t],
+    [plate, slug, submit, t],
   );
 
   return { plate, save };

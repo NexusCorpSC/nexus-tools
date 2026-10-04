@@ -372,7 +372,11 @@ async function searchOrganizations({
   needle,
   userId,
 }: SearchContext): Promise<SearchResult[]> {
-  const visibility: Document[] = [{ public: true }];
+  // Une organisation masquée par un signalement ne se trouve plus que par
+  // ses membres.
+  const visibility: Document[] = [
+    { public: true, reportHidden: { $ne: true } },
+  ];
   if (userId && ObjectId.isValid(userId)) {
     visibility.push({ "members.userId": new ObjectId(userId) });
   }

@@ -42,7 +42,10 @@ export async function GET(request: NextRequest) {
   );
   const skip = (page - 1) * limit;
 
-  const publicMatch: Record<string, unknown> = { public: true };
+  const publicMatch: Record<string, unknown> = {
+    public: true,
+    reportHidden: { $ne: true },
+  };
   if (query) {
     const pattern = escapeRegex(query);
     publicMatch.$or = [

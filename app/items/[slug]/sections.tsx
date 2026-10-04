@@ -5,8 +5,10 @@ import {
   PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
+import { ReportMenu } from "@/components/report-menu";
 import { KIND_ACCENT } from "@/lib/item-accents";
 import { cn } from "@/lib/utils";
+import { POINTS } from "@/types/contributions";
 import {
   isNumber,
   type ItemBlueprintLink,
@@ -67,10 +69,23 @@ export function SectionTitle({
   );
 }
 
+/** Where a missing piece gets filled: the admin form, or a contribution. */
+function fillHref(slug: string, canEdit: boolean) {
+  return canEdit ? `/admin/items/${slug}/edit` : `/items/${slug}/contribuer`;
+}
+
+function PointsChip({ points }: { points: number }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-amber-300/55 bg-amber-300/15 px-1.5 font-mono text-[10px] font-bold leading-4 text-amber-200">
+      +{points}
+    </span>
+  );
+}
+
 /**
  * What a section shows while nobody has filled it in. Deliberately an invite
- * rather than a blank: an editor gets the link that fills it, everyone else is
- * told the data is missing instead of being left to wonder.
+ * rather than a blank: an editor gets the link that fills it, everyone else
+ * the link that proposes it, with what it earns.
  */
 export async function EmptySection({
   label,
@@ -93,15 +108,14 @@ export async function EmptySection({
       )}
     >
       <span>{label}</span>
-      {canEdit && (
-        <Link
-          href={`/admin/items/${slug}/edit`}
-          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-        >
-          <PencilSquareIcon className="size-3.5" />
-          {t("fill")}
-        </Link>
-      )}
+      <Link
+        href={fillHref(slug, canEdit)}
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+      >
+        <PencilSquareIcon className="size-3.5" />
+        {t("fill")}
+        {!canEdit && <PointsChip points={POINTS.section} />}
+      </Link>
     </div>
   );
 }
@@ -142,15 +156,14 @@ export async function KindDataNotice({
       <p className="text-sm text-nexus/60">
         {canEdit ? t("editorHint") : t("visitorHint")}
       </p>
-      {canEdit && (
-        <Link
-          href={`/admin/items/${slug}/edit`}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <PencilSquareIcon className="size-4" />
-          {t(`${kind}.cta`)}
-        </Link>
-      )}
+      <Link
+        href={fillHref(slug, canEdit)}
+        className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+      >
+        <PencilSquareIcon className="size-4" />
+        {t(`${kind}.cta`)}
+        {!canEdit && <PointsChip points={POINTS.section} />}
+      </Link>
     </div>
   );
 }
@@ -532,15 +545,20 @@ export async function CommonSections({
         >
           {t("backToItems")}
         </Link>
-        {canEdit && (
-          <Link
-            href={`/admin/items/${item.slug}/edit`}
-            className="inline-flex h-9 items-center gap-1.5 px-2 text-sm text-nexus/70 hover:text-nexus-primary"
-          >
-            <PencilSquareIcon className="size-4" />
-            {t("Admin.edit")}
-          </Link>
-        )}
+        <Link
+          href={fillHref(item.slug, canEdit)}
+          className="inline-flex h-9 items-center gap-1.5 px-2 text-sm text-nexus/70 hover:text-nexus-primary"
+        >
+          <PencilSquareIcon className="size-4" />
+          {canEdit ? t("Admin.edit") : t("suggestEdit")}
+        </Link>
+        <ReportMenu
+          type="item"
+          id={item.slug}
+          name={item.name}
+          fixHref={canEdit ? undefined : fillHref(item.slug, false)}
+          className="ml-auto"
+        />
       </div>
     </>
   );

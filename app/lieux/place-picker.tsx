@@ -19,12 +19,15 @@ export function PlacePicker({
   onChange,
   exclude,
   placeholder,
+  disabled,
 }: {
   value?: string;
   valueLabel?: string;
   onChange: (place: PlaceSummary | undefined) => void;
   exclude?: string;
   placeholder?: string;
+  /** Le choix se lit mais ne se change pas. */
+  disabled?: boolean;
 }) {
   const t = useTranslations("Places");
   const [query, setQuery] = useState("");
@@ -50,14 +53,16 @@ export function PlacePicker({
         <span className="min-w-0 flex-1 truncate text-sm">
           {valueLabel ?? value}
         </span>
-        <button
-          type="button"
-          onClick={() => onChange(undefined)}
-          aria-label={t("Admin.cancel")}
-          className="rounded p-1 text-muted-foreground transition-colors hover:bg-white/10 hover:text-nexus"
-        >
-          <XMarkIcon className="size-4" />
-        </button>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={() => onChange(undefined)}
+            aria-label={t("Admin.cancel")}
+            className="rounded p-1 text-muted-foreground transition-colors hover:bg-white/10 hover:text-nexus"
+          >
+            <XMarkIcon className="size-4" />
+          </button>
+        )}
       </div>
     );
   }
@@ -66,6 +71,7 @@ export function PlacePicker({
     <div ref={containerRef} className="relative">
       <Input
         value={query}
+        disabled={disabled}
         placeholder={placeholder ?? t("Admin.searchPlaceholder")}
         autoComplete="off"
         onChange={(event) => {

@@ -52,6 +52,28 @@ import {
   slotsToRows,
   type EditorRow,
 } from "./kind-fields";
+import {
+  ContributionMetaFields,
+  useContribute,
+  type ContributionMetaValue,
+} from "@/app/contributions/contribute-kit";
+
+/**
+ * Le formulaire sert aussi aux contributions : il propose alors au lieu
+ * d'écrire. Pas de slug (il suit le nom), pas d'image ni de provenance, et le
+ * nom comme le type restent fixes en deçà du niveau 4.
+ */
+export type ItemContribution = {
+  mode: "create" | "edit";
+  /** Le nom et le type, réservés au niveau 4 sur une fiche existante. */
+  canRename: boolean;
+  /** La contribution reprise, renvoyée à corriger ou encore en attente. */
+  contributionId?: string;
+  /** Ce qu'elle proposait, par-dessus la fiche. */
+  initial?: Partial<Item>;
+  source?: string;
+  gameVersion?: string;
+};
 
 const EMPTY_FACETS: ItemFacets = {
   categories: [],
@@ -99,18 +121,31 @@ function SuggestInput({
 }
 
 export function ItemForm({
-  item,
+  item: published,
   blueprints = [],
+  contribution,
 }: {
   /** Absent when creating. */
   item?: Item;
   /** Blueprints already linked, so their chips can show a name. */
   blueprints?: ItemBlueprintLink[];
+  contribution?: ItemContribution;
 }) {
   const t = useTranslations("Items.Admin");
   const tItems = useTranslations("Items");
+  const tForm = useTranslations("Contributions.Form");
   const router = useRouter();
+  const { contribute, errorMessage } = useContribute();
   const [isPending, startTransition] = useTransition();
+
+  const item: Partial<Item> | undefined = contribution?.initial
+    ? { ...published, ...contribution.initial }
+    : published;
+  const locked = contribution?.mode === "edit" && !contribution.canRename;
+  const [meta, setMeta] = useState<ContributionMetaValue>({
+    source: contribution?.source ?? "",
+    gameVersion: contribution?.gameVersion ?? "",
+  });
 
   const [facets, setFacets] = useState<ItemFacets>(EMPTY_FACETS);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +153,7 @@ export function ItemForm({
   const [name, setName] = useState(item?.name ?? "");
   const [slug, setSlug] = useState(item?.slug ?? "");
   // While creating, the slug follows the name until it is edited by hand.
-  const [slugEdited, setSlugEdited] = useState(!!item);
+  const [slugEdited, setSlugEdited] = useState(!!published);
   const [kind, setKind] = useState<ItemKind>(item?.kind ?? "item");
   const [category, setCategory] = useState(item?.category ?? "");
   const [subcategory, setSubcategory] = useState(item?.subcategory ?? "");
@@ -132,10 +167,25 @@ export function ItemForm({
     statisticsToRows(item?.statistics),
   );
   const [linkedBlueprints, setLinkedBlueprints] = useState<BlueprintOption[]>(
-    blueprints.map(({ slug: blueprintSlug, name: blueprintName }) => ({
-      slug: blueprintSlug,
-      name: blueprintName,
-    })),
+    () => {
+      const named = blueprints.map(
+        ({ slug: blueprintSlug, name: blueprintName }) => ({
+          slug: blueprintSlug,
+          name: blueprintName,
+        }),
+      );
+      // Une proposition reprise garde ses plans de fabrication, même ceux que
+      // la fiche n'a pas encore : leur slug tient lieu de nom.
+      const proposed = contribution?.initial?.blueprintSlugs;
+      if (!proposed) return named;
+      return proposed.map(
+        (blueprintSlug) =>
+          named.find((entry) => entry.slug === blueprintSlug) ?? {
+            slug: blueprintSlug,
+            name: blueprintSlug,
+          },
+      );
+    },
   );
   const [variantGroup, setVariantGroup] = useState(item?.variantGroup ?? "");
   const [variantName, setVariantName] = useState(item?.variantName ?? "");
@@ -256,8 +306,36 @@ export function ItemForm({
     };
 
     startTransition(async () => {
-      const result = item
-        ? await updateItemAction(item.slug, input)
+      if (contribution) {
+        // Le slug et l'image ne se proposent pas : le serveur les ignore.
+        const proposed: Partial<typeof input> = { ...input };
+        delete proposed.slug;
+        delete proposed.imageUrl;
+        const sent = { ...meta, contributionId: contribution.contributionId };
+        const result =
+          contribution.mode === "edit" && published
+            ? await contribute(
+                { kind: "itemEdit", slug: published.slug, input: proposed },
+                sent,
+              )
+            : await contribute({ kind: "itemCreate", input: proposed }, sent);
+        if (!result.ok) {
+          setError(errorMessage(result));
+          return;
+        }
+        const { contribution: done } = result;
+        // Un objet proposé n'a pas encore de fiche : on revient à ses contributions.
+        router.push(
+          done.kind === "itemCreate" && done.status !== "published"
+            ? "/contributions"
+            : `/items/${done.target.slug}`,
+        );
+        router.refresh();
+        return;
+      }
+
+      const result = published
+        ? await updateItemAction(published.slug, input)
         : await createItemAction(input);
 
       if (!result.ok) {
@@ -278,30 +356,39 @@ export function ItemForm({
           id="name"
           value={name}
           required
+          disabled={locked}
           autoComplete="off"
           onChange={(event) => handleNameChange(event.target.value)}
         />
+        {locked && (
+          <p className="text-xs text-muted-foreground">
+            {tForm("renameLocked")}
+          </p>
+        )}
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="slug">{t("fieldSlug")}</Label>
-        <Input
-          id="slug"
-          value={slug}
-          required
-          autoComplete="off"
-          onChange={(event) => {
-            setSlugEdited(true);
-            setSlug(event.target.value);
-          }}
-        />
-        <p className="text-xs text-nexus">{t("fieldSlugHint")}</p>
-      </div>
+      {!contribution && (
+        <div className="space-y-1.5">
+          <Label htmlFor="slug">{t("fieldSlug")}</Label>
+          <Input
+            id="slug"
+            value={slug}
+            required
+            autoComplete="off"
+            onChange={(event) => {
+              setSlugEdited(true);
+              setSlug(event.target.value);
+            }}
+          />
+          <p className="text-xs text-nexus">{t("fieldSlugHint")}</p>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="kind">{t("fieldKind")}</Label>
         <Select
           value={kind}
+          disabled={locked}
           onValueChange={(value) => setKind(value as ItemKind)}
         >
           <SelectTrigger id="kind">
@@ -394,14 +481,16 @@ export function ItemForm({
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label>{t("fieldImage")}</Label>
-        <ItemImageUpload
-          slug={slug}
-          imageUrl={imageUrl}
-          onChange={setImageUrl}
-        />
-      </div>
+      {!contribution && (
+        <div className="space-y-1.5">
+          <Label>{t("fieldImage")}</Label>
+          <ItemImageUpload
+            slug={slug}
+            imageUrl={imageUrl}
+            onChange={setImageUrl}
+          />
+        </div>
+      )}
 
       {kind === "vehicle" && (
         <VehicleFields
@@ -498,14 +587,34 @@ export function ItemForm({
         </div>
       </fieldset>
 
+      {contribution && (
+        <ContributionMetaFields value={meta} onChange={setMeta} />
+      )}
+
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex items-center gap-3 pt-2">
         <Button type="submit" disabled={isPending}>
-          {isPending ? t("saving") : item ? t("editSave") : t("newCreate")}
+          {isPending
+            ? t("saving")
+            : contribution
+              ? tForm("submit")
+              : published
+                ? t("editSave")
+                : t("newCreate")}
         </Button>
         <Button asChild variant="outline">
-          <Link href="/admin/items">{t("cancel")}</Link>
+          <Link
+            href={
+              contribution
+                ? published
+                  ? `/items/${published.slug}`
+                  : "/items"
+                : "/admin/items"
+            }
+          >
+            {t("cancel")}
+          </Link>
         </Button>
       </div>
     </form>

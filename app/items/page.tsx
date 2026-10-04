@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { hasPermission } from "@/lib/permissions";
 import { ITEMS_EDIT_PERMISSION } from "@/types/items";
+import { POINTS } from "@/types/contributions";
 import { ItemGrid } from "./components";
 
 export const metadata: Metadata = {
@@ -51,11 +52,21 @@ export default async function ItemsPage() {
           <h1 className="text-2xl font-bold mb-1">{t("title")}</h1>
           <p className="text-nexus">{t("header")}</p>
         </div>
-        {canEdit && (
+        {canEdit ? (
           <Button asChild size="sm">
             <Link href="/admin/items/new">
               <PlusIcon className="size-4 mr-1.5" />
               {t("Admin.newItemButton")}
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild size="sm" variant="outline">
+            <Link href="/items/proposer">
+              <PlusIcon className="size-4 mr-1.5" />
+              {t("proposeItem")}
+              <span className="ml-1.5 font-mono text-[11px] font-bold text-amber-200">
+                +{POINTS.itemCreate}
+              </span>
             </Link>
           </Button>
         )}

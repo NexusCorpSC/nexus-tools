@@ -9,7 +9,8 @@
       "myProfile": "Mon Profil",
       "settings": "Paramètres",
       "signOut": "Déconnexion",
-      "signIn": "Connexion"
+      "signIn": "Connexion",
+      "myContributions": "Mes contributions"
     },
     "openMenu": "Ouvrir le menu",
     "openUserMenu": "Ouvrir le menu utilisateur",
@@ -629,7 +630,7 @@
     "Empty": {
       "fill": "Compléter",
       "editorHint": "Vous pouvez les renseigner dès maintenant.",
-      "visitorHint": "Elles seront ajoutées par un administrateur.",
+      "visitorHint": "Vous pouvez les proposer : chaque section complétée rapporte 10 points.",
       "item": {
         "title": "Fiche à compléter",
         "description": "Cet objet n'a pas encore de description, de statistiques ni de provenance.",
@@ -892,7 +893,9 @@
       "volatileNote": "Cargaison instable : à transporter en conteneur adapté.",
       "transportNoteFallback": "Pas de contrainte de transport particulière.",
       "openCargo": "Ajouter à la feuille de cargo"
-    }
+    },
+    "proposeItem": "Proposer un objet",
+    "suggestEdit": "Proposer une correction"
   },
   "Places": {
     "home": "Accueil",
@@ -978,7 +981,7 @@
     "noShops": "Aucun magasin relevé ici.",
     "planTitle": "Plan",
     "noPlan": "Aucun plan relevé pour {name}",
-    "noPlanHint": "Ce lieu est bien au catalogue, mais personne n’en a encore relevé le plan. Les lieux qu’il contient peuvent en avoir un.",
+    "noPlanHint": "Ce lieu est bien au catalogue, mais personne n’en a encore relevé le plan. Les lieux qu’il contient peuvent en avoir un, et vous pouvez proposer le sien.",
     "suggestPlan": "Proposer un plan",
     "factType": "Type",
     "factSystem": "Système",
@@ -1261,7 +1264,10 @@
     "planPlate": "Planche",
     "planPlateDownload": "Télécharger en PNG",
     "planPlateExporting": "Export…",
-    "planPlateFailed": "L’export a échoué."
+    "planPlateFailed": "L’export a échoué.",
+    "imagesTitle": "Images",
+    "imagesCount": "{count, plural, one {# image} other {# images}}",
+    "missingPlace": "Il manque un lieu ici ?"
   },
   "Industry": {
     "home": "Accueil",
@@ -2402,5 +2408,414 @@
   "PlannedSession": {
     "tomorrow": "demain {time}",
     "onDay": "{day} {time}"
+  },
+  "Contributions": {
+    "Gallery": {
+      "open": "Voir l'image",
+      "by": "par {name}",
+      "empty": "Aucune image pour ce lieu. Soyez le premier à en ajouter une.",
+      "add": "Ajouter des images",
+      "signInToAdd": "Connectez-vous pour ajouter des images",
+      "myPending": "{count, plural, one {Votre image est en attente de relecture} other {Vos # images sont en attente de relecture}}",
+      "dialogTitle": "Ajouter des images",
+      "dialogDescription": "{name} · jusqu'à {max} images par envoi",
+      "pick": "Choisir",
+      "remove": "Retirer l'image",
+      "constraints": "JPEG, PNG ou WebP, 12 Mo au plus.",
+      "captionFor": "Légende de l'image {index}",
+      "captionPlaceholder": "Quai du métro vers le centre-ville",
+      "credit": "Crédit",
+      "gameVersion": "Version du jeu",
+      "rules": "Une capture du jeu uniquement, sans interface personnelle ni pseudo d'autres joueurs. Les envois des nouveaux contributeurs sont relus avant publication ; les points sont crédités à la publication.",
+      "cancel": "Annuler",
+      "send": "{count, plural, =0 {Envoyer} one {Envoyer l'image} other {Envoyer # images}}",
+      "sendFailed": "L'envoi a échoué. Réessayez.",
+      "published": "{count, plural, one {Image publiée} other {# images publiées}} · +{points} points",
+      "sentForReview": "{count, plural, one {Image envoyée} other {# images envoyées}} pour relecture"
+    },
+    "errors": {
+      "unauthenticated": "Connectez-vous pour contribuer.",
+      "placeNotFound": "Ce lieu n'existe plus.",
+      "noMedia": "Choisissez au moins une image.",
+      "tooManyMedia": "Six images au plus par envoi.",
+      "invalidMedia": "Une des images n'a pas pu être acceptée. Retirez-la et réessayez.",
+      "tooManyPending": "Vous avez déjà cinq envois en attente de relecture. Attendez qu'ils soient relus.",
+      "notFound": "Cette contribution n'existe plus.",
+      "notPending": "Cette contribution a déjà été traitée.",
+      "ownContribution": "Une contribution se fait relire par quelqu’un d’autre que son auteur.",
+      "itemNotFound": "Cet objet n'existe plus.",
+      "invalidInput": "Un champ n'est pas valide.",
+      "noChange": "Rien n'a changé par rapport à la fiche.",
+      "duplicate": "Cette fiche existe déjà, ou quelqu'un l'a déjà proposée.",
+      "notAllowed": "Cette action n'est pas possible ici.",
+      "messageRequired": "Un message est nécessaire.",
+      "notPublished": "Cette contribution n'est pas publiée.",
+      "revertConflict": "La fiche a changé depuis cette publication.",
+      "revertFailed": "L'annulation a échoué.",
+      "applyFailed": "La fiche n'a pas pu être mise à jour. Réessayez.",
+      "suspended": "Vos contributions sont suspendues par la modération pour le moment."
+    },
+    "reasons": {
+      "inaccurate": "Inexact ou invérifiable",
+      "offTopic": "Hors sujet : ne correspond pas à cette fiche",
+      "quality": "Qualité insuffisante : floue, sombre, trop petite",
+      "personalInterface": "Interface personnelle ou pseudo visible",
+      "duplicate": "Doublon d'une image existante",
+      "copyright": "Reprise sans autorisation",
+      "other": "Autre (précisez)",
+      "expired": "Pas reprise dans les 14 jours"
+    },
+    "Admin": {
+      "title": "Contributions",
+      "header": "{count, plural, one {# contribution en attente de relecture} other {# contributions en attente de relecture}}",
+      "headerEmpty": "Rien en attente de relecture.",
+      "backToAdmin": "Retour à l'admin",
+      "empty": "La file est vide. Les nouvelles contributions apparaîtront ici.",
+      "allPending": "Toutes les contributions",
+      "kpiPending": "en attente",
+      "kpiLate": "depuis plus de 3 jours",
+      "kpiImages": "images à relire",
+      "kpiAuthors": "auteurs",
+      "truncated": "Les {shown} plus anciennes sur {total} sont affichées.",
+      "selectAll": "Tout sélectionner",
+      "groupBy": "Grouper par",
+      "groupings": {
+        "author": "Auteur",
+        "target": "Lieu",
+        "none": "Aucun"
+      },
+      "selectGroup": "Sélectionner le groupe {name}",
+      "selectOne": "Sélectionner cette contribution",
+      "groupSummary": "{contributions, plural, one {# contribution} other {# contributions}} · {images, plural, one {# image} other {# images}}",
+      "details": "Détails",
+      "collapse": "Replier",
+      "publishGroup": "{count, plural, one {Publier} other {Publier les #}}",
+      "publish": "Publier",
+      "reject": "Refuser",
+      "gameVersion": "patch {version}",
+      "selectionLabel": "Actions sur la sélection",
+      "selection": "{count, plural, one {# contribution sélectionnée} other {# contributions sélectionnées}} · {images, plural, one {# image} other {# images}}",
+      "clearSelection": "Désélectionner",
+      "rejectSelection": "Refuser…",
+      "publishSelection": "Publier la sélection",
+      "published": "{count, plural, =0 {Aucune contribution publiée} one {Contribution publiée} other {# contributions publiées}}",
+      "rejected": "{count, plural, =0 {Aucune contribution refusée} one {Contribution refusée} other {# contributions refusées}}",
+      "skipped": "{count, plural, one {Une contribution avait déjà été traitée} other {# contributions avaient déjà été traitées}}",
+      "failed": "L'action a échoué. Réessayez.",
+      "rejectTitle": "{count, plural, one {Refuser la contribution} other {Refuser # contributions}}",
+      "rejectDescription": "L'auteur verra le motif et votre message. Les images refusées sont supprimées.",
+      "rejectReason": "Motif",
+      "rejectMessage": "Message à l'auteur (obligatoire pour « Autre »)",
+      "cancel": "Annuler",
+      "rejectConfirm": "{count, plural, one {Refuser} other {Refuser les #}}",
+      "kinds": {
+        "media": "Images",
+        "placeCreate": "Nouveau lieu",
+        "placeEdit": "Correction de lieu",
+        "plan": "Plan",
+        "itemCreate": "Nouvel objet",
+        "itemEdit": "Correction d'objet"
+      },
+      "inParent": "dans {name}",
+      "requestChanges": "À corriger",
+      "requestChangesSelection": "Demander une correction…",
+      "requestChangesTitle": "{count, plural, one {Demander une correction} other {Demander une correction pour #}}",
+      "requestChangesDescription": "L'auteur reprend sa proposition depuis ses contributions. Sans reprise sous 14 jours, elle est refusée.",
+      "requestChangesMessage": "Ce qu'il faut reprendre (obligatoire)",
+      "requestChangesConfirm": "Renvoyer à l'auteur",
+      "changesRequested": "{count, plural, =0 {Aucune contribution renvoyée} one {Contribution renvoyée à l'auteur} other {# contributions renvoyées}}",
+      "shortcuts": "Raccourcis sur la ligne survolée : P publier · C à corriger · R refuser",
+      "diffField": "Champ",
+      "diffBefore": "Avant",
+      "diffAfter": "Proposé",
+      "source": "Source :",
+      "journalLink": "Journal",
+      "queueLink": "File de relecture",
+      "journalTitle": "Journal des contributions",
+      "journalHeader": "Les publications directes s'y relisent après coup ; toute publication peut s'y annuler.",
+      "journalAll": "Tout",
+      "journalDirect": "Publiées sans relecture",
+      "journalAllKinds": "Toutes natures",
+      "journalEmpty": "Rien dans le journal pour ces filtres.",
+      "direct": "directe",
+      "decidedBy": "par {name}",
+      "revert": "Annuler",
+      "reverted": "Publication annulée, points retirés",
+      "conflictTitle": "La fiche a changé depuis",
+      "conflictDescription": "D'autres modifications ont touché les mêmes champs. Annuler remettra l'état d'avant cette contribution et écrasera ce qui suit.",
+      "conflictPublished": "Publié par la contribution",
+      "conflictNow": "Aujourd'hui",
+      "conflictConfirm": "Annuler quand même",
+      "actionFailedFor": "« {name} » : {reason}",
+      "tabQueue": "File d'attente",
+      "tabReports": "Signalements",
+      "tabJournal": "Journal",
+      "tabsLabel": "Modération"
+    },
+    "Form": {
+      "source": "Source (facultatif)",
+      "sourcePlaceholder": "Lien, capture, patch note…",
+      "sourceHint": "D'où vient l'information. Elle aide la relecture.",
+      "gameVersion": "Version du jeu",
+      "submit": "Envoyer la proposition",
+      "sendFailed": "L'envoi a échoué. Réessayez.",
+      "published": "Modification publiée",
+      "publishedWithPoints": "Modification publiée · +{points} points",
+      "sentForReview": "Proposition envoyée pour relecture",
+      "renameLocked": "Renommer, déplacer ou changer la nature d'une fiche demande le niveau 4.",
+      "changesRequestedTitle": "Un relecteur vous demande de reprendre cette proposition",
+      "levelDirect": "{level} : votre modification sera publiée tout de suite, puis relue.",
+      "levelReviewed": "{level} : votre proposition sera relue avant publication.",
+      "editPlaceCrumb": "Proposer une modification",
+      "editPlaceTitle": "Modifier {name}",
+      "imagesElsewhere": "Les images s'ajoutent depuis la galerie de la fiche.",
+      "backToPlace": "Retour au lieu",
+      "newPlaceCrumb": "Proposer un lieu",
+      "newPlaceTitle": "Ajouter un lieu dans {name}",
+      "newPlaceExisting": "Déjà au catalogue : {names}.",
+      "planCrumb": "Proposer un plan",
+      "planEditTitle": "Améliorer le plan « {name} »",
+      "planNewTitle": "Envoyer un plan de {name}",
+      "planImageHint": "Envoyez l'image du plan, puis posez les repères des lieux et services. Un plan proposé s'ajoute à ceux de la fiche, il n'en remplace aucun.",
+      "editItemTitle": "Compléter {name}",
+      "itemPointsHint": "Remplir une section vide rapporte {section} points, corriger un champ {edit}.",
+      "backToItem": "Retour à l'objet",
+      "newItemCrumb": "Proposer un objet",
+      "newItemTitle": "Proposer un objet",
+      "newItemHint": "Vérifiez d'abord qu'il n'existe pas sous un autre nom. L'image sera ajoutée par l'équipe."
+    },
+    "levels": {
+      "recruit": "Recrue",
+      "scout": "Éclaireur",
+      "cartographer": "Cartographe",
+      "archivist": "Archiviste",
+      "pillar": "Pilier"
+    },
+    "fields": {
+      "whole": "Fiche entière",
+      "name": "Nom",
+      "type": "Type",
+      "description": "Description",
+      "services": "Services",
+      "shopCategory": "Catégorie de magasin",
+      "parentSlug": "Contenu dans",
+      "plan": "Plan",
+      "kind": "Nature",
+      "category": "Catégorie",
+      "subcategory": "Sous-catégorie",
+      "manufacturer": "Fabricant",
+      "size": "Taille",
+      "tier": "Rang",
+      "statistics": "Statistiques",
+      "obtention": "Obtention",
+      "blueprintSlugs": "Plans de fabrication",
+      "variantGroup": "Groupe de variantes",
+      "variantName": "Nom de variante",
+      "setId": "Ensemble (clé)",
+      "setName": "Ensemble",
+      "vehicle": "Véhicule",
+      "weapon": "Arme",
+      "resource": "Ressource",
+      "images": "Images publiées"
+    },
+    "Mine": {
+      "title": "Mes contributions",
+      "intro": "Ce que vous avez apporté, ce qui attend une relecture, et ce qu'on vous a renvoyé à corriger.",
+      "level": "Niveau",
+      "points": "Points",
+      "acceptance": "Acceptation",
+      "pending": "En attente",
+      "toFixTitle": "{count, plural, one {# proposition à corriger} other {# propositions à corriger}}",
+      "toFixHint": "Sans reprise sous {days} jours, une proposition à corriger est refusée.",
+      "historyTitle": "Historique",
+      "empty": "Rien pour l'instant. Commencez par un lieu ou un objet :",
+      "emptyPlaces": "les lieux",
+      "emptyItems": "les objets",
+      "fields": "Champs : {fields}",
+      "resume": "Reprendre",
+      "fix": "Corriger",
+      "kinds": {
+        "media": "Images",
+        "placeCreate": "Nouveau lieu",
+        "placeEdit": "Correction de lieu",
+        "plan": "Plan",
+        "itemCreate": "Nouvel objet",
+        "itemEdit": "Correction d'objet"
+      },
+      "statuses": {
+        "pending": "En relecture",
+        "publishing": "En cours",
+        "changesRequested": "À corriger",
+        "published": "Publiée",
+        "rejected": "Refusée",
+        "reverted": "Annulée"
+      }
+    },
+    "Place": {
+      "menu": "Contribuer",
+      "edit": "Proposer une modification",
+      "addChild": "Il manque un lieu ici ?",
+      "planImage": "Envoyer une image du plan",
+      "planDrawn": "Dessiner le plan",
+      "improvePlan": "Améliorer ce plan"
+    }
+  },
+  "Reports": {
+    "menu": "Plus d'actions",
+    "report": "Signaler",
+    "title": {
+      "place": "Signaler ce lieu",
+      "placeMedia": "Signaler cette image",
+      "plan": "Signaler ce plan",
+      "item": "Signaler cet objet",
+      "org": "Signaler cette organisation"
+    },
+    "types": {
+      "place": "Lieu",
+      "placeMedia": "Image",
+      "plan": "Plan",
+      "item": "Objet",
+      "org": "Organisation"
+    },
+    "subtitle": "{name} · un modérateur examine chaque signalement",
+    "question": "Quel est le problème ?",
+    "comment": "Précisez (facultatif sauf « Autre »)",
+    "commentRequired": "Précisez (obligatoire pour « Autre »)",
+    "cancel": "Annuler",
+    "send": "Envoyer le signalement",
+    "sending": "Envoi…",
+    "doneTitle": "Merci, c'est noté",
+    "doneBody": "Vous serez prévenu de la décision dans Mes contributions. Si le signalement est retenu, il vous rapporte {points} points.",
+    "doneFix": "Vous savez déjà ce qui est juste ? Proposez directement la correction.",
+    "proposeFix": "Proposer la correction",
+    "close": "Fermer",
+    "signIn": "Se connecter",
+    "contested": "Information contestée : des joueurs signalent une erreur sur cette fiche, un modérateur vérifie.",
+    "contestedPlan": "Plan contesté : des joueurs signalent une erreur, un modérateur vérifie.",
+    "reasons": {
+      "wrong": {
+        "label": "Information fausse",
+        "hint": "Un service, un nom, une valeur ou un parent incorrect"
+      },
+      "outdated": {
+        "label": "Obsolète depuis un patch",
+        "hint": "C'était vrai, ça ne l'est plus"
+      },
+      "duplicate": {
+        "label": "Doublon",
+        "hint": "Cet élément existe déjà sous un autre nom"
+      },
+      "media": {
+        "label": "Image hors sujet ou de mauvaise qualité",
+        "hint": "Hors sujet, illisible, interface personnelle visible"
+      },
+      "offensive": {
+        "label": "Contenu offensant",
+        "hint": "Insulte, propos haineux"
+      },
+      "copyright": {
+        "label": "Droits d'auteur",
+        "hint": "Reprise d'un site ou d'une image sans autorisation"
+      },
+      "spam": {
+        "label": "Spam",
+        "hint": "Publicité, liens sans rapport"
+      },
+      "other": {
+        "label": "Autre",
+        "hint": "Expliquez dans le champ ci-dessous"
+      }
+    },
+    "errors": {
+      "unauthenticated": "Connectez-vous pour signaler.",
+      "invalidTarget": "Cet élément ne peut pas être signalé.",
+      "targetNotFound": "Cet élément n'existe plus.",
+      "invalidReason": "Choisissez un motif.",
+      "commentRequired": "Précisez le problème pour le motif « Autre ».",
+      "ownContent": "On ne signale pas son propre contenu : proposez plutôt une correction.",
+      "alreadyReported": "Vous avez déjà signalé cet élément. Un modérateur s'en occupe.",
+      "dailyLimit": "Dix signalements par jour au plus. Réessayez demain.",
+      "reportingSuspended": "Trois de vos signalements ont été classés d'affilée : vous ne pouvez plus signaler pendant 7 jours.",
+      "notFound": "Ce dossier n'existe plus.",
+      "notOpen": "Ce dossier a déjà été tranché.",
+      "invalidAction": "Cette décision n'est pas possible ici.",
+      "contributionRequired": "Choisissez la contribution à annuler.",
+      "actionFailed": "La décision n'a pas pu être appliquée.",
+      "busy": "Un modérateur tranche ce signalement en ce moment. Réessayez dans un instant.",
+      "ownDossier": "Vous avez signalé cet élément ou contribué à ce qui est en cause : un autre modérateur doit trancher.",
+      "notAllowed": "Retirer ce type d'élément demande le droit de l'éditer dans l'admin.",
+      "failed": "L'envoi a échoué. Réessayez."
+    },
+    "Mine": {
+      "title": "Mes signalements",
+      "hint": "Un signalement retenu rapporte {points} points. Trois signalements classés d'affilée suspendent le signalement pendant 7 jours.",
+      "statuses": {
+        "open": "En examen",
+        "resolved": "Retenu",
+        "dismissed": "Classé"
+      },
+      "suspended": "Vos contributions sont suspendues par la modération jusqu'au {date, date, medium}.",
+      "banned": "Vous ne pouvez plus signaler jusqu'au {date, date, medium} : trois de vos signalements ont été classés d'affilée.",
+      "warning": "Avertissement de la modération du {date, date, medium}."
+    },
+    "Admin": {
+      "title": "Signalements",
+      "header": "{count, plural, one {# dossier ouvert} other {# dossiers ouverts}}, les plus lourds d'abord.",
+      "headerEmpty": "Aucun dossier ouvert.",
+      "hidden": "Masqué",
+      "weight": "poids {weight}",
+      "reporters": "{count, plural, one {# joueur} other {# joueurs}}",
+      "gone": "Cet élément n'existe plus sous cette forme.",
+      "open": "Voir sur le site",
+      "edit": "Corriger soi-même",
+      "reasonsTitle": "Ce qu'on lui reproche",
+      "entryBy": "par {name} (poids {weight}) · {date, date, short}",
+      "historyTitle": "Historique des contributions",
+      "historyBy": "par {name} · {date, date, short}",
+      "noHistory": "Aucune contribution enregistrée sur cet élément.",
+      "backToAdmin": "Retour à l'admin",
+      "decision": "Décision",
+      "actions": {
+        "dismiss": {
+          "label": "Classer",
+          "hint": "Rien à reprocher. Les signaleurs ne gagnent rien, l'élément masqué revient.",
+          "submit": "Classer le dossier"
+        },
+        "correct": {
+          "label": "Corrigé",
+          "hint": "Vous avez corrigé l'élément vous-même. Le signalement est retenu.",
+          "submit": "Marquer comme corrigé"
+        },
+        "revert": {
+          "label": "Annuler la contribution en cause",
+          "hint": "L'état d'avant revient et les points de l'auteur repartent.",
+          "submit": "Annuler la contribution"
+        },
+        "delete": {
+          "label": "Retirer l'élément",
+          "hint": "Supprime la fiche, l'image ou le plan. Une organisation quitte la vue publique, ses membres la gardent.",
+          "submit": "Retirer l'élément"
+        }
+      },
+      "contribution": "Contribution à annuler",
+      "sanction": "Envers l'auteur",
+      "sanctions": {
+        "none": "Rien de plus",
+        "warn": "Avertir",
+        "suspend": "Suspendre ses contributions 7 jours"
+      },
+      "author": "Auteur",
+      "note": "Note (facultative, visible de l'auteur averti)",
+      "conflict": "La fiche a changé depuis cette contribution : l'annuler écraserait ces changements.",
+      "conflictConfirm": "Annuler quand même",
+      "confirmDelete": "Confirmer le retrait",
+      "done": {
+        "dismiss": "Dossier classé.",
+        "correct": "Dossier clos, signalement retenu.",
+        "revert": "Contribution annulée, signalement retenu.",
+        "delete": "Élément retiré, signalement retenu."
+      },
+      "ownDossier": "Vous avez signalé cet élément ou contribué à ce qui est en cause : un autre modérateur doit trancher ce dossier."
+    }
   }
 }

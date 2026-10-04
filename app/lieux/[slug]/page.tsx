@@ -5,14 +5,22 @@ import { getTranslations } from "next-intl/server";
 import { MapIcon } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { Button } from "@/components/ui/button";
+import { ObjectId } from "mongodb";
 import { auth } from "@/lib/auth";
+import { countMyPendingMedia, listPlaceMedia } from "@/lib/contributions";
 import { hasPermission } from "@/lib/permissions";
 import { getPlaceDetails, getPlacePlans } from "@/lib/places";
 import { placeTrail } from "@/lib/place-icons";
 import { KeyFigure } from "@/app/items/[slug]/sections";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import { PlaceAdminMenu } from "./components";
+import { PlaceContributeMenu } from "./contribute-menu";
+import { OpenContributionsBanner } from "@/app/contributions/open-banner";
+import { POINTS } from "@/types/contributions";
+import { PlaceGallery } from "./gallery";
 import { PlanViewer } from "./plan-viewer";
+import { ContestedBanner, ReportMenu } from "@/components/report-menu";
+import { getContested } from "@/lib/reports";
 import {
   PlaceBreadcrumb,
   PlaceEmpty,
@@ -82,6 +90,16 @@ export default async function PlacePage({
   const session = await auth.api.getSession({ headers: await headers() });
   const tab: Tab = TABS.includes(onglet as Tab) ? (onglet as Tab) : "apercu";
 
+  const [media, myPending] =
+    tab === "apercu"
+      ? await Promise.all([
+          listPlaceMedia(place.slug),
+          session?.user
+            ? countMyPendingMedia(place.slug, new ObjectId(session.user.id))
+            : 0,
+        ])
+      : [[], 0];
+
   /*
     Le plan regardé vit dans l'adresse. On ne descend que dans l'arborescence
     de ce lieu-là : un `?lieu=` tapé à la main ne transforme pas la fiche de
@@ -103,6 +121,25 @@ export default async function PlacePage({
             targets: place.planTargets,
           }
         : null;
+  // Le plan affiché, celui qu'« Améliorer ce plan » ouvre.
+  const shownPlan =
+    plans?.plans.find((entry) => entry.id === plan) ?? plans?.plans[0];
+  // Un plan emprunté se signale chez le lieu qui le tient.
+  const reportedPlan = shownPlan
+    ? shownPlan.borrowedFrom
+      ? { slug: shownPlan.borrowedFrom.slug, id: shownPlan.borrowedFrom.planId }
+      : { slug: plans!.slug, id: shownPlan.id }
+    : null;
+  const [contested, contestedPlans] = await Promise.all([
+    getContested("place", place.slug),
+    reportedPlan && reportedPlan.slug !== place.slug
+      ? getContested("place", reportedPlan.slug)
+      : null,
+  ]);
+  const planContested =
+    reportedPlan !== null &&
+    (contestedPlans ?? contested).planIds.includes(reportedPlan.id);
+  const tr = await getTranslations("Reports");
   const services = place.services ?? [];
   const trail = placeTrail(place);
 
@@ -130,8 +167,24 @@ export default async function PlacePage({
             <p className="text-sm text-nexus">{place.shopCategory}</p>
           )}
         </div>
-        {canEdit && <PlaceAdminMenu slug={place.slug} />}
+        <div className="flex items-center gap-2">
+          {canEdit ? (
+            <PlaceAdminMenu slug={place.slug} />
+          ) : (
+            <PlaceContributeMenu slug={place.slug} />
+          )}
+          <ReportMenu
+            type="place"
+            id={place.slug}
+            name={place.name}
+            fixHref={canEdit ? undefined : `/lieux/${place.slug}/contribuer`}
+          />
+        </div>
       </div>
+
+      {contested.contested && <ContestedBanner message={tr("contested")} />}
+
+      <OpenContributionsBanner type="place" slug={place.slug} />
 
       {place.imageUrl && (
         <div className="relative flex min-h-24 w-full items-center justify-center overflow-hidden rounded-xl border border-[#9ED0FF]/15">
@@ -185,6 +238,27 @@ export default async function PlacePage({
       {tab === "apercu" && (
         <div className="space-y-6">
           <div>
+            <SectionTitle
+              aside={
+                media.length > 0
+                  ? t("imagesCount", { count: media.length })
+                  : undefined
+              }
+            >
+              {t("imagesTitle")}
+            </SectionTitle>
+            <PlaceGallery
+              slug={place.slug}
+              placeName={place.name}
+              media={media}
+              signedIn={Boolean(session?.user)}
+              defaultCredit={session?.user?.name}
+              myPending={myPending}
+              firstBonus={media.length === 0 && !place.imageUrl}
+            />
+          </div>
+
+          <div>
             <SectionTitle>{t("descriptionTitle")}</SectionTitle>
             {place.description ? (
               <p className="prose prose-invert whitespace-pre-line leading-relaxed">
@@ -219,6 +293,15 @@ export default async function PlacePage({
               </div>
             ) : (
               <PlaceEmpty>{t("noContained")}</PlaceEmpty>
+            )}
+            {!canEdit && (
+              <Link
+                href={`/lieux/${place.slug}/contribuer/lieu`}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              >
+                {t("missingPlace")}
+                <PointsChip points={POINTS.placeCreate} />
+              </Link>
             )}
           </div>
         </div>
@@ -259,12 +342,34 @@ export default async function PlacePage({
         <div>
           <SectionTitle>{t("planTitle")}</SectionTitle>
           {plans && plans.plans.length > 0 ? (
-            <PlanViewer
-              data={plans}
-              rootSlug={place.slug}
-              activePlanId={plan}
-              canBrief={Boolean(session)}
-            />
+            <div className="space-y-3">
+              {planContested && (
+                <ContestedBanner message={tr("contestedPlan")} />
+              )}
+              <PlanViewer
+                data={plans}
+                rootSlug={place.slug}
+                activePlanId={plan}
+                canBrief={Boolean(session)}
+              />
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {!canEdit && (
+                  <PlanContributeLinks
+                    slug={plans.slug}
+                    improvePlanId={
+                      shownPlan?.borrowedFrom ? undefined : shownPlan?.id
+                    }
+                  />
+                )}
+                {reportedPlan && shownPlan && (
+                  <ReportMenu
+                    type="plan"
+                    id={`${reportedPlan.slug}:${reportedPlan.id}`}
+                    name={`${plans.name} · ${shownPlan.name}`}
+                  />
+                )}
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#9ED0FF]/25 bg-[#092F49]/35 px-6 py-12 text-center">
               <MapIcon className="size-8 text-muted-foreground" />
@@ -274,12 +379,14 @@ export default async function PlacePage({
               <p className="max-w-md text-sm text-muted-foreground">
                 {t("noPlanHint")}
               </p>
-              {canEdit && (
+              {canEdit ? (
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/admin/lieux/${place.slug}/plans`}>
                     {t("suggestPlan")}
                   </Link>
                 </Button>
+              ) : (
+                <PlanContributeLinks slug={place.slug} />
               )}
             </div>
           )}
@@ -295,6 +402,53 @@ export default async function PlacePage({
         </Link>
         <p className="text-xs text-muted-foreground">{t("reportHint")}</p>
       </div>
+    </div>
+  );
+}
+
+function PointsChip({ points }: { points: number }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-amber-300/55 bg-amber-300/15 px-1.5 font-mono text-[10px] font-bold leading-4 text-amber-200">
+      +{points}
+    </span>
+  );
+}
+
+/**
+ * Proposer un plan : le dessiner, ou en envoyer l'image. Un plan proposé
+ * s'ajoute à ceux de la fiche, il ne remplace jamais un plan publié.
+ */
+async function PlanContributeLinks({
+  slug,
+  improvePlanId,
+}: {
+  slug: string;
+  /** Le plan regardé, quand il appartient bien à ce lieu. */
+  improvePlanId?: string;
+}) {
+  const t = await getTranslations("Contributions.Place");
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      <Button asChild size="sm">
+        <Link href={`/lieux/${slug}/contribuer/dessin`}>
+          {t("planDrawn")}
+          <PointsChip points={POINTS.planDrawn} />
+        </Link>
+      </Button>
+      <Button asChild variant="outline" size="sm">
+        <Link href={`/lieux/${slug}/contribuer/plan`}>
+          {t("planImage")}
+          <PointsChip points={POINTS.planImage} />
+        </Link>
+      </Button>
+      {improvePlanId && (
+        <Button asChild variant="ghost" size="sm">
+          <Link href={`/lieux/${slug}/contribuer/plan?plan=${improvePlanId}`}>
+            {t("improvePlan")}
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }

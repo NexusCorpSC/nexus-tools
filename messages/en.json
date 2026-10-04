@@ -9,7 +9,8 @@
       "myProfile": "My Profile",
       "settings": "Settings",
       "signOut": "Sign Out",
-      "signIn": "Sign In"
+      "signIn": "Sign In",
+      "myContributions": "My contributions"
     },
     "openMenu": "Open menu",
     "openUserMenu": "Open user menu",
@@ -634,7 +635,7 @@
     "Empty": {
       "fill": "Fill in",
       "editorHint": "You can fill them in right now.",
-      "visitorHint": "An administrator will add them.",
+      "visitorHint": "You can add them: each completed section earns 10 points.",
       "item": {
         "title": "Fiche to complete",
         "description": "This object has no description, statistics or source yet.",
@@ -897,7 +898,9 @@
       "volatileNote": "Unstable cargo: carry it in a suitable container.",
       "transportNoteFallback": "No particular transport constraint.",
       "openCargo": "Add to the cargo sheet"
-    }
+    },
+    "proposeItem": "Suggest an item",
+    "suggestEdit": "Suggest a change"
   },
   "Places": {
     "home": "Home",
@@ -983,7 +986,7 @@
     "noShops": "No shop surveyed here.",
     "planTitle": "Plan",
     "noPlan": "No plan surveyed for {name}",
-    "noPlanHint": "The location is catalogued, but nobody has surveyed its plan yet. The locations inside may have one.",
+    "noPlanHint": "The location is catalogued, but nobody has surveyed its plan yet. The locations inside may have one, and you can suggest its own.",
     "suggestPlan": "Suggest a plan",
     "factType": "Type",
     "factSystem": "System",
@@ -1266,7 +1269,10 @@
     "planPlate": "Plate",
     "planPlateDownload": "Download as PNG",
     "planPlateExporting": "Exporting…",
-    "planPlateFailed": "The export failed."
+    "planPlateFailed": "The export failed.",
+    "imagesTitle": "Images",
+    "imagesCount": "{count, plural, one {# image} other {# images}}",
+    "missingPlace": "A location is missing here?"
   },
   "Shopping": {
     "home": "Home",
@@ -2371,5 +2377,414 @@
   "PlannedSession": {
     "tomorrow": "tomorrow {time}",
     "onDay": "{day} {time}"
+  },
+  "Contributions": {
+    "Gallery": {
+      "open": "View image",
+      "by": "by {name}",
+      "empty": "No images of this place yet. Be the first to add one.",
+      "add": "Add images",
+      "signInToAdd": "Sign in to add images",
+      "myPending": "{count, plural, one {Your image is awaiting review} other {Your # images are awaiting review}}",
+      "dialogTitle": "Add images",
+      "dialogDescription": "{name} · up to {max} images per upload",
+      "pick": "Choose",
+      "remove": "Remove image",
+      "constraints": "JPEG, PNG or WebP, 12 MB max.",
+      "captionFor": "Caption for image {index}",
+      "captionPlaceholder": "Metro platform to downtown",
+      "credit": "Credit",
+      "gameVersion": "Game version",
+      "rules": "In-game captures only, without personal UI or other players' names. New contributors' uploads are reviewed before publication; points are credited on publication.",
+      "cancel": "Cancel",
+      "send": "{count, plural, =0 {Send} one {Send image} other {Send # images}}",
+      "sendFailed": "Upload failed. Please try again.",
+      "published": "{count, plural, one {Image published} other {# images published}} · +{points} points",
+      "sentForReview": "{count, plural, one {Image sent} other {# images sent}} for review"
+    },
+    "errors": {
+      "unauthenticated": "Sign in to contribute.",
+      "placeNotFound": "This place no longer exists.",
+      "noMedia": "Choose at least one image.",
+      "tooManyMedia": "Six images at most per upload.",
+      "invalidMedia": "One of the images could not be accepted. Remove it and try again.",
+      "tooManyPending": "You already have five uploads awaiting review. Wait for them to be reviewed.",
+      "notFound": "This contribution no longer exists.",
+      "notPending": "This contribution has already been handled.",
+      "ownContribution": "A contribution must be reviewed by someone other than its author.",
+      "itemNotFound": "This item no longer exists.",
+      "invalidInput": "A field is not valid.",
+      "noChange": "Nothing differs from the entry.",
+      "duplicate": "This entry already exists, or someone already suggested it.",
+      "notAllowed": "This action isn't possible here.",
+      "messageRequired": "A message is required.",
+      "notPublished": "This contribution isn't published.",
+      "revertConflict": "The entry changed since this was published.",
+      "revertFailed": "The revert failed.",
+      "applyFailed": "The entry couldn't be updated. Try again.",
+      "suspended": "Your contributions are suspended by moderation for now."
+    },
+    "reasons": {
+      "inaccurate": "Inaccurate or unverifiable",
+      "offTopic": "Off topic: doesn't match this entry",
+      "quality": "Low quality: blurry, dark, too small",
+      "personalInterface": "Personal UI or player name visible",
+      "duplicate": "Duplicate of an existing image",
+      "copyright": "Used without permission",
+      "other": "Other (explain)",
+      "expired": "Not reworked within 14 days"
+    },
+    "Admin": {
+      "title": "Contributions",
+      "header": "{count, plural, one {# contribution awaiting review} other {# contributions awaiting review}}",
+      "headerEmpty": "Nothing awaiting review.",
+      "backToAdmin": "Back to admin",
+      "empty": "The queue is empty. New contributions will show up here.",
+      "allPending": "All contributions",
+      "kpiPending": "pending",
+      "kpiLate": "older than 3 days",
+      "kpiImages": "images to review",
+      "kpiAuthors": "authors",
+      "truncated": "Showing the oldest {shown} of {total}.",
+      "selectAll": "Select all",
+      "groupBy": "Group by",
+      "groupings": {
+        "author": "Author",
+        "target": "Place",
+        "none": "None"
+      },
+      "selectGroup": "Select group {name}",
+      "selectOne": "Select this contribution",
+      "groupSummary": "{contributions, plural, one {# contribution} other {# contributions}} · {images, plural, one {# image} other {# images}}",
+      "details": "Details",
+      "collapse": "Collapse",
+      "publishGroup": "{count, plural, one {Publish} other {Publish all #}}",
+      "publish": "Publish",
+      "reject": "Reject",
+      "gameVersion": "patch {version}",
+      "selectionLabel": "Actions on selection",
+      "selection": "{count, plural, one {# contribution selected} other {# contributions selected}} · {images, plural, one {# image} other {# images}}",
+      "clearSelection": "Clear",
+      "rejectSelection": "Reject…",
+      "publishSelection": "Publish selection",
+      "published": "{count, plural, =0 {No contribution published} one {Contribution published} other {# contributions published}}",
+      "rejected": "{count, plural, =0 {No contribution rejected} one {Contribution rejected} other {# contributions rejected}}",
+      "skipped": "{count, plural, one {One contribution was already handled} other {# contributions were already handled}}",
+      "failed": "The action failed. Please try again.",
+      "rejectTitle": "{count, plural, one {Reject contribution} other {Reject # contributions}}",
+      "rejectDescription": "The author will see the reason and your message. Rejected images are deleted.",
+      "rejectReason": "Reason",
+      "rejectMessage": "Message to the author (required for “Other”)",
+      "cancel": "Cancel",
+      "rejectConfirm": "{count, plural, one {Reject} other {Reject all #}}",
+      "kinds": {
+        "media": "Images",
+        "placeCreate": "New location",
+        "placeEdit": "Location edit",
+        "plan": "Plan",
+        "itemCreate": "New item",
+        "itemEdit": "Item edit"
+      },
+      "inParent": "in {name}",
+      "requestChanges": "Needs changes",
+      "requestChangesSelection": "Request changes…",
+      "requestChangesTitle": "{count, plural, one {Request changes} other {Request changes on #}}",
+      "requestChangesDescription": "The author reworks the proposal from their contributions. Without a rework within 14 days, it is rejected.",
+      "requestChangesMessage": "What needs to change (required)",
+      "requestChangesConfirm": "Send back to the author",
+      "changesRequested": "{count, plural, =0 {No contribution sent back} one {Contribution sent back to the author} other {# contributions sent back}}",
+      "shortcuts": "Shortcuts on the hovered row: P publish · C needs changes · R reject",
+      "diffField": "Field",
+      "diffBefore": "Before",
+      "diffAfter": "Proposed",
+      "source": "Source:",
+      "journalLink": "Journal",
+      "queueLink": "Review queue",
+      "journalTitle": "Contributions journal",
+      "journalHeader": "Direct publications are reviewed here after the fact; any publication can be reverted.",
+      "journalAll": "All",
+      "journalDirect": "Published without review",
+      "journalAllKinds": "All kinds",
+      "journalEmpty": "Nothing in the journal for these filters.",
+      "direct": "direct",
+      "decidedBy": "by {name}",
+      "revert": "Revert",
+      "reverted": "Publication reverted, points removed",
+      "conflictTitle": "The entry changed since",
+      "conflictDescription": "Later changes touched the same fields. Reverting restores the state before this contribution and overwrites what followed.",
+      "conflictPublished": "Published by the contribution",
+      "conflictNow": "Now",
+      "conflictConfirm": "Revert anyway",
+      "actionFailedFor": "“{name}”: {reason}",
+      "tabQueue": "Queue",
+      "tabReports": "Reports",
+      "tabJournal": "Log",
+      "tabsLabel": "Moderation"
+    },
+    "Form": {
+      "source": "Source (optional)",
+      "sourcePlaceholder": "Link, screenshot, patch notes…",
+      "sourceHint": "Where the information comes from. It helps the review.",
+      "gameVersion": "Game version",
+      "submit": "Send proposal",
+      "sendFailed": "Sending failed. Try again.",
+      "published": "Change published",
+      "publishedWithPoints": "Change published · +{points} points",
+      "sentForReview": "Proposal sent for review",
+      "renameLocked": "Renaming, moving or changing the kind of an entry requires level 4.",
+      "changesRequestedTitle": "A reviewer asked you to rework this proposal",
+      "levelDirect": "{level}: your change is published right away, then reviewed.",
+      "levelReviewed": "{level}: your proposal is reviewed before it is published.",
+      "editPlaceCrumb": "Suggest a change",
+      "editPlaceTitle": "Edit {name}",
+      "imagesElsewhere": "Images are added from the entry's gallery.",
+      "backToPlace": "Back to the location",
+      "newPlaceCrumb": "Suggest a location",
+      "newPlaceTitle": "Add a location inside {name}",
+      "newPlaceExisting": "Already listed: {names}.",
+      "planCrumb": "Suggest a plan",
+      "planEditTitle": "Improve the plan “{name}”",
+      "planNewTitle": "Send a plan of {name}",
+      "planImageHint": "Upload the plan image, then place markers for locations and services. A suggested plan is added to the entry; it never replaces one.",
+      "editItemTitle": "Complete {name}",
+      "itemPointsHint": "Filling an empty section earns {section} points, fixing a field {edit}.",
+      "backToItem": "Back to the item",
+      "newItemCrumb": "Suggest an item",
+      "newItemTitle": "Suggest an item",
+      "newItemHint": "Check first that it isn't listed under another name. The team adds the image."
+    },
+    "levels": {
+      "recruit": "Recruit",
+      "scout": "Scout",
+      "cartographer": "Cartographer",
+      "archivist": "Archivist",
+      "pillar": "Pillar"
+    },
+    "fields": {
+      "whole": "Whole entry",
+      "name": "Name",
+      "type": "Type",
+      "description": "Description",
+      "services": "Services",
+      "shopCategory": "Shop category",
+      "parentSlug": "Inside",
+      "plan": "Plan",
+      "kind": "Kind",
+      "category": "Category",
+      "subcategory": "Subcategory",
+      "manufacturer": "Manufacturer",
+      "size": "Size",
+      "tier": "Tier",
+      "statistics": "Statistics",
+      "obtention": "How to obtain",
+      "blueprintSlugs": "Blueprints",
+      "variantGroup": "Variant group",
+      "variantName": "Variant name",
+      "setId": "Set (key)",
+      "setName": "Set",
+      "vehicle": "Vehicle",
+      "weapon": "Weapon",
+      "resource": "Resource",
+      "images": "Published images"
+    },
+    "Mine": {
+      "title": "My contributions",
+      "intro": "What you added, what is waiting for review, and what was sent back to you.",
+      "level": "Level",
+      "points": "Points",
+      "acceptance": "Acceptance",
+      "pending": "Pending",
+      "toFixTitle": "{count, plural, one {# proposal needs changes} other {# proposals need changes}}",
+      "toFixHint": "A proposal that needs changes is rejected if not reworked within {days} days.",
+      "historyTitle": "History",
+      "empty": "Nothing yet. Start with a location or an item:",
+      "emptyPlaces": "locations",
+      "emptyItems": "items",
+      "fields": "Fields: {fields}",
+      "resume": "Resume",
+      "fix": "Fix",
+      "kinds": {
+        "media": "Images",
+        "placeCreate": "New location",
+        "placeEdit": "Location edit",
+        "plan": "Plan",
+        "itemCreate": "New item",
+        "itemEdit": "Item edit"
+      },
+      "statuses": {
+        "pending": "In review",
+        "publishing": "In progress",
+        "changesRequested": "Needs changes",
+        "published": "Published",
+        "rejected": "Rejected",
+        "reverted": "Reverted"
+      }
+    },
+    "Place": {
+      "menu": "Contribute",
+      "edit": "Suggest a change",
+      "addChild": "A location is missing here?",
+      "planImage": "Upload a plan image",
+      "planDrawn": "Draw the plan",
+      "improvePlan": "Improve this plan"
+    }
+  },
+  "Reports": {
+    "menu": "More actions",
+    "report": "Report",
+    "title": {
+      "place": "Report this place",
+      "placeMedia": "Report this image",
+      "plan": "Report this map",
+      "item": "Report this item",
+      "org": "Report this organization"
+    },
+    "types": {
+      "place": "Place",
+      "placeMedia": "Image",
+      "plan": "Map",
+      "item": "Item",
+      "org": "Organization"
+    },
+    "subtitle": "{name} · a moderator reviews every report",
+    "question": "What's wrong?",
+    "comment": "Details (optional except for “Other”)",
+    "commentRequired": "Details (required for “Other”)",
+    "cancel": "Cancel",
+    "send": "Send report",
+    "sending": "Sending…",
+    "doneTitle": "Thanks, noted",
+    "doneBody": "You'll see the decision in My contributions. If the report is upheld, it earns you {points} points.",
+    "doneFix": "Already know what's right? Suggest the fix directly.",
+    "proposeFix": "Suggest the fix",
+    "close": "Close",
+    "signIn": "Sign in",
+    "contested": "Disputed information: players report an error on this page, a moderator is checking.",
+    "contestedPlan": "Disputed map: players report an error, a moderator is checking.",
+    "reasons": {
+      "wrong": {
+        "label": "Wrong information",
+        "hint": "A wrong service, name, value or parent"
+      },
+      "outdated": {
+        "label": "Outdated since a patch",
+        "hint": "It was true, it isn't anymore"
+      },
+      "duplicate": {
+        "label": "Duplicate",
+        "hint": "This already exists under another name"
+      },
+      "media": {
+        "label": "Off-topic or poor-quality image",
+        "hint": "Off topic, unreadable, personal UI visible"
+      },
+      "offensive": {
+        "label": "Offensive content",
+        "hint": "Insults, hate speech"
+      },
+      "copyright": {
+        "label": "Copyright",
+        "hint": "Taken from a site or image without permission"
+      },
+      "spam": {
+        "label": "Spam",
+        "hint": "Advertising, unrelated links"
+      },
+      "other": {
+        "label": "Other",
+        "hint": "Explain in the field below"
+      }
+    },
+    "errors": {
+      "unauthenticated": "Sign in to report.",
+      "invalidTarget": "This can't be reported.",
+      "targetNotFound": "This no longer exists.",
+      "invalidReason": "Pick a reason.",
+      "commentRequired": "Describe the problem for “Other”.",
+      "ownContent": "You can't report your own content: suggest a fix instead.",
+      "alreadyReported": "You already reported this. A moderator is on it.",
+      "dailyLimit": "Ten reports a day at most. Try again tomorrow.",
+      "reportingSuspended": "Three of your reports in a row were dismissed: you can't report for 7 days.",
+      "notFound": "This case no longer exists.",
+      "notOpen": "This case was already decided.",
+      "invalidAction": "That decision isn't possible here.",
+      "contributionRequired": "Pick the contribution to revert.",
+      "actionFailed": "The decision couldn't be applied.",
+      "busy": "A moderator is deciding this report right now. Try again in a moment.",
+      "ownDossier": "You reported this or contributed to what is at fault: another moderator must decide.",
+      "notAllowed": "Removing this kind of element needs the right to edit it in admin.",
+      "failed": "Sending failed. Try again."
+    },
+    "Mine": {
+      "title": "My reports",
+      "hint": "An upheld report earns {points} points. Three dismissed reports in a row suspend reporting for 7 days.",
+      "statuses": {
+        "open": "Under review",
+        "resolved": "Upheld",
+        "dismissed": "Dismissed"
+      },
+      "suspended": "Your contributions are suspended by moderation until {date, date, medium}.",
+      "banned": "You can't report until {date, date, medium}: three of your reports in a row were dismissed.",
+      "warning": "Moderation warning of {date, date, medium}."
+    },
+    "Admin": {
+      "title": "Reports",
+      "header": "{count, plural, one {# open case} other {# open cases}}, heaviest first.",
+      "headerEmpty": "No open case.",
+      "hidden": "Hidden",
+      "weight": "weight {weight}",
+      "reporters": "{count, plural, one {# player} other {# players}}",
+      "gone": "This no longer exists in this form.",
+      "open": "View on site",
+      "edit": "Fix it yourself",
+      "reasonsTitle": "What it's reported for",
+      "entryBy": "by {name} (weight {weight}) · {date, date, short}",
+      "historyTitle": "Contribution history",
+      "historyBy": "by {name} · {date, date, short}",
+      "noHistory": "No contribution recorded on this element.",
+      "backToAdmin": "Back to admin",
+      "decision": "Decision",
+      "actions": {
+        "dismiss": {
+          "label": "Dismiss",
+          "hint": "Nothing wrong. Reporters earn nothing, a hidden element comes back.",
+          "submit": "Dismiss the case"
+        },
+        "correct": {
+          "label": "Fixed",
+          "hint": "You fixed it yourself. The report is upheld.",
+          "submit": "Mark as fixed"
+        },
+        "revert": {
+          "label": "Revert the contribution at fault",
+          "hint": "The previous state comes back and the author's points are taken back.",
+          "submit": "Revert the contribution"
+        },
+        "delete": {
+          "label": "Remove the element",
+          "hint": "Deletes the page, image or map. An organization leaves the public view, its members keep it.",
+          "submit": "Remove the element"
+        }
+      },
+      "contribution": "Contribution to revert",
+      "sanction": "Towards the author",
+      "sanctions": {
+        "none": "Nothing more",
+        "warn": "Warn",
+        "suspend": "Suspend contributions for 7 days"
+      },
+      "author": "Author",
+      "note": "Note (optional, shown to a warned author)",
+      "conflict": "The page changed since this contribution: reverting would overwrite those changes.",
+      "conflictConfirm": "Revert anyway",
+      "confirmDelete": "Confirm removal",
+      "done": {
+        "dismiss": "Case dismissed.",
+        "correct": "Case closed, report upheld.",
+        "revert": "Contribution reverted, report upheld.",
+        "delete": "Element removed, report upheld."
+      },
+      "ownDossier": "You reported this or contributed to what is at fault: another moderator must decide this case."
+    }
   }
 }
