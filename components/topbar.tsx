@@ -12,6 +12,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { countFriendsPlaying } from "@/lib/friends";
+import { getMyBadge } from "@/lib/gamification";
 
 const userNavigation = [
   { name: "myProfile", href: "/profile" },
@@ -56,7 +57,9 @@ export default async function Topbar() {
         .findOne({ _id: new ObjectId(session?.user?.id) })
     : null;
 
-  const friendsPlaying = user ? await countFriendsPlaying(user._id) : 0;
+  const [friendsPlaying, badge] = user
+    ? await Promise.all([countFriendsPlaying(user._id), getMyBadge(user._id)])
+    : [0, null];
 
   return (
     <header className="relative z-40 border-b border-[#9ED0FF]/15 bg-gray-800">
@@ -112,6 +115,16 @@ export default async function Topbar() {
               >
                 <span className="size-2 rounded-full bg-emerald-300" />
                 {t("friendsPlaying", { count: friendsPlaying })}
+              </Link>
+            ) : null}
+
+            {badge ? (
+              <Link
+                href="/contributions"
+                aria-label={t("contribBadge", badge)}
+                className="hidden h-9 shrink-0 items-center rounded-full border border-[#F5C46B]/45 px-3 font-mono text-xs font-bold text-[#F7D68F] hover:border-[#F5C46B]/70 lg:flex"
+              >
+                N{badge.level} · {badge.points}
               </Link>
             ) : null}
 

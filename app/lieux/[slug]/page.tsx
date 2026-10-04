@@ -20,6 +20,7 @@ import { POINTS } from "@/types/contributions";
 import { PlaceGallery } from "./gallery";
 import { PlanViewer } from "./plan-viewer";
 import { ContestedBanner, ReportMenu } from "@/components/report-menu";
+import { FicheCredits } from "@/components/fiche-credits";
 import { getContested } from "@/lib/reports";
 import {
   PlaceBreadcrumb,
@@ -304,6 +305,8 @@ export default async function PlacePage({
               </Link>
             )}
           </div>
+
+          <FicheCredits type="place" slug={place.slug} />
         </div>
       )}
 

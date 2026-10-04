@@ -70,6 +70,8 @@ import {
   levelForPoints,
 } from "@/types/contributions";
 
+import { evaluateAchievements, isReached } from "@/lib/achievements";
+
 export { ContributionError, type Contributor } from "@/lib/contribution-store";
 
 /**
@@ -255,6 +257,60 @@ export async function getStanding(
         ? suspendedUntil.toISOString()
         : undefined,
   };
+}
+
+/**
+ * Après tout ce qui change les points ou la fiabilité d'un joueur : son niveau
+ * est réécrit sur son compte, pour les crédits et le classement, et les succès
+ * qu'il vient d'atteindre sont débloqués. Ne lève jamais : la publication ou
+ * la décision qui l'appelle est déjà faite.
+ */
+export async function refreshProgress(userId: ObjectId): Promise<void> {
+  try {
+    const [standing, user] = await Promise.all([
+      getStanding(userId),
+      users().findOne(
+        { _id: userId },
+        { projection: { "contrib.level": 1, "contrib.achievements": 1 } },
+      ),
+    ]);
+    const now = new Date();
+    const previous = user?.contrib?.level;
+    const reached = (
+      await evaluateAchievements(userId, user?.contrib?.achievements)
+    ).filter(isReached);
+
+    await users().updateOne(
+      { _id: userId },
+      {
+        $set: {
+          "contrib.level": standing.level,
+          // Le premier calcul n'est pas une montée : rien à annoncer.
+          ...(previous !== undefined && standing.level > previous
+            ? { "contrib.levelUp": { level: standing.level, at: now } }
+            : {}),
+        },
+      },
+    );
+    for (const achievement of reached) {
+      // Le filtre fait qu'un succès débloqué deux fois en même temps ne
+      // s'enregistre qu'une fois.
+      await users().updateOne(
+        { _id: userId, "contrib.achievements.id": { $ne: achievement.id } },
+        {
+          $push: {
+            "contrib.achievements": {
+              id: achievement.id,
+              at: now,
+              ...(achievement.name ? { name: achievement.name } : {}),
+            },
+          },
+        },
+      );
+    }
+  } catch (error) {
+    console.error("Progression du contributeur impossible", error);
+  }
 }
 
 // ─── Envoi d'images ─────────────────────────────────────────────────────────
@@ -808,6 +864,7 @@ async function publish(
   } catch (error) {
     console.error("Crédit de contribution impossible", error);
   }
+  await refreshProgress(contribution.userId);
 
   // La vignette se voit partout où le lieu est cité : elle ne vient que d'une
   // image qu'un humain a regardée, et ne remplace jamais celle d'un admin.
@@ -922,6 +979,8 @@ export async function rejectContribution(
     await deleteBlobs(media.map((image) => image.url));
   }
 
+  // Un refus pèse sur la fiabilité, donc parfois sur le niveau.
+  await refreshProgress(contribution.userId);
   return toContribution(updated);
 }
 
@@ -1074,6 +1133,8 @@ export async function revertContribution(
       console.error("Décompte de contribution impossible", error);
     }
   }
+  // Une annulation compte comme un refus dans la fiabilité, points ou non.
+  await refreshProgress(contribution.userId);
 
   return toContribution(updated!);
 }

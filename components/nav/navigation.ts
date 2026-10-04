@@ -19,6 +19,7 @@ import {
   Star,
   Store,
   Tag,
+  Trophy,
   User,
   UserRound,
   Users,
@@ -107,6 +108,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { id: "squads", href: "/squads", icon: Crosshair },
       { id: "organizations", href: "/orgs", icon: Building2 },
       { id: "events", href: "/events", icon: CalendarDays },
+      { id: "leaderboard", href: "/classement", icon: Trophy },
     ],
   },
 ];

@@ -112,9 +112,14 @@
         "events": {
           "label": "Events",
           "description": "Upcoming outings, public and from your orgs"
+        },
+        "leaderboard": {
+          "label": "Leaderboard",
+          "description": "This month's and all-time contributors"
         }
       }
-    }
+    },
+    "contribBadge": "My contributions: {points} points, level {level}"
   },
   "Industry": {
     "home": "Home",
@@ -2618,7 +2623,25 @@
         "published": "Published",
         "rejected": "Rejected",
         "reverted": "Reverted"
-      }
+      },
+      "statPublished": "published",
+      "statPending": "pending",
+      "statToFix": "to fix",
+      "statRejected": "rejected",
+      "pointsOf": "{points} / {next} pts",
+      "pointsOnly": "{points} pts",
+      "nextLevel": "{name} at {points} points, with at least {rate} of contributions accepted.",
+      "yourRate": "You: {rate}.",
+      "rateHeld": "Your recent acceptance rate is below {rate}: your contributions are reviewed first again.",
+      "unlocks": {
+        "2": "It publishes your images without review.",
+        "3": "It unlocks direct publishing of edits.",
+        "4": "It allows renaming and moving places."
+      },
+      "maxLevel": "The last level earned with points. Pillar of the 'verse is granted by an admin.",
+      "trustFixed": "Level set by an admin.",
+      "historyHint": "Points arrive on publication",
+      "pointsOnPublish": "+{points} on publication"
     },
     "Place": {
       "menu": "Contribute",
@@ -2627,6 +2650,129 @@
       "planImage": "Upload a plan image",
       "planDrawn": "Draw the plan",
       "improvePlan": "Improve this plan"
+    },
+    "Achievements": {
+      "title": "Achievements · {done} of {total}",
+      "recent": "Achievement unlocked",
+      "unlockedOn": "On {date, date, long}",
+      "progress": "{current} of {goal}",
+      "tiers": {
+        "bronze": "bronze",
+        "silver": "silver",
+        "gold": "gold"
+      },
+      "firstStep": {
+        "title": "First step",
+        "description": "A first published contribution."
+      },
+      "pioneer": {
+        "title": "Pioneer · {tier}",
+        "description": "The first image of {goal, plural, one {# place} other {# places}} that had none."
+      },
+      "cartographer": {
+        "title": "Cartographer of {name}",
+        "description": "A published plan in every district of {name}."
+      },
+      "tour": {
+        "title": "Tour of {name}",
+        "description": "A contribution on every planet of {name}."
+      },
+      "versatile": {
+        "title": "Versatile",
+        "description": "At least one published contribution of each type."
+      },
+      "guardian": {
+        "title": "Guardian",
+        "description": "{goal} upheld reports."
+      },
+      "reliable": {
+        "title": "Reliable",
+        "description": "{goal} reviewed contributions in a row without a rejection."
+      }
+    },
+    "Leaderboard": {
+      "title": "Leaderboard",
+      "titleMonth": "Leaderboard · {date, date, ::MMMM}",
+      "intro": "The contributors who enrich the catalogue. Points arrive when a contribution is published.",
+      "month": "This month",
+      "all": "All time",
+      "players": "Players",
+      "orgs": "Organizations",
+      "full": "Full",
+      "you": "You",
+      "hintMonth": "Points earned this month.",
+      "hintAll": "Points earned since the start.",
+      "hintOrgs": "The sum of their members' points.",
+      "hide": "Hide my name in settings",
+      "hidden": "You are hidden from the leaderboard.",
+      "show": "Come back in settings",
+      "unranked": "No points yet in this period.",
+      "empty": "Nobody has points in this period yet.",
+      "members": "{count, plural, one {# member} other {# members}}",
+      "periodLabel": "Period",
+      "scopeLabel": "Who"
+    },
+    "Credits": {
+      "title": "Enriched by",
+      "count": "{count, plural, one {# contrib.} other {# contrib.}}",
+      "others": "and {count, plural, one {# other contributor} other {# other contributors}}",
+      "updated": "Last updated on {date, date, long}",
+      "level": "Level {level}"
+    },
+    "People": {
+      "title": "Contributors",
+      "intro": "Ranked by points, with reliability and reports upheld against their content.",
+      "search": "Search a name",
+      "searchSubmit": "Search",
+      "empty": "No contributor.",
+      "colName": "Name",
+      "colLevel": "Level",
+      "colPoints": "Points",
+      "colPublished": "Published",
+      "colRate": "Acceptance",
+      "colReports": "Upheld reports",
+      "fixed": "set",
+      "suspendedUntil": "Suspended until {date, date, medium}",
+      "detailTitle": "{name}",
+      "self": "This is your account: another admin handles it.",
+      "trust": "Trust level",
+      "trustAuto": "Automatic, from points",
+      "trustHint": "A set level overrides points and reliability, both ways.",
+      "trustSave": "Set level",
+      "adjust": "Adjust points",
+      "adjustPoints": "Points (negative to remove)",
+      "adjustReason": "Reason, written to the ledger",
+      "adjustSave": "Adjust",
+      "adminOnly": "Levels and points are set by an admin.",
+      "sanction": "Warn or suspend",
+      "note": "Message (optional)",
+      "warn": "Warn",
+      "suspendDays": "Duration (days)",
+      "suspend": "Suspend",
+      "lift": "Lift suspension",
+      "warnings": "Warnings",
+      "noWarnings": "No warning.",
+      "ledger": "Points ledger",
+      "noLedger": "No entry.",
+      "reasons": {
+        "published": "Publication",
+        "firstMedia": "First image of a place",
+        "plan": "Plan",
+        "reverted": "Revert",
+        "removed": "Image removed",
+        "report": "Upheld report",
+        "adjust": "Adjustment"
+      },
+      "done": "Saved.",
+      "errors": {
+        "notFound": "This account no longer exists.",
+        "notAllowed": "Admins only.",
+        "self": "You cannot handle your own account.",
+        "invalidLevel": "Pick a level from 1 to 5.",
+        "invalidPoints": "A whole number, not zero, up to 1000.",
+        "reasonRequired": "Give a reason.",
+        "invalidDays": "From 1 to 90 days."
+      }
     }
   },
   "Reports": {

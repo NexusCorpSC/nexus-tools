@@ -8,6 +8,7 @@ import { ITEMS_EDIT_PERMISSION, type ItemDetails } from "@/types/items";
 import { OpenContributionsBanner } from "@/app/contributions/open-banner";
 import { ContestedBanner } from "@/components/report-menu";
 import { getContested } from "@/lib/reports";
+import { FicheCredits } from "@/components/fiche-credits";
 import { ResourceView } from "./views/resource-view";
 import { StandardView } from "./views/standard-view";
 import { VehicleView } from "./views/vehicle-view";
@@ -92,6 +93,9 @@ export default async function ItemDetailPage({
         className="mx-2 mt-2 max-w-7xl md:mx-auto"
       />
       <ItemView item={item} canEdit={canEdit} />
+      <div className="mx-2 mb-2 max-w-7xl md:mx-auto">
+        <FicheCredits type="item" slug={item.slug} />
+      </div>
     </>
   );
 }

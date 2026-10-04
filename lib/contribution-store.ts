@@ -46,7 +46,24 @@ export interface DbUser {
     reportBanUntil?: Date;
     /** Plus de contribution jusque-là, sur décision de la modération. */
     suspendedUntil?: Date;
-    warnings?: { at: Date; by: ObjectId; reportId: ObjectId; note?: string }[];
+    warnings?: {
+      at: Date;
+      by: ObjectId;
+      /** Absent pour un avertissement donné depuis la fiche du contributeur. */
+      reportId?: ObjectId;
+      note?: string;
+    }[];
+    /**
+     * Le niveau au dernier recalcul (`refreshProgress`) : ce que les crédits
+     * et le classement affichent sans relire toutes ses contributions.
+     */
+    level?: number;
+    /** La dernière montée de niveau, pour la notifier. */
+    levelUp?: { level: number; at: Date };
+    /** Les succès débloqués ; un succès débloqué le reste. */
+    achievements?: { id: string; at: Date; name?: string }[];
+    /** Retiré du classement public, par lui-même dans les réglages. */
+    hideFromLeaderboard?: boolean;
   };
 }
 
@@ -124,7 +141,12 @@ export interface DbPointEvent {
     /** Une image retirée sur signalement : ses points repartent. */
     | "removed"
     /** Un signalement retenu. */
-    | "report";
+    | "report"
+    /** Un ajustement d'un admin, avec son motif. */
+    | "adjust";
+  /** Le motif d'un ajustement, et qui l'a fait. */
+  note?: string;
+  by?: ObjectId;
   placeSlug?: string;
   planKey?: string;
   at: Date;
