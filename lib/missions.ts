@@ -120,3 +120,58 @@ export async function listMissionsAt(
     .toArray();
   return docs.map((doc) => ({ id: String(doc._id), title: doc.title }));
 }
+
+/**
+ * L'étape `$lookup` qui joint ses blueprints à une mission (`blueprintDetails`).
+ * Pour un joueur connecté, chacun porte `owned` : possédé, ou débloqué par
+ * défaut pour tout le monde. Sans `userId`, pas de `owned` du tout, pour ne
+ * pas afficher « Non possédé » à qui ne s'est pas connecté.
+ */
+export function missionBlueprintsLookup(userId?: string) {
+  const ownership = userId
+    ? [
+        {
+          $lookup: {
+            from: "user-blueprints",
+            let: { bpId: { $toString: "$_id" } },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$blueprintId", "$$bpId"] },
+                      { $eq: ["$userId", userId] },
+                    ],
+                  },
+                },
+              },
+            ],
+            as: "ownership",
+          },
+        },
+        {
+          $addFields: {
+            owned: {
+              $or: [
+                { $eq: ["$isDefault", true] },
+                { $gt: [{ $size: "$ownership" }, 0] },
+              ],
+            },
+          },
+        },
+        { $project: { ownership: 0 } },
+      ]
+    : [];
+
+  return {
+    $lookup: {
+      from: "blueprints",
+      let: { blueprintIds: "$blueprints" },
+      pipeline: [
+        { $match: { $expr: { $in: ["$_id", "$$blueprintIds"] } } },
+        ...ownership,
+      ],
+      as: "blueprintDetails",
+    },
+  };
+}
