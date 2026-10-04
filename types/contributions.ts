@@ -232,7 +232,7 @@ export const POINTS = {
   orgCreate: 2,
   /** Une donnée confirmée, dans la limite de `CONFIRM_DAILY_CAP` par jour. */
   confirm: 1,
-  /** Une relecture décidée (publiée ou refusée), à partir de `REVIEW_POINTS_LEVEL`. */
+  /** Une relecture décidée (publiée ou refusée), à partir de `REVIEW_LEVEL`. */
   review: 1,
 } as const;
 
@@ -295,8 +295,12 @@ export const DIRECT_EDIT_DAILY_CAP = 20;
 /** Renommer un lieu ou un objet, déplacer un lieu, changer un type d'objet. */
 export const RENAME_LEVEL = 4;
 
-/** À partir de ce niveau, une relecture décidée rapporte `POINTS.review`. */
-export const REVIEW_POINTS_LEVEL = 4;
+/**
+ * À partir de ce niveau, un joueur relit les contributions des autres sur
+ * `/contributions/review`, et chaque relecture décidée lui rapporte
+ * `POINTS.review`.
+ */
+export const REVIEW_LEVEL = 4;
 
 /** Une contribution à corriger sans reprise après ce délai est refusée. */
 export const CHANGES_REQUESTED_TTL_DAYS = 14;

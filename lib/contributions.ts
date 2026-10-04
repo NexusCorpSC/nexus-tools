@@ -57,7 +57,7 @@ import {
   MIN_ACCEPTANCE_RATE,
   MIN_REVIEWED_FOR_RATE,
   POINTS,
-  REVIEW_POINTS_LEVEL,
+  REVIEW_LEVEL,
   REPEAT_EDIT_WINDOW_MS,
   type Contribution,
   type ContributionChange,
@@ -941,13 +941,13 @@ export async function publishContribution(
 
 /**
  * Une relecture décidée rapporte au relecteur, à partir de
- * `REVIEW_POINTS_LEVEL`. Une contribution ne se décide qu'une fois : publiée
+ * `REVIEW_LEVEL`. Une contribution ne se décide qu'une fois : publiée
  * ou refusée. Ne lève jamais : la décision est déjà acquise.
  */
 async function creditReview(reviewer: Contributor, contributionId: ObjectId) {
   try {
     const standing = await getStanding(reviewer.id);
-    if (standing.level < REVIEW_POINTS_LEVEL) return;
+    if (standing.level < REVIEW_LEVEL) return;
     await pointEvents().insertOne({
       userId: reviewer.id,
       contributionId,
@@ -1289,22 +1289,29 @@ async function withMedia(
 /** La file d'attente, la plus ancienne d'abord, avec de quoi juger sur pièce. */
 export async function listPendingContributions(
   limit = 300,
+  /** Un relecteur joueur ne voit pas ses propres contributions. */
+  exceptUserId?: ObjectId,
 ): Promise<{ items: PendingContribution[]; total: number }> {
   await expireChangesRequested();
+  const filter: Filter<DbContribution> = {
+    status: "pending",
+    ...(exceptUserId ? { userId: { $ne: exceptUserId } } : {}),
+  };
   const [docs, total] = await Promise.all([
-    contributions()
-      .find({ status: "pending" })
-      .sort({ createdAt: 1 })
-      .limit(limit)
-      .toArray(),
-    contributions().countDocuments({ status: "pending" }),
+    contributions().find(filter).sort({ createdAt: 1 }).limit(limit).toArray(),
+    contributions().countDocuments(filter),
   ]);
 
   return { total, items: await withMedia(docs) };
 }
 
-export async function countPendingContributions(): Promise<number> {
-  return contributions().countDocuments({ status: "pending" });
+export async function countPendingContributions(
+  exceptUserId?: ObjectId,
+): Promise<number> {
+  return contributions().countDocuments({
+    status: "pending",
+    ...(exceptUserId ? { userId: { $ne: exceptUserId } } : {}),
+  });
 }
 
 export const JOURNAL_STATUSES = [

@@ -2806,7 +2806,9 @@
       "maxLevel": "Le dernier niveau qui se gagne. Pilier du 'verse est attribué par un admin.",
       "trustFixed": "Niveau fixé par un admin.",
       "historyHint": "Les points arrivent à la publication",
-      "pointsOnPublish": "+{points} à la publication"
+      "pointsOnPublish": "+{points} à la publication",
+      "reviewLink": "Relire les contributions des autres",
+      "reviewHint": "{count, plural, =0 {Rien en attente.} one {# contribution en attente.} other {# contributions en attente.}}"
     },
     "Place": {
       "menu": "Contribuer",
@@ -2976,6 +2978,11 @@
         "commentPlaceholder": "Où l'avez-vous obtenu, ou que dit le jeu maintenant ?",
         "fix": "Corriger"
       }
+    },
+    "Review": {
+      "title": "Relire les contributions",
+      "intro": "En tant qu'Archiviste, vous relisez les contributions des autres joueurs : publiez ce qui est juste, renvoyez à corriger ou refusez le reste. Chaque relecture décidée rapporte",
+      "back": "Retour à mes contributions"
     }
   },
   "Reports": {

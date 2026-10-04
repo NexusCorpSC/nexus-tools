@@ -2775,7 +2775,9 @@
       "maxLevel": "The last level earned with points. Pillar of the 'verse is granted by an admin.",
       "trustFixed": "Level set by an admin.",
       "historyHint": "Points arrive on publication",
-      "pointsOnPublish": "+{points} on publication"
+      "pointsOnPublish": "+{points} on publication",
+      "reviewLink": "Review other players' contributions",
+      "reviewHint": "{count, plural, =0 {Nothing pending.} one {# contribution pending.} other {# contributions pending.}}"
     },
     "Place": {
       "menu": "Contribute",
@@ -2945,6 +2947,11 @@
         "commentPlaceholder": "Where did you get it, or what does the game say now?",
         "fix": "Fix"
       }
+    },
+    "Review": {
+      "title": "Review contributions",
+      "intro": "As an Archivist, you review other players' contributions: publish what is right, send back for changes or reject the rest. Each decided review earns",
+      "back": "Back to my contributions"
     }
   },
   "Reports": {

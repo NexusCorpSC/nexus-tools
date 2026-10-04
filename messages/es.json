@@ -2768,7 +2768,9 @@
       "maxLevel": "El último nivel que se puede ganar. Pilar del 'verse lo asigna un admin.",
       "trustFixed": "Nivel fijado por un admin.",
       "historyHint": "Los puntos llegan al publicarse",
-      "pointsOnPublish": "+{points} al publicarse"
+      "pointsOnPublish": "+{points} al publicarse",
+      "reviewLink": "Revisar las contribuciones de otros",
+      "reviewHint": "{count, plural, =0 {Nada pendiente.} one {# contribución pendiente.} other {# contribuciones pendientes.}}"
     },
     "Place": {
       "menu": "Contribuir",
@@ -2938,6 +2940,11 @@
         "commentPlaceholder": "¿Dónde lo conseguiste, o qué dice el juego ahora?",
         "fix": "Corregir"
       }
+    },
+    "Review": {
+      "title": "Revisar contribuciones",
+      "intro": "Como Archivista, revisas las contribuciones de otros jugadores: publica lo que es correcto, devuelve para corregir o rechaza el resto. Cada revisión decidida da",
+      "back": "Volver a mis contribuciones"
     }
   },
   "Reports": {
