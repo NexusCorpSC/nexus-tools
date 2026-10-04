@@ -1876,8 +1876,48 @@
     "connectToUse": "Sign in to your account to note and keep track of your reputations. Share them with your guildmates!",
     "backToHome": "Back to home page.",
     "noFactions": "Factions are not configured by administrator.",
-    "selectCurrentLevelInstructions": "Select your current level (completed) for each faction.",
-    "clearSelection": "Clear"
+    "selectCurrentLevelInstructions": "Your rank with each faction, as shown in the mobiGlas Reputation tab. Click the bar to change it: it is saved immediately.",
+    "trackedFactions": "Tracked factions",
+    "maxedRanks": "Max ranks",
+    "searchLabel": "Search a faction, career or rank",
+    "searchPlaceholder": "Faction, career or rank…",
+    "viewLabel": "Show",
+    "view": {
+      "all": "All",
+      "started": "Started",
+      "todo": "Not started"
+    },
+    "familyLabel": "Career type",
+    "family": {
+      "all": "All",
+      "guild": "Guilds",
+      "hauling": "Hauling",
+      "faction": "Faction contracts",
+      "trade": "Trade"
+    },
+    "group": {
+      "guild": "Guilds and trades",
+      "hauling": "Hauling",
+      "faction": "Faction contracts",
+      "trade": "Trade"
+    },
+    "noMatchTitle": "No faction matches",
+    "noMatchHint": "Try another name, or show all factions.",
+    "lawful": "lawful",
+    "unlawful": "unlawful",
+    "removed": "removed from the game in {version}",
+    "maxBadge": "Max rank",
+    "noCareer": "No career for this faction.",
+    "rankOf": "{career} rank with {faction}",
+    "ladderOf": "{career} ladder",
+    "nextRank": "Next rank: {rank}",
+    "nextRankWithRep": "Next rank: {rank} · {rep} reputation",
+    "topRank": "Highest rank of this ladder.",
+    "standing": "Standing",
+    "requiredRep": "required reputation",
+    "startingRank": "starting rank",
+    "savedHint": "Your rank is saved immediately and visible to the members of your organizations.",
+    "saveFailed": "Your reputation could not be saved. Please try again."
   },
   "OrganizationReputations": {
     "title": "Members reputations",

@@ -90,4 +90,6 @@ export async function setPlayerReputationStandingAction(
         },
       },
     );
+
+  revalidatePath("/reps");
 }
