@@ -4,13 +4,17 @@ import { countPendingContributions } from "@/lib/contributions";
 import { countOpenReports } from "@/lib/reports";
 import { cn } from "@/lib/utils";
 
-/** Les onglets de la modération : la file, les signalements, le journal. */
+/**
+ * Les onglets de la modération : la file, les signalements, le journal, les
+ * contributeurs.
+ */
 export async function ModerationTabs({
   current,
 }: {
-  current: "queue" | "reports" | "journal";
+  current: "queue" | "reports" | "journal" | "people";
 }) {
   const t = await getTranslations("Contributions.Admin");
+  const tPeople = await getTranslations("Contributions.People");
   const [pending, reports] = await Promise.all([
     countPendingContributions(),
     countOpenReports(),
@@ -35,6 +39,13 @@ export async function ModerationTabs({
       key: "journal",
       href: "/admin/contributions/journal",
       label: t("tabJournal"),
+      count: 0,
+      warn: false,
+    },
+    {
+      key: "people",
+      href: "/admin/contributions/contributeurs",
+      label: tPeople("title"),
       count: 0,
       warn: false,
     },

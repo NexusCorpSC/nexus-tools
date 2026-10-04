@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { setLeaderboardHiddenAction } from "./actions";
 
 export function AddPasskeyForm() {
   const [name, setName] = useState("");
@@ -39,5 +40,51 @@ export function AddPasskeyForm() {
         {loading ? "Ajout..." : "Ajouter"}
       </Button>
     </form>
+  );
+}
+
+/** La case « Masquer mon nom du classement », enregistrée dès qu'on la coche. */
+export function LeaderboardVisibilityToggle({
+  initialHidden,
+}: {
+  initialHidden: boolean;
+}) {
+  const [hidden, setHidden] = useState(initialHidden);
+  const [pending, startTransition] = useTransition();
+
+  function toggle(next: boolean) {
+    setHidden(next);
+    startTransition(async () => {
+      try {
+        await setLeaderboardHiddenAction(next);
+        toast.success(
+          next
+            ? "Votre nom n'apparaît plus dans le classement."
+            : "Votre nom apparaît de nouveau dans le classement.",
+        );
+      } catch {
+        setHidden(!next);
+        toast.error("L'enregistrement a échoué. Réessayez.");
+      }
+    });
+  }
+
+  return (
+    <label className="flex cursor-pointer items-start gap-3 text-sm">
+      <input
+        type="checkbox"
+        checked={hidden}
+        disabled={pending}
+        onChange={(event) => toggle(event.target.checked)}
+        className="mt-0.5 size-4 accent-[#9ED0FF]"
+      />
+      <span>
+        Masquer mon nom du classement des contributeurs
+        <small className="mt-0.5 block text-xs text-muted-foreground">
+          Vos points restent comptés, et continuent de compter dans ceux de vos
+          organisations.
+        </small>
+      </span>
+    </label>
   );
 }

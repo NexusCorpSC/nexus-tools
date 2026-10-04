@@ -404,6 +404,9 @@ async function ensureContributions(database: Db) {
     { reportId: 1, userId: 1 },
     { unique: true, partialFilterExpression: { reason: "report" } },
   );
+
+  // Le classement depuis toujours, et l'onglet Contributeurs.
+  await database.collection("users").createIndex({ "contrib.points": -1 });
 }
 
 // ─── Signalements ─────────────────────────────────────────────────────────────
@@ -423,6 +426,8 @@ async function ensureReports(database: Db) {
   await reports.createIndex({ status: 1, weight: -1, updatedAt: -1 });
   await reports.createIndex({ "entries.userId": 1, "entries.at": -1 });
   await reports.createIndex({ "target.type": 1, "target.slug": 1, status: 1 });
+  // Les dossiers retenus contre le contenu d'un contributeur.
+  await reports.createIndex({ "resolution.authorIds": 1 });
 
   const log = database.collection("moderationLog");
   await log.createIndex({ at: -1 });

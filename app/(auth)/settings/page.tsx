@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { AddPasskeyForm } from "./components";
+import { ObjectId } from "mongodb";
+import { isHiddenFromLeaderboard } from "@/lib/gamification";
+import { AddPasskeyForm, LeaderboardVisibilityToggle } from "./components";
 
 export const metadata: Metadata = {
   title: "Paramètres",
@@ -18,9 +20,10 @@ export default async function ProfilePage() {
     return <>Not authenticated.</>;
   }
 
-  const passKeys = await auth.api.listPasskeys({
-    headers: await headers(),
-  });
+  const [passKeys, hidden] = await Promise.all([
+    auth.api.listPasskeys({ headers: await headers() }),
+    isHiddenFromLeaderboard(new ObjectId(session.user.id)),
+  ]);
 
   return (
     <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
@@ -49,6 +52,11 @@ export default async function ProfilePage() {
       )}
 
       <AddPasskeyForm />
+
+      <h2 id="classement" className="scroll-mt-20 pt-4 text-xl font-semibold">
+        Classement
+      </h2>
+      <LeaderboardVisibilityToggle initialHidden={hidden} />
 
     </div>
   );

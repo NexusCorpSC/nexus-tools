@@ -24,6 +24,7 @@ import { updatePlans } from "@/lib/contribution-catalog";
 import {
   ContributionError,
   getStanding,
+  refreshProgress,
   revertContribution,
 } from "@/lib/contributions";
 import { isPlacePlanRef, planImage, type PlacePlan } from "@/types/places";
@@ -114,6 +115,8 @@ export interface DbReport {
     contributionId?: ObjectId;
     sanction?: ReportSanction;
     authorId?: ObjectId;
+    /** Les auteurs du contenu en cause, pour un dossier retenu. */
+    authorIds?: ObjectId[];
   };
 }
 
@@ -872,6 +875,7 @@ async function removeMedia(mediaId: ObjectId, moderator: Contributor) {
         { $inc: { "contrib.points": -POINTS.media } },
       );
     }
+    await refreshProgress(media.userId);
   } catch (error) {
     console.error("Décompte d'image impossible", error);
   }
@@ -952,6 +956,7 @@ async function rewardReporters(report: DbReport, at: Date) {
         console.error("Crédit de signalement impossible", error);
       }
     }
+    await refreshProgress(entry.userId);
   }
 }
 
@@ -1057,6 +1062,7 @@ export async function resolveReport(
 
   let contributionId: ObjectId | undefined;
   let authorId: ObjectId | undefined;
+  let authorIds: ObjectId[] = [];
   try {
     if (!REPORT_ACTIONS_BY_TARGET[report.target.type].includes(input.action)) {
       throw new ReportError("invalidAction", 400);
@@ -1068,6 +1074,7 @@ export async function resolveReport(
 
     const history = await historyOf(report.target);
     const authors = await authorsOf(report.target, history);
+    authorIds = authors.map((author) => new ObjectId(author.id));
     // On ne tranche ni ce qu'on a signalé, ni ce qu'on a écrit : comme une
     // contribution, un dossier se fait juger par quelqu'un d'autre.
     if (
@@ -1131,6 +1138,9 @@ export async function resolveReport(
           contributionId,
           sanction: input.sanction,
           authorId,
+          // Ce qui est retenu compte contre ses auteurs, dans l'onglet
+          // Contributeurs.
+          ...(upheld && authorIds.length > 0 ? { authorIds } : {}),
         },
       },
       $unset: { resolving: "" },

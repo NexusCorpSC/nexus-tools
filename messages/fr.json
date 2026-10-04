@@ -112,9 +112,14 @@
         "events": {
           "label": "Évènements",
           "description": "Les sorties à venir, publiques et de vos orgas"
+        },
+        "leaderboard": {
+          "label": "Classement",
+          "description": "Les contributeurs du mois et de toujours"
         }
       }
-    }
+    },
+    "contribBadge": "Mes contributions : {points} points, niveau {level}"
   },
   "HomePage": {
     "title": "Bienvenue !",
@@ -2649,7 +2654,25 @@
         "published": "Publiée",
         "rejected": "Refusée",
         "reverted": "Annulée"
-      }
+      },
+      "statPublished": "{count, plural, one {publiée} other {publiées}}",
+      "statPending": "en attente",
+      "statToFix": "à corriger",
+      "statRejected": "{count, plural, one {refusée} other {refusées}}",
+      "pointsOf": "{points} / {next} pts",
+      "pointsOnly": "{points} pts",
+      "nextLevel": "{name} à {points} points, avec au moins {rate} de contributions acceptées.",
+      "yourRate": "Vous : {rate}.",
+      "rateHeld": "Votre taux d'acceptation récent est sous {rate} : vos contributions repassent par la relecture.",
+      "unlocks": {
+        "2": "Il publie vos images sans relecture.",
+        "3": "Il débloque la publication directe des modifications.",
+        "4": "Il ouvre le renommage et le déplacement des lieux."
+      },
+      "maxLevel": "Le dernier niveau qui se gagne. Pilier du 'verse est attribué par un admin.",
+      "trustFixed": "Niveau fixé par un admin.",
+      "historyHint": "Les points arrivent à la publication",
+      "pointsOnPublish": "+{points} à la publication"
     },
     "Place": {
       "menu": "Contribuer",
@@ -2658,6 +2681,129 @@
       "planImage": "Envoyer une image du plan",
       "planDrawn": "Dessiner le plan",
       "improvePlan": "Améliorer ce plan"
+    },
+    "Achievements": {
+      "title": "Succès · {done} sur {total}",
+      "recent": "Succès débloqué",
+      "unlockedOn": "Le {date, date, long}",
+      "progress": "{current} sur {goal}",
+      "tiers": {
+        "bronze": "bronze",
+        "silver": "argent",
+        "gold": "or"
+      },
+      "firstStep": {
+        "title": "Premier pas",
+        "description": "Une première contribution publiée."
+      },
+      "pioneer": {
+        "title": "Pionnier · {tier}",
+        "description": "La première image de {goal, plural, one {# lieu} other {# lieux}} qui n'en avaient aucune."
+      },
+      "cartographer": {
+        "title": "Cartographe de {name}",
+        "description": "Un plan publié dans chaque quartier de {name}."
+      },
+      "tour": {
+        "title": "Tour de {name}",
+        "description": "Une contribution sur chaque planète de {name}."
+      },
+      "versatile": {
+        "title": "Polyvalent",
+        "description": "Au moins une contribution publiée de chaque type."
+      },
+      "guardian": {
+        "title": "Gardien",
+        "description": "{goal} signalements retenus."
+      },
+      "reliable": {
+        "title": "Fiable",
+        "description": "{goal} contributions relues d'affilée sans un refus."
+      }
+    },
+    "Leaderboard": {
+      "title": "Classement",
+      "titleMonth": "Classement · {date, date, ::MMMM}",
+      "intro": "Les contributeurs qui enrichissent le catalogue. Les points arrivent à la publication d'une contribution.",
+      "month": "Ce mois-ci",
+      "all": "Depuis toujours",
+      "players": "Joueurs",
+      "orgs": "Organisations",
+      "full": "Complet",
+      "you": "Vous",
+      "hintMonth": "Points gagnés ce mois-ci.",
+      "hintAll": "Points gagnés depuis l'ouverture.",
+      "hintOrgs": "La somme des points de leurs membres.",
+      "hide": "Masquer mon nom dans les réglages",
+      "hidden": "Vous êtes retiré du classement.",
+      "show": "Y revenir dans les réglages",
+      "unranked": "Pas encore de point sur la période.",
+      "empty": "Personne n'a encore de point sur cette période.",
+      "members": "{count, plural, one {# membre} other {# membres}}",
+      "periodLabel": "Période",
+      "scopeLabel": "Qui"
+    },
+    "Credits": {
+      "title": "Fiche enrichie par",
+      "count": "{count, plural, one {# contrib.} other {# contrib.}}",
+      "others": "et {count, plural, one {# autre contributeur} other {# autres contributeurs}}",
+      "updated": "Dernière mise à jour le {date, date, long}",
+      "level": "Niveau {level}"
+    },
+    "People": {
+      "title": "Contributeurs",
+      "intro": "Classement par points, fiabilité et signalements retenus contre leur contenu.",
+      "search": "Rechercher un pseudo",
+      "searchSubmit": "Chercher",
+      "empty": "Aucun contributeur.",
+      "colName": "Pseudo",
+      "colLevel": "Niveau",
+      "colPoints": "Points",
+      "colPublished": "Publiées",
+      "colRate": "Acceptation",
+      "colReports": "Signalements retenus",
+      "fixed": "fixé",
+      "suspendedUntil": "Suspendu jusqu'au {date, date, medium}",
+      "detailTitle": "Fiche de {name}",
+      "self": "C'est votre compte : un autre admin le règle.",
+      "trust": "Niveau de confiance",
+      "trustAuto": "Automatique, selon les points",
+      "trustHint": "Un niveau fixé passe avant les points et la fiabilité, dans les deux sens.",
+      "trustSave": "Fixer le niveau",
+      "adjust": "Ajuster les points",
+      "adjustPoints": "Points (négatif pour retirer)",
+      "adjustReason": "Motif, écrit au registre",
+      "adjustSave": "Ajuster",
+      "adminOnly": "Le niveau et les points se règlent par un admin.",
+      "sanction": "Avertir ou suspendre",
+      "note": "Message (facultatif)",
+      "warn": "Avertir",
+      "suspendDays": "Durée (jours)",
+      "suspend": "Suspendre",
+      "lift": "Lever la suspension",
+      "warnings": "Avertissements",
+      "noWarnings": "Aucun avertissement.",
+      "ledger": "Registre des points",
+      "noLedger": "Aucun mouvement.",
+      "reasons": {
+        "published": "Publication",
+        "firstMedia": "Première image d'un lieu",
+        "plan": "Plan",
+        "reverted": "Annulation",
+        "removed": "Image retirée",
+        "report": "Signalement retenu",
+        "adjust": "Ajustement"
+      },
+      "done": "C'est enregistré.",
+      "errors": {
+        "notFound": "Ce compte n'existe plus.",
+        "notAllowed": "Réservé aux admins.",
+        "self": "On ne règle pas son propre compte.",
+        "invalidLevel": "Choisissez un niveau de 1 à 5.",
+        "invalidPoints": "Un nombre entier, non nul, jusqu'à 1000.",
+        "reasonRequired": "Indiquez un motif.",
+        "invalidDays": "De 1 à 90 jours."
+      }
     }
   },
   "Reports": {
