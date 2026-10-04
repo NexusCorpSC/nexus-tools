@@ -1,7 +1,7 @@
 import "server-only";
 import { ObjectId } from "mongodb";
 import db from "@/lib/db";
-import { evaluateAchievements } from "@/lib/achievements";
+import { evaluateAchievements, isReached } from "@/lib/achievements";
 import {
   cleanText,
   contributions,
@@ -14,7 +14,11 @@ import { getStanding, refreshProgress } from "@/lib/contributions";
 import { logModeration, reports } from "@/lib/reports";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import { ITEMS_EDIT_PERMISSION } from "@/types/items";
-import { LEVELS, levelForPoints } from "@/types/contributions";
+import {
+  CONTRIBUTIONS_REVIEW_PERMISSION,
+  LEVELS,
+  levelForPoints,
+} from "@/types/contributions";
 import {
   CREDITS_SHOWN,
   LEADERBOARD_SIZE,
@@ -362,6 +366,22 @@ export async function getAchievements(
     { _id: userId },
     { projection: { "contrib.achievements": 1 } },
   );
+  const achievements = await evaluateAchievements(
+    userId,
+    user?.contrib?.achievements,
+  );
+  // Un compte qui contribuait avant les succès les débloque à sa première
+  // visite, sans attendre sa prochaine publication.
+  if (!achievements.some(isReached)) return achievements;
+  await refreshProgress(userId);
+  return getAchievementsOnce(userId);
+}
+
+async function getAchievementsOnce(userId: ObjectId): Promise<Achievement[]> {
+  const user = await users().findOne(
+    { _id: userId },
+    { projection: { "contrib.achievements": 1 } },
+  );
   return evaluateAchievements(userId, user?.contrib?.achievements);
 }
 
@@ -620,6 +640,13 @@ export type ContributorInput =
   | { action: "suspend"; days: number; note?: string }
   | { action: "lift" };
 
+/** Les comptes qu'un modérateur ne règle pas : ils tiennent le catalogue ou la modération. */
+const STAFF_PERMISSIONS = [
+  CONTRIBUTIONS_REVIEW_PERMISSION,
+  PLACES_EDIT_PERMISSION,
+  ITEMS_EDIT_PERMISSION,
+];
+
 /** Les actions réservées aux admins : elles touchent aux droits et aux points. */
 export const ADMIN_ONLY_ACTIONS: ContributorInput["action"][] = [
   "trust",
@@ -693,8 +720,22 @@ export async function updateContributor(
   if (ADMIN_ONLY_ACTIONS.includes(input.action) && !isAdminActor) {
     throw new ContributorError("notAllowed", 403);
   }
-  const exists = await users().countDocuments({ _id: userId });
-  if (!exists) throw new ContributorError("notFound", 404);
+  const target = await users().findOne(
+    { _id: userId },
+    { projection: { isAdmin: 1, permissions: 1 } },
+  );
+  if (!target) throw new ContributorError("notFound", 404);
+  // Un modérateur ne règle pas le compte d'un admin ni d'un autre modérateur :
+  // il pourrait le suspendre, ou lever une suspension décidée par un admin.
+  if (
+    !isAdminActor &&
+    (target.isAdmin === true ||
+      target.permissions?.some((permission) =>
+        STAFF_PERMISSIONS.includes(permission),
+      ))
+  ) {
+    throw new ContributorError("notAllowed", 403);
+  }
 
   const now = new Date();
   let note: string | undefined;

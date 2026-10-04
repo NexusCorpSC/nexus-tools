@@ -35,6 +35,33 @@ type TreeNode = {
 
 const places = () => db.db().collection<TreeNode>("gameLocations");
 
+/**
+ * Les villes et leurs quartiers, les systèmes et leurs planètes : ce qui fait
+ * un succès. L'arbre change rarement, et ce calcul tourne à chaque
+ * publication et à chaque lecture de l'app : on le garde quelques minutes.
+ */
+const LANDMARKS_TTL_MS = 10 * 60 * 1000;
+let landmarksCache: { at: number; nodes: Promise<TreeNode[]> } | null = null;
+
+function getLandmarks(): Promise<TreeNode[]> {
+  if (!landmarksCache || Date.now() - landmarksCache.at > LANDMARKS_TTL_MS) {
+    const nodes = places()
+      .find(
+        { type: { $in: ["star", "planet", "city", "district"] } },
+        {
+          projection: { _id: 0, slug: 1, name: 1, type: 1, ancestorSlugs: 1 },
+        },
+      )
+      .toArray();
+    landmarksCache = { at: Date.now(), nodes };
+    // Une lecture ratée ne reste pas en cache.
+    nodes.catch(() => {
+      landmarksCache = null;
+    });
+  }
+  return landmarksCache.nodes;
+}
+
 /** Le lieu et tous ceux qui le contiennent. */
 function lineage(node: TreeNode | undefined, slug: string): string[] {
   return [slug, ...(node?.ancestorSlugs ?? [])];
@@ -109,14 +136,7 @@ export async function evaluateAchievements(
           )
           .toArray()
       : [],
-    places()
-      .find(
-        { type: { $in: ["star", "planet", "city", "district"] } },
-        {
-          projection: { _id: 0, slug: 1, name: 1, type: 1, ancestorSlugs: 1 },
-        },
-      )
-      .toArray(),
+    getLandmarks(),
   ]);
   const bySlug = new Map(touched.map((node) => [node.slug, node]));
 

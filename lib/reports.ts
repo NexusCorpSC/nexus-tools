@@ -1062,7 +1062,7 @@ export async function resolveReport(
 
   let contributionId: ObjectId | undefined;
   let authorId: ObjectId | undefined;
-  let authorIds: ObjectId[] = [];
+  const authorIds: ObjectId[] = [];
   try {
     if (!REPORT_ACTIONS_BY_TARGET[report.target.type].includes(input.action)) {
       throw new ReportError("invalidAction", 400);
@@ -1074,7 +1074,6 @@ export async function resolveReport(
 
     const history = await historyOf(report.target);
     const authors = await authorsOf(report.target, history);
-    authorIds = authors.map((author) => new ObjectId(author.id));
     // On ne tranche ni ce qu'on a signalé, ni ce qu'on a écrit : comme une
     // contribution, un dossier se fait juger par quelqu'un d'autre.
     if (
@@ -1090,6 +1089,7 @@ export async function resolveReport(
         (authors.length === 1 ? authors[0] : undefined);
       if (!chosen) throw new ReportError("invalidAction", 400);
       authorId = new ObjectId(chosen.id);
+      authorIds.push(authorId);
     }
 
     if (input.action === "revert") {
@@ -1098,6 +1098,7 @@ export async function resolveReport(
         (report.target.type === "placeMedia" ? history[0] : undefined);
       if (!chosen) throw new ReportError("contributionRequired", 400);
       contributionId = chosen._id;
+      authorIds.push(chosen.userId);
       try {
         await revertContribution(String(chosen._id), moderator, input.force);
       } catch (error) {
@@ -1115,6 +1116,15 @@ export async function resolveReport(
       }
     } else if (input.action === "delete") {
       await deleteTarget(report, moderator);
+      // Une image ou une organisation retirée a un seul auteur : celui qui
+      // l'a envoyée, ou qui l'a fondée. Une fiche retirée n'accuse personne
+      // en particulier.
+      if (
+        (report.target.type === "placeMedia" || report.target.type === "org") &&
+        authors[0]
+      ) {
+        authorIds.push(new ObjectId(authors[0].id));
+      }
     }
   } catch (error) {
     await release();
@@ -1138,9 +1148,17 @@ export async function resolveReport(
           contributionId,
           sanction: input.sanction,
           authorId,
-          // Ce qui est retenu compte contre ses auteurs, dans l'onglet
-          // Contributeurs.
-          ...(upheld && authorIds.length > 0 ? { authorIds } : {}),
+          // Ce qui est retenu compte contre ceux qui en répondent : l'auteur
+          // de la contribution annulée, de l'image ou de l'organisation
+          // retirée, l'auteur sanctionné. Pas tous ceux qui ont touché la
+          // fiche.
+          ...(upheld && authorIds.length > 0
+            ? {
+                authorIds: [
+                  ...new Map(authorIds.map((id) => [String(id), id])).values(),
+                ],
+              }
+            : {}),
         },
       },
       $unset: { resolving: "" },
