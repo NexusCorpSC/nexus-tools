@@ -42,6 +42,37 @@ export type GameFaction = {
   name: string;
 };
 
+/** Un rang du barème de réputation d'une faction. */
+export type GameReputationLevel = {
+  /** Nom technique du rang (`Technician_Rank2`), stable quand le nom affiché change. */
+  gameName: string;
+  name: string;
+  minReputation: number;
+};
+
+/**
+ * Une faction qui suit la réputation des joueurs, avec son barème. Le wiki
+ * n'en donne qu'un par faction : la carrière principale (Security, Hauling…)
+ * ou le barème générique `FactionReputation` (Neutral, Jr. Contractor…).
+ */
+export type GameReputationFaction = {
+  gameId: string;
+  name: string;
+  description?: string;
+  lawful?: boolean;
+  focus?: string;
+  headquarters?: string;
+  /** La réaction par défaut de la faction envers un joueur (`Neutral`). */
+  defaultReaction?: string;
+  ladder: {
+    /** Nom technique du barème (`Security_MercenaryGuild`), stable. */
+    scope: string;
+    name: string;
+    initialReputation: number;
+    levels: GameReputationLevel[];
+  } | null;
+};
+
 export type GameMission = {
   /** Identifiant principal du contrat chez la source. */
   id: string;
