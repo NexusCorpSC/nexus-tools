@@ -2544,7 +2544,8 @@
       "conflictDescription": "D'autres modifications ont touché les mêmes champs. Annuler remettra l'état d'avant cette contribution et écrasera ce qui suit.",
       "conflictPublished": "Publié par la contribution",
       "conflictNow": "Aujourd'hui",
-      "conflictConfirm": "Annuler quand même"
+      "conflictConfirm": "Annuler quand même",
+      "actionFailedFor": "« {name} » : {reason}"
     },
     "Form": {
       "source": "Source (facultatif)",

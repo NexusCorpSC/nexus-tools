@@ -41,9 +41,11 @@ export default async function ContributeItemPage({
   const item = await getItemDetails(slug);
   if (!item) notFound();
 
-  const resumed = c
-    ? await resumableContribution(c, userId, "itemEdit", slug)
-    : await openEditOn(userId, "itemEdit", slug);
+  // Un lien `?c=` périmé (publiée, refusée) retombe sur la correction encore
+  // ouverte, s'il y en a une : sinon l'envoi la remplacerait à l'aveugle.
+  const resumed =
+    (await resumableContribution(c, userId, "itemEdit", slug)) ??
+    (await openEditOn(userId, "itemEdit", slug));
   const t = await getTranslations("Contributions.Form");
 
   return (

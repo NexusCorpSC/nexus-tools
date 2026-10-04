@@ -150,6 +150,15 @@ export async function listMyOpenContributions(
   return docs.map(toContribution);
 }
 
+/** Une contribution, pour la relecture. */
+export async function getContribution(
+  id: string,
+): Promise<Contribution | null> {
+  if (!ObjectId.isValid(id)) return null;
+  const doc = await contributions().findOne({ _id: new ObjectId(id) });
+  return doc ? toContribution(doc) : null;
+}
+
 /** Une contribution de l'auteur, pour la reprendre dans son formulaire. */
 export async function getMyContribution(
   id: string,
@@ -805,6 +814,13 @@ async function publish(
   return toContribution(updated!);
 }
 
+/** Le filtre de version : la décision ne porte que sur ce que le relecteur a vu. */
+function versionFilter(version?: string): { updatedAt?: Date } {
+  if (!version) return {};
+  const seen = new Date(version);
+  return Number.isNaN(seen.getTime()) ? {} : { updatedAt: seen };
+}
+
 async function findContribution(id: string): Promise<DbContribution> {
   if (!ObjectId.isValid(id)) throw new ContributionError("notFound", 404);
   const doc = await contributions().findOne({ _id: new ObjectId(id) });
@@ -829,12 +845,7 @@ export async function publishContribution(
   if (contribution.userId.equals(reviewer.id)) {
     throw new ContributionError("ownContribution", 403);
   }
-  const seen = version ? new Date(version) : undefined;
-  return publish(
-    contribution,
-    reviewer,
-    seen && !Number.isNaN(seen.getTime()) ? seen : undefined,
-  );
+  return publish(contribution, reviewer, versionFilter(version).updatedAt);
 }
 
 /** Supprime des images du stockage, sans faire échouer ce qui est déjà acquis. */
@@ -860,6 +871,8 @@ export async function rejectContribution(
   reviewer: Contributor,
   reason: RejectReason,
   message?: string,
+  /** `updatedAt` de la version relue ; une reprise depuis la fait refuser. */
+  version?: string,
 ): Promise<Contribution> {
   const contribution = await findContribution(id);
   const now = new Date();
@@ -868,6 +881,7 @@ export async function rejectContribution(
     {
       _id: contribution._id,
       status: { $in: ["pending", "changesRequested"] },
+      ...versionFilter(version),
     },
     {
       $set: {
@@ -908,6 +922,7 @@ export async function requestChanges(
   id: string,
   reviewer: Contributor,
   message: string,
+  version?: string,
 ): Promise<Contribution> {
   const contribution = await findPending(id);
   if (contribution.kind === "media") {
@@ -918,7 +933,7 @@ export async function requestChanges(
 
   const now = new Date();
   const updated = await contributions().findOneAndUpdate(
-    { _id: contribution._id, status: "pending" },
+    { _id: contribution._id, status: "pending", ...versionFilter(version) },
     {
       $set: {
         status: "changesRequested",

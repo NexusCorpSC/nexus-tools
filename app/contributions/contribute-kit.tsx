@@ -74,8 +74,14 @@ export function useContribute() {
 
   const errorMessage = useCallback(
     (result: Extract<ContributeResult, { ok: false }>) => {
-      if (result.detail && result.error === "invalidInput")
+      // La fiche a dit pourquoi elle refuse : c'est plus utile qu'un message
+      // générique, que la saisie soit invalide ou que l'écriture échoue.
+      if (
+        result.detail &&
+        (result.error === "invalidInput" || result.error === "applyFailed")
+      ) {
         return result.detail;
+      }
       return tErrors.has(result.error)
         ? tErrors(result.error)
         : t("sendFailed");

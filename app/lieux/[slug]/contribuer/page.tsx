@@ -41,9 +41,11 @@ export default async function ContributePlacePage({
   const place = await getPlaceDetails(slug);
   if (!place) notFound();
 
-  const resumed = c
-    ? await resumableContribution(c, userId, "placeEdit", slug)
-    : await openEditOn(userId, "placeEdit", slug);
+  // Un lien `?c=` périmé (publiée, refusée) retombe sur la correction encore
+  // ouverte, s'il y en a une : sinon l'envoi la remplacerait à l'aveugle.
+  const resumed =
+    (await resumableContribution(c, userId, "placeEdit", slug)) ??
+    (await openEditOn(userId, "placeEdit", slug));
   const t = await getTranslations("Contributions.Form");
 
   return (

@@ -101,6 +101,7 @@ export function ReviewQueue({
   total: number;
 }) {
   const t = useTranslations("Contributions.Admin");
+  const tErrors = useTranslations("Contributions.errors");
   const format = useFormatter();
   // `null` au rendu serveur : une durée relative calculée des deux côtés
   // différerait de quelques secondes à l'hydratation.
@@ -134,6 +135,11 @@ export function ReviewQueue({
     [items],
   );
 
+  /** La version vue de chaque contribution : une reprise depuis l'écarte. */
+  function versionsOf(ids: string[]) {
+    return Object.fromEntries(ids.map((id) => [id, byId.get(id)?.updatedAt]));
+  }
+
   function toggle(ids: string[], on: boolean) {
     setSelected((current) => {
       const next = new Set(current);
@@ -149,9 +155,22 @@ export function ReviewQueue({
     result: ReviewActionResult,
     key: "published" | "rejected" | "changesRequested",
   ) {
-    toast.success(t(key, { count: result.done }));
+    if (result.done > 0 || result.failed.length === 0) {
+      toast.success(t(key, { count: result.done }));
+    }
     if (result.skipped > 0) {
       toast.info(t("skipped", { count: result.skipped }));
+    }
+    // Ce que la fiche a refusé reste en attente : on dit pourquoi.
+    for (const failure of result.failed) {
+      toast.error(
+        t("actionFailedFor", {
+          name: failure.name,
+          reason:
+            failure.detail ??
+            (tErrors.has(failure.error) ? tErrors(failure.error) : t("failed")),
+        }),
+      );
     }
     setSelected(new Set());
     router.refresh();
@@ -160,10 +179,10 @@ export function ReviewQueue({
   function publish(ids: string[]) {
     startTransition(async () => {
       try {
-        const versions = Object.fromEntries(
-          ids.map((id) => [id, byId.get(id)?.updatedAt]),
+        report(
+          await publishContributionsAction(ids, versionsOf(ids)),
+          "published",
         );
-        report(await publishContributionsAction(ids, versions), "published");
       } catch {
         toast.error(t("failed"));
       }
@@ -174,7 +193,12 @@ export function ReviewQueue({
     startTransition(async () => {
       try {
         report(
-          await rejectContributionsAction(ids, reason, message),
+          await rejectContributionsAction(
+            ids,
+            reason,
+            message,
+            versionsOf(ids),
+          ),
           "rejected",
         );
         setRejecting(null);
@@ -187,7 +211,10 @@ export function ReviewQueue({
   function askChanges(ids: string[], message: string) {
     startTransition(async () => {
       try {
-        report(await requestChangesAction(ids, message), "changesRequested");
+        report(
+          await requestChangesAction(ids, message, versionsOf(ids)),
+          "changesRequested",
+        );
         setRequesting(null);
       } catch {
         toast.error(t("failed"));

@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import {
   ContributionError,
+  getContribution,
   listRevertConflicts,
   publishContribution,
   rejectContribution,
@@ -25,9 +26,25 @@ import {
 
 export type ReviewActionResult = {
   done: number;
-  /** Déjà traitées par quelqu'un d'autre, ou disparues. */
+  /** Déjà traitées par quelqu'un d'autre, reprises par leur auteur, ou disparues. */
   skipped: number;
+  /** Celles que la fiche a refusées : elles restent en attente, avec la raison. */
+  failed: {
+    id: string;
+    name: string;
+    error: ContributionErrorCode;
+    detail?: string;
+  }[];
 };
+
+/** Ce qui veut dire « quelqu'un est passé avant », pas « ça n'a pas marché ». */
+const SKIPPED_CODES: ContributionErrorCode[] = [
+  "notPending",
+  "notFound",
+  "ownContribution",
+];
+
+export type ReviewVersions = Record<string, string | undefined>;
 
 /** Plus que ça d'un coup, et on relit la file plutôt qu'une sélection. */
 const MAX_BATCH = 200;
@@ -74,6 +91,7 @@ async function forEachId(
 ): Promise<ReviewActionResult> {
   const unique = [...new Set(ids)].slice(0, MAX_BATCH);
   const done: Contribution[] = [];
+  const failed: ReviewActionResult["failed"] = [];
   let skipped = 0;
 
   try {
@@ -82,7 +100,17 @@ async function forEachId(
         done.push(await apply(id));
       } catch (error) {
         if (!(error instanceof ContributionError)) throw error;
-        skipped += 1;
+        if (SKIPPED_CODES.includes(error.code)) {
+          skipped += 1;
+        } else {
+          const doc = await getContribution(id);
+          failed.push({
+            id,
+            name: doc?.target.name ?? id,
+            error: error.code,
+            detail: error.detail,
+          });
+        }
       }
     }
   } finally {
@@ -91,7 +119,7 @@ async function forEachId(
     revalidate(done);
   }
 
-  return { done: done.length, skipped };
+  return { done: done.length, skipped, failed };
 }
 
 /**
@@ -101,7 +129,7 @@ async function forEachId(
  */
 export async function publishContributionsAction(
   ids: string[],
-  versions: Record<string, string | undefined> = {},
+  versions: ReviewVersions = {},
 ): Promise<ReviewActionResult> {
   const by = await reviewer();
   return forEachId(ids, (id) => publishContribution(id, by, versions[id]));
@@ -111,6 +139,7 @@ export async function rejectContributionsAction(
   ids: string[],
   reason: string,
   message?: string,
+  versions: ReviewVersions = {},
 ): Promise<ReviewActionResult> {
   const by = await reviewer();
   // « Expirée » ne se choisit pas : c'est le délai qui la donne.
@@ -118,7 +147,7 @@ export async function rejectContributionsAction(
     throw new Error("Invalid reason");
   }
   return forEachId(ids, (id) =>
-    rejectContribution(id, by, reason as RejectReason, message),
+    rejectContribution(id, by, reason as RejectReason, message, versions[id]),
   );
 }
 
@@ -126,10 +155,11 @@ export async function rejectContributionsAction(
 export async function requestChangesAction(
   ids: string[],
   message: string,
+  versions: ReviewVersions = {},
 ): Promise<ReviewActionResult> {
   const by = await reviewer();
   if (!message.trim()) throw new Error("Message required");
-  return forEachId(ids, (id) => requestChanges(id, by, message));
+  return forEachId(ids, (id) => requestChanges(id, by, message, versions[id]));
 }
 
 export type RevertActionResult =

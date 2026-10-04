@@ -2513,7 +2513,8 @@
       "conflictDescription": "Later changes touched the same fields. Reverting restores the state before this contribution and overwrites what followed.",
       "conflictPublished": "Published by the contribution",
       "conflictNow": "Now",
-      "conflictConfirm": "Revert anyway"
+      "conflictConfirm": "Revert anyway",
+      "actionFailedFor": "“{name}”: {reason}"
     },
     "Form": {
       "source": "Source (optional)",
