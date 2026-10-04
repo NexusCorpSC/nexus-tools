@@ -327,3 +327,16 @@ par l'identifiant d'entité du jeu, quel que soit leur nom.
 Le premier passage rattache les fiches des anciens imports à leur GUID grâce à
 l'export qui leur a servi (`assets/blueprints.json` et `assets/missions.json`,
 lus automatiquement s'ils sont là). Lancer ensuite `npm run ensure:indexes`.
+Une fiche absente de cet export (créée à la main ou par un autre script) est
+rattachée par son nom actuel dans la source.
+
+Si un import a créé une seconde fiche à côté d'une fiche sans GUID (le
+rapport les signale comme doublons), `merge:blueprints` les réunit dans
+l'ancienne : possessions des joueurs, missions et objets liés suivent, et le
+slug de la fiche importée redirige.
+
+```bash
+npm run merge:blueprints                 # les paires trouvées, sans rien écrire
+npm run merge:blueprints -- --apply      # fusionner
+npm run import:game-data -- all          # régénérer les textes d'obtention
+```
