@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getPlaceDetails } from "@/lib/places";
+import { getItemNames } from "@/lib/items";
 import { PlaceForm } from "@/app/admin/lieux/components/place-form";
 import { ContributionNotice } from "@/app/contributions/notice";
 import {
@@ -46,7 +47,13 @@ export default async function ContributePlacePage({
   const resumed =
     (await resumableContribution(c, userId, "placeEdit", slug)) ??
     (await openEditOn(userId, "placeEdit", slug));
-  const t = await getTranslations("Contributions.Form");
+  const initial = resumed?.proposal as Partial<Place> | undefined;
+  const [t, itemNames] = await Promise.all([
+    getTranslations("Contributions.Form"),
+    getItemNames([
+      ...new Set([...(place.soldItems ?? []), ...(initial?.soldItems ?? [])]),
+    ]),
+  ]);
 
   return (
     <div className="m-2 mx-auto max-w-3xl space-y-6 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
@@ -69,11 +76,12 @@ export default async function ContributePlacePage({
       <PlaceForm
         place={place}
         parentName={place.parentName}
+        itemNames={itemNames}
         contribution={{
           mode: "edit",
           canRename: standing.level >= RENAME_LEVEL,
           contributionId: resumed?.id,
-          initial: resumed?.proposal as Partial<Place> | undefined,
+          initial,
           source: resumed?.source,
           gameVersion: resumed?.gameVersion,
         }}

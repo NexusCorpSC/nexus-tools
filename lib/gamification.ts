@@ -109,6 +109,8 @@ export async function getFicheCredits(
           "target.type": type,
           "target.slug": slug,
           status: "published",
+          // Confirmer une donnée ne l'enrichit pas.
+          kind: { $ne: "confirm" },
         },
       },
       {
@@ -409,6 +411,9 @@ export async function listContribEvents(
       .find(
         {
           userId,
+          // Une confirmation est publiée à l'instant où on la fait : rien à
+          // apprendre au joueur qui vient de cliquer.
+          kind: { $ne: "confirm" },
           $or: [
             { status: "published", publishedAt: { $gt: from } },
             { status: "changesRequested", "review.at": { $gt: from } },

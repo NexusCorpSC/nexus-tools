@@ -3,6 +3,8 @@ import { Organization } from "@/app/orgs/page";
 import { ObjectId } from "bson";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { hasPermission } from "@/lib/permissions";
+import { CONTRIBUTIONS_REVIEW_PERMISSION } from "@/types/contributions";
 
 // https://refactored-halibut-696v5w474q6c54r7-3000.app.github.dev/orgs/0193f970-563d-7f03-a87c-dd415a7e2cae/join/41f27013-4f11-4e79-ab24-58d7f648c0c3
 
@@ -76,14 +78,15 @@ export default async function OrgLayout({
   }
 
   // Masquée par un signalement, elle n'est plus publique en attendant la
-  // décision : ses membres seuls la voient.
+  // décision : ses membres seuls la voient. La modération aussi, qui doit
+  // pouvoir juger une organisation avant de la valider.
   if (
-    (!organization.public ||
-      (organization as { reportHidden?: boolean }).reportHidden === true) &&
+    (!organization.public || organization.reportHidden === true) &&
     (!session?.user ||
       !organization.members.some((member) =>
         member.userId.equals(session.user?.id),
-      ))
+      )) &&
+    !(await hasPermission(CONTRIBUTIONS_REVIEW_PERMISSION))
   ) {
     return (
       <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">

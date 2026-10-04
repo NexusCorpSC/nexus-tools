@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { listMyOpenContributions } from "@/lib/contributions";
 import { resumeHref } from "./links";
+import type { ContributionTargetType } from "@/types/contributions";
 
 /**
  * Ce que le joueur a encore d'ouvert sur cette fiche : en attente, ou renvoyé
@@ -17,7 +18,7 @@ export async function OpenContributionsBanner({
   slug,
   className,
 }: {
-  type: "place" | "item";
+  type: ContributionTargetType;
   slug: string;
   className?: string;
 }) {

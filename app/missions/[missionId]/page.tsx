@@ -22,10 +22,20 @@ import {
 } from "@heroicons/react/24/outline";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { getPlacesBySlugs } from "@/lib/places";
+import { placeTrail } from "@/lib/place-icons";
+import { recordView } from "@/lib/page-views";
+import { PointsChip } from "@/components/points-chip";
+import { OpenContributionsBanner } from "@/app/contributions/open-banner";
+import { POINTS } from "@/types/contributions";
+import { MapPinIcon, LightBulbIcon } from "@heroicons/react/24/outline";
 
 type Props = { params: Promise<{ missionId: string }> };
 
-async function getMission(missionId: string, userId?: string): Promise<Mission | null> {
+async function getMission(
+  missionId: string,
+  userId?: string,
+): Promise<Mission | null> {
   let objectId: ObjectId;
   try {
     objectId = new ObjectId(missionId);
@@ -125,6 +135,8 @@ export default async function MissionDetailPage({ params }: Props) {
   // redirection permanente, que les navigateurs gardent en cache : un patch
   // suivant peut ramener la mission.
   if (mission.replacedBy) redirect(`/missions/${mission.replacedBy}`);
+  await recordView("mission", missionId);
+  const places = await getPlacesBySlugs(mission.placeSlugs);
 
   return (
     <div className="m-2 mx-auto max-w-4xl space-y-6 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
@@ -153,7 +165,9 @@ export default async function MissionDetailPage({ params }: Props) {
             {mission.missionType}
           </span>
           <span className="text-xs text-muted-foreground">·</span>
-          <span className="text-xs text-muted-foreground">{mission.category}</span>
+          <span className="text-xs text-muted-foreground">
+            {mission.category}
+          </span>
         </div>
         <h1 className="text-2xl font-bold">{mission.title}</h1>
 
@@ -202,6 +216,54 @@ export default async function MissionDetailPage({ params }: Props) {
         </p>
       </div>
 
+      <OpenContributionsBanner type="mission" slug={missionId} />
+
+      {/* Lieux et astuce, de la communauté */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <MapPinIcon className="size-5 text-[#9ED0FF]" />
+            {t("placesTitle")}
+          </h2>
+          {session?.user && (
+            <Link
+              href={`/missions/${missionId}/contribuer`}
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              {t("contribute")}
+              <PointsChip points={POINTS.edit} />
+            </Link>
+          )}
+        </div>
+        {places.length > 0 ? (
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {places.map((place) => (
+              <li key={place.slug}>
+                <Link
+                  href={`/lieux/${place.slug}`}
+                  className="block rounded-xl border border-[#9ED0FF]/10 bg-[#071E30]/60 p-3 transition-all hover:border-[#9ED0FF]/30"
+                >
+                  <span className="block text-sm font-medium">
+                    {place.name}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {placeTrail(place)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("noPlaces")}</p>
+        )}
+        {mission.tip && (
+          <div className="flex gap-2 rounded-xl border border-[#F5C46B]/30 bg-[#F5C46B]/6 p-4 text-sm leading-relaxed">
+            <LightBulbIcon className="size-5 shrink-0 text-[#F7D68F]" />
+            <p className="whitespace-pre-line">{mission.tip}</p>
+          </div>
+        )}
+      </div>
+
       {/* Blueprint rewards */}
       {mission.blueprintDetails.length > 0 && (
         <div className="space-y-3">
@@ -236,8 +298,8 @@ export default async function MissionDetailPage({ params }: Props) {
                     {bp.subcategory && ` · ${bp.subcategory}`}
                   </p>
                 </div>
-                {bp.owned !== undefined && (
-                  bp.owned ? (
+                {bp.owned !== undefined &&
+                  (bp.owned ? (
                     <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30 rounded-full">
                       {t("blueprintOwned")}
                     </span>
@@ -245,8 +307,7 @@ export default async function MissionDetailPage({ params }: Props) {
                     <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 text-xs font-semibold bg-white/5 text-muted-foreground border border-white/10 rounded-full">
                       {t("blueprintNotOwned")}
                     </span>
-                  )
-                )}
+                  ))}
               </Link>
             ))}
           </div>
@@ -255,4 +316,3 @@ export default async function MissionDetailPage({ params }: Props) {
     </div>
   );
 }
-

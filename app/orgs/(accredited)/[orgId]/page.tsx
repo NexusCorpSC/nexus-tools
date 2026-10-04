@@ -24,6 +24,7 @@ import {
   JoinRequestsSection,
 } from "@/app/orgs/(accredited)/[orgId]/components";
 import { OrgPresenceSection } from "@/app/orgs/(accredited)/[orgId]/presence";
+import { OrgValidationBanner } from "@/app/orgs/(accredited)/[orgId]/validation-banner";
 
 export async function generateMetadata({
   params,
@@ -34,7 +35,10 @@ export async function generateMetadata({
   const org = await db
     .db()
     .collection<Organization>("organizations")
-    .findOne({ _id: orgId }, { projection: { name: 1, description: 1, image: 1, tag: 1 } });
+    .findOne(
+      { _id: orgId },
+      { projection: { name: 1, description: 1, image: 1, tag: 1 } },
+    );
 
   if (!org) {
     return { title: "Organisation introuvable" };
@@ -51,7 +55,9 @@ export async function generateMetadata({
       title: `${org.name} [${org.tag}] — Nexus Tools`,
       description,
       url: `https://tools.services.nexus/orgs/${orgId}`,
-      images: org.image ? [{ url: org.image, alt: `Logo de ${org.name}` }] : undefined,
+      images: org.image
+        ? [{ url: org.image, alt: `Logo de ${org.name}` }]
+        : undefined,
     },
   };
 }
@@ -120,9 +126,9 @@ export default async function OrganizationPage({
   // On ne signale pas sa propre organisation.
   const isMember = Boolean(
     session?.user &&
-      organization?.members.some((member) =>
-        member.userId.equals(session.user?.id),
-      ),
+    organization?.members.some((member) =>
+      member.userId.equals(session.user?.id),
+    ),
   );
   const userIsEditor =
     session?.user &&
@@ -237,6 +243,8 @@ export default async function OrganizationPage({
           )}
         </div>
       </div>
+
+      {userIsEditor && <OrgValidationBanner org={organization} />}
 
       {userIsEditor && (
         <>

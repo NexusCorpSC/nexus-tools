@@ -9,6 +9,7 @@ import { OpenContributionsBanner } from "@/app/contributions/open-banner";
 import { ContestedBanner } from "@/components/report-menu";
 import { getContested } from "@/lib/reports";
 import { FicheCredits } from "@/components/fiche-credits";
+import { recordView } from "@/lib/page-views";
 import { ResourceView } from "./views/resource-view";
 import { StandardView } from "./views/standard-view";
 import { VehicleView } from "./views/vehicle-view";
@@ -73,6 +74,7 @@ export default async function ItemDetailPage({
     );
   }
 
+  await recordView("item", item.slug);
   const [canEdit, contested, tr] = await Promise.all([
     hasPermission(ITEMS_EDIT_PERMISSION),
     getContested("item", item.slug),

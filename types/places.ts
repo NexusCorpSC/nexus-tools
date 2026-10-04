@@ -84,6 +84,9 @@ export const MAX_PLACE_NAME_LENGTH = 120;
 export const MAX_PLACE_TEXT_LENGTH = 4000;
 export const PLACE_PAGE_SIZE = 24;
 export const MAX_PLACE_PAGE_SIZE = 100;
+export const MAX_PLACE_TIP_LENGTH = 1000;
+/** Au-delà, ce n'est plus un magasin mais une liste de prix : c'est le travail d'UEX. */
+export const MAX_SOLD_ITEMS = 60;
 
 /**
  * Stanton › Hurston › Lorville › CBD › centre médical, c'est déjà cinq. Huit
@@ -568,6 +571,12 @@ export type Place = {
   services?: PlaceService[];
   /** Ce que vend un lieu de type `shop` : « armurerie », « vaisseaux »… */
   shopCategory?: string;
+  /** Les objets qu'un magasin vend, par leur slug. Ajoutés par la communauté. */
+  soldItems?: string[];
+  /** Une astuce de joueur : où se garer, quel ascenseur prendre. */
+  tip?: string;
+  /** Quand un joueur a confirmé ses services pour la dernière fois. */
+  servicesConfirmedAt?: string;
 
   /**
    * Le lieu qui contient celui-ci ; absent pour un système. C'est le seul

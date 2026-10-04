@@ -14,26 +14,40 @@ export function resumeHref(contribution: Contribution): string {
       return `/items/${target.slug}/contribuer?c=${id}`;
     case "itemCreate":
       return `/items/proposer?c=${id}`;
+    case "missionEdit":
+      return `/missions/${target.slug}/contribuer?c=${id}`;
+    // Une organisation se corrige sur sa propre page d'édition.
+    case "orgCreate":
+      return `/orgs/${target.slug}/edit`;
     case "media":
-      return `/lieux/${target.slug}`;
+    case "confirm":
+      return targetHref(contribution);
   }
 }
 
 /** La fiche que vise une contribution — son parent, pour un lieu pas encore publié. */
 export function targetHref(contribution: Contribution): string {
   const { target } = contribution;
-  if (target.type === "item") {
-    return contribution.kind === "itemCreate" &&
-      contribution.status !== "published"
-      ? "/items"
-      : `/items/${target.slug}`;
+  switch (target.type) {
+    case "item":
+      return contribution.kind === "itemCreate" &&
+        contribution.status !== "published"
+        ? "/items"
+        : `/items/${target.slug}`;
+    case "mission":
+      return `/missions/${target.slug}`;
+    case "org":
+      return `/orgs/${target.slug}`;
+    case "blueprint":
+      return `/crafting/blueprints/${target.slug}`;
+    case "place":
+      if (
+        contribution.kind === "placeCreate" &&
+        contribution.status !== "published" &&
+        target.parent
+      ) {
+        return `/lieux/${target.parent.slug}`;
+      }
+      return `/lieux/${target.slug}`;
   }
-  if (
-    contribution.kind === "placeCreate" &&
-    contribution.status !== "published" &&
-    target.parent
-  ) {
-    return `/lieux/${target.parent.slug}`;
-  }
-  return `/lieux/${target.slug}`;
 }

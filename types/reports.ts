@@ -19,6 +19,7 @@ export const REPORT_TARGET_TYPES = [
   "plan",
   "item",
   "org",
+  "blueprint",
 ] as const;
 
 export type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
@@ -99,6 +100,8 @@ export const REPORT_ACTIONS_BY_TARGET: Record<
   plan: ["dismiss", "correct", "revert", "delete"],
   item: ["dismiss", "correct", "revert", "delete"],
   org: ["dismiss", "correct", "delete"],
+  // Où l'obtenir, surtout : un admin corrige la fiche, rien ne s'y annule.
+  blueprint: ["dismiss", "correct"],
 };
 
 /** En plus de la décision, envers l'auteur du contenu en cause. */

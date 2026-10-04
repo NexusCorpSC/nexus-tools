@@ -17,7 +17,11 @@
  * - `media` : des images dans la galerie d'un lieu ;
  * - `placeCreate`, `placeEdit` : un lieu proposé, ou des champs d'un lieu ;
  * - `plan` : un plan d'un lieu, ajouté ou repris (image ou dessiné) ;
- * - `itemCreate`, `itemEdit` : un objet proposé, ou des champs d'un objet.
+ * - `itemCreate`, `itemEdit` : un objet proposé, ou des champs d'un objet ;
+ * - `missionEdit` : les lieux d'une mission, ou son astuce ;
+ * - `orgCreate` : une organisation créée, à valider avant de passer publique ;
+ * - `confirm` : une donnée qui vieillit (cours, services, sources d'un
+ *   blueprint) confirmée telle quelle, ou dite plus exacte.
  */
 export const CONTRIBUTION_KINDS = [
   "media",
@@ -26,6 +30,9 @@ export const CONTRIBUTION_KINDS = [
   "plan",
   "itemCreate",
   "itemEdit",
+  "missionEdit",
+  "orgCreate",
+  "confirm",
 ] as const;
 
 export type ContributionKind = (typeof CONTRIBUTION_KINDS)[number];
@@ -33,6 +40,19 @@ export type ContributionKind = (typeof CONTRIBUTION_KINDS)[number];
 export function isContributionKind(value: string): value is ContributionKind {
   return (CONTRIBUTION_KINDS as readonly string[]).includes(value);
 }
+
+/**
+ * Ce qui enrichit le catalogue : ce que compte le succès Polyvalent. Une
+ * confirmation ou une organisation n'en font pas partie.
+ */
+export const CATALOG_KINDS = [
+  "media",
+  "placeCreate",
+  "placeEdit",
+  "plan",
+  "itemCreate",
+  "itemEdit",
+] as const satisfies readonly ContributionKind[];
 
 /**
  * `changesRequested` renvoie la contribution à son auteur avec un message ;
@@ -79,9 +99,13 @@ export function isRejectReason(value: string): value is RejectReason {
   return (REJECT_REASONS as readonly string[]).includes(value);
 }
 
-/** Ce que vise une contribution : un lieu (ou un de ses plans), ou un objet. */
+/**
+ * Ce que vise une contribution : un lieu (ou un de ses plans), un objet, une
+ * mission, une organisation ou un blueprint. `slug` est l'identifiant d'une
+ * mission ou d'une organisation.
+ */
 export type ContributionTarget = {
-  type: "place" | "item";
+  type: ContributionTargetType;
   slug: string;
   /** Le nom au moment de l'envoi, pour lister sans relire chaque fiche. */
   name: string;
@@ -90,6 +114,13 @@ export type ContributionTarget = {
   /** Pour un lieu proposé : le lieu qui le contiendra. */
   parent?: { slug: string; name: string };
 };
+
+export type ContributionTargetType =
+  | "place"
+  | "item"
+  | "mission"
+  | "org"
+  | "blueprint";
 
 /**
  * Une ligne de l'avant/après, déjà mise en mots pour l'affichage. `field` est
@@ -196,6 +227,10 @@ export const POINTS = {
   section: 10,
   /** Toute autre correction de champs, plan repris compris. */
   edit: 5,
+  /** Une organisation créée, à sa validation. */
+  orgCreate: 20,
+  /** Une donnée confirmée, dans la limite de `CONFIRM_DAILY_CAP` par jour. */
+  confirm: 2,
 } as const;
 
 /**
@@ -305,6 +340,9 @@ export const CONTRIBUTION_ERRORS = [
   "revertFailed",
   "applyFailed",
   "suspended",
+  "missionNotFound",
+  "tooManyOrgs",
+  "alreadyConfirmed",
 ] as const;
 
 export type ContributionErrorCode = (typeof CONTRIBUTION_ERRORS)[number];
@@ -314,3 +352,93 @@ export type SubmitContributionResult = {
   contribution: Contribution;
   standing: ContributorStanding;
 };
+
+// ─── Organisations ──────────────────────────────────────────────────────────
+
+/**
+ * Tout joueur connecté crée une organisation, deux au plus. Elle est privée
+ * jusqu'à ce qu'un modérateur la valide : c'est la validation qui lui permet
+ * de passer publique, et qui rapporte ses points à son créateur.
+ */
+export const MAX_ORGS_PER_ACCOUNT = 2;
+export const MIN_ORG_NAME_LENGTH = 2;
+export const MAX_ORG_NAME_LENGTH = 60;
+export const MAX_ORG_TAG_LENGTH = 10;
+export const MAX_ORG_DESCRIPTION_LENGTH = 2000;
+/** Sous la limite des actions serveur (`next.config.ts`), qui portent le fichier. */
+export const MAX_ORG_LOGO_BYTES = 2_500_000;
+
+/**
+ * Où en est une organisation créée par un joueur. Une organisation plus
+ * ancienne n'en a pas : elle a été créée par la Nexus Corporation, et compte
+ * comme validée.
+ */
+export type OrgValidation = {
+  status: "pending" | "validated" | "rejected";
+  at?: string;
+  message?: string;
+};
+
+// ─── Confirmations ──────────────────────────────────────────────────────────
+
+/**
+ * Ce qui se confirme : les cours d'une ressource, les services d'un lieu, les
+ * missions qui donnent un blueprint.
+ */
+export const CONFIRM_SUBJECTS = ["prices", "services", "sources"] as const;
+export type ConfirmSubject = (typeof CONFIRM_SUBJECTS)[number];
+
+export function isConfirmSubject(value: unknown): value is ConfirmSubject {
+  return (CONFIRM_SUBJECTS as readonly unknown[]).includes(value);
+}
+
+/** Sur quelle fiche se confirme chaque donnée. */
+export const CONFIRM_TARGETS: Record<
+  ConfirmSubject,
+  "item" | "place" | "blueprint"
+> = {
+  prices: "item",
+  services: "place",
+  sources: "blueprint",
+};
+
+/** Au-delà, une confirmation est enregistrée mais ne rapporte plus rien. */
+export const CONFIRM_DAILY_CAP = 20;
+/** Le même joueur ne confirme pas la même donnée plus d'une fois par semaine. */
+export const CONFIRM_COOLDOWN_DAYS = 7;
+/** Trois joueurs qui disent « plus exact » ouvrent un signalement. */
+export const OUTDATED_VOTES = 3;
+export const MAX_CONFIRM_COMMENT_LENGTH = 300;
+/** Des cours confirmés il y a plus longtemps sont à revoir. */
+export const STALE_DATA_DAYS = 14;
+
+/** Ce qu'une confirmation enregistre, dans `proposal`. */
+export type ConfirmProposal = {
+  subject: ConfirmSubject;
+  accurate: boolean;
+  comment?: string;
+};
+
+/** Ce que l'envoi d'une confirmation répond. */
+export type SubmitConfirmationResult = {
+  confirmation: { points: number; at: string };
+  standing: ContributorStanding;
+  /** Le troisième « plus exact » : un signalement est ouvert. */
+  reported: boolean;
+};
+
+/** Quand une donnée a été confirmée pour la dernière fois, et par combien. */
+export type ConfirmState = {
+  subject: ConfirmSubject;
+  confirmedAt?: string;
+  /** Les « plus exact » depuis la dernière confirmation. */
+  outdatedVotes: number;
+  /** Le lecteur l'a déjà confirmée cette semaine. */
+  mine?: boolean;
+};
+
+// ─── Missions ───────────────────────────────────────────────────────────────
+
+/** Les lieux d'une mission et son astuce : ce que la communauté y ajoute. */
+export const MAX_MISSION_PLACES = 12;
+export const MAX_MISSION_TIP_LENGTH = 1000;

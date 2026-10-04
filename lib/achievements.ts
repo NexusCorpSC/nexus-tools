@@ -6,8 +6,10 @@ import {
   pointEvents,
   type DbUser,
 } from "@/lib/contribution-store";
-import { CONTRIBUTION_KINDS } from "@/types/contributions";
+import { organizations } from "@/lib/orgs";
+import { CATALOG_KINDS } from "@/types/contributions";
 import {
+  FOUNDER_MEMBERS,
   GUARDIAN_GOAL,
   MIN_DISTRICTS,
   MIN_PLANETS,
@@ -75,7 +77,7 @@ export async function evaluateAchievements(
   userId: ObjectId,
   earned: NonNullable<DbUser["contrib"]>["achievements"] = [],
 ): Promise<Achievement[]> {
-  const [published, firstMedia, upheld, reviewed] = await Promise.all([
+  const [published, firstMedia, upheld, reviewed, founded] = await Promise.all([
     contributions()
       .find(
         { userId, status: "published" },
@@ -103,6 +105,15 @@ export async function evaluateAchievements(
       )
       .sort({ createdAt: -1 })
       .limit(RELIABLE_GOAL)
+      .toArray(),
+    // La plus grande organisation qu'il a créée et que la modération a validée.
+    organizations()
+      .aggregate<{ members: number }>([
+        { $match: { createdBy: userId, "validation.status": "validated" } },
+        { $project: { members: { $size: "$members" } } },
+        { $sort: { members: -1 } },
+        { $limit: 1 },
+      ])
       .toArray(),
   ]);
 
@@ -208,8 +219,8 @@ export async function evaluateAchievements(
     id: "versatile",
     key: "versatile",
     progress: {
-      current: CONTRIBUTION_KINDS.filter((kind) => kinds.has(kind)).length,
-      goal: CONTRIBUTION_KINDS.length,
+      current: CATALOG_KINDS.filter((kind) => kinds.has(kind)).length,
+      goal: CATALOG_KINDS.length,
     },
   });
 
@@ -227,6 +238,15 @@ export async function evaluateAchievements(
     progress: {
       current: streak === -1 ? reviewed.length : streak,
       goal: RELIABLE_GOAL,
+    },
+  });
+
+  results.push({
+    id: "founder",
+    key: "founder",
+    progress: {
+      current: Math.min(founded[0]?.members ?? 0, FOUNDER_MEMBERS),
+      goal: FOUNDER_MEMBERS,
     },
   });
 

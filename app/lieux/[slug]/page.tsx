@@ -22,6 +22,10 @@ import { PlanViewer } from "./plan-viewer";
 import { ContestedBanner, ReportMenu } from "@/components/report-menu";
 import { FicheCredits } from "@/components/fiche-credits";
 import { getContested } from "@/lib/reports";
+import { getItemSummaries } from "@/lib/items";
+import { listMissionsAt } from "@/lib/missions";
+import { recordView } from "@/lib/page-views";
+import { ConfirmBlock } from "@/components/confirm-block";
 import {
   PlaceBreadcrumb,
   PlaceEmpty,
@@ -84,6 +88,7 @@ export default async function PlacePage({
   }
 
   const canEdit = await hasPermission(PLACES_EDIT_PERMISSION);
+  await recordView("place", place.slug);
 
   // Poser un relevé en fond d'un plan de vol demande une escouade ; cette page
   // n'en demande aucune. On ne lit donc ici que « y a-t-il quelqu'un », et
@@ -91,15 +96,17 @@ export default async function PlacePage({
   const session = await auth.api.getSession({ headers: await headers() });
   const tab: Tab = TABS.includes(onglet as Tab) ? (onglet as Tab) : "apercu";
 
-  const [media, myPending] =
+  const [media, myPending, soldItems, missions] =
     tab === "apercu"
       ? await Promise.all([
           listPlaceMedia(place.slug),
           session?.user
             ? countMyPendingMedia(place.slug, new ObjectId(session.user.id))
             : 0,
+          getItemSummaries(place.soldItems),
+          listMissionsAt(place.slug),
         ])
-      : [[], 0];
+      : [[], 0, [], []];
 
   /*
     Le plan regardé vit dans l'adresse. On ne descend que dans l'arborescence
@@ -270,10 +277,57 @@ export default async function PlacePage({
             )}
           </div>
 
+          {place.tip && (
+            <div>
+              <SectionTitle>{t("tipTitle")}</SectionTitle>
+              <p className="whitespace-pre-line rounded-xl border border-[#F5C46B]/30 bg-[#F5C46B]/6 p-4 text-sm leading-relaxed">
+                {place.tip}
+              </p>
+            </div>
+          )}
+
+          {soldItems.length > 0 && (
+            <div>
+              <SectionTitle aside={t("soldCount", { count: soldItems.length })}>
+                {t("soldTitle")}
+              </SectionTitle>
+              <ul className="flex flex-wrap gap-1.5">
+                {soldItems.map((item) => (
+                  <li key={item.slug}>
+                    <Link
+                      href={`/items/${item.slug}`}
+                      className="inline-block rounded-full border border-[#9ED0FF]/20 bg-white/5 px-2.5 py-1 text-xs hover:bg-white/10"
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {services.length > 0 && (
             <div>
               <SectionTitle>{t("servicesTitle")}</SectionTitle>
               <ServiceChips services={services.slice(0, 8)} />
+            </div>
+          )}
+
+          {missions.length > 0 && (
+            <div>
+              <SectionTitle>{t("missionsTitle")}</SectionTitle>
+              <ul className="space-y-1 text-sm">
+                {missions.map((mission) => (
+                  <li key={mission.id}>
+                    <Link
+                      href={`/missions/${mission.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {mission.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
@@ -317,6 +371,18 @@ export default async function PlacePage({
             <ServiceChips services={services} />
           ) : (
             <PlaceEmpty>{t("noServices")}</PlaceEmpty>
+          )}
+          {services.length > 0 && (
+            <ConfirmBlock
+              subject="services"
+              slug={place.slug}
+              fixHref={
+                canEdit
+                  ? `/admin/lieux/${place.slug}/edit`
+                  : `/lieux/${place.slug}/contribuer`
+              }
+              className="mt-4 max-w-xl"
+            />
           )}
         </div>
       )}

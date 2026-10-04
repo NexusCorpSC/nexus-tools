@@ -29,6 +29,10 @@ export type Mission = {
   removedInVersion?: string;
   /** La mission dans laquelle la source a fusionné celle-ci. */
   replacedBy?: string;
+  /** Où elle se joue, ajouté par la communauté. */
+  placeSlugs?: string[];
+  /** Une astuce de joueur. */
+  tip?: string;
 };
 
 export type FactionWithBlueprints = {
@@ -36,4 +40,3 @@ export type FactionWithBlueprints = {
   name: string;
   blueprints: MissionBlueprint[];
 };
-

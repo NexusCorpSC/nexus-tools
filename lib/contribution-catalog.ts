@@ -3,6 +3,7 @@ import {
   createItem,
   deleteItem,
   getItemBySlug,
+  getItemsBySlugs,
   normalizeItemInput,
   restoreItemFields,
   updateItem,
@@ -19,6 +20,14 @@ import {
   updatePlace,
   type PlaceInput,
 } from "@/lib/places";
+import {
+  getMissionForEdit,
+  MISSION_FIELDS,
+  normalizeMissionInput,
+  updateMissionCommunity,
+  type MissionCommunity,
+} from "@/lib/missions";
+import { organizations } from "@/lib/orgs";
 import {
   BLOB_HOST,
   ContributionError,
@@ -57,7 +66,7 @@ import {
 
 /** Ce que `lib/contributions.ts` enregistre, une fois la proposition vérifiée. */
 export type CatalogDraft = {
-  kind: Exclude<ContributionKind, "media">;
+  kind: Exclude<ContributionKind, "media" | "orgCreate" | "confirm">;
   target: ContributionTarget;
   proposal: unknown;
   fields?: string[];
@@ -195,6 +204,8 @@ const PLACE_FIELDS = [
   "description",
   "services",
   "shopCategory",
+  "soldItems",
+  "tip",
   "parentSlug",
 ] as const;
 
@@ -210,8 +221,25 @@ export function placeToInput(place: Place): PlaceInput {
     imageUrl: place.imageUrl,
     services: place.services,
     shopCategory: place.shopCategory,
+    soldItems: place.soldItems,
+    tip: place.tip,
     parentSlug: place.parentSlug ?? null,
   };
+}
+
+/** Un magasin ne vend que des objets du catalogue. */
+async function assertSoldItems(slugs: string[] | undefined) {
+  if (!slugs?.length) return;
+  const found = await getItemsBySlugs(slugs);
+  const known = new Set(found.map((item) => item.slug));
+  const unknown = slugs.filter((slug) => !known.has(slug));
+  if (unknown.length > 0) {
+    throw new ContributionError(
+      "invalidInput",
+      400,
+      `Objet inconnu : ${unknown.join(", ")}`,
+    );
+  }
 }
 
 /** Ce que le formulaire a envoyé de ces champs, et rien d'autre. */
@@ -238,6 +266,7 @@ export async function buildPlaceCreate(
     parentSlug: parent.slug,
   } as PlaceInput;
   const normalized = validate(() => normalizePlaceInput(proposal));
+  await assertSoldItems(normalized.soldItems);
   // Le slug suit le nom : un contributeur n'en choisit pas, et deux lieux du
   // même nom se départagent à la relecture plutôt que par un suffixe.
   if (await getPlaceBySlug(normalized.slug)) {
@@ -282,6 +311,7 @@ export async function buildPlaceEdit(
   proposal.imageUrl = place.imageUrl;
 
   const normalized = validate(() => normalizePlaceInput(proposal));
+  await assertSoldItems(normalized.soldItems);
   if (normalized.parentSlug && !(await getPlaceBySlug(normalized.parentSlug))) {
     throw new ContributionError("placeNotFound", 404);
   }
@@ -531,6 +561,52 @@ export async function buildItemEdit(
 
 // ─── Publier et annuler ─────────────────────────────────────────────────────
 
+// ─── Missions ───────────────────────────────────────────────────────────────
+
+/**
+ * Les lieux d'une mission et son astuce. Pas de renommage : le titre vient du
+ * jeu, et le prochain import le réécrirait de toute façon.
+ */
+export async function buildMissionEdit(
+  id: string,
+  input: unknown,
+): Promise<CatalogDraft> {
+  const mission = await getMissionForEdit(id);
+  if (!mission) throw new ContributionError("missionNotFound", 404);
+
+  const raw = isPlainObject(input) ? input : {};
+  const proposal = present<MissionCommunity>(raw, MISSION_FIELDS);
+  const normalized = validate(() =>
+    normalizeMissionInput({
+      ...pick(mission, [...MISSION_FIELDS]),
+      ...proposal,
+    }),
+  );
+  for (const slug of normalized.placeSlugs ?? []) {
+    if (!(await getPlaceBySlug(slug))) {
+      throw new ContributionError("placeNotFound", 404);
+    }
+  }
+
+  const fields = MISSION_FIELDS.filter(
+    (field) => !sameValue(mission[field], normalized[field]),
+  );
+  if (fields.length === 0) throw new ContributionError("noChange", 400);
+
+  const before = pick(mission, fields);
+  const after = pick(normalized, fields);
+  return {
+    kind: "missionEdit",
+    target: { type: "mission", slug: mission.id, name: mission.title },
+    proposal: after,
+    fields,
+    before,
+    after,
+    changes: describeAll(fields, before, after),
+    points: POINTS.edit,
+  };
+}
+
 function applyError(error: unknown): ContributionError {
   if (error instanceof ContributionError) return error;
   return new ContributionError(
@@ -561,6 +637,12 @@ export async function currentBefore(
           : await getItemBySlug(target.slug);
       if (!entry) return null;
       const before = pick(entry, fields);
+      return { before, changes: describeAll(fields, before, after) };
+    }
+    case "missionEdit": {
+      const mission = await getMissionForEdit(target.slug);
+      if (!mission) return null;
+      const before = pick(mission, fields);
       return { before, changes: describeAll(fields, before, after) };
     }
     case "plan": {
@@ -658,6 +740,31 @@ export async function applyCatalog(
         );
         return;
       }
+      case "missionEdit": {
+        if (
+          !(await updateMissionCommunity(
+            target.slug,
+            proposal as MissionCommunity,
+            fields,
+          ))
+        ) {
+          throw new ContributionError("missionNotFound", 404);
+        }
+        return;
+      }
+      case "orgCreate": {
+        // Validée, l'organisation peut passer publique : ses éditeurs le
+        // décident, la validation ne l'expose pas d'elle-même.
+        const { matchedCount } = await organizations().updateOne(
+          { _id: target.slug },
+          { $set: { validation: { status: "validated", at: new Date() } } },
+        );
+        if (matchedCount === 0) throw new ContributionError("notFound", 404);
+        return;
+      }
+      case "media":
+      case "confirm":
+        return;
     }
   } catch (error) {
     throw applyError(error);
@@ -690,6 +797,11 @@ export async function revertConflicts(
       const item = await getItemBySlug(target.slug);
       if (!item) return gone;
       return describeAll(fields, after, item as Record<string, unknown>);
+    }
+    case "missionEdit": {
+      const mission = await getMissionForEdit(target.slug);
+      if (!mission) return gone;
+      return describeAll(fields, after, mission as Record<string, unknown>);
     }
     case "placeCreate": {
       // Supprimer le lieu emporterait ce que d'autres y ont mis depuis.
@@ -792,6 +904,35 @@ export async function revertCatalog(
         }
         return;
       }
+      case "missionEdit": {
+        if (
+          !(await updateMissionCommunity(
+            target.slug,
+            before as MissionCommunity,
+            fields,
+          ))
+        ) {
+          throw new ContributionError("missionNotFound", 404);
+        }
+        return;
+      }
+      case "orgCreate": {
+        // L'organisation reste à ses membres, mais quitte la vue publique :
+        // c'était la validation qui l'y autorisait.
+        await organizations().updateOne(
+          { _id: target.slug },
+          {
+            $set: {
+              public: false,
+              validation: { status: "rejected", at: new Date() },
+            },
+          },
+        );
+        return;
+      }
+      case "media":
+      case "confirm":
+        return;
     }
   } catch (error) {
     const failure = applyError(error);
