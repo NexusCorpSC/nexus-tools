@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { RememberListUrl } from "@/components/remember-list-url";
 import type { Metadata } from "next";
 import { getShop } from "@/lib/shop-items";
 import { isUserSellerOfShop } from "@/lib/shop-items";
@@ -100,6 +101,7 @@ export default async function BoOrdersPage({
       </Breadcrumb>
 
       <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <RememberListUrl />
 
       {orders.length === 0 ? (
         <p className="text-gray-500">{t("empty")}</p>

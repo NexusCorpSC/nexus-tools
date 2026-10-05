@@ -9,7 +9,12 @@ import {
   FormEvent,
 } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import {
+  replaceQuery,
+  useScrollRestore,
+  useUrlFilters,
+} from "@/lib/list-url";
 import { useLocale, useTranslations } from "next-intl";
 import { InventoryItemWithLocation, Location } from "@/types/inventory";
 import {
@@ -1629,14 +1634,17 @@ export function InventoryGrid() {
 
   const [items, setItems] = useState<InventoryItemWithLocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [locationFilter, setLocationFilter] = useState("all");
-  const [qualityFilter, setQualityFilter] = useState("");
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const [locationFilter, setLocationFilter] = useState(
+    searchParams.get("location") ?? "all",
+  );
+  const [qualityFilter, setQualityFilter] = useState(
+    searchParams.get("quality") ?? "",
+  );
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
   const [sentParcel, setSentParcel] = useState<ParcelView | null>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
   // A parcel link (`/inventory?parcel=K7QM2X9A`) opens the receiving dialog
   // with its code in; the address is cleaned, so a reload does not reopen it.
   const linkedCode = searchParams.get(PARCEL_PARAM) ?? undefined;
@@ -1646,8 +1654,8 @@ export function InventoryGrid() {
     if (linkedCode === undefined) return;
     setReceiveCode(linkedCode);
     setReceiveOpen(true);
-    router.replace("/inventory", { scroll: false });
-  }, [linkedCode, router]);
+    replaceQuery({ [PARCEL_PARAM]: null });
+  }, [linkedCode]);
 
   const handleAddToPackage = useCallback(
     (item: InventoryItemWithLocation, quantity: number) => {
@@ -1679,6 +1687,13 @@ export function InventoryGrid() {
 
   const debouncedQuery = useDebounce(searchQuery, 300);
   const debouncedQuality = useDebounce(qualityFilter, 300);
+  // Filters live in the address: back from another page finds them.
+  useUrlFilters({
+    q: debouncedQuery,
+    quality: debouncedQuality.trim(),
+    location: locationFilter === "all" ? null : locationFilter,
+  });
+  useScrollRestore(!loading);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);

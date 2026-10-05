@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useUrlFilters } from "@/lib/list-url";
 import {
   MagnifyingGlassIcon,
   PencilIcon,
@@ -25,7 +27,9 @@ import { BulkImageDialog } from "./bulk-image-dialog";
  */
 export function PlacesManager() {
   const t = useTranslations("Places");
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  useUrlFilters({ q: query });
   const { results, total, isLoading } = usePlaceSearch({
     query,
     limit: MAX_PLACE_PAGE_SIZE,

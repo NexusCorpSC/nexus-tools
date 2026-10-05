@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import {
+  pageFrom,
+  replaceQuery,
+  useScrollRestore,
+  useUrlFilters,
+} from "@/lib/list-url";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   ChevronDoubleLeftIcon,
@@ -131,15 +137,14 @@ function PlaceCardSkeleton() {
 
 export function PlacesBrowser() {
   const t = useTranslations("Places");
-  const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [query, setQuery] = useState("");
-  const [type, setType] = useState("");
-  const [system, setSystem] = useState("");
-  const [body, setBody] = useState("");
-  const [service, setService] = useState("");
-  const [sort, setSort] = useState("name");
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [type, setType] = useState(searchParams.get("type") ?? "");
+  const [system, setSystem] = useState(searchParams.get("system") ?? "");
+  const [body, setBody] = useState(searchParams.get("body") ?? "");
+  const [service, setService] = useState(searchParams.get("service") ?? "");
+  const [sort, setSort] = useState(searchParams.get("sort") ?? "name");
   const [view, setView] = useState<"grid" | "tree">(() =>
     searchParams.get("vue") === "arbre" ? "tree" : "grid",
   );
@@ -153,27 +158,27 @@ export function PlacesBrowser() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [page, setPage] = useState(() => {
-    const parsed = parseInt(searchParams.get("page") ?? "1", 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-  });
+  const [page, setPage] = useState(() => pageFrom(searchParams));
 
   const isFiltered = !!(query.trim() || type || system || body || service);
 
-  /** Sync the ?page= and ?vue= query params without a full navigation. */
+  // Filters, page and view live in the address: back from a place finds them.
+  useUrlFilters({
+    q: query,
+    type,
+    system,
+    body,
+    service,
+    sort: sort === "name" ? null : sort,
+  });
+  useScrollRestore(hasLoaded);
   const updateUrl = useCallback(
-    (nextPage: number, nextView: "grid" | "tree") => {
-      const params = new URLSearchParams(window.location.search);
-      if (nextPage <= 1) params.delete("page");
-      else params.set("page", String(nextPage));
-      if (nextView === "tree") params.set("vue", "arbre");
-      else params.delete("vue");
-      const search = params.toString();
-      router.replace(search ? `?${search}` : window.location.pathname, {
-        scroll: false,
-      });
-    },
-    [router],
+    (nextPage: number, nextView: "grid" | "tree") =>
+      replaceQuery({
+        page: nextPage,
+        vue: nextView === "tree" ? "arbre" : null,
+      }),
+    [],
   );
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ListLink } from "@/components/list-link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -85,7 +86,9 @@ export default async function MissionsFactionsPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/missions">{t("title")}</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <ListLink href="/missions">{t("title")}</ListLink>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { InventoryItemWithLocation } from "@/types/inventory";
 import {
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn, roundQty } from "@/lib/utils";
+import { useScrollRestore, useUrlFilters } from "@/lib/list-url";
 import { toDisplayQty } from "@/lib/units";
 import {
   groupByLocation,
@@ -57,13 +59,28 @@ export function OrgInventoryGrid({ orgId }: { orgId: string }) {
   const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [qualityFilter, setQualityFilter] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState("all");
-  const [locationFilter, setLocationFilter] = useState("all");
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const [qualityFilter, setQualityFilter] = useState(
+    searchParams.get("quality") ?? "",
+  );
+  const [ownerFilter, setOwnerFilter] = useState(
+    searchParams.get("member") ?? "all",
+  );
+  const [locationFilter, setLocationFilter] = useState(
+    searchParams.get("location") ?? "all",
+  );
 
   const debouncedQuery = useDebounce(searchQuery, 300);
   const debouncedQuality = useDebounce(qualityFilter, 300);
+  // Filters live in the address, with the same names as in the app.
+  useUrlFilters({
+    q: debouncedQuery,
+    quality: debouncedQuality.trim(),
+    member: ownerFilter === "all" ? null : ownerFilter,
+    location: locationFilter === "all" ? null : locationFilter,
+  });
+  useScrollRestore(!loading);
 
   // Tout d'un coup : une page de 20 couperait une ressource en deux cartes.
   const fetchItems = useCallback(async () => {

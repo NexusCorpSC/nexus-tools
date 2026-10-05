@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useScrollRestore, useUrlFilters } from "@/lib/list-url";
 import { useTranslations } from "next-intl";
 import { Mission, MissionFaction } from "@/types/missions";
 import {
@@ -100,7 +101,6 @@ export function MissionsExplorer({
   factions: MissionFaction[];
 }) {
   const t = useTranslations("Missions");
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
@@ -145,16 +145,14 @@ export function MissionsExplorer({
     fetchMissions();
   }, [fetchMissions]);
 
-  // Sync URL params
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (query) params.set("q", query);
-    if (factionId) params.set("faction", factionId);
-    if (hasBlueprints) params.set("blueprints", "true");
-    if (page > 1) params.set("page", page.toString());
-    const url = params.toString() ? `?${params}` : "/missions";
-    router.replace(url, { scroll: false });
-  }, [query, factionId, hasBlueprints, page, router]);
+  // Filters and page live in the address: back from a mission finds them.
+  useUrlFilters({
+    q: query,
+    faction: factionId,
+    blueprints: hasBlueprints,
+    page,
+  });
+  useScrollRestore(!loading);
 
   const resetFilters = () => {
     setQuery("");
