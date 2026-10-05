@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { RememberListUrl } from "@/components/remember-list-url";
 import type { Metadata } from "next";
 import { getOrdersForUser, countOrdersForUser } from "@/lib/shop-orders";
 import { auth } from "@/lib/auth";
@@ -75,6 +76,7 @@ export default async function MyOrdersPage({
       </Breadcrumb>
 
       <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <RememberListUrl />
 
       {orders.length === 0 ? (
         <div className="text-center py-10 text-gray-500">

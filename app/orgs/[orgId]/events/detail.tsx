@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { lastListUrl } from "@/lib/list-url";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -81,7 +82,7 @@ export function EventDetail({
       setDeleteError(true);
       return;
     }
-    router.push(`/orgs/${event.orgId}/events`);
+    router.push(lastListUrl(`/orgs/${event.orgId}/events`));
     router.refresh();
   }
 

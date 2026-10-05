@@ -14,7 +14,12 @@ import {
   ChevronDoubleRightIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { pageFrom, replaceQuery, useUrlFilters } from "@/lib/list-url";
+import {
+  pageFrom,
+  replaceQuery,
+  useScrollRestore,
+  useUrlFilters,
+} from "@/lib/list-url";
 import {
   Select,
   SelectContent,
@@ -257,6 +262,7 @@ export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
     owned: ownedFilter === "all" ? null : String(ownedFilter === "owned"),
     materials: materials.join(","),
   });
+  useScrollRestore(hasLoaded);
   const updatePageInUrl = useCallback(
     (newPage: number) => replaceQuery({ page: newPage }),
     [],

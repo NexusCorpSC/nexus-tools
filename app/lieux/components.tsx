@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { pageFrom, replaceQuery, useUrlFilters } from "@/lib/list-url";
+import {
+  pageFrom,
+  replaceQuery,
+  useScrollRestore,
+  useUrlFilters,
+} from "@/lib/list-url";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -166,6 +171,7 @@ export function PlacesBrowser() {
     service,
     sort: sort === "name" ? null : sort,
   });
+  useScrollRestore(hasLoaded);
   const updateUrl = useCallback(
     (nextPage: number, nextView: "grid" | "tree") =>
       replaceQuery({

@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUrlFilters } from "@/lib/list-url";
+import { useScrollRestore, useUrlFilters } from "@/lib/list-url";
 import {
   setPlayerReputation,
   setPlayerReputationStandingAction,
@@ -86,6 +86,7 @@ export function FactionsList({
     progress: view === "all" ? null : view,
     family: family === "all" ? null : family,
   });
+  useScrollRestore(true);
   const [openName, setOpenName] = useState<string | null>(null);
 
   // Une faction disparue du jeu ne reste que pour qui l'a suivie.

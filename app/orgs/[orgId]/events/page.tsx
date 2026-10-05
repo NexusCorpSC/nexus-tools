@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { RememberListUrl } from "@/components/remember-list-url";
 import type { Metadata } from "next";
 import {
   getOrgAccess,
@@ -47,6 +48,7 @@ export default async function OrgEventsPage({ params, searchParams }: Params) {
 
   return (
     <EventsShell orgId={orgId} name={name} trail={[]}>
+      <RememberListUrl />
       <EventCalendar
         orgId={orgId}
         events={events}

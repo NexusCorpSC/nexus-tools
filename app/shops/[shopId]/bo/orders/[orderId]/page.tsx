@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { ListLink } from "@/components/list-link";
 import type { Metadata } from "next";
 import { getShop, isUserSellerOfShop } from "@/lib/shop-items";
 import { getOrderById } from "@/lib/shop-orders";
@@ -84,8 +85,10 @@ export default async function BoOrderDetailPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={`/shops/${shopId}/bo/orders`}>
-              {t("title")}
+            <BreadcrumbLink asChild>
+              <ListLink href={`/shops/${shopId}/bo/orders`}>
+                {t("title")}
+              </ListLink>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

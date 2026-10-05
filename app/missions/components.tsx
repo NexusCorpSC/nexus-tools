@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { useUrlFilters } from "@/lib/list-url";
+import { useScrollRestore, useUrlFilters } from "@/lib/list-url";
 import { useTranslations } from "next-intl";
 import { Mission, MissionFaction } from "@/types/missions";
 import {
@@ -152,6 +152,7 @@ export function MissionsExplorer({
     blueprints: hasBlueprints,
     page,
   });
+  useScrollRestore(!loading);
 
   const resetFilters = () => {
     setQuery("");

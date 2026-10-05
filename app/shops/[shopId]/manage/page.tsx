@@ -49,7 +49,7 @@ export default async function ShopManagementPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/shops">{t("shops")}</BreadcrumbLink>
+            <BreadcrumbLink href="/shopping">{t("shops")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

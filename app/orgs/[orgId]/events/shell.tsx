@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { ListLink } from "@/components/list-link";
 import { headers } from "next/headers";
 import db from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -73,8 +74,8 @@ export async function EventsShell({
                 {index === crumbs.length - 1 || !crumb.href ? (
                   <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink href={crumb.href}>
-                    {crumb.label}
+                  <BreadcrumbLink asChild>
+                    <ListLink href={crumb.href}>{crumb.label}</ListLink>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>

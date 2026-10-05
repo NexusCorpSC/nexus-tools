@@ -10,7 +10,11 @@ import {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { replaceQuery, useUrlFilters } from "@/lib/list-url";
+import {
+  replaceQuery,
+  useScrollRestore,
+  useUrlFilters,
+} from "@/lib/list-url";
 import { useLocale, useTranslations } from "next-intl";
 import { InventoryItemWithLocation, Location } from "@/types/inventory";
 import {
@@ -1689,6 +1693,7 @@ export function InventoryGrid() {
     quality: debouncedQuality.trim(),
     location: locationFilter === "all" ? null : locationFilter,
   });
+  useScrollRestore(!loading);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);

@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { pageFrom, replaceQuery, useUrlFilters } from "@/lib/list-url";
+import {
+  pageFrom,
+  replaceQuery,
+  useScrollRestore,
+  useUrlFilters,
+} from "@/lib/list-url";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -180,6 +185,7 @@ export function ItemGrid() {
 
   // Filters and page live in the address: back from an item finds them.
   useUrlFilters({ q: query, kind, category, subcategory, manufacturer });
+  useScrollRestore(hasLoaded);
   const updatePageInUrl = useCallback(
     (newPage: number) => replaceQuery({ page: newPage }),
     [],

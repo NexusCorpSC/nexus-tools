@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 type QueryValue = string | number | boolean | null | undefined;
 
@@ -40,7 +40,8 @@ export function replaceQuery(values: Record<string, QueryValue>) {
   rememberList(pathname, url);
 }
 
-function rememberList(pathname: string, url: string) {
+/** Remembers `url` as the list at `pathname` last left in this tab. */
+export function rememberList(pathname: string, url: string) {
   try {
     sessionStorage.setItem(STORAGE_PREFIX + pathname, url);
   } catch {
@@ -90,4 +91,70 @@ function subscribeNever() {
 export function pageFrom(params: { get(key: string): string | null }): number {
   const page = Number.parseInt(params.get("page") ?? "1", 10);
   return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+const SCROLL_PREFIX = "nexus:scroll:";
+/** How long after a "back" or a list link the list counts as being returned to. */
+const RETURN_WINDOW_MS = 2000;
+let returnedAt = 0;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("popstate", () => {
+    returnedAt = Date.now();
+  });
+}
+
+/** Marks the next list to open as a return, so it scrolls back where it was. */
+export function markListReturn() {
+  returnedAt = Date.now();
+}
+
+/**
+ * Brings a list back to where it was scrolled when the reader returns to it
+ * (browser "back", or a breadcrumb / "back" link). The list loads its results
+ * after mounting, so the scroll waits for `ready`. Opening the list any other
+ * way starts at the top, as before.
+ */
+export function useScrollRestore(ready: boolean) {
+  const restored = useRef(false);
+  const returning = useRef(false);
+
+  useEffect(() => {
+    returning.current = Date.now() - returnedAt < RETURN_WINDOW_MS;
+    const { pathname } = window.location;
+    const key = SCROLL_PREFIX + pathname;
+    let frame = 0;
+    const save = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        // Leaving for another page scrolls it to the top: not this list's.
+        if (window.location.pathname !== pathname) return;
+        try {
+          sessionStorage.setItem(key, String(Math.round(window.scrollY)));
+        } catch {
+          // Storage off: the list simply opens at the top.
+        }
+      });
+    };
+    window.addEventListener("scroll", save, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", save);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready || restored.current) return;
+    restored.current = true;
+    if (!returning.current) return;
+    let top = 0;
+    try {
+      top = Number(
+        sessionStorage.getItem(SCROLL_PREFIX + window.location.pathname) ?? 0,
+      );
+    } catch {
+      return;
+    }
+    if (top > 0) requestAnimationFrame(() => window.scrollTo(0, top));
+  }, [ready]);
 }

@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn, roundQty } from "@/lib/utils";
-import { useUrlFilters } from "@/lib/list-url";
+import { useScrollRestore, useUrlFilters } from "@/lib/list-url";
 import { toDisplayQty } from "@/lib/units";
 import {
   groupByLocation,
@@ -80,6 +80,7 @@ export function OrgInventoryGrid({ orgId }: { orgId: string }) {
     member: ownerFilter === "all" ? null : ownerFilter,
     location: locationFilter === "all" ? null : locationFilter,
   });
+  useScrollRestore(!loading);
 
   // Tout d'un coup : une page de 20 couperait une ressource en deux cartes.
   const fetchItems = useCallback(async () => {
