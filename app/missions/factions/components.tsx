@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useUrlFilters } from "@/lib/list-url";
 import { useTranslations } from "next-intl";
 import { MagnifyingGlassIcon, UsersIcon, CubeIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { Input } from "@/components/ui/input";
@@ -15,7 +17,9 @@ type FactionSummary = {
 
 export function FactionsExplorer({ factions }: { factions: FactionSummary[] }) {
   const t = useTranslations("Missions");
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  useUrlFilters({ q: query });
 
   const filtered = factions.filter((f) =>
     f.name.toLowerCase().includes(query.toLowerCase())

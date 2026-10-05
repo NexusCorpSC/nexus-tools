@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Blueprint } from "@/types/crafting";
 import {
@@ -14,6 +14,7 @@ import {
   ChevronDoubleRightIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { pageFrom, replaceQuery, useUrlFilters } from "@/lib/list-url";
 import {
   Select,
   SelectContent,
@@ -216,46 +217,49 @@ function BlueprintCardSkeleton() {
 
 export function BlueprintGrid({ isLoggedIn }: { isLoggedIn: boolean }) {
   const t = useTranslations("Crafting.Blueprints");
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const LIMIT = 24;
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [categories, setCategories] = useState<Category[]>([]);
-  const [category, setCategory] = useState<string>("");
-  const [subcategory, setSubcategory] = useState<string>("");
-  const [ownedFilter, setOwnedFilter] = useState<"all" | "owned" | "not-owned">(
-    "all",
+  const [category, setCategory] = useState<string>(
+    searchParams.get("category") ?? "",
   );
-  const [materials, setMaterials] = useState<string[]>([]);
+  const [subcategory, setSubcategory] = useState<string>(
+    searchParams.get("subcategory") ?? "",
+  );
+  const [ownedFilter, setOwnedFilter] = useState<"all" | "owned" | "not-owned">(
+    () => {
+      const owned = searchParams.get("owned");
+      if (owned === "true") return "owned";
+      if (owned === "false") return "not-owned";
+      return "all";
+    },
+  );
+  const [materials, setMaterials] = useState<string[]>(
+    () => searchParams.get("materials")?.split(",").filter(Boolean) ?? [],
+  );
   const [results, setResults] = useState<(Blueprint & { owned?: boolean })[]>(
     [],
   );
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [page, setPage] = useState(() => {
-    const p = parseInt(searchParams.get("page") ?? "1", 10);
-    return isNaN(p) || p < 1 ? 1 : p;
-  });
+  const [page, setPage] = useState(() => pageFrom(searchParams));
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  /** Sync the ?page= query param in the URL without a full navigation. */
+  // Filters and page live in the address: back from a blueprint finds them.
+  useUrlFilters({
+    q: query,
+    category,
+    subcategory,
+    owned: ownedFilter === "all" ? null : String(ownedFilter === "owned"),
+    materials: materials.join(","),
+  });
   const updatePageInUrl = useCallback(
-    (newPage: number) => {
-      const params = new URLSearchParams(window.location.search);
-      if (newPage <= 1) {
-        params.delete("page");
-      } else {
-        params.set("page", String(newPage));
-      }
-      const search = params.toString();
-      router.replace(search ? `?${search}` : window.location.pathname, {
-        scroll: false,
-      });
-    },
-    [router],
+    (newPage: number) => replaceQuery({ page: newPage }),
+    [],
   );
 
   useEffect(() => {

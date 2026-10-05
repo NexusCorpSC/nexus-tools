@@ -1,4 +1,5 @@
 import { getBlueprintBySlug } from "@/lib/crafting";
+import { ListLink } from "@/components/list-link";
 import { formatCraftingTime } from "@/lib/crafting-time";
 import { getTranslations } from "next-intl/server";
 import {
@@ -82,9 +83,9 @@ export default async function BlueprintDetailPage({
       <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
         <h1 className="text-2xl font-bold mb-4">{t("Blueprints.notFound")}</h1>
         <Button asChild variant="outline">
-          <Link href="/crafting/blueprints">
+          <ListLink href="/crafting/blueprints">
             {t("Blueprints.backToBlueprints")}
-          </Link>
+          </ListLink>
         </Button>
       </div>
     );
@@ -103,8 +104,10 @@ export default async function BlueprintDetailPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/crafting/blueprints">
-              {t("Blueprints.title")}
+            <BreadcrumbLink asChild>
+              <ListLink href="/crafting/blueprints">
+                {t("Blueprints.title")}
+              </ListLink>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -297,9 +300,9 @@ export default async function BlueprintDetailPage({
       </p>
 
       <Button asChild variant="outline">
-        <Link href="/crafting/blueprints">
+        <ListLink href="/crafting/blueprints">
           {t("Blueprints.backToBlueprints")}
-        </Link>
+        </ListLink>
       </Button>
     </div>
   );

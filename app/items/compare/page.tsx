@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ListLink } from "@/components/list-link";
 import { getTranslations } from "next-intl/server";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import {
@@ -53,7 +53,9 @@ export default async function CompareItemsPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/items">{tItems("title")}</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <ListLink href="/items">{tItems("title")}</ListLink>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -71,10 +73,10 @@ export default async function CompareItemsPage({
             {t("emptyHint")}
           </p>
           <Button asChild variant="outline" size="sm">
-            <Link href="/items">
+            <ListLink href="/items">
               <ArrowLeftIcon className="size-4" />
               {t("emptyCta")}
-            </Link>
+            </ListLink>
           </Button>
         </div>
       )}

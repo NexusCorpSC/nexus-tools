@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListLink } from "@/components/list-link";
 import { getTranslations } from "next-intl/server";
 import {
   ExclamationTriangleIcon,
@@ -40,9 +41,9 @@ export async function ItemBreadcrumb({
         {t("home")}
       </Link>
       <span aria-hidden>›</span>
-      <Link href="/items" className="hover:text-nexus-primary">
+      <ListLink href="/items" className="hover:text-nexus-primary">
         {t("title")}
-      </Link>
+      </ListLink>
       <span aria-hidden>›</span>
       <span className="text-nexus">{name}</span>
     </nav>
@@ -539,12 +540,12 @@ export async function CommonSections({
       )}
 
       <div className="flex items-center gap-3">
-        <Link
+        <ListLink
           href="/items"
           className="inline-flex h-9 items-center rounded-md border border-[#9ED0FF]/30 px-4 text-sm font-medium text-nexus hover:bg-white/5"
         >
           {t("backToItems")}
-        </Link>
+        </ListLink>
         <Link
           href={fillHref(item.slug, canEdit)}
           className="inline-flex h-9 items-center gap-1.5 px-2 text-sm text-nexus/70 hover:text-nexus-primary"

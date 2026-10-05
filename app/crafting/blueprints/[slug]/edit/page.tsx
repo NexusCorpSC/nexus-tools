@@ -1,4 +1,5 @@
 import { getBlueprintBySlug } from "@/lib/crafting";
+import { ListLink } from "@/components/list-link";
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { requirePermission } from "@/lib/permissions";
@@ -80,8 +81,10 @@ export default async function EditBlueprintPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/crafting/blueprints">
-              {t("title")}
+            <BreadcrumbLink asChild>
+              <ListLink href="/crafting/blueprints">
+                {t("title")}
+              </ListLink>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

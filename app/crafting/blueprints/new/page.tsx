@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { ListLink } from "@/components/list-link";
 import type { Metadata } from "next";
 import { requirePermission } from "@/lib/permissions";
 import {
@@ -66,8 +67,10 @@ export default async function NewBlueprintPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/crafting/blueprints">
-              {t("Blueprints.title")}
+            <BreadcrumbLink asChild>
+              <ListLink href="/crafting/blueprints">
+                {t("Blueprints.title")}
+              </ListLink>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

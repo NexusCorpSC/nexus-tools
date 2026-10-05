@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ListLink } from "@/components/list-link";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -100,7 +101,9 @@ export default async function MissionDetailPage({ params }: Props) {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/missions">{t("title")}</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <ListLink href="/missions">{t("title")}</ListLink>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

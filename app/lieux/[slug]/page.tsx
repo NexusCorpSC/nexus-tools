@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ListLink } from "@/components/list-link";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
@@ -81,7 +82,7 @@ export default async function PlacePage({
       <div className="m-2 mx-auto max-w-5xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
         <h1 className="text-2xl font-bold">{t("notFound")}</h1>
         <Button asChild variant="outline" size="sm">
-          <Link href="/lieux">{t("backToPlaces")}</Link>
+          <ListLink href="/lieux">{t("backToPlaces")}</ListLink>
         </Button>
       </div>
     );
@@ -463,12 +464,12 @@ export default async function PlacePage({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#9ED0FF]/15 pt-4">
-        <Link
+        <ListLink
           href="/lieux"
           className="inline-flex h-9 items-center rounded-md border border-[#9ED0FF]/30 px-4 text-sm font-medium text-nexus hover:bg-white/5"
         >
           {t("backToPlaces")}
-        </Link>
+        </ListLink>
         <p className="text-xs text-muted-foreground">{t("reportHint")}</p>
       </div>
     </div>

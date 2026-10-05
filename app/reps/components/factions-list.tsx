@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUrlFilters } from "@/lib/list-url";
 import {
   setPlayerReputation,
   setPlayerReputationStandingAction,
@@ -36,6 +38,7 @@ import type {
 } from "@/types/reputations";
 
 type View = "all" | "started" | "todo";
+const VIEWS: View[] = ["all", "started", "todo"];
 
 const PANEL =
   "rounded-2xl border border-[#9ED0FF]/15 bg-[#092840]/75 shadow-xl shadow-black/20";
@@ -66,9 +69,23 @@ export function FactionsList({
   const t = useTranslations("Reputations");
   const [reputations, setReputations] =
     useState<PlayerReputations>(playerReputation);
-  const [query, setQuery] = useState("");
-  const [view, setView] = useState<View>("all");
-  const [family, setFamily] = useState<CareerFamily | "all">("all");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [view, setView] = useState<View>(
+    () =>
+      VIEWS.find((value) => value === searchParams.get("progress")) ?? "all",
+  );
+  const [family, setFamily] = useState<CareerFamily | "all">(
+    () =>
+      CAREER_FAMILIES.find((value) => value === searchParams.get("family")) ??
+      "all",
+  );
+  // Filters live in the address, with the same names as in the app.
+  useUrlFilters({
+    q: query,
+    progress: view === "all" ? null : view,
+    family: family === "all" ? null : family,
+  });
   const [openName, setOpenName] = useState<string | null>(null);
 
   // Une faction disparue du jeu ne reste que pour qui l'a suivie.

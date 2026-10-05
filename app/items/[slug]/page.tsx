@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ListLink } from "@/components/list-link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { getItemDetails } from "@/lib/items";
@@ -68,7 +68,7 @@ export default async function ItemDetailPage({
       <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
         <h1 className="mb-4 text-2xl font-bold">{t("notFound")}</h1>
         <Button asChild variant="outline">
-          <Link href="/items">{t("backToItems")}</Link>
+          <ListLink href="/items">{t("backToItems")}</ListLink>
         </Button>
       </div>
     );

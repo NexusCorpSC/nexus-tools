@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useUrlFilters } from "@/lib/list-url";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -31,7 +33,9 @@ export function ItemsManager() {
   const t = useTranslations("Items.Admin");
   const tItems = useTranslations("Items");
 
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  useUrlFilters({ q: query });
   const [items, setItems] = useState<ItemSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);

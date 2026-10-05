@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { pageFrom, replaceQuery, useUrlFilters } from "@/lib/list-url";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -156,14 +157,17 @@ function ItemCardSkeleton() {
 
 export function ItemGrid() {
   const t = useTranslations("Items");
-  const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [query, setQuery] = useState("");
-  const [kind, setKind] = useState("");
-  const [category, setCategory] = useState("");
-  const [subcategory, setSubcategory] = useState("");
-  const [manufacturer, setManufacturer] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [kind, setKind] = useState(searchParams.get("kind") ?? "");
+  const [category, setCategory] = useState(searchParams.get("category") ?? "");
+  const [subcategory, setSubcategory] = useState(
+    searchParams.get("subcategory") ?? "",
+  );
+  const [manufacturer, setManufacturer] = useState(
+    searchParams.get("manufacturer") ?? "",
+  );
   const [facets, setFacets] = useState<ItemFacets>(EMPTY_FACETS);
   const [results, setResults] = useState<ItemSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,26 +176,13 @@ export function ItemGrid() {
   const [totalPages, setTotalPages] = useState(1);
   const [compareMode, setCompareMode] = useState(false);
   const [picked, setPicked] = useState<ItemSummary[]>([]);
-  const [page, setPage] = useState(() => {
-    const parsed = parseInt(searchParams.get("page") ?? "1", 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-  });
+  const [page, setPage] = useState(() => pageFrom(searchParams));
 
-  /** Sync the ?page= query param in the URL without a full navigation. */
+  // Filters and page live in the address: back from an item finds them.
+  useUrlFilters({ q: query, kind, category, subcategory, manufacturer });
   const updatePageInUrl = useCallback(
-    (newPage: number) => {
-      const params = new URLSearchParams(window.location.search);
-      if (newPage <= 1) {
-        params.delete("page");
-      } else {
-        params.set("page", String(newPage));
-      }
-      const search = params.toString();
-      router.replace(search ? `?${search}` : window.location.pathname, {
-        scroll: false,
-      });
-    },
-    [router],
+    (newPage: number) => replaceQuery({ page: newPage }),
+    [],
   );
 
   useEffect(() => {

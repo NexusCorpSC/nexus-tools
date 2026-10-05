@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListLink } from "@/components/list-link";
 import { getTranslations } from "next-intl/server";
 import { ChevronRightIcon, MapIcon } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
@@ -28,9 +29,9 @@ export async function PlaceBreadcrumb({
         {t("home")}
       </Link>
       <span aria-hidden>›</span>
-      <Link href="/lieux" className="hover:text-nexus-primary">
+      <ListLink href="/lieux" className="hover:text-nexus-primary">
         {t("title")}
-      </Link>
+      </ListLink>
       {ancestors.map((ancestor) => (
         <span key={ancestor.slug} className="flex items-center gap-2">
           <span aria-hidden>›</span>

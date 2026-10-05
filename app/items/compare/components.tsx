@@ -7,6 +7,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { ListLink } from "@/components/list-link";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
@@ -393,7 +394,7 @@ export function ComparisonBoard({
             {copied ? t("linkCopied") : t("copyLink")}
           </Button>
           <Button asChild variant="ghost" size="sm" className="text-nexus/75">
-            <Link href="/items">{t("backToCatalogue")}</Link>
+            <ListLink href="/items">{t("backToCatalogue")}</ListLink>
           </Button>
         </div>
       </div>

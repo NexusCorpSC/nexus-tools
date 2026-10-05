@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ListLink } from "@/components/list-link";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
@@ -148,7 +149,15 @@ export default async function FactionMissionsPage({ params }: Props) {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/missions">{t("title")}</BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <ListLink href="/missions">{t("title")}</ListLink>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <ListLink href="/missions/factions">{t("factions")}</ListLink>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
