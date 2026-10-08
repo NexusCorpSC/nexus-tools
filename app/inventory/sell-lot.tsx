@@ -47,6 +47,11 @@ export function sellableOf(lot: InventoryItemWithLocation): number {
   return Math.max(0, Math.floor(lot.quantity - (lot.reserved ?? 0)));
 }
 
+/** La page de l'annonce dans le back-office de son magasin. */
+function backOfficeHref(shopId: string, listingId: string): string {
+  return `/shops/${encodeURIComponent(shopId)}/bo/listings/${encodeURIComponent(listingId)}`;
+}
+
 function visibleSales(lot: InventoryItemWithLocation): LotSale[] {
   return (lot.sales ?? []).filter((sale) => sale.onSale);
 }
@@ -231,7 +236,7 @@ function SalesPanel({
               {!sale.onSale && ` · ${t("saleHidden")}`}
             </p>
             <Link
-              href={`/shops/${sale.shopId}/bo/listings/${sale.listingId}`}
+              href={backOfficeHref(sale.shopId, sale.listingId)}
               className="text-xs text-[#9ED0FF] hover:underline"
             >
               {t("manage")}
@@ -389,10 +394,10 @@ function SellLotDialog({
             </p>
             <DialogFooter className="gap-2 sm:justify-start">
               <Button asChild variant="outline">
-                <Link href={`/shopping/i/${listingId}`}>{t("viewListing")}</Link>
+                <Link href={`/shopping/i/${encodeURIComponent(listingId)}`}>{t("viewListing")}</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href={`/shops/${shopId}/bo/listings/${listingId}`}>
+                <Link href={backOfficeHref(shopId, listingId)}>
                   {t("manageListing")}
                 </Link>
               </Button>
