@@ -1341,7 +1341,23 @@
       "priceDesc": "Precio descendente"
     },
     "resetFilters": "Borrar filtros",
-    "noResults": "Ningún anuncio coincide con estos filtros."
+    "noResults": "Ningún anuncio coincide con estos filtros.",
+    "resultsCount": "{count, plural, =0 {Ningún anuncio} one {# anuncio} other {# anuncios}} de {shops, plural, one {# tienda} other {# tiendas}}",
+    "filtersLabel": "Filtros",
+    "facetAvailability": "Disponibilidad",
+    "inStockOnly": "Solo en stock",
+    "directOnly": "Compra directa",
+    "facetPickup": "Lugar de entrega",
+    "facetPrice": "Precio (aUEC)",
+    "priceMin": "Mín",
+    "priceMax": "Máx",
+    "facetSize": "Tamaño",
+    "stockTags": {
+      "available": "{count} disponibles",
+      "lastOne": "Último",
+      "soldOut": "Agotado",
+      "onQuote": "Bajo presupuesto"
+    }
   },
   "ShoppingItem": {
     "notFound": "Objeto no encontrado",
@@ -1357,7 +1373,7 @@
     "category": "Categoría",
     "manufacturer": "Fabricante",
     "size": "Tamaño",
-    "catalogueLink": "Ver la ficha del catálogo",
+    "catalogueLink": "Ficha del catálogo →",
     "quantity": "Cantidad",
     "quantityLess": "Una menos",
     "quantityMore": "Una más",
@@ -1395,7 +1411,22 @@
       "INVALID_QUANTITY": "Elige una cantidad de al menos 1.",
       "NOT_ENOUGH_STOCK": "Con tu carrito, esta cantidad supera el stock disponible.",
       "CART_FULL": "Tu carrito está lleno. Valídalo o quita artículos."
-    }
+    },
+    "specs": "Características",
+    "perUnit": "la unidad",
+    "deliveredCount": "{count, plural, one {# venta entregada} other {# ventas entregadas}}",
+    "stockTags": {
+      "available": "En stock · {count}",
+      "lastOne": "Último en stock",
+      "soldOut": "Agotado",
+      "onQuote": "Bajo presupuesto"
+    },
+    "types": {
+      "OBJECT": "Objeto",
+      "SERVICE": "Servicio"
+    },
+    "manageListing": "Gestionar el anuncio",
+    "stockSummary": "Stock: {stock}, {reserved} reservado(s)."
   },
   "ShopItemManagement": {
     "currentStock": "Stock actual:",
@@ -1405,7 +1436,14 @@
     "removeOne": "Retirar 1",
     "invalidChange": "Indica un número entero distinto de cero.",
     "notEnoughStock": "El stock no puede bajar de cero ni de la cantidad reservada por pedidos.",
-    "reserved": "({count} reservado{count, plural, one {} other {s}})"
+    "reserved": "({count} reservado{count, plural, one {} other {s}})",
+    "title": "Gestionar el anuncio",
+    "stock": "Stock",
+    "reservedLabel": "Reservado",
+    "available": "Disponible",
+    "changeStock": "Corregir el stock",
+    "changeStockHelp": "Añade o quita unidades. El stock no baja de la cantidad reservada por pedidos confirmados.",
+    "backToListing": "← Volver al anuncio"
   },
   "ShoppingNewItem": {
     "title": "Venta",

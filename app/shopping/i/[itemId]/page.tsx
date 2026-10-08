@@ -5,12 +5,10 @@ import { ObjectId } from "bson";
 import { BuyBox, LoginToBuy } from "./buy-box";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CheckIcon, CrossCircledIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
-import { MapPinIcon } from "@heroicons/react/24/outline";
-import { Suspense } from "react";
-import { StockModificationSection } from "@/app/shopping/i/[itemId]/server-components";
+import { ChatBubbleLeftIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import { Fragment, type ReactNode } from "react";
+import { countDeliveredOrdersForShop } from "@/lib/shop-orders";
 import { getFormatter, getTranslations } from "next-intl/server";
 import {
   Breadcrumb,
@@ -21,7 +19,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ListLink } from "@/components/list-link";
-import { MUTED, PAGE_PANEL } from "@/app/shopping/ui";
+import { MUTED, PAGE_PANEL, ShopLogo, stockTag, Tag } from "@/app/shopping/ui";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -88,6 +86,31 @@ export default async function ShopItemDetailsPage({
     !!session?.user?.id &&
     (await isUserSellerOfShop(item.shop.id, new ObjectId(session.user.id)));
   const canBuy = item.type === "OBJECT" && available > 0;
+  const tag = stockTag(item.type, available);
+  const delivered = await countDeliveredOrdersForShop(item.shop.id);
+  const specs: [string, ReactNode][] = [];
+  if (item.category) specs.push([t("category"), item.category]);
+  if (item.size !== undefined) {
+    specs.push([
+      t("size"),
+      <span key="size" className="font-mono">
+        S{item.size}
+      </span>,
+    ]);
+  }
+  if (item.manufacturer) specs.push([t("manufacturer"), item.manufacturer]);
+  if (item.location) {
+    specs.push([
+      t("pickup"),
+      <span key="pickup" className="flex items-center gap-1">
+        <MapPinIcon aria-hidden="true" className="size-4" />
+        {item.location.name}
+        {item.location.system && (
+          <span className={MUTED}>· {item.location.system}</span>
+        )}
+      </span>,
+    ]);
+  }
 
   return (
     <div className={cn(PAGE_PANEL, "max-w-7xl")}>
@@ -115,14 +138,39 @@ export default async function ShopItemDetailsPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <Image
-          alt={item.name}
-          src={item.image || "/item_empty.png"}
-          className="aspect-square w-full rounded-xl object-cover"
-          width={600}
-          height={600}
-        />
+      <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr]">
+        <div className="space-y-4">
+          <Image
+            alt={item.name}
+            src={item.image || "/item_empty.png"}
+            className="aspect-4/3 w-full rounded-xl object-cover"
+            width={700}
+            height={525}
+          />
+          {specs.length > 0 && (
+            <div className="space-y-3 rounded-xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/70 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-semibold">{t("specs")}</h2>
+                {item.itemSlug && (
+                  <Link
+                    href={`/items/${item.itemSlug}`}
+                    className="text-sm text-sky-200 hover:underline"
+                  >
+                    {t("catalogueLink")}
+                  </Link>
+                )}
+              </div>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+                {specs.map(([label, value]) => (
+                  <Fragment key={label}>
+                    <dt className={MUTED}>{label}</dt>
+                    <dd>{value}</dd>
+                  </Fragment>
+                ))}
+              </dl>
+            </div>
+          )}
+        </div>
 
         <section aria-labelledby="information-heading" className="space-y-5">
           <h2 id="information-heading" className="sr-only">
@@ -130,10 +178,22 @@ export default async function ShopItemDetailsPage({
           </h2>
 
           <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Tag tone={tag.tone}>
+                {t(`stockTags.${tag.key}`, { count: tag.count })}
+              </Tag>
+              <Tag tone="dim">{t(`types.${item.type}`)}</Tag>
+            </div>
             <h1 className="text-3xl font-bold tracking-tight text-[#CCE7FF] sm:text-4xl">
               {item.name}
             </h1>
-            <p className={cn("text-sm", MUTED)}>
+            <p
+              className={cn("flex flex-wrap items-center gap-2 text-sm", MUTED)}
+            >
+              <ShopLogo
+                name={item.shop.name}
+                className="size-6 rounded text-[10px]"
+              />
               {t("soldBy")}{" "}
               <Link
                 href={`/shops/${item.shop.id}`}
@@ -141,93 +201,25 @@ export default async function ShopItemDetailsPage({
               >
                 {item.shop.name}
               </Link>
+              {delivered > 0 && (
+                <span>· {t("deliveredCount", { count: delivered })}</span>
+              )}
             </p>
           </div>
 
-          <p className="font-mono text-2xl font-bold text-[#CFE8FF]">
-            {format.number(Number(item.price))} aUEC
-          </p>
-
-          {available <= 0 && (
-            <p className="flex items-center gap-2 text-sm">
-              <CrossCircledIcon
-                aria-hidden="true"
-                className="size-5 shrink-0 text-red-300"
-              />
-              {t("soldOut")}
-            </p>
-          )}
-          {available > 0 && available <= 5 && (
-            <p className="flex items-center gap-2 text-sm">
-              <ExclamationTriangleIcon
-                aria-hidden="true"
-                className="size-5 shrink-0 text-amber-300"
-              />
-              {t("lowStock")}
-            </p>
-          )}
-          {available > 5 && (
-            <p className="flex items-center gap-2 text-sm">
-              <CheckIcon
-                aria-hidden="true"
-                className="size-5 shrink-0 text-emerald-300"
-              />
-              {t("inStock")}
-            </p>
-          )}
-
-          {(item.location || item.itemSlug) && (
-            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
-              {item.location && (
-                <>
-                  <dt className={MUTED}>{t("pickup")}</dt>
-                  <dd className="flex items-center gap-1">
-                    <MapPinIcon aria-hidden="true" className="size-4" />
-                    {item.location.name}
-                    {item.location.system && (
-                      <span className={MUTED}>· {item.location.system}</span>
-                    )}
-                  </dd>
-                </>
-              )}
-              {item.category && (
-                <>
-                  <dt className={MUTED}>{t("category")}</dt>
-                  <dd>{item.category}</dd>
-                </>
-              )}
-              {item.manufacturer && (
-                <>
-                  <dt className={MUTED}>{t("manufacturer")}</dt>
-                  <dd>{item.manufacturer}</dd>
-                </>
-              )}
-              {item.size !== undefined && (
-                <>
-                  <dt className={MUTED}>{t("size")}</dt>
-                  <dd className="font-mono">S{item.size}</dd>
-                </>
-              )}
-              {item.itemSlug && (
-                <dd className="col-span-2">
-                  <Link
-                    href={`/items/${item.itemSlug}`}
-                    className="text-[#CCE7FF] hover:underline"
-                  >
-                    {t("catalogueLink")}
-                  </Link>
-                </dd>
-              )}
-            </dl>
-          )}
-
           {item.description && (
-            <p className="prose prose-invert whitespace-pre-wrap text-base">
+            <p className="prose prose-invert text-base whitespace-pre-wrap">
               {item.description}
             </p>
           )}
 
-          <div className="space-y-3 rounded-xl border border-[#9ED0FF]/25 bg-[#092F49]/50 p-4">
+          <div className="space-y-4 rounded-xl border border-[#9ED0FF]/30 bg-[#062338]/45 p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-mono text-2xl font-bold text-[#CFE8FF]">
+                {format.number(Number(item.price))} aUEC
+              </span>
+              <span className={cn("text-sm", MUTED)}>{t("perUnit")}</span>
+            </div>
             {canBuy && !isSeller && session?.user && (
               <BuyBox
                 listingId={item.id}
@@ -243,7 +235,20 @@ export default async function ShopItemDetailsPage({
               />
             )}
             {isSeller ? (
-              <p className={cn("text-sm", MUTED)}>{t("ownListing")}</p>
+              <div className="space-y-3">
+                <p className={cn("text-sm", MUTED)}>
+                  {t("ownListing")}{" "}
+                  {t("stockSummary", {
+                    stock: item.stock,
+                    reserved: item.reserved ?? 0,
+                  })}
+                </p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={`/shopping/i/${item.id}/manage`}>
+                    {t("manageListing")}
+                  </Link>
+                </Button>
+              </div>
             ) : (
               <>
                 <Button
@@ -252,6 +257,7 @@ export default async function ShopItemDetailsPage({
                   className="w-full"
                 >
                   <Link href={`/shops/${item.shop.id}#commander`}>
+                    <ChatBubbleLeftIcon aria-hidden="true" className="size-4" />
                     {t("askShop")}
                   </Link>
                 </Button>
@@ -259,10 +265,6 @@ export default async function ShopItemDetailsPage({
               </>
             )}
           </div>
-
-          <Suspense fallback={null}>
-            <StockModificationSection item={item} />
-          </Suspense>
         </section>
       </div>
     </div>

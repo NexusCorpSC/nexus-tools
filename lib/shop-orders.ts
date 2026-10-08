@@ -316,6 +316,29 @@ export async function getOrdersForUser(
   return docs.map(toShopOrder);
 }
 
+/** Les états d'une commande qui n'est pas encore close. */
+const OPEN_STATUSES: OrderStatus[] = [
+  "PENDING",
+  "QUOTED",
+  "CONFIRMED",
+  "ACCEPTED",
+  "READY",
+];
+
+/** Les commandes d'un joueur encore en cours, pour le bouton « Mes commandes ». */
+export async function countOpenOrdersForUser(
+  userId: ObjectId,
+): Promise<number> {
+  return orders().countDocuments({ userId, status: { $in: OPEN_STATUSES } });
+}
+
+/** Les ventes remises par un magasin, affichées sur ses annonces. */
+export async function countDeliveredOrdersForShop(
+  shopId: string,
+): Promise<number> {
+  return orders().countDocuments({ shopId, status: "DELIVERED" });
+}
+
 export async function countOrdersForUser(userId: ObjectId): Promise<number> {
   return orders().countDocuments({ userId });
 }

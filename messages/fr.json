@@ -1341,7 +1341,23 @@
       "priceDesc": "Prix décroissant"
     },
     "resetFilters": "Effacer les filtres",
-    "noResults": "Aucune annonce ne correspond à ces filtres."
+    "noResults": "Aucune annonce ne correspond à ces filtres.",
+    "resultsCount": "{count, plural, =0 {Aucune annonce} one {# annonce} other {# annonces}} de {shops, plural, one {# magasin} other {# magasins}}",
+    "filtersLabel": "Filtres",
+    "facetAvailability": "Disponibilité",
+    "inStockOnly": "En stock seulement",
+    "directOnly": "Achat direct possible",
+    "facetPickup": "Lieu de remise",
+    "facetPrice": "Prix (aUEC)",
+    "priceMin": "Min",
+    "priceMax": "Max",
+    "facetSize": "Taille",
+    "stockTags": {
+      "available": "{count} dispo",
+      "lastOne": "Dernier",
+      "soldOut": "Épuisé",
+      "onQuote": "Sur devis"
+    }
   },
   "ShoppingItem": {
     "notFound": "Objet non trouvé",
@@ -1357,7 +1373,7 @@
     "category": "Catégorie",
     "manufacturer": "Fabricant",
     "size": "Taille",
-    "catalogueLink": "Voir la fiche du catalogue",
+    "catalogueLink": "Fiche du catalogue →",
     "quantity": "Quantité",
     "quantityLess": "Une de moins",
     "quantityMore": "Une de plus",
@@ -1395,7 +1411,22 @@
       "INVALID_QUANTITY": "Choisissez une quantité d’au moins 1.",
       "NOT_ENOUGH_STOCK": "Avec votre panier, cette quantité dépasse le stock disponible.",
       "CART_FULL": "Votre panier est plein. Validez-le ou retirez des articles."
-    }
+    },
+    "specs": "Caractéristiques",
+    "perUnit": "l'unité",
+    "deliveredCount": "{count, plural, one {# vente remise} other {# ventes remises}}",
+    "stockTags": {
+      "available": "En stock · {count}",
+      "lastOne": "Dernier en stock",
+      "soldOut": "Épuisé",
+      "onQuote": "Sur devis"
+    },
+    "types": {
+      "OBJECT": "Objet",
+      "SERVICE": "Service"
+    },
+    "manageListing": "Gérer l'annonce",
+    "stockSummary": "Stock : {stock}, dont {reserved} réservé{reserved, plural, one {} other {s}}."
   },
   "ShopItemManagement": {
     "currentStock": "Stock actuel :",
@@ -1405,7 +1436,14 @@
     "removeOne": "Retirer 1",
     "invalidChange": "Indiquez un nombre entier différent de zéro.",
     "notEnoughStock": "Le stock ne peut descendre ni sous zéro, ni sous la quantité réservée par des commandes.",
-    "reserved": "({count} réservé{count, plural, one {} other {s}})"
+    "reserved": "({count} réservé{count, plural, one {} other {s}})",
+    "title": "Gérer l'annonce",
+    "stock": "Stock",
+    "reservedLabel": "Réservé",
+    "available": "Disponible",
+    "changeStock": "Corriger le stock",
+    "changeStockHelp": "Ajoutez ou retirez des unités. Le stock ne descend pas sous la quantité réservée par des commandes confirmées.",
+    "backToListing": "← Retour à l'annonce"
   },
   "ShoppingNewItem": {
     "title": "Vente",
