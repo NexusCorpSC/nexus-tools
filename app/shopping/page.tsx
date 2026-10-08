@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { RememberListUrl } from "@/components/remember-list-url";
 import { MUTED, PAGE_PANEL, ShopLogo, stockTag, Tag } from "@/app/shopping/ui";
 import { cn } from "@/lib/utils";
-import { syncLinkedListings } from "@/lib/shop-stock";
+import { syncAllLinkedListingsThrottled } from "@/lib/shop-stock";
 import { FILTER_KEYS } from "@/app/shopping/filter-keys";
 
 export const metadata: Metadata = {
@@ -85,8 +85,8 @@ export default async function ShoppingPage({
   const filtered = FILTER_KEYS.some((key) => key !== "sort" && read(key));
 
   const session = await auth.api.getSession({ headers: await headers() });
-  // Les annonces reliées à un lot d'inventaire reprennent son état du moment.
-  await syncLinkedListings({});
+  // Les annonces reliées à un lot d'inventaire reprennent son état récent.
+  await syncAllLinkedListingsThrottled();
   const [{ items, total, shopCount }, facets, shops, openOrders] =
     await Promise.all([
       searchListings(filters, {

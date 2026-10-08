@@ -198,6 +198,24 @@ export async function syncLinkedListings(
   }
 }
 
+/** Délai minimal entre deux recalages de toutes les annonces reliées. */
+const SYNC_ALL_INTERVAL_MS = 60_000;
+let lastSyncAll = 0;
+
+/**
+ * Recale toutes les annonces reliées, au plus une fois par minute et par
+ * instance : la recherche de la marketplace ne peut pas se limiter aux
+ * annonces affichées, puisqu'une annonce épuisée dont le lot a été regarni
+ * doit y réapparaître. Les pages d'une annonce, le panier et les commandes
+ * recalent toujours les annonces qu'ils touchent.
+ */
+export async function syncAllLinkedListingsThrottled(): Promise<void> {
+  const now = Date.now();
+  if (now - lastSyncAll < SYNC_ALL_INTERVAL_MS) return;
+  lastSyncAll = now;
+  await syncLinkedListings({});
+}
+
 /** Les lots de l'inventaire d'un joueur qu'une annonce peut suivre. */
 export async function searchOwnLots(
   userId: string,
