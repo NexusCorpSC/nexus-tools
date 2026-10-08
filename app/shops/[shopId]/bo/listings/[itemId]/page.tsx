@@ -10,6 +10,7 @@ import { MUTED, Tag } from "@/app/shopping/ui";
 import { cn } from "@/lib/utils";
 import {
   ListingInfoForm,
+  LotLimitForm,
   LotPanel,
   ManualStockForm,
   VisibilityControls,
@@ -130,7 +131,13 @@ export default async function BoListingPage({
                   {linked ? t("sourceLotHelp") : t("sourceManualHelp")}
                 </p>
                 {linked ? (
-                  <LotPanel itemId={listing.id} lot={lot} linked />
+                  <>
+                    <LotPanel itemId={listing.id} lot={lot} linked />
+                    <LotLimitForm
+                      itemId={listing.id}
+                      lotLimit={listing.lotLimit}
+                    />
+                  </>
                 ) : (
                   <ManualStockForm itemId={listing.id} />
                 )}

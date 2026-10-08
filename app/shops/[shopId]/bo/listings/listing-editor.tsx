@@ -18,6 +18,7 @@ import {
   linkLotAction,
   searchLotsAction,
   setListingHiddenAction,
+  setLotLimitAction,
   unlinkLotAction,
   updateListingAction,
 } from "./actions";
@@ -322,6 +323,91 @@ export function LotPanel({
       )}
       {error && <p className="text-sm text-red-300">{error}</p>}
     </div>
+  );
+}
+
+/** Proposer tout le lot suivi, ou au plus un plafond d'unités. */
+export function LotLimitForm({
+  itemId,
+  lotLimit,
+}: {
+  itemId: string;
+  lotLimit?: number;
+}) {
+  const t = useTranslations("ShopBo.editor");
+  const router = useRouter();
+  const [capped, setCapped] = useState(lotLimit !== undefined);
+  const [value, setValue] = useState(String(lotLimit ?? 1));
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const limit = Number(value);
+  const valid = !capped || (Number.isInteger(limit) && limit >= 1);
+  const unchanged = capped
+    ? lotLimit !== undefined && limit === lotLimit
+    : lotLimit === undefined;
+
+  return (
+    <form
+      className="space-y-2 border-t border-[#9ED0FF]/10 pt-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!valid) {
+          setError(t("errors.INVALID_LIMIT"));
+          return;
+        }
+        setError(null);
+        startTransition(async () => {
+          const result = await setLotLimitAction(itemId, capped ? limit : null);
+          if (result.error) setError(t(`errors.${result.error}`));
+          else router.refresh();
+        });
+      }}
+    >
+      <p className="text-sm font-medium">{t("limitTitle")}</p>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="lotLimitMode"
+          checked={!capped}
+          onChange={() => setCapped(false)}
+          className="accent-[#9ED0FF]"
+        />
+        {t("limitAll")}
+      </label>
+      <label className="flex flex-wrap items-center gap-2 text-sm">
+        <input
+          type="radio"
+          name="lotLimitMode"
+          checked={capped}
+          onChange={() => setCapped(true)}
+          className="accent-[#9ED0FF]"
+        />
+        {t("limitSome")}
+        <Input
+          type="number"
+          min={1}
+          step={1}
+          value={value}
+          aria-label={t("limitValue")}
+          onChange={(event) => {
+            setCapped(true);
+            setValue(event.target.value);
+          }}
+          className="h-8 w-24 font-mono"
+        />
+      </label>
+      <p className={cn("text-xs", MUTED)}>{t("limitHelp")}</p>
+      {error && <p className="text-sm text-red-300">{error}</p>}
+      <Button
+        type="submit"
+        size="sm"
+        variant="outline"
+        disabled={isPending || !valid || unchanged}
+      >
+        {isPending ? t("saving") : t("save")}
+      </Button>
+    </form>
   );
 }
 

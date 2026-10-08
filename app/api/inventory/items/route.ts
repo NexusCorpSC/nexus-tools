@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { reservedQuantities } from "@/lib/parcels";
+import { getLotSales } from "@/lib/lot-sales";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -64,10 +65,13 @@ export async function GET(request: NextRequest) {
 
   // What parcels still waiting promise of each lot (`lib/parcels.ts`).
   const reserved = await reservedQuantities(userId);
+  // The listings that follow each lot, for the "on sale" badge.
+  const sales = await getLotSales(items.map((item) => item._id.toString()));
 
   const result = items.map((item) => ({
     id: item._id.toString(),
     reserved: reserved.get(item._id.toString()),
+    sales: sales.get(item._id.toString()),
     name: item.name,
     description: item.description,
     quality: item.quality,

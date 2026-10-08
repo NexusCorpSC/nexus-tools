@@ -43,6 +43,7 @@ import {
 } from "./parcels";
 import { cn, roundQty } from "@/lib/utils";
 import { ItemNameCombobox } from "./item-name-combobox";
+import { LotSaleBadge, SellLotButton } from "./sell-lot";
 import { displayUnit, fromDisplayQty, toDisplayQty } from "@/lib/units";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1536,6 +1537,7 @@ function InventoryGroupCard({
                   </span>
                 </span>
               )}
+              <LotSaleBadge lot={lot} />
               <span className="flex-1" />
               {multi && (
                 <span className="font-mono text-[13px] font-semibold text-[#C9E4FF] tabular-nums">
@@ -1597,6 +1599,7 @@ function InventoryGroupCard({
           item={active}
           onAdd={(qty) => onAddToPackage(active, qty)}
         />
+        <SellLotButton lot={active} onSold={onRefresh} />
         <MoveItemPopover item={active} onUpdated={onRefresh} />
         <Button
           type="button"
