@@ -614,6 +614,7 @@ export type NpsBody = CelestialBody & {
   slug: string;
   name: string;
   systemSlug?: string;
+  systemName?: string;
 };
 
 /** Un lieu relevé, tel que `GET /api/lieux/nps` le donne. */
@@ -621,6 +622,8 @@ export type NpsPlace = {
   slug: string;
   name: string;
   type: PlaceType;
+  /** Chaque système a son repère : une position n'a de sens que dans le sien. */
+  systemSlug?: string;
   systemName?: string;
   bodyName?: string;
   parentName?: string;

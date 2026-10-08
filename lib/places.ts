@@ -1512,7 +1512,14 @@ export async function getNpsData(): Promise<NpsResponse> {
       .find(
         { celestial: { $exists: true } },
         {
-          projection: { _id: 0, slug: 1, name: 1, systemSlug: 1, celestial: 1 },
+          projection: {
+            _id: 0,
+            slug: 1,
+            name: 1,
+            systemSlug: 1,
+            systemName: 1,
+            celestial: 1,
+          },
         },
       )
       .toArray(),
@@ -1525,6 +1532,7 @@ export async function getNpsData(): Promise<NpsResponse> {
             slug: 1,
             name: 1,
             type: 1,
+            systemSlug: 1,
             systemName: 1,
             bodyName: 1,
             parentName: 1,
@@ -1537,15 +1545,25 @@ export async function getNpsData(): Promise<NpsResponse> {
   ]);
 
   return {
-    bodies: bodies.map(({ slug, name, systemSlug, celestial }) =>
-      withoutUndefined({ slug, name, systemSlug, ...celestial! }),
+    bodies: bodies.map(({ slug, name, systemSlug, systemName, celestial }) =>
+      withoutUndefined({ slug, name, systemSlug, systemName, ...celestial! }),
     ),
     places: places.map(
-      ({ slug, name, type, systemName, bodyName, parentName, position }) =>
+      ({
+        slug,
+        name,
+        type,
+        systemSlug,
+        systemName,
+        bodyName,
+        parentName,
+        position,
+      }) =>
         withoutUndefined({
           slug,
           name,
           type,
+          systemSlug,
           systemName,
           bodyName,
           parentName,
