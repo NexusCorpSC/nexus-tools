@@ -124,7 +124,8 @@
         }
       }
     },
-    "contribBadge": "My contributions: {points, plural, one {# point} other {# points}}, level {level}"
+    "contribBadge": "My contributions: {points, plural, one {# point} other {# points}}, level {level}",
+    "cart": "Cart, {count, plural, =0 {empty} one {# item} other {# items}}"
   },
   "Industry": {
     "home": "Home",
@@ -1378,6 +1379,21 @@
       "INVALID_QUANTITY": "Choose a quantity of at least 1.",
       "NOT_ENOUGH_STOCK": "There is not enough stock left for this quantity.",
       "PICKUP_REQUIRED": "Enter a handover location."
+    },
+    "addToCart": "Add to cart",
+    "adding": "Adding…",
+    "addedToCart": "{count} × {name} added to the cart.",
+    "viewCart": "View cart",
+    "orderNow": "Order now",
+    "orderNowHelp": "Orders this listing alone, without waiting for the rest of the cart.",
+    "orderNowBack": "Back",
+    "cartErrors": {
+      "LISTING_NOT_FOUND": "This listing no longer exists.",
+      "NOT_FOR_SALE": "This service is ordered through a custom request.",
+      "OWN_SHOP": "You can't order from your own shop.",
+      "INVALID_QUANTITY": "Choose a quantity of at least 1.",
+      "NOT_ENOUGH_STOCK": "With your cart, this quantity exceeds the available stock.",
+      "CART_FULL": "Your cart is full. Check it out or remove items."
     }
   },
   "ShopItemManagement": {
@@ -1528,7 +1544,9 @@
       "ACCEPTED": "Accepted",
       "REFUSED": "Refused",
       "CANCELLED": "Cancelled"
-    }
+    },
+    "cartGroup": "Cart of {date}",
+    "cartGroupInfo": "{count, plural, one {# order} other {# orders}} · {delivered} of {count} handed over"
   },
   "ShopManagement": {
     "addSeller": "Authorize a seller",
@@ -3291,5 +3309,49 @@
       "REFUSED": "{name} refused the order",
       "CANCELLED": "{name} cancelled the order"
     }
+  },
+  "Cart": {
+    "title": "Cart",
+    "summary": "{count, plural, one {# item} other {# items}} from {shops, plural, one {# shop} other {# shops}}",
+    "empty": "Your cart is empty.",
+    "backToShopping": "Back to the marketplace",
+    "orderOf": "Order {n} of {total}",
+    "unitLine": "{price} aUEC each · {available, plural, =0 {out of stock} other {# available}}",
+    "quantityLess": "One less",
+    "quantityMore": "One more",
+    "remove": "Remove {name} from the cart",
+    "pickup": "Handover location",
+    "pickupListing": "The location given by the shop",
+    "pickupOther": "Suggest another location",
+    "pickupOtherPlaceholder": "E.g. Area18, Riker Memorial",
+    "pickupNone": "These listings have no common handover location: suggest yours.",
+    "note": "Message to the shop",
+    "notePlaceholder": "Optional",
+    "subtotal": "Subtotal",
+    "recap": "Summary",
+    "total": "Total",
+    "explain": "Checking out creates {count, plural, one {# order} other {# orders, one per shop}}. Each shop confirms, prepares and hands over its own; you follow each one in My orders.",
+    "validate": "{count, plural, one {Place the order} other {Place the # orders}}",
+    "validating": "Sending…",
+    "paymentNote": "Payment happens in game, at handover. Nothing is charged here.",
+    "blocked": "An item in the cart can't be ordered as it is. Fix it to check out.",
+    "problems": {
+      "NOT_ENOUGH_STOCK": "Only {available} left. Lower the quantity to check out.",
+      "NOT_FOR_SALE": "This listing is no longer sold directly. Remove it to check out.",
+      "OWN_SHOP": "This is a listing from your shop. Remove it to check out."
+    },
+    "errors": {
+      "EMPTY_CART": "Your cart is empty.",
+      "CART_CHANGED": "The cart changed in the meantime: check it, then check out again.",
+      "PICKUP_REQUIRED": "Give a handover location for {shop}.",
+      "INVALID_QUANTITY": "Choose a quantity of at least 1."
+    },
+    "doneTitle": "{count, plural, one {# order sent} other {# orders sent}}",
+    "doneText": "Each shop received its own. The quantity is reserved when the shop confirms; you talk with it in each order's thread.",
+    "doneTotal": "{count, plural, one {Order total} other {Total of the # orders}}",
+    "doneNotFound": "This checkout can't be found.",
+    "itemsCount": "{count, plural, one {# item} other {# items}}",
+    "pickupProposed": "Suggested location: {name}",
+    "followOrders": "Follow my orders"
   }
 }

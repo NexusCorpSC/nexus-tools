@@ -231,6 +231,7 @@ export default async function ShopItemDetailsPage({
             {canBuy && !isSeller && session?.user && (
               <BuyBox
                 listingId={item.id}
+                name={item.name}
                 unitPrice={Number(item.price) || 0}
                 available={available}
                 pickupName={item.location?.name}

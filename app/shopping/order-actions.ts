@@ -6,10 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import db from "@/lib/db";
 import { auth } from "@/lib/auth";
-import {
-  isUserSellerOfShop,
-  type ShopItemDbModel,
-} from "@/lib/shop-items";
+import { isUserSellerOfShop, type ShopItemDbModel } from "@/lib/shop-items";
 import {
   addOrderMessage,
   type DirectOrderError,
@@ -104,8 +101,15 @@ export async function placeDirectOrderAction(input: {
   }
 
   const orderId = await placeDirectOrder({
-    listing,
-    quantity,
+    shopId: listing.shopId,
+    lines: [
+      {
+        listingId: listing.id,
+        name: listing.name,
+        quantity,
+        unitPrice: Number(listing.price) || 0,
+      },
+    ],
     pickup,
     note: input.note?.trim().slice(0, MAX_MESSAGE) || undefined,
     userId: new ObjectId(session.user.id),

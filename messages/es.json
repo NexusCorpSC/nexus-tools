@@ -124,7 +124,8 @@
         }
       }
     },
-    "contribBadge": "Mis contribuciones: {points, plural, one {# punto} other {# puntos}}, nivel {level}"
+    "contribBadge": "Mis contribuciones: {points, plural, one {# punto} other {# puntos}}, nivel {level}",
+    "cart": "Carrito, {count, plural, =0 {vacío} one {# artículo} other {# artículos}}"
   },
   "HomePage": {
     "title": "¡Bienvenido!",
@@ -1379,6 +1380,21 @@
       "INVALID_QUANTITY": "Elige una cantidad de al menos 1.",
       "NOT_ENOUGH_STOCK": "No queda suficiente stock para esta cantidad.",
       "PICKUP_REQUIRED": "Indica un lugar de entrega."
+    },
+    "addToCart": "Añadir al carrito",
+    "adding": "Añadiendo…",
+    "addedToCart": "{count} × {name} añadido al carrito.",
+    "viewCart": "Ver el carrito",
+    "orderNow": "Pedir ahora",
+    "orderNowHelp": "Pide solo este anuncio, sin esperar al resto del carrito.",
+    "orderNowBack": "Volver",
+    "cartErrors": {
+      "LISTING_NOT_FOUND": "Este anuncio ya no existe.",
+      "NOT_FOR_SALE": "Este servicio se pide con una solicitud a medida.",
+      "OWN_SHOP": "No puedes pedir en tu propia tienda.",
+      "INVALID_QUANTITY": "Elige una cantidad de al menos 1.",
+      "NOT_ENOUGH_STOCK": "Con tu carrito, esta cantidad supera el stock disponible.",
+      "CART_FULL": "Tu carrito está lleno. Valídalo o quita artículos."
     }
   },
   "ShopItemManagement": {
@@ -1529,7 +1545,9 @@
       "ACCEPTED": "Aceptado",
       "REFUSED": "Rechazado",
       "CANCELLED": "Cancelado"
-    }
+    },
+    "cartGroup": "Carrito del {date}",
+    "cartGroupInfo": "{count, plural, one {# pedido} other {# pedidos}} · {delivered} de {count} entregado(s)"
   },
   "ShopManagement": {
     "addSeller": "Autorizar a un vendedor",
@@ -3282,5 +3300,49 @@
       "REFUSED": "{name} rechazó el pedido",
       "CANCELLED": "{name} canceló el pedido"
     }
+  },
+  "Cart": {
+    "title": "Carrito",
+    "summary": "{count, plural, one {# artículo} other {# artículos}} de {shops, plural, one {# tienda} other {# tiendas}}",
+    "empty": "Tu carrito está vacío.",
+    "backToShopping": "Volver al mercado",
+    "orderOf": "Pedido {n} de {total}",
+    "unitLine": "{price} aUEC la unidad · {available, plural, =0 {sin stock} one {# disponible} other {# disponibles}}",
+    "quantityLess": "Una menos",
+    "quantityMore": "Una más",
+    "remove": "Quitar {name} del carrito",
+    "pickup": "Lugar de entrega",
+    "pickupListing": "El lugar indicado por la tienda",
+    "pickupOther": "Proponer otro lugar",
+    "pickupOtherPlaceholder": "Ej.: Area18, Riker Memorial",
+    "pickupNone": "Estos anuncios no tienen un lugar de entrega común: propón el tuyo.",
+    "note": "Mensaje a la tienda",
+    "notePlaceholder": "Opcional",
+    "subtotal": "Subtotal",
+    "recap": "Resumen",
+    "total": "Total",
+    "explain": "Al validar se {count, plural, one {crea # pedido} other {crean # pedidos, uno por tienda}}. Cada tienda confirma, prepara y entrega el suyo; sigues cada uno en Mis pedidos.",
+    "validate": "{count, plural, one {Validar el pedido} other {Validar los # pedidos}}",
+    "validating": "Enviando…",
+    "paymentNote": "El pago se hace en el juego, en la entrega. Aquí no se cobra nada.",
+    "blocked": "Un artículo del carrito no se puede pedir tal cual. Corrígelo para validar.",
+    "problems": {
+      "NOT_ENOUGH_STOCK": "Solo quedan {available}. Baja la cantidad para validar.",
+      "NOT_FOR_SALE": "Este anuncio ya no se vende directamente. Quítalo para validar.",
+      "OWN_SHOP": "Es un anuncio de tu tienda. Quítalo para validar."
+    },
+    "errors": {
+      "EMPTY_CART": "Tu carrito está vacío.",
+      "CART_CHANGED": "El carrito cambió mientras tanto: revísalo y valida de nuevo.",
+      "PICKUP_REQUIRED": "Indica un lugar de entrega para {shop}.",
+      "INVALID_QUANTITY": "Elige una cantidad de al menos 1."
+    },
+    "doneTitle": "{count, plural, one {# pedido enviado} other {# pedidos enviados}}",
+    "doneText": "Cada tienda recibió el suyo. La cantidad se reserva cuando la tienda confirma; hablas con ella en el hilo de cada pedido.",
+    "doneTotal": "{count, plural, one {Total del pedido} other {Total de los # pedidos}}",
+    "doneNotFound": "No se encuentra este carrito validado.",
+    "itemsCount": "{count, plural, one {# artículo} other {# artículos}}",
+    "pickupProposed": "Lugar propuesto: {name}",
+    "followOrders": "Seguir mis pedidos"
   }
 }

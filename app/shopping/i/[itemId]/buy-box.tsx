@@ -2,25 +2,32 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { placeDirectOrderAction } from "@/app/shopping/order-actions";
+import { addToCartAction } from "@/app/shopping/cart/actions";
 import { cn } from "@/lib/utils";
 
 const RADIO =
   "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 text-sm transition-colors";
 
-/** Quantité, lieu de remise et total : l'achat direct d'une annonce. */
+/**
+ * La quantité, puis l'ajout au panier ; ou, pour cette seule annonce, la
+ * commande tout de suite avec son lieu de remise.
+ */
 export function BuyBox({
   listingId,
+  name,
   unitPrice,
   available,
   pickupName,
 }: {
   listingId: string;
+  name: string;
   unitPrice: number;
   available: number;
   /** Le lieu de l'annonce, s'il y en a un. */
@@ -28,7 +35,11 @@ export function BuyBox({
 }) {
   const t = useTranslations("ShoppingItem");
   const format = useFormatter();
+  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
+  // Faux : ajouter au panier. Vrai : commander cette annonce tout de suite.
+  const [direct, setDirect] = useState(false);
+  const [added, setAdded] = useState<number | null>(null);
   const [proposeOther, setProposeOther] = useState(!pickupName);
   const [proposed, setProposed] = useState("");
   const [note, setNote] = useState("");
@@ -39,11 +50,27 @@ export function BuyBox({
     Math.min(available, Math.max(1, Math.round(value) || 1));
   const canSubmit = !proposeOther || proposed.trim().length > 0;
 
+  function addToCart() {
+    setError(null);
+    setAdded(null);
+    startTransition(async () => {
+      const result = await addToCartAction(listingId, quantity);
+      if (result.error) {
+        setError(t(`cartErrors.${result.error}`));
+      } else {
+        setAdded(quantity);
+        // L'en-tête relit le nombre d'articles du panier.
+        router.refresh();
+      }
+    });
+  }
+
   return (
     <form
       className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
+        if (!direct) return;
         setError(null);
         startTransition(async () => {
           const result = await placeDirectOrderAction({
@@ -93,13 +120,37 @@ export function BuyBox({
         </div>
       </div>
 
-      <fieldset className="space-y-2">
-        <legend className="mb-2 text-sm font-medium">{t("pickup")}</legend>
-        {pickupName && (
+      {direct && (
+        <fieldset className="space-y-2">
+          <legend className="mb-2 text-sm font-medium">{t("pickup")}</legend>
+          {pickupName && (
+            <label
+              className={cn(
+                RADIO,
+                !proposeOther
+                  ? "border-[#CCE7FF] bg-[#CCE7FF]/6"
+                  : "border-[#9ED0FF]/20",
+              )}
+            >
+              <input
+                type="radio"
+                name="pickup"
+                className="mt-1"
+                checked={!proposeOther}
+                onChange={() => setProposeOther(false)}
+              />
+              <span>
+                <span className="block">{pickupName}</span>
+                <span className="text-xs text-[#9ED0FF]/70">
+                  {t("pickupListing")}
+                </span>
+              </span>
+            </label>
+          )}
           <label
             className={cn(
               RADIO,
-              !proposeOther
+              proposeOther
                 ? "border-[#CCE7FF] bg-[#CCE7FF]/6"
                 : "border-[#9ED0FF]/20",
             )}
@@ -108,63 +159,43 @@ export function BuyBox({
               type="radio"
               name="pickup"
               className="mt-1"
-              checked={!proposeOther}
-              onChange={() => setProposeOther(false)}
+              checked={proposeOther}
+              onChange={() => setProposeOther(true)}
             />
-            <span>
-              <span className="block">{pickupName}</span>
-              <span className="text-xs text-[#9ED0FF]/70">
-                {t("pickupListing")}
+            <span className="flex-1 space-y-2">
+              <span className="block">{t("pickupOther")}</span>
+              <span className="block text-xs text-[#9ED0FF]/70">
+                {t("pickupOtherHelp")}
               </span>
+              {proposeOther && (
+                <Input
+                  value={proposed}
+                  onChange={(event) => setProposed(event.target.value)}
+                  placeholder={t("pickupOtherPlaceholder")}
+                  maxLength={200}
+                  aria-label={t("pickupOther")}
+                />
+              )}
             </span>
           </label>
-        )}
-        <label
-          className={cn(
-            RADIO,
-            proposeOther
-              ? "border-[#CCE7FF] bg-[#CCE7FF]/6"
-              : "border-[#9ED0FF]/20",
-          )}
-        >
-          <input
-            type="radio"
-            name="pickup"
-            className="mt-1"
-            checked={proposeOther}
-            onChange={() => setProposeOther(true)}
-          />
-          <span className="flex-1 space-y-2">
-            <span className="block">{t("pickupOther")}</span>
-            <span className="block text-xs text-[#9ED0FF]/70">
-              {t("pickupOtherHelp")}
-            </span>
-            {proposeOther && (
-              <Input
-                value={proposed}
-                onChange={(event) => setProposed(event.target.value)}
-                placeholder={t("pickupOtherPlaceholder")}
-                maxLength={200}
-                aria-label={t("pickupOther")}
-              />
-            )}
-          </span>
-        </label>
-      </fieldset>
+        </fieldset>
+      )}
 
-      <div className="space-y-1">
-        <label htmlFor="buy-note" className="text-sm font-medium">
-          {t("orderNote")}
-        </label>
-        <Textarea
-          id="buy-note"
-          rows={2}
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder={t("orderNotePlaceholder")}
-          maxLength={2000}
-        />
-      </div>
+      {direct && (
+        <div className="space-y-1">
+          <label htmlFor="buy-note" className="text-sm font-medium">
+            {t("orderNote")}
+          </label>
+          <Textarea
+            id="buy-note"
+            rows={2}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder={t("orderNotePlaceholder")}
+            maxLength={2000}
+          />
+        </div>
+      )}
 
       <div className="flex items-baseline justify-between border-t border-[#9ED0FF]/15 pt-3">
         <span>{t("total")}</span>
@@ -174,15 +205,66 @@ export function BuyBox({
       </div>
 
       {error && <p className="text-sm text-red-300">{error}</p>}
+      {added !== null && !direct && (
+        <p
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-300/40 bg-emerald-300/10 px-3 py-2 text-sm"
+        >
+          {t("addedToCart", { count: added, name })}
+          <Link
+            href="/shopping/cart"
+            className="font-semibold text-[#CCE7FF] hover:underline"
+          >
+            {t("viewCart")}
+          </Link>
+        </p>
+      )}
 
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={isPending || !canSubmit}
-      >
-        {isPending ? t("ordering") : t("order")}
-      </Button>
-      <p className="text-xs text-[#9ED0FF]/70">{t("orderHelp")}</p>
+      {direct ? (
+        <>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isPending || !canSubmit}
+          >
+            {isPending ? t("ordering") : t("order")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => setDirect(false)}
+            disabled={isPending}
+          >
+            {t("orderNowBack")}
+          </Button>
+          <p className="text-xs text-[#9ED0FF]/70">{t("orderHelp")}</p>
+        </>
+      ) : (
+        <>
+          <Button
+            type="button"
+            className="w-full"
+            onClick={addToCart}
+            disabled={isPending}
+          >
+            {isPending ? t("adding") : t("addToCart")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setError(null);
+              setDirect(true);
+            }}
+            disabled={isPending}
+          >
+            {t("orderNow")}
+          </Button>
+          <p className="text-xs text-[#9ED0FF]/70">{t("orderNowHelp")}</p>
+        </>
+      )}
     </form>
   );
 }

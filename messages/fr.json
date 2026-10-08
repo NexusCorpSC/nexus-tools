@@ -124,7 +124,8 @@
         }
       }
     },
-    "contribBadge": "Mes contributions : {points, plural, one {# point} other {# points}}, niveau {level}"
+    "contribBadge": "Mes contributions : {points, plural, one {# point} other {# points}}, niveau {level}",
+    "cart": "Panier, {count, plural, =0 {vide} one {# article} other {# articles}}"
   },
   "HomePage": {
     "title": "Bienvenue !",
@@ -1379,6 +1380,21 @@
       "INVALID_QUANTITY": "Choisissez une quantité d’au moins 1.",
       "NOT_ENOUGH_STOCK": "Il ne reste pas assez de stock pour cette quantité.",
       "PICKUP_REQUIRED": "Indiquez un lieu de remise."
+    },
+    "addToCart": "Ajouter au panier",
+    "adding": "Ajout…",
+    "addedToCart": "{count} × {name} ajouté au panier.",
+    "viewCart": "Voir le panier",
+    "orderNow": "Commander maintenant",
+    "orderNowHelp": "Passe la commande de cette seule annonce sans attendre le reste du panier.",
+    "orderNowBack": "Revenir",
+    "cartErrors": {
+      "LISTING_NOT_FOUND": "Cette annonce n'existe plus.",
+      "NOT_FOR_SALE": "Ce service se commande par une demande sur mesure.",
+      "OWN_SHOP": "Vous ne pouvez pas commander dans votre propre magasin.",
+      "INVALID_QUANTITY": "Choisissez une quantité d’au moins 1.",
+      "NOT_ENOUGH_STOCK": "Avec votre panier, cette quantité dépasse le stock disponible.",
+      "CART_FULL": "Votre panier est plein. Validez-le ou retirez des articles."
     }
   },
   "ShopItemManagement": {
@@ -1527,7 +1543,9 @@
       "ACCEPTED": "Acceptée",
       "REFUSED": "Refusée",
       "CANCELLED": "Annulée"
-    }
+    },
+    "cartGroup": "Panier du {date}",
+    "cartGroupInfo": "{count, plural, one {# commande} other {# commandes}} · {delivered} sur {count} remise(s)"
   },
   "ShopManagement": {
     "addSeller": "Autoriser un vendeur",
@@ -3320,5 +3338,49 @@
       "REFUSED": "{name} a refusé la commande",
       "CANCELLED": "{name} a annulé la commande"
     }
+  },
+  "Cart": {
+    "title": "Panier",
+    "summary": "{count, plural, one {# article} other {# articles}} chez {shops, plural, one {# magasin} other {# magasins}}",
+    "empty": "Votre panier est vide.",
+    "backToShopping": "Retour à la marketplace",
+    "orderOf": "Commande {n} sur {total}",
+    "unitLine": "{price} aUEC l'unité · {available, plural, =0 {plus en stock} one {# disponible} other {# disponibles}}",
+    "quantityLess": "Une de moins",
+    "quantityMore": "Une de plus",
+    "remove": "Retirer {name} du panier",
+    "pickup": "Lieu de remise",
+    "pickupListing": "Le lieu indiqué par le magasin",
+    "pickupOther": "Proposer un autre lieu",
+    "pickupOtherPlaceholder": "Ex. : Area18, Riker Memorial",
+    "pickupNone": "Ces annonces n'ont pas de lieu de remise commun : proposez le vôtre.",
+    "note": "Message au magasin",
+    "notePlaceholder": "Facultatif",
+    "subtotal": "Sous-total",
+    "recap": "Récapitulatif",
+    "total": "Total",
+    "explain": "La validation crée {count, plural, one {# commande} other {# commandes, une par magasin}}. Chaque magasin confirme, prépare et remet la sienne ; vous suivez chacune dans Mes commandes.",
+    "validate": "{count, plural, one {Valider la commande} other {Valider les # commandes}}",
+    "validating": "Envoi…",
+    "paymentNote": "Le paiement se fait en jeu, à la remise. Rien n'est débité ici.",
+    "blocked": "Un article du panier ne peut pas être commandé en l'état. Corrigez-le pour valider.",
+    "problems": {
+      "NOT_ENOUGH_STOCK": "Plus que {available} disponible(s). Baissez la quantité pour valider.",
+      "NOT_FOR_SALE": "Cette annonce ne se vend plus directement. Retirez-la pour valider.",
+      "OWN_SHOP": "C'est une annonce de votre magasin. Retirez-la pour valider."
+    },
+    "errors": {
+      "EMPTY_CART": "Votre panier est vide.",
+      "CART_CHANGED": "Le panier a changé entre-temps : vérifiez-le puis validez à nouveau.",
+      "PICKUP_REQUIRED": "Indiquez un lieu de remise pour {shop}.",
+      "INVALID_QUANTITY": "Choisissez une quantité d’au moins 1."
+    },
+    "doneTitle": "{count, plural, one {# commande envoyée} other {# commandes envoyées}}",
+    "doneText": "Chaque magasin a reçu la sienne. La quantité est réservée quand le magasin confirme ; vous échangez avec lui dans le fil de chaque commande.",
+    "doneTotal": "{count, plural, one {Total de la commande} other {Total des # commandes}}",
+    "doneNotFound": "Ce panier validé est introuvable.",
+    "itemsCount": "{count, plural, one {# article} other {# articles}}",
+    "pickupProposed": "Lieu proposé : {name}",
+    "followOrders": "Suivre mes commandes"
   }
 }

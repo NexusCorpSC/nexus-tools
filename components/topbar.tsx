@@ -1,6 +1,6 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-import { BellIcon } from "@heroicons/react/24/outline";
+import { BellIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
@@ -13,6 +13,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { countFriendsPlaying } from "@/lib/friends";
 import { getMyBadge } from "@/lib/gamification";
+import { countCartItems } from "@/lib/cart";
 
 const userNavigation = [
   { name: "myProfile", href: "/profile" },
@@ -57,9 +58,13 @@ export default async function Topbar() {
         .findOne({ _id: new ObjectId(session?.user?.id) })
     : null;
 
-  const [friendsPlaying, badge] = user
-    ? await Promise.all([countFriendsPlaying(user._id), getMyBadge(user._id)])
-    : [0, null];
+  const [friendsPlaying, badge, cartCount] = user
+    ? await Promise.all([
+        countFriendsPlaying(user._id),
+        getMyBadge(user._id),
+        countCartItems(user._id),
+      ])
+    : [0, null, 0];
 
   return (
     <header className="relative z-40 border-b border-[#9ED0FF]/15 bg-gray-800">
@@ -127,6 +132,19 @@ export default async function Topbar() {
                 N{badge.level} · {badge.points}
               </Link>
             ) : null}
+
+            <Link
+              href="/shopping/cart"
+              aria-label={t("cart", { count: cartCount })}
+              className={iconButton}
+            >
+              <ShoppingCartIcon aria-hidden="true" className="size-5.5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#CCE7FF] px-1 text-xs font-bold text-[#062338]">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
 
             {/* Scratch pad, opens a side panel from the right */}
             <ScratchPadPanel />

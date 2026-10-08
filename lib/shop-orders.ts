@@ -76,6 +76,8 @@ export type ShopOrderDbModel = {
   /** Vrai tant que la quantité des lignes est réservée sur le stock. */
   reserved?: boolean;
   timeline?: OrderEntry[];
+  /** Le panier validé qui a créé la commande, avec une par magasin. */
+  checkoutId?: string;
   // Champs des anciennes commandes, lus pour reconstruire leur fil.
   response?: string;
   quote?: number;
@@ -96,6 +98,7 @@ export type ShopOrder = {
   pickup?: OrderPickup;
   total?: number;
   timeline: OrderEntry[];
+  checkoutId?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -149,6 +152,7 @@ function toShopOrder(doc: ShopOrderDbModel): ShopOrder {
     pickup: doc.pickup,
     total: doc.total ?? doc.quote,
     timeline: doc.timeline ?? legacyTimeline(doc),
+    checkoutId: doc.checkoutId,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -211,33 +215,29 @@ export type DirectOrderError =
   | "NOT_ENOUGH_STOCK";
 
 /**
- * Un achat direct d'une annonce : quantité et lieu de remise. Rien n'est
- * réservé avant que le magasin confirme.
+ * Un achat direct : une annonce depuis sa fiche, ou les annonces d'un même
+ * magasin depuis le panier. Rien n'est réservé avant que le magasin confirme.
  */
 export async function placeDirectOrder({
-  listing,
-  quantity,
+  shopId,
+  lines,
   pickup,
   note,
   userId,
   userName,
+  checkoutId,
 }: {
-  listing: ShopItemDbModel;
-  quantity: number;
+  shopId: string;
+  lines: OrderLine[];
   pickup: OrderPickup;
   note?: string;
   userId: ObjectId;
   userName: string;
+  /** Le panier validé dont la commande fait partie. */
+  checkoutId?: string;
 }): Promise<string> {
   const id = randomUUID();
   const now = new Date().toISOString();
-  const unitPrice = Number(listing.price) || 0;
-  const line: OrderLine = {
-    listingId: listing.id,
-    name: listing.name,
-    quantity,
-    unitPrice,
-  };
 
   const timeline = [
     entry("buyer", userName, {
@@ -251,21 +251,34 @@ export async function placeDirectOrder({
   await orders().insertOne({
     _id: new ObjectId(),
     id,
-    shopId: listing.shopId,
+    shopId,
     userId,
     userName,
     kind: "DIRECT",
-    message: `${quantity} × ${listing.name}`,
+    message: lines.map((line) => `${line.quantity} × ${line.name}`).join(", "),
     status: "PENDING",
-    lines: [line],
+    lines,
     pickup,
-    total: unitPrice * quantity,
+    total: lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
     timeline,
+    ...(checkoutId && { checkoutId }),
     createdAt: now,
     updatedAt: now,
   });
 
   return id;
+}
+
+/** Les commandes nées d'un même panier validé, dans l'ordre du panier. */
+export async function getOrdersOfCheckout(
+  userId: ObjectId,
+  checkoutId: string,
+): Promise<ShopOrder[]> {
+  const docs = await orders()
+    .find({ userId, checkoutId })
+    .sort({ createdAt: 1, _id: 1 })
+    .toArray();
+  return docs.map(toShopOrder);
 }
 
 export async function getOrderById(orderId: string): Promise<ShopOrder | null> {

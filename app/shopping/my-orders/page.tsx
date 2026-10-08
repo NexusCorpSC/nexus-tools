@@ -1,9 +1,18 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import { RememberListUrl } from "@/components/remember-list-url";
 import type { Metadata } from "next";
-import { getOrdersForUser, countOrdersForUser } from "@/lib/shop-orders";
+import {
+  getOrdersForUser,
+  countOrdersForUser,
+  type ShopOrder,
+} from "@/lib/shop-orders";
 import { getShopNames } from "@/lib/shop-items";
-import { MUTED, OrderStatusBadge, PAGE_PANEL, ROW_LINK } from "@/app/shopping/ui";
+import {
+  MUTED,
+  OrderStatusBadge,
+  PAGE_PANEL,
+  ROW_LINK,
+} from "@/app/shopping/ui";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -22,12 +31,12 @@ import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Mes commandes",
-  description: "Consultez et gérez vos commandes passées sur le Marketplace Nexus Tools.",
+  description:
+    "Consultez et gérez vos commandes passées sur le Marketplace Nexus Tools.",
   robots: { index: false, follow: false },
 };
 
 const PAGE_SIZE = 15;
-
 
 export default async function MyOrdersPage({
   searchParams,
@@ -56,6 +65,50 @@ export default async function MyOrdersPage({
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const shopNames = await getShopNames(orders.map((order) => order.shopId));
+
+  // Les commandes d'un même panier, qui se suivent, sont présentées ensemble.
+  const segments: { checkoutId?: string; orders: ShopOrder[] }[] = [];
+  for (const order of orders) {
+    const last = segments.at(-1);
+    if (order.checkoutId && last?.checkoutId === order.checkoutId) {
+      last.orders.push(order);
+    } else {
+      segments.push({ checkoutId: order.checkoutId, orders: [order] });
+    }
+  }
+
+  const renderOrder = (order: ShopOrder) => (
+    <Link
+      key={order.id}
+      href={`/shopping/my-orders/${order.id}`}
+      className={ROW_LINK}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold text-[#CCE7FF]">
+            {shopNames.get(order.shopId) ?? t("shop")}
+          </p>
+          <p className={cn("mt-1 line-clamp-1 text-sm", MUTED)}>
+            {order.message}
+          </p>
+          <p className={cn("mt-1 text-xs", MUTED)}>
+            {format.dateTime(new Date(order.createdAt), {
+              dateStyle: "medium",
+            })}
+          </p>
+          {order.total !== undefined && (
+            <p className="mt-1 font-mono text-sm font-semibold text-[#CFE8FF]">
+              {format.number(order.total)} aUEC
+            </p>
+          )}
+        </div>
+        <OrderStatusBadge
+          status={order.status}
+          label={tOrders(`status.${order.status}`)}
+        />
+      </div>
+    </Link>
+  );
 
   return (
     <div className={cn(PAGE_PANEL, "max-w-4xl")}>
@@ -87,36 +140,41 @@ export default async function MyOrdersPage({
         </div>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => (
-            <Link
-              key={order.id}
-              href={`/shopping/my-orders/${order.id}`}
-              className={ROW_LINK}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-semibold text-[#CCE7FF]">
-                    {shopNames.get(order.shopId) ?? t("shop")}
-                  </p>
-                  <p className={cn("mt-1 line-clamp-1 text-sm", MUTED)}>
-                    {order.message}
-                  </p>
-                  <p className={cn("mt-1 text-xs", MUTED)}>
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </p>
-                  {order.total !== undefined && (
-                    <p className="mt-1 font-mono text-sm font-semibold text-[#CFE8FF]">
-                      {format.number(order.total)} aUEC
-                    </p>
-                  )}
+          {segments.map((segment) =>
+            segment.checkoutId ? (
+              <section
+                key={segment.checkoutId}
+                className="space-y-2 rounded-xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/40 p-3"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1">
+                  <h2 className="text-sm font-semibold">
+                    <Link
+                      href={`/shopping/cart/${segment.checkoutId}`}
+                      className="hover:underline"
+                    >
+                      {t("cartGroup", {
+                        date: format.dateTime(
+                          new Date(segment.orders[0].createdAt),
+                          { dateStyle: "medium", timeStyle: "short" },
+                        ),
+                      })}
+                    </Link>
+                  </h2>
+                  <span className={cn("text-xs", MUTED)}>
+                    {t("cartGroupInfo", {
+                      count: segment.orders.length,
+                      delivered: segment.orders.filter(
+                        (order) => order.status === "DELIVERED",
+                      ).length,
+                    })}
+                  </span>
                 </div>
-                <OrderStatusBadge
-                  status={order.status}
-                  label={tOrders(`status.${order.status}`)}
-                />
-              </div>
-            </Link>
-          ))}
+                {segment.orders.map(renderOrder)}
+              </section>
+            ) : (
+              renderOrder(segment.orders[0])
+            ),
+          )}
         </div>
       )}
 

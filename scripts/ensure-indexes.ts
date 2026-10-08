@@ -94,6 +94,21 @@ async function ensureNotes(database: Db) {
     .createIndex({ userId: 1 }, { unique: true });
 }
 
+// ─── Marketplace ──────────────────────────────────────────────────────────────
+
+/**
+ * Un panier par joueur, tenu par la base ; et les commandes d'un joueur, que
+ * « Mes commandes » et la page d'un panier validé lisent.
+ */
+async function ensureMarketplace(database: Db) {
+  await database
+    .collection("carts")
+    .createIndex({ userId: 1 }, { unique: true });
+  await database
+    .collection("shopOrders")
+    .createIndex({ userId: 1, createdAt: -1 }, { name: "shopOrders_user" });
+}
+
 // ─── Présence en jeu ──────────────────────────────────────────────────────────
 
 /**
@@ -471,6 +486,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
   ["notes", ensureNotes],
+  ["marketplace", ensureMarketplace],
   ["presences", ensurePresences],
   ["orgEvents", ensureOrgEvents],
   ["plans", ensurePlans],
