@@ -44,6 +44,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    agentUpgrade: "latest",
     serverActions: {
       bodySizeLimit: "3mb",
       allowedOrigins:
