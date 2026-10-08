@@ -31,7 +31,9 @@ export function ListingFilters({
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
 
   function apply(values: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
+    // L'adresse du moment, pas celle du rendu : une recherche en attente ne
+    // doit pas effacer un filtre choisi entre-temps.
+    const params = new URLSearchParams(window.location.search);
     for (const [key, value] of Object.entries(values)) {
       if (value) params.set(key, value);
       else params.delete(key);

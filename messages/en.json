@@ -1314,7 +1314,7 @@
     "shop": "Shop",
     "shops": "Shops",
     "latestTitle": "Latest listings",
-    "noItems": "No listing in stock yet.",
+    "noItems": "No listings in stock yet.",
     "itemsCount": "{count, plural, =0 {No listing in stock} one {# listing in stock} other {# listings in stock}}",
     "myOrders": "My orders",
     "noShops": "No shop yet.",
@@ -1339,7 +1339,7 @@
       "priceDesc": "Price: high to low"
     },
     "resetFilters": "Clear filters",
-    "noResults": "No listing matches these filters."
+    "noResults": "No listings match these filters."
   },
   "ShoppingItem": {
     "notFound": "Item not found",
@@ -1438,7 +1438,7 @@
     "prev": "Previous",
     "next": "Next",
     "pageInfo": "Page {page} of {totalPages}",
-    "noItems": "This shop has no listing yet."
+    "noItems": "This shop has no listings yet."
   },
   "ShopOrders": {
     "formTitle": "Place a free order",
