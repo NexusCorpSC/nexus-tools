@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ObjectId } from "bson";
 import {
+  AVAILABLE_STOCK,
   isUserSellerOfShop,
   type ListingLocation,
   ShopItemDbModel,
@@ -176,14 +177,17 @@ export async function incrementShopItemStock(
     throw new Error("User is not a seller of the shop");
   }
 
-  // Le filtre empêche un retrait de faire passer le stock sous zéro, même si
-  // deux vendeurs le corrigent en même temps.
+  // Le filtre en base tient même si deux vendeurs corrigent en même temps.
   const result = await db
     .db()
     .collection<ShopItemDbModel>("shopItems")
     .updateOne(
       stockModification < 0
-        ? { id: itemId, stock: { $gte: -stockModification } }
+        ? {
+            id: itemId,
+            // Ni sous zéro, ni sous ce que des commandes ont réservé.
+            $expr: { $gte: [AVAILABLE_STOCK, -stockModification] },
+          }
         : { id: itemId },
       { $inc: { stock: stockModification } },
     );

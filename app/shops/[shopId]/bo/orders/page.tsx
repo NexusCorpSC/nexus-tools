@@ -56,6 +56,7 @@ export default async function BoOrdersPage({
 
   const t = await getTranslations("BoOrders");
   const tShopping = await getTranslations("Shopping");
+  const tOrders = await getTranslations("Orders");
   const shop = await getShop(shopId);
 
   if (!shop) {
@@ -121,7 +122,7 @@ export default async function BoOrdersPage({
                 </div>
                 <OrderStatusBadge
                   status={order.status}
-                  label={t(`status.${order.status}`)}
+                  label={tOrders(`status.${order.status}`)}
                 />
               </div>
             </Link>

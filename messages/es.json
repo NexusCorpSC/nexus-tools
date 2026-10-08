@@ -1350,13 +1350,36 @@
     "soldOut": "¡Agotado!",
     "lowStock": "¡Stock bajo!",
     "inStock": "En stock",
-    "askShop": "Consultar a la tienda",
-    "askShopHelp": "Describe lo que necesitas a la tienda y te responderá con un presupuesto. La compra directa llegará pronto.",
+    "askShop": "Solicitud a medida",
+    "askShopHelp": "Para un servicio, una cantidad especial o una pregunta, describe lo que necesitas: la tienda responde con un presupuesto.",
     "pickup": "Entrega",
     "category": "Categoría",
     "manufacturer": "Fabricante",
     "size": "Tamaño",
-    "catalogueLink": "Ver la ficha del catálogo"
+    "catalogueLink": "Ver la ficha del catálogo",
+    "quantity": "Cantidad",
+    "quantityLess": "Una menos",
+    "quantityMore": "Una más",
+    "pickupListing": "El lugar indicado por la tienda",
+    "pickupOther": "Proponer otro lugar",
+    "pickupOtherHelp": "La tienda lo confirmará o responderá con un presupuesto.",
+    "pickupOtherPlaceholder": "Ej.: Area18, Riker Memorial",
+    "orderNote": "Mensaje a la tienda (opcional)",
+    "orderNotePlaceholder": "Un horario, un detalle…",
+    "total": "Total",
+    "order": "Pedir",
+    "ordering": "Enviando…",
+    "orderHelp": "La tienda confirma el pedido y reserva la cantidad. El pago se hace en el juego, en la entrega.",
+    "loginToOrder": "Inicia sesión para pedir",
+    "ownListing": "Este anuncio es de tu tienda.",
+    "orderErrors": {
+      "LISTING_NOT_FOUND": "Este anuncio ya no existe.",
+      "NOT_FOR_SALE": "Este servicio se pide con una solicitud a medida.",
+      "OWN_SHOP": "No puedes pedir en tu propia tienda.",
+      "INVALID_QUANTITY": "Elige una cantidad de al menos 1.",
+      "NOT_ENOUGH_STOCK": "No queda suficiente stock para esta cantidad.",
+      "PICKUP_REQUIRED": "Indica un lugar de entrega."
+    }
   },
   "ShopItemManagement": {
     "currentStock": "Stock actual:",
@@ -1365,7 +1388,8 @@
     "addOne": "Añadir 1",
     "removeOne": "Retirar 1",
     "invalidChange": "Indica un número entero distinto de cero.",
-    "notEnoughStock": "El stock no puede quedar en negativo."
+    "notEnoughStock": "El stock no puede bajar de cero ni de la cantidad reservada por pedidos.",
+    "reserved": "({count} reservado{count, plural, one {} other {s}})"
   },
   "ShoppingNewItem": {
     "title": "Venta",
@@ -3186,6 +3210,77 @@
         "hint": "Misiones de las que aún no se sabe dónde se juegan.",
         "cta": "Indicar el lugar"
       }
+    }
+  },
+  "Orders": {
+    "titleDirect": "Compra directa",
+    "titleCustom": "Solicitud a medida",
+    "from": "De {name}",
+    "progress": "Progreso",
+    "thread": "Conversación",
+    "steps": {
+      "0": "Solicitado",
+      "1": "Presupuesto",
+      "2": "Confirmado",
+      "3": "Listo",
+      "4": "Entregado"
+    },
+    "roles": {
+      "buyer": "Comprador",
+      "seller": "Tienda"
+    },
+    "quoteOf": "Presupuesto: {amount} aUEC",
+    "contents": "Contenido",
+    "total": "Total",
+    "pickup": "Entrega",
+    "pickupProposed": "Lugar propuesto por el comprador: la tienda lo confirma o responde con un presupuesto.",
+    "paymentNote": "No se paga nada en el sitio: el pago se hace en el juego, en la entrega.",
+    "messageLabel": "Mensaje",
+    "messagePlaceholderBuyer": "Escribir a la tienda…",
+    "messagePlaceholderSeller": "Escribir al comprador…",
+    "send": "Enviar",
+    "quoteLabel": "Presupuesto",
+    "quoteHelpDirect": "Un presupuesto sustituye el precio del anuncio, por ejemplo para otro lugar de entrega. El comprador lo acepta o lo rechaza.",
+    "actions": {
+      "confirm": "Confirmar",
+      "quote": "Enviar presupuesto",
+      "accept": "Aceptar presupuesto",
+      "decline": "Rechazar presupuesto",
+      "refuse": "Rechazar pedido",
+      "cancel": "Cancelar pedido",
+      "ready": "Marcar listo",
+      "deliver": "Marcar entregado"
+    },
+    "confirm": {
+      "refuse": "Confirmar el rechazo",
+      "cancel": "Confirmar la cancelación",
+      "decline": "Confirmar"
+    },
+    "errors": {
+      "NOT_ALLOWED": "Esta acción ya no es posible: el pedido probablemente cambió, recarga la página.",
+      "NOT_ENOUGH_STOCK": "El stock disponible ya no cubre este pedido.",
+      "INVALID_QUOTE": "El presupuesto debe ser un número entero positivo.",
+      "MESSAGE_REQUIRED": "Escribe un mensaje antes de enviarlo."
+    },
+    "status": {
+      "PENDING": "Solicitado",
+      "QUOTED": "Presupuesto enviado",
+      "CONFIRMED": "Confirmado",
+      "ACCEPTED": "Aceptado",
+      "READY": "Listo",
+      "DELIVERED": "Entregado",
+      "REFUSED": "Rechazado",
+      "CANCELLED": "Cancelado"
+    },
+    "events": {
+      "PENDING": "{name} hizo el pedido",
+      "QUOTED": "{name} envió un presupuesto",
+      "CONFIRMED": "{name} confirmó el pedido, la cantidad está reservada",
+      "ACCEPTED": "{name} aceptó el presupuesto",
+      "READY": "{name} indica que el pedido está listo",
+      "DELIVERED": "{name} entregó el pedido",
+      "REFUSED": "{name} rechazó el pedido",
+      "CANCELLED": "{name} canceló el pedido"
     }
   }
 }

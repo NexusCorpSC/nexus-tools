@@ -1,4 +1,8 @@
-import { getShopItem } from "@/lib/shop-items";
+import { getShopItem, isUserSellerOfShop } from "@/lib/shop-items";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { ObjectId } from "bson";
+import { BuyBox, LoginToBuy } from "./buy-box";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CheckIcon, CrossCircledIcon } from "@radix-ui/react-icons";
@@ -63,7 +67,10 @@ export default async function ShopItemDetailsPage({
   const tShopping = await getTranslations("Shopping");
   const format = await getFormatter();
 
-  const item = await getShopItem((await params).itemId);
+  const [item, session] = await Promise.all([
+    getShopItem((await params).itemId),
+    auth.api.getSession({ headers: await headers() }),
+  ]);
 
   if (!item) {
     return (
@@ -75,6 +82,12 @@ export default async function ShopItemDetailsPage({
       </div>
     );
   }
+
+  const available = Math.max(0, item.stock - (item.reserved ?? 0));
+  const isSeller =
+    !!session?.user?.id &&
+    (await isUserSellerOfShop(item.shop.id, new ObjectId(session.user.id)));
+  const canBuy = item.type === "OBJECT" && available > 0;
 
   return (
     <div className={cn(PAGE_PANEL, "max-w-7xl")}>
@@ -135,7 +148,7 @@ export default async function ShopItemDetailsPage({
             {format.number(Number(item.price))} aUEC
           </p>
 
-          {item.stock <= 0 && (
+          {available <= 0 && (
             <p className="flex items-center gap-2 text-sm">
               <CrossCircledIcon
                 aria-hidden="true"
@@ -144,7 +157,7 @@ export default async function ShopItemDetailsPage({
               {t("soldOut")}
             </p>
           )}
-          {item.stock > 0 && item.stock <= 5 && (
+          {available > 0 && available <= 5 && (
             <p className="flex items-center gap-2 text-sm">
               <ExclamationTriangleIcon
                 aria-hidden="true"
@@ -153,7 +166,7 @@ export default async function ShopItemDetailsPage({
               {t("lowStock")}
             </p>
           )}
-          {item.stock > 5 && (
+          {available > 5 && (
             <p className="flex items-center gap-2 text-sm">
               <CheckIcon
                 aria-hidden="true"
@@ -214,13 +227,36 @@ export default async function ShopItemDetailsPage({
             </p>
           )}
 
-          <div className="space-y-2 rounded-xl border border-[#9ED0FF]/25 bg-[#092F49]/50 p-4">
-            <Button asChild className="w-full">
-              <Link href={`/shops/${item.shop.id}#commander`}>
-                {t("askShop")}
-              </Link>
-            </Button>
-            <p className={cn("text-xs", MUTED)}>{t("askShopHelp")}</p>
+          <div className="space-y-3 rounded-xl border border-[#9ED0FF]/25 bg-[#092F49]/50 p-4">
+            {canBuy && !isSeller && session?.user && (
+              <BuyBox
+                listingId={item.id}
+                unitPrice={Number(item.price) || 0}
+                available={available}
+                pickupName={item.location?.name}
+              />
+            )}
+            {canBuy && !session?.user && (
+              <LoginToBuy
+                href={`/login?callbackUrl=${encodeURIComponent(`/shopping/i/${item.id}`)}`}
+              />
+            )}
+            {isSeller ? (
+              <p className={cn("text-sm", MUTED)}>{t("ownListing")}</p>
+            ) : (
+              <>
+                <Button
+                  asChild
+                  variant={canBuy ? "outline" : "default"}
+                  className="w-full"
+                >
+                  <Link href={`/shops/${item.shop.id}#commander`}>
+                    {t("askShop")}
+                  </Link>
+                </Button>
+                <p className={cn("text-xs", MUTED)}>{t("askShopHelp")}</p>
+              </>
+            )}
           </div>
 
           <Suspense fallback={null}>

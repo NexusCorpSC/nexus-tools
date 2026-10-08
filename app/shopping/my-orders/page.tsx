@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { RememberListUrl } from "@/components/remember-list-url";
 import type { Metadata } from "next";
 import { getOrdersForUser, countOrdersForUser } from "@/lib/shop-orders";
@@ -45,6 +45,8 @@ export default async function MyOrdersPage({
 
   const t = await getTranslations("MyOrders");
   const tShopping = await getTranslations("Shopping");
+  const tOrders = await getTranslations("Orders");
+  const format = await getFormatter();
   const userId = new ObjectId(session.user.id);
 
   const [orders, total] = await Promise.all([
@@ -102,15 +104,15 @@ export default async function MyOrdersPage({
                   <p className={cn("mt-1 text-xs", MUTED)}>
                     {new Date(order.createdAt).toLocaleDateString()}
                   </p>
-                  {order.quote !== undefined && (
+                  {order.total !== undefined && (
                     <p className="mt-1 font-mono text-sm font-semibold text-[#CFE8FF]">
-                      {t("quote")} : {order.quote} aUEC
+                      {format.number(order.total)} aUEC
                     </p>
                   )}
                 </div>
                 <OrderStatusBadge
                   status={order.status}
-                  label={t(`status.${order.status}`)}
+                  label={tOrders(`status.${order.status}`)}
                 />
               </div>
             </Link>

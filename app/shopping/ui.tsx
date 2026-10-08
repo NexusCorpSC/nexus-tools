@@ -18,7 +18,10 @@ export const MUTED = "text-[#9ED0FF]/70";
 const STATUS_TONE: Record<OrderStatus, string> = {
   PENDING: "border-amber-300/50 text-amber-200",
   QUOTED: "border-sky-300/40 text-sky-200",
+  CONFIRMED: "border-emerald-300/40 text-emerald-200",
   ACCEPTED: "border-emerald-300/40 text-emerald-200",
+  READY: "border-violet-300/40 text-violet-200",
+  DELIVERED: "border-[#9ED0FF]/40 text-[#CCE7FF]",
   REFUSED: "border-red-300/40 text-red-200",
   CANCELLED: "border-[#9ED0FF]/25 text-[#9ED0FF]/70",
 };

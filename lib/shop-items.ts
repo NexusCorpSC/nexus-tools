@@ -10,6 +10,14 @@ export type ListingLocation = {
   system?: string;
 };
 
+/** Ce qui reste à vendre : le stock moins ce que des commandes réservent. */
+export const AVAILABLE_STOCK = {
+  $subtract: ["$stock", { $ifNull: ["$reserved", 0] }],
+};
+
+/** Filtre des annonces qu'on peut encore commander. */
+export const IN_STOCK = { $expr: { $gte: [AVAILABLE_STOCK, 1] } };
+
 export type ShopItem = {
   id: string;
   name: string;
@@ -18,6 +26,8 @@ export type ShopItem = {
   image: string;
   price: string;
   stock: number;
+  /** Quantité réservée par des commandes confirmées. */
+  reserved?: number;
   createdAt: string;
   /** L'objet du catalogue vendu, quand le vendeur l'a choisi. */
   itemSlug?: string;
@@ -42,6 +52,8 @@ export type ShopItemDbModel = {
   image: string;
   price: string;
   stock: number;
+  /** Quantité réservée par des commandes confirmées. */
+  reserved?: number;
   shopId: string;
   createdAt: string;
   /** L'objet du catalogue vendu, quand le vendeur l'a choisi. */
@@ -104,7 +116,7 @@ export async function searchListings(
   filters: ListingFilters,
   { offset, limit }: { offset: number; limit: number },
 ): Promise<{ items: ShopItem[]; total: number }> {
-  const match: Record<string, unknown> = { stock: { $gte: 1 } };
+  const match: Record<string, unknown> = { ...IN_STOCK };
   const query = filters.query?.trim();
   if (query) match.name = { $regex: escapeRegex(query), $options: "i" };
   if (filters.type) match.type = filters.type;
@@ -144,8 +156,8 @@ export async function getListingFacets(): Promise<{
 }> {
   const collection = db.db().collection("shopItems");
   const [categories, systems] = await Promise.all([
-    collection.distinct("category", { stock: { $gte: 1 } }),
-    collection.distinct("location.system", { stock: { $gte: 1 } }),
+    collection.distinct("category", IN_STOCK),
+    collection.distinct("location.system", IN_STOCK),
   ]);
   const clean = (values: unknown[]) =>
     values
@@ -173,7 +185,7 @@ export async function getShopSummaries(limit: number): Promise<ShopSummary[]> {
           localField: "id",
           foreignField: "shopId",
           as: "items",
-          pipeline: [{ $match: { stock: { $gte: 1 } } }, { $project: { _id: 1 } }],
+          pipeline: [{ $match: IN_STOCK }, { $project: { _id: 1 } }],
         },
       },
       { $project: { _id: 0, id: 1, name: 1, itemCount: { $size: "$items" } } },

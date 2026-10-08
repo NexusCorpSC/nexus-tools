@@ -1350,13 +1350,36 @@
     "soldOut": "Épuisé !",
     "lowStock": "Stock faible !",
     "inStock": "En stock",
-    "askShop": "Demander à la boutique",
-    "askShopHelp": "Décrivez votre besoin à la boutique : elle vous répond avec un devis. L'achat direct arrive bientôt.",
+    "askShop": "Demande sur mesure",
+    "askShopHelp": "Pour un service, une quantité spéciale ou une question, décrivez votre besoin : le magasin répond par un devis.",
     "pickup": "Remise",
     "category": "Catégorie",
     "manufacturer": "Fabricant",
     "size": "Taille",
-    "catalogueLink": "Voir la fiche du catalogue"
+    "catalogueLink": "Voir la fiche du catalogue",
+    "quantity": "Quantité",
+    "quantityLess": "Une de moins",
+    "quantityMore": "Une de plus",
+    "pickupListing": "Le lieu indiqué par le magasin",
+    "pickupOther": "Proposer un autre lieu",
+    "pickupOtherHelp": "Le magasin confirmera ou répondra par un devis.",
+    "pickupOtherPlaceholder": "Ex. : Area18, Riker Memorial",
+    "orderNote": "Message au magasin (facultatif)",
+    "orderNotePlaceholder": "Un créneau, une précision…",
+    "total": "Total",
+    "order": "Commander",
+    "ordering": "Envoi…",
+    "orderHelp": "Le magasin confirme la commande et réserve la quantité. Le paiement se fait en jeu, à la remise.",
+    "loginToOrder": "Se connecter pour commander",
+    "ownListing": "C'est une annonce de votre magasin.",
+    "orderErrors": {
+      "LISTING_NOT_FOUND": "Cette annonce n'existe plus.",
+      "NOT_FOR_SALE": "Ce service se commande par une demande sur mesure.",
+      "OWN_SHOP": "Vous ne pouvez pas commander dans votre propre magasin.",
+      "INVALID_QUANTITY": "Choisissez une quantité d’au moins 1.",
+      "NOT_ENOUGH_STOCK": "Il ne reste pas assez de stock pour cette quantité.",
+      "PICKUP_REQUIRED": "Indiquez un lieu de remise."
+    }
   },
   "ShopItemManagement": {
     "currentStock": "Stock actuel :",
@@ -1365,7 +1388,8 @@
     "addOne": "Ajouter 1",
     "removeOne": "Retirer 1",
     "invalidChange": "Indiquez un nombre entier différent de zéro.",
-    "notEnoughStock": "Le stock ne peut pas devenir négatif."
+    "notEnoughStock": "Le stock ne peut descendre ni sous zéro, ni sous la quantité réservée par des commandes.",
+    "reserved": "({count} réservé{count, plural, one {} other {s}})"
   },
   "ShoppingNewItem": {
     "title": "Vente",
@@ -3224,6 +3248,77 @@
         "hint": "Des missions dont on ne sait pas encore où elles se jouent.",
         "cta": "Indiquer le lieu"
       }
+    }
+  },
+  "Orders": {
+    "titleDirect": "Achat direct",
+    "titleCustom": "Demande sur mesure",
+    "from": "De {name}",
+    "progress": "Avancement",
+    "thread": "Échanges",
+    "steps": {
+      "0": "Demandée",
+      "1": "Devis",
+      "2": "Confirmée",
+      "3": "Prête",
+      "4": "Remise"
+    },
+    "roles": {
+      "buyer": "Acheteur",
+      "seller": "Magasin"
+    },
+    "quoteOf": "Devis : {amount} aUEC",
+    "contents": "Contenu",
+    "total": "Total",
+    "pickup": "Remise",
+    "pickupProposed": "Lieu proposé par l'acheteur : le magasin confirme ou répond par un devis.",
+    "paymentNote": "Rien n'est payé sur le site : le paiement se fait en jeu, à la remise.",
+    "messageLabel": "Message",
+    "messagePlaceholderBuyer": "Écrire au magasin…",
+    "messagePlaceholderSeller": "Écrire à l'acheteur…",
+    "send": "Envoyer",
+    "quoteLabel": "Devis",
+    "quoteHelpDirect": "Un devis remplace le prix de l'annonce, par exemple pour un autre lieu de remise. L'acheteur l'accepte ou le décline.",
+    "actions": {
+      "confirm": "Confirmer",
+      "quote": "Envoyer le devis",
+      "accept": "Accepter le devis",
+      "decline": "Décliner le devis",
+      "refuse": "Refuser la commande",
+      "cancel": "Annuler la commande",
+      "ready": "Marquer prête",
+      "deliver": "Marquer remise"
+    },
+    "confirm": {
+      "refuse": "Confirmer le refus",
+      "cancel": "Confirmer l'annulation",
+      "decline": "Confirmer"
+    },
+    "errors": {
+      "NOT_ALLOWED": "Cette action n'est plus possible : la commande a sans doute changé, rechargez la page.",
+      "NOT_ENOUGH_STOCK": "Le stock disponible ne suffit plus pour cette commande.",
+      "INVALID_QUOTE": "Le devis doit être un nombre entier positif.",
+      "MESSAGE_REQUIRED": "Écrivez un message avant de l’envoyer."
+    },
+    "status": {
+      "PENDING": "Demandée",
+      "QUOTED": "Devis envoyé",
+      "CONFIRMED": "Confirmée",
+      "ACCEPTED": "Acceptée",
+      "READY": "Prête",
+      "DELIVERED": "Remise",
+      "REFUSED": "Refusée",
+      "CANCELLED": "Annulée"
+    },
+    "events": {
+      "PENDING": "{name} a passé la commande",
+      "QUOTED": "{name} a envoyé un devis",
+      "CONFIRMED": "{name} a confirmé la commande, la quantité est réservée",
+      "ACCEPTED": "{name} a accepté le devis",
+      "READY": "{name} indique que la commande est prête",
+      "DELIVERED": "{name} a remis la commande",
+      "REFUSED": "{name} a refusé la commande",
+      "CANCELLED": "{name} a annulé la commande"
     }
   }
 }

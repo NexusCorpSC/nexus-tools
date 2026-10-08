@@ -1349,13 +1349,36 @@
     "soldOut": "Sold out!",
     "lowStock": "Low stock!",
     "inStock": "In stock",
-    "askShop": "Ask the shop",
-    "askShopHelp": "Describe what you need to the shop and it will reply with a quote. Direct purchase is coming soon.",
+    "askShop": "Custom request",
+    "askShopHelp": "For a service, a special quantity or a question, describe what you need: the shop replies with a quote.",
     "pickup": "Handover",
     "category": "Category",
     "manufacturer": "Manufacturer",
     "size": "Size",
-    "catalogueLink": "View in the catalogue"
+    "catalogueLink": "View in the catalogue",
+    "quantity": "Quantity",
+    "quantityLess": "One less",
+    "quantityMore": "One more",
+    "pickupListing": "The location given by the shop",
+    "pickupOther": "Propose another location",
+    "pickupOtherHelp": "The shop will confirm it or reply with a quote.",
+    "pickupOtherPlaceholder": "E.g. Area18, Riker Memorial",
+    "orderNote": "Message to the shop (optional)",
+    "orderNotePlaceholder": "A time slot, a detail…",
+    "total": "Total",
+    "order": "Order",
+    "ordering": "Sending…",
+    "orderHelp": "The shop confirms the order and reserves the quantity. Payment happens in game, at handover.",
+    "loginToOrder": "Sign in to order",
+    "ownListing": "This listing belongs to your shop.",
+    "orderErrors": {
+      "LISTING_NOT_FOUND": "This listing no longer exists.",
+      "NOT_FOR_SALE": "This service is ordered through a custom request.",
+      "OWN_SHOP": "You cannot order from your own shop.",
+      "INVALID_QUANTITY": "Choose a quantity of at least 1.",
+      "NOT_ENOUGH_STOCK": "There is not enough stock left for this quantity.",
+      "PICKUP_REQUIRED": "Enter a handover location."
+    }
   },
   "ShopItemManagement": {
     "currentStock": "Current stock:",
@@ -1364,7 +1387,8 @@
     "addOne": "Add 1",
     "removeOne": "Remove 1",
     "invalidChange": "Enter a whole number other than zero.",
-    "notEnoughStock": "Stock cannot go below zero."
+    "notEnoughStock": "Stock cannot go below zero or below the quantity reserved by orders.",
+    "reserved": "({count} reserved)"
   },
   "ShoppingNewItem": {
     "title": "Sell",
@@ -3195,6 +3219,77 @@
         "hint": "Missions nobody has located yet.",
         "cta": "Add the location"
       }
+    }
+  },
+  "Orders": {
+    "titleDirect": "Direct purchase",
+    "titleCustom": "Custom request",
+    "from": "From {name}",
+    "progress": "Progress",
+    "thread": "Conversation",
+    "steps": {
+      "0": "Requested",
+      "1": "Quote",
+      "2": "Confirmed",
+      "3": "Ready",
+      "4": "Handed over"
+    },
+    "roles": {
+      "buyer": "Buyer",
+      "seller": "Shop"
+    },
+    "quoteOf": "Quote: {amount} aUEC",
+    "contents": "Contents",
+    "total": "Total",
+    "pickup": "Handover",
+    "pickupProposed": "Location proposed by the buyer: the shop confirms it or replies with a quote.",
+    "paymentNote": "Nothing is paid on the site: payment happens in game, at handover.",
+    "messageLabel": "Message",
+    "messagePlaceholderBuyer": "Write to the shop…",
+    "messagePlaceholderSeller": "Write to the buyer…",
+    "send": "Send",
+    "quoteLabel": "Quote",
+    "quoteHelpDirect": "A quote replaces the listing price, for instance for another handover location. The buyer accepts or declines it.",
+    "actions": {
+      "confirm": "Confirm",
+      "quote": "Send quote",
+      "accept": "Accept quote",
+      "decline": "Decline quote",
+      "refuse": "Refuse order",
+      "cancel": "Cancel order",
+      "ready": "Mark ready",
+      "deliver": "Mark handed over"
+    },
+    "confirm": {
+      "refuse": "Confirm refusal",
+      "cancel": "Confirm cancellation",
+      "decline": "Confirm"
+    },
+    "errors": {
+      "NOT_ALLOWED": "This action is no longer possible: the order has probably changed, reload the page.",
+      "NOT_ENOUGH_STOCK": "Available stock no longer covers this order.",
+      "INVALID_QUOTE": "The quote must be a positive whole number.",
+      "MESSAGE_REQUIRED": "Write a message before sending it."
+    },
+    "status": {
+      "PENDING": "Requested",
+      "QUOTED": "Quote sent",
+      "CONFIRMED": "Confirmed",
+      "ACCEPTED": "Accepted",
+      "READY": "Ready",
+      "DELIVERED": "Handed over",
+      "REFUSED": "Refused",
+      "CANCELLED": "Cancelled"
+    },
+    "events": {
+      "PENDING": "{name} placed the order",
+      "QUOTED": "{name} sent a quote",
+      "CONFIRMED": "{name} confirmed the order, the quantity is reserved",
+      "ACCEPTED": "{name} accepted the quote",
+      "READY": "{name} marked the order as ready",
+      "DELIVERED": "{name} handed the order over",
+      "REFUSED": "{name} refused the order",
+      "CANCELLED": "{name} cancelled the order"
     }
   }
 }

@@ -22,6 +22,12 @@ export async function StockModificationSection({ item }: { item: ShopItem }) {
         <p className="text-sm">
           {t("currentStock")}{" "}
           <span className="font-mono font-semibold">{item.stock}</span>
+          {!!item.reserved && (
+            <span className="text-[#9ED0FF]/70">
+              {" "}
+              {t("reserved", { count: item.reserved })}
+            </span>
+          )}
         </p>
         <StockModificationForm itemId={item.id} />
       </div>

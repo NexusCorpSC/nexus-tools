@@ -15,16 +15,16 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { RespondForm } from "@/app/shops/[shopId]/bo/orders/components";
-import { MUTED, OrderStatusBadge, PAGE_PANEL, TEXT_BOX } from "@/app/shopping/ui";
+import { PAGE_PANEL } from "@/app/shopping/ui";
+import { OrderView } from "@/app/shopping/order-view";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Détail de commande — Back-office",
-  description: "Consultez et répondez aux commandes de vos clients sur Nexus Tools.",
+  description:
+    "Consultez et répondez aux commandes de vos clients sur Nexus Tools.",
   robots: { index: false, follow: false },
 };
-
 
 export default async function BoOrderDetailPage({
   params,
@@ -35,7 +35,9 @@ export default async function BoOrderDetailPage({
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect(
+      `/login?callbackUrl=${encodeURIComponent(`/shops/${shopId}/bo/orders/${orderId}`)}`,
+    );
   }
 
   const isSeller = await isUserSellerOfShop(
@@ -58,10 +60,8 @@ export default async function BoOrderDetailPage({
     notFound();
   }
 
-  const canRespond = order.status === "PENDING" || order.status === "QUOTED";
-
   return (
-    <div className={cn(PAGE_PANEL, "max-w-2xl")}>
+    <div className={cn(PAGE_PANEL, "max-w-5xl")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -94,64 +94,11 @@ export default async function BoOrderDetailPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{t("orderDetail")}</h1>
-        <OrderStatusBadge
-          status={order.status}
-          label={t(`status.${order.status}`)}
-        />
-      </div>
-
-      <div className={cn("space-y-1 text-sm", MUTED)}>
-        <p>
-          {t("from")} : <span className="font-medium text-[#CCE7FF]">{order.userName}</span>
-        </p>
-        <p>
-          {t("date")} : {new Date(order.createdAt).toLocaleString()}
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold">{t("customerMessage")}</h2>
-        <div className={TEXT_BOX}>
-          {order.message}
-        </div>
-      </div>
-
-      {order.response && (
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold">{t("currentResponse")}</h2>
-          <div className={cn(TEXT_BOX, "border-sky-300/30")}>
-            {order.response}
-          </div>
-          {order.quote !== undefined && (
-            <p className="font-mono text-sm font-semibold text-[#CFE8FF]">
-              {t("currentQuote")} : {order.quote} aUEC
-            </p>
-          )}
-        </div>
-      )}
-
-      {order.userComment && (
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold">{t("userComment")}</h2>
-          <div className={cn(TEXT_BOX, "italic")}>
-            {order.userComment}
-          </div>
-        </div>
-      )}
-
-      {canRespond && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">{t("respondTitle")}</h2>
-          <RespondForm
-            orderId={orderId}
-            shopId={shopId}
-            initialResponse={order.response}
-            initialQuote={order.quote}
-          />
-        </div>
-      )}
+      <OrderView
+        order={order}
+        role="seller"
+        shop={{ id: shop.id, name: shop.name }}
+      />
     </div>
   );
 }
