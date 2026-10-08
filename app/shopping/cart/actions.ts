@@ -14,7 +14,13 @@ import {
   removeFromCart,
   setCartQuantity,
 } from "@/lib/cart";
-import { isUserSellerOfShop, type ShopItemDbModel } from "@/lib/shop-items";
+import {
+  getShop,
+  isListingOnSale,
+  isUserSellerOfShop,
+  type ShopItemDbModel,
+} from "@/lib/shop-items";
+import { syncLinkedListings } from "@/lib/shop-stock";
 import { placeDirectOrder, type OrderPickup } from "@/lib/shop-orders";
 
 const MAX_MESSAGE = 2000;
@@ -50,12 +56,18 @@ export async function addToCartAction(
   if (!Number.isInteger(quantity) || quantity < 1) {
     return { error: "INVALID_QUANTITY" };
   }
+  await syncLinkedListings({ id: listingId });
   const listing = await db
     .db()
     .collection<ShopItemDbModel>("shopItems")
     .findOne({ id: listingId });
   if (!listing) return { error: "LISTING_NOT_FOUND" };
-  if (listing.type !== "OBJECT") return { error: "NOT_FOR_SALE" };
+  if (
+    listing.type !== "OBJECT" ||
+    !isListingOnSale(listing, await getShop(listing.shopId))
+  ) {
+    return { error: "NOT_FOR_SALE" };
+  }
   if (await isUserSellerOfShop(listing.shopId, userId)) {
     return { error: "OWN_SHOP" };
   }

@@ -1,4 +1,11 @@
-import { countShopItems, getShop, getShopItemsOfShop } from "@/lib/shop-items";
+import {
+  countShopItems,
+  getShop,
+  getShopItemsOfShop,
+  isUserSellerOfShop,
+} from "@/lib/shop-items";
+import { ObjectId } from "bson";
+import { ReportMenu } from "@/components/report-menu";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -20,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ListLink } from "@/components/list-link";
 import { RememberListUrl } from "@/components/remember-list-url";
-import { MUTED, PAGE_PANEL } from "@/app/shopping/ui";
+import { MUTED, PAGE_PANEL, ShopLogo } from "@/app/shopping/ui";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
@@ -31,8 +38,8 @@ export async function generateMetadata({
   const shopId = (await params).shopId;
   const shop = await getShop(shopId);
 
-  if (!shop) {
-    return { title: "Boutique introuvable" };
+  if (!shop || shop.reportHidden) {
+    return { title: "Boutique introuvable", robots: { index: false } };
   }
 
   const description = shop.description
@@ -70,7 +77,13 @@ export default async function ShopPage({
     auth.api.getSession({ headers: await headers() }),
   ]);
 
-  if (!shop) {
+  const isSeller =
+    !!shop &&
+    !!session?.user?.id &&
+    (await isUserSellerOfShop(shop.id, new ObjectId(session.user.id)));
+
+  // Un magasin masqué par la modération n'existe plus que pour ses vendeurs.
+  if (!shop || (shop.reportHidden && !isSeller)) {
     return (
       <div className={cn(PAGE_PANEL, "max-w-7xl")}>
         <h1 className="text-2xl font-bold">{t("notFound")}</h1>
@@ -108,11 +121,24 @@ export default async function ShopPage({
       </Breadcrumb>
       <RememberListUrl />
 
+      {shop.reportHidden && (
+        <p className="rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+          {t("hiddenByModeration")}
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{shop.name}</h1>
-        <Suspense fallback={null}>
-          <ShopButtons shopId={shop.id} />
-        </Suspense>
+        <div className="flex items-center gap-3">
+          <ShopLogo name={shop.name} logo={shop.logo} className="size-12" />
+          <h1 className="text-2xl font-bold">{shop.name}</h1>
+        </div>
+        {isSeller ? (
+          <Suspense fallback={null}>
+            <ShopButtons shopId={shop.id} />
+          </Suspense>
+        ) : (
+          <ReportMenu type="shop" id={shop.id} name={shop.name} />
+        )}
       </div>
 
       <MarkdownContent content={shop.description} />
@@ -135,7 +161,9 @@ export default async function ShopPage({
                   src={item.image || "/item_empty.png"}
                   className={cn(
                     "aspect-4/3 w-full object-cover",
-                    item.stock <= 0 && "opacity-50",
+                    item.type === "OBJECT" &&
+                      item.stock - (item.reserved ?? 0) <= 0 &&
+                      "opacity-50",
                   )}
                   width={400}
                   height={300}
@@ -147,7 +175,8 @@ export default async function ShopPage({
                     <span className="font-mono font-semibold text-[#CFE8FF]">
                       {format.number(Number(item.price))} aUEC
                     </span>
-                    {item.stock <= 0 && (
+                    {item.type === "OBJECT" &&
+                      item.stock - (item.reserved ?? 0) <= 0 && (
                       <span className="inline-flex h-5 items-center rounded border border-red-300/40 px-1.5 text-[11px] font-semibold text-red-200">
                         {t("soldOut")}
                       </span>
@@ -184,7 +213,7 @@ export default async function ShopPage({
 
       <section id="commander" className="scroll-mt-24 space-y-4">
         <h2 className="text-xl font-bold">{t("placeOrderCTA")}</h2>
-        {session?.user ? (
+        {shop.reportHidden ? null : session?.user ? (
           <PlaceOrderForm shopId={shop.id} />
         ) : (
           <p className={cn("text-sm", MUTED)}>{t("loginToOrder")}</p>

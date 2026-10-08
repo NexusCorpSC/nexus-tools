@@ -1,4 +1,10 @@
-import { getShopItem, isUserSellerOfShop } from "@/lib/shop-items";
+import {
+  getShopItem,
+  isListingOnSale,
+  isUserSellerOfShop,
+} from "@/lib/shop-items";
+import { syncLinkedListings } from "@/lib/shop-stock";
+import { ReportMenu } from "@/components/report-menu";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { ObjectId } from "bson";
@@ -30,8 +36,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const item = await getShopItem((await params).itemId);
 
-  if (!item) {
-    return { title: "Article introuvable" };
+  if (!item || !isListingOnSale(item, item.shop)) {
+    return { title: "Article introuvable", robots: { index: false } };
   }
 
   const description = item.description
@@ -65,12 +71,20 @@ export default async function ShopItemDetailsPage({
   const tShopping = await getTranslations("Shopping");
   const format = await getFormatter();
 
+  const { itemId } = await params;
+  await syncLinkedListings({ id: itemId });
   const [item, session] = await Promise.all([
-    getShopItem((await params).itemId),
+    getShopItem(itemId),
     auth.api.getSession({ headers: await headers() }),
   ]);
+  const isSeller =
+    !!item &&
+    !!session?.user?.id &&
+    (await isUserSellerOfShop(item.shop.id, new ObjectId(session.user.id)));
+  const onSale = !!item && isListingOnSale(item, item.shop);
 
-  if (!item) {
+  // Une annonce retirée ou masquée n'existe plus que pour ses vendeurs.
+  if (!item || (!onSale && !isSeller)) {
     return (
       <div className={cn(PAGE_PANEL, "max-w-7xl")}>
         <h1 className="text-2xl font-bold">{t("notFound")}</h1>
@@ -82,10 +96,7 @@ export default async function ShopItemDetailsPage({
   }
 
   const available = Math.max(0, item.stock - (item.reserved ?? 0));
-  const isSeller =
-    !!session?.user?.id &&
-    (await isUserSellerOfShop(item.shop.id, new ObjectId(session.user.id)));
-  const canBuy = item.type === "OBJECT" && available > 0;
+  const canBuy = onSale && item.type === "OBJECT" && available > 0;
   const tag = stockTag(item.type, available);
   const delivered = await countDeliveredOrdersForShop(item.shop.id);
   const specs: [string, ReactNode][] = [];
@@ -138,6 +149,14 @@ export default async function ShopItemDetailsPage({
         </BreadcrumbList>
       </Breadcrumb>
 
+      {!onSale && (
+        <p className="rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+          {item.reportHidden || item.shop.reportHidden
+            ? t("hiddenByModeration")
+            : t("hiddenBySeller")}
+        </p>
+      )}
+
       <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr]">
         <div className="space-y-4">
           <Image
@@ -184,14 +203,20 @@ export default async function ShopItemDetailsPage({
               </Tag>
               <Tag tone="dim">{t(`types.${item.type}`)}</Tag>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#CCE7FF] sm:text-4xl">
-              {item.name}
-            </h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-3xl font-bold tracking-tight text-[#CCE7FF] sm:text-4xl">
+                {item.name}
+              </h1>
+              {!isSeller && (
+                <ReportMenu type="listing" id={item.id} name={item.name} />
+              )}
+            </div>
             <p
               className={cn("flex flex-wrap items-center gap-2 text-sm", MUTED)}
             >
               <ShopLogo
                 name={item.shop.name}
+                logo={item.shop.logo}
                 className="size-6 rounded text-[10px]"
               />
               {t("soldBy")}{" "}
@@ -244,7 +269,7 @@ export default async function ShopItemDetailsPage({
                   })}
                 </p>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href={`/shopping/i/${item.id}/manage`}>
+                  <Link href={`/shops/${item.shop.id}/bo/listings/${item.id}`}>
                     {t("manageListing")}
                   </Link>
                 </Button>

@@ -6,7 +6,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import db from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { isUserSellerOfShop, type ShopItemDbModel } from "@/lib/shop-items";
+import {
+  getShop,
+  isListingOnSale,
+  isUserSellerOfShop,
+  type ShopItemDbModel,
+} from "@/lib/shop-items";
+import { syncLinkedListings } from "@/lib/shop-stock";
 import {
   addOrderMessage,
   type DirectOrderError,
@@ -69,12 +75,18 @@ export async function placeDirectOrderAction(input: {
 }): Promise<{ error?: DirectOrderError | "PICKUP_REQUIRED" }> {
   const session = await requireSession();
 
+  await syncLinkedListings({ id: input.listingId });
   const listing = await db
     .db()
     .collection<ShopItemDbModel>("shopItems")
     .findOne({ id: input.listingId });
   if (!listing) return { error: "LISTING_NOT_FOUND" };
-  if (listing.type !== "OBJECT") return { error: "NOT_FOR_SALE" };
+  if (
+    listing.type !== "OBJECT" ||
+    !isListingOnSale(listing, await getShop(listing.shopId))
+  ) {
+    return { error: "NOT_FOR_SALE" };
+  }
   if (await isUserSellerOfShop(listing.shopId, new ObjectId(session.user.id))) {
     return { error: "OWN_SHOP" };
   }

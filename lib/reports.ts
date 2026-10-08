@@ -25,6 +25,7 @@ import {
   revertContribution,
 } from "@/lib/contributions";
 import { isPlacePlanRef, planImage, type PlacePlan } from "@/types/places";
+import type { ShopDbModel, ShopItemDbModel } from "@/lib/shop-items";
 import { POINTS, type Contribution } from "@/types/contributions";
 import {
   CONTRIBUTOR_SUSPENSION_DAYS,
@@ -145,6 +146,8 @@ export const reports = () => db.db().collection<DbReport>("reports");
 export const moderationLog = () =>
   db.db().collection<DbModerationLog>("moderationLog");
 const organizations = () => db.db().collection<DbOrganization>("organizations");
+const shops = () => db.db().collection<ShopDbModel>("shops");
+const listings = () => db.db().collection<ShopItemDbModel>("shopItems");
 
 /** Toute décision de modération passe par là, pour qu'on sache qui a fait quoi. */
 export async function logModeration(entry: Omit<DbModerationLog, "at">) {
@@ -317,6 +320,46 @@ async function resolveTarget(
         owners: members,
       };
     }
+    case "shop": {
+      const shop = await shops().findOne({ id });
+      if (!shop) return null;
+      const sellers = [shop.ownerId, ...(shop.sellers ?? [])];
+      const visible =
+        shop.reportHidden !== true ||
+        (viewer && sellers.some((seller) => seller.equals(viewer)));
+      if (!visible) return null;
+      return {
+        target: {
+          type,
+          id: shop.id,
+          name: shop.name,
+          ...(shop.logo && { imageUrl: shop.logo }),
+        },
+        owners: sellers,
+      };
+    }
+    case "listing": {
+      const listing = await listings().findOne({ id });
+      if (!listing) return null;
+      const shop = await shops().findOne({ id: listing.shopId });
+      const sellers = shop ? [shop.ownerId, ...(shop.sellers ?? [])] : [];
+      const visible =
+        (listing.hidden !== true &&
+          listing.reportHidden !== true &&
+          shop?.reportHidden !== true) ||
+        (viewer && sellers.some((seller) => seller.equals(viewer)));
+      if (!visible) return null;
+      return {
+        target: {
+          type,
+          id: listing.id,
+          name: shop ? `${listing.name} · ${shop.name}` : listing.name,
+          slug: listing.shopId,
+          ...(listing.image && { imageUrl: listing.image }),
+        },
+        owners: sellers,
+      };
+    }
   }
 }
 
@@ -335,6 +378,10 @@ export function targetHref(target: ReportTarget): string {
       return `/orgs/${target.id}`;
     case "blueprint":
       return `/crafting/blueprints/${target.id}`;
+    case "shop":
+      return `/shops/${target.id}`;
+    case "listing":
+      return `/shopping/i/${target.id}`;
   }
 }
 
@@ -389,6 +436,13 @@ async function mask(report: DbReport) {
       { _id: target.id },
       { $set: { reportHidden: true } },
     );
+  } else if (target.type === "shop") {
+    await shops().updateOne({ id: target.id }, { $set: { reportHidden: true } });
+  } else if (target.type === "listing") {
+    await listings().updateOne(
+      { id: target.id },
+      { $set: { reportHidden: true } },
+    );
   }
 }
 
@@ -418,6 +472,13 @@ async function unmask(report: DbReport) {
   } else if (target.type === "org") {
     await organizations().updateOne(
       { _id: target.id },
+      { $unset: { reportHidden: "" } },
+    );
+  } else if (target.type === "shop") {
+    await shops().updateOne({ id: target.id }, { $unset: { reportHidden: "" } });
+  } else if (target.type === "listing") {
+    await listings().updateOne(
+      { id: target.id },
       { $unset: { reportHidden: "" } },
     );
   }
@@ -729,6 +790,23 @@ async function authorsOf(
       });
     }
   }
+  if (target.type === "shop" || target.type === "listing") {
+    // Le propriétaire du magasin, celui qui l'a ouvert.
+    const shop = await shops().findOne({
+      id: target.type === "shop" ? target.id : target.slug,
+    });
+    if (shop) {
+      const user = await users().findOne(
+        { _id: shop.ownerId },
+        { projection: { name: 1 } },
+      );
+      seen.set(String(shop.ownerId), {
+        id: String(shop.ownerId),
+        name: user?.name,
+        why: "founder",
+      });
+    }
+  }
   for (const doc of history) {
     const key = String(doc.userId);
     if (!seen.has(key)) {
@@ -750,6 +828,10 @@ async function targetExists(target: ReportTarget): Promise<boolean> {
       );
     case "org":
       return (await organizations().countDocuments({ _id: target.id })) > 0;
+    case "shop":
+      return (await shops().countDocuments({ id: target.id })) > 0;
+    case "listing":
+      return (await listings().countDocuments({ id: target.id })) > 0;
     default:
       return (await resolveTarget(target.type, target.id)) !== null;
   }
@@ -946,6 +1028,20 @@ async function deleteTarget(report: DbReport, moderator: Contributor) {
         return;
       case "blueprint":
         throw new ReportError("actionFailed", 400);
+      case "shop":
+        // Ses commandes en cours restent lisibles par l'acheteur et ses
+        // vendeurs : on retire le magasin de la vue publique, sans l'effacer.
+        await shops().updateOne(
+          { id: target.id },
+          { $set: { reportHidden: true } },
+        );
+        return;
+      case "listing":
+        await listings().updateOne(
+          { id: target.id },
+          { $set: { reportHidden: true } },
+        );
+        return;
     }
   } catch (error) {
     if (error instanceof ReportError) throw error;

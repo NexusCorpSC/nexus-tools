@@ -20,6 +20,8 @@ export const REPORT_TARGET_TYPES = [
   "item",
   "org",
   "blueprint",
+  "shop",
+  "listing",
 ] as const;
 
 export type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
@@ -102,6 +104,10 @@ export const REPORT_ACTIONS_BY_TARGET: Record<
   org: ["dismiss", "correct", "delete"],
   // Où l'obtenir, surtout : un admin corrige la fiche, rien ne s'y annule.
   blueprint: ["dismiss", "correct"],
+  // Un magasin ou une annonce ne se corrige que par ses vendeurs : la
+  // modération classe, ou retire de la vue publique.
+  shop: ["dismiss", "delete"],
+  listing: ["dismiss", "delete"],
 };
 
 /** En plus de la décision, envers l'auteur du contenu en cause. */
@@ -112,7 +118,7 @@ export function isReportSanction(value: unknown): value is ReportSanction {
   return (REPORT_SANCTIONS as readonly unknown[]).includes(value);
 }
 
-/** Le poids à partir duquel une image ou une organisation est masquée. */
+/** Le poids à partir duquel une image, une organisation, un magasin ou une annonce est masqué. */
 export const REPORT_MASK_WEIGHT = 3;
 
 /** Un signalement de Recrue pèse 1, à partir d'Éclaireur il pèse 2. */
@@ -124,6 +130,8 @@ export function reportWeight(level: number): number {
 export const MASKABLE_TARGETS: readonly ReportTargetType[] = [
   "placeMedia",
   "org",
+  "shop",
+  "listing",
 ];
 
 export const REPORTS_PER_DAY = 10;

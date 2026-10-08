@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { placeOrder } from "@/lib/shop-orders";
+import { getShop } from "@/lib/shop-items";
 import { ObjectId } from "bson";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -26,6 +27,9 @@ export async function placeOrderAction(
   if (!message) {
     return { error: "MESSAGE_REQUIRED" };
   }
+  // Un magasin masqué par la modération ne reçoit plus de demandes.
+  const shop = await getShop(shopId);
+  if (!shop || shop.reportHidden) return { error: "SHOP_UNAVAILABLE" };
 
   const orderId = await placeOrder(
     shopId,
