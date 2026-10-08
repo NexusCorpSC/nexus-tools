@@ -124,7 +124,8 @@
         }
       }
     },
-    "contribBadge": "My contributions: {points, plural, one {# point} other {# points}}, level {level}"
+    "contribBadge": "My contributions: {points, plural, one {# point} other {# points}}, level {level}",
+    "cart": "Cart, {count, plural, =0 {empty} one {# item} other {# items}}"
   },
   "Industry": {
     "home": "Home",
@@ -1311,27 +1312,99 @@
     "home": "Home",
     "title": "Marketplace",
     "ctaSellButton": "Sell an item or service",
-    "featuredItemsTitle": "Featured Items",
     "shop": "Shop",
     "shops": "Shops",
-    "buy": "Buy"
+    "latestTitle": "Latest listings",
+    "noItems": "No listings in stock yet.",
+    "itemsCount": "{count, plural, =0 {No listing in stock} one {# listing in stock} other {# listings in stock}}",
+    "myOrders": "My orders",
+    "noShops": "No shop yet.",
+    "prev": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {page} of {totalPages}",
+    "searchPlaceholder": "Search listings…",
+    "filterType": "Type",
+    "allTypes": "All types",
+    "types": {
+      "OBJECT": "Items",
+      "SERVICE": "Services"
+    },
+    "filterCategory": "Category",
+    "allCategories": "All categories",
+    "filterSystem": "System",
+    "allSystems": "All systems",
+    "sortLabel": "Sort",
+    "sorts": {
+      "recent": "Newest",
+      "priceAsc": "Price: low to high",
+      "priceDesc": "Price: high to low"
+    },
+    "resetFilters": "Clear filters",
+    "noResults": "No listings match these filters."
   },
   "ShoppingItem": {
     "notFound": "Item not found",
-    "backToShopping": "Back to shopping",
+    "backToShopping": "Back to the marketplace",
     "productInfo": "Product information",
     "soldBy": "Sold by:",
     "soldOut": "Sold out!",
     "lowStock": "Low stock!",
     "inStock": "In stock",
-    "buy": "Buy"
+    "askShop": "Custom request",
+    "askShopHelp": "For a service, a special quantity or a question, describe what you need: the shop replies with a quote.",
+    "pickup": "Handover",
+    "category": "Category",
+    "manufacturer": "Manufacturer",
+    "size": "Size",
+    "catalogueLink": "View in the catalogue",
+    "quantity": "Quantity",
+    "quantityLess": "One less",
+    "quantityMore": "One more",
+    "pickupListing": "The location given by the shop",
+    "pickupOther": "Propose another location",
+    "pickupOtherHelp": "The shop will confirm it or reply with a quote.",
+    "pickupOtherPlaceholder": "E.g. Area18, Riker Memorial",
+    "orderNote": "Message to the shop (optional)",
+    "orderNotePlaceholder": "A time slot, a detail…",
+    "total": "Total",
+    "order": "Order",
+    "ordering": "Sending…",
+    "orderHelp": "The shop confirms the order and reserves the quantity. Payment happens in game, at handover.",
+    "loginToOrder": "Sign in to order",
+    "ownListing": "This listing belongs to your shop.",
+    "orderErrors": {
+      "LISTING_NOT_FOUND": "This listing no longer exists.",
+      "NOT_FOR_SALE": "This service is ordered through a custom request.",
+      "OWN_SHOP": "You cannot order from your own shop.",
+      "INVALID_QUANTITY": "Choose a quantity of at least 1.",
+      "NOT_ENOUGH_STOCK": "There is not enough stock left for this quantity.",
+      "PICKUP_REQUIRED": "Enter a handover location."
+    },
+    "addToCart": "Add to cart",
+    "adding": "Adding…",
+    "addedToCart": "{count} × {name} added to the cart.",
+    "viewCart": "View cart",
+    "orderNow": "Order now",
+    "orderNowHelp": "Orders this listing alone, without waiting for the rest of the cart.",
+    "orderNowBack": "Back",
+    "cartErrors": {
+      "LISTING_NOT_FOUND": "This listing no longer exists.",
+      "NOT_FOR_SALE": "This service is ordered through a custom request.",
+      "OWN_SHOP": "You can't order from your own shop.",
+      "INVALID_QUANTITY": "Choose a quantity of at least 1.",
+      "NOT_ENOUGH_STOCK": "With your cart, this quantity exceeds the available stock.",
+      "CART_FULL": "Your cart is full. Check it out or remove items."
+    }
   },
   "ShopItemManagement": {
     "currentStock": "Current stock:",
     "addToStock": "Add to stock",
     "removeFromStock": "Remove from stock",
     "addOne": "Add 1",
-    "removeOne": "Remove 1"
+    "removeOne": "Remove 1",
+    "invalidChange": "Enter a whole number other than zero.",
+    "notEnoughStock": "Stock cannot go below zero or below the quantity reserved by orders.",
+    "reserved": "({count} reserved)"
   },
   "ShoppingNewItem": {
     "title": "Sell",
@@ -1359,7 +1432,16 @@
     "cancel": "Cancel",
     "addArticle": "Add the item to the shop",
     "noFeaturedItems": "No featured items at the moment.",
-    "noShops": "No shops available at the moment."
+    "noShops": "No shops available at the moment.",
+    "catalogueItem": "Catalogue item (optional)",
+    "catalogueSearchPlaceholder": "Search a game item…",
+    "catalogueNone": "No item found.",
+    "catalogueClear": "Remove",
+    "catalogueHelp": "Linking the listing to the catalogue reuses its image and specs, and makes it findable by category.",
+    "pickup": "Handover location (optional)",
+    "pickupPlaceholder": "Search a location…",
+    "pickupHelp": "Where the buyer collects the item. It lets buyers filter listings by system.",
+    "itemImageOptional": "Optional when the listing is linked to a catalogue item."
   },
   "ShopDetails": {
     "backOffice": "Back-Office",
@@ -1367,7 +1449,12 @@
     "manage": "Manage shop",
     "products": "Products in store",
     "placeOrderCTA": "Place order",
-    "loginToOrder": "Sign in to place an order with this shop."
+    "loginToOrder": "Sign in to place an order with this shop.",
+    "soldOut": "Sold out",
+    "prev": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {page} of {totalPages}",
+    "noItems": "This shop has no listings yet."
   },
   "ShopOrders": {
     "formTitle": "Place a free order",
@@ -1457,7 +1544,9 @@
       "ACCEPTED": "Accepted",
       "REFUSED": "Refused",
       "CANCELLED": "Cancelled"
-    }
+    },
+    "cartGroup": "Cart of {date}",
+    "cartGroupInfo": "{count, plural, one {# order} other {# orders}} · {delivered} of {count} handed over"
   },
   "ShopManagement": {
     "addSeller": "Authorize a seller",
@@ -3149,5 +3238,120 @@
         "cta": "Add the location"
       }
     }
+  },
+  "Orders": {
+    "titleDirect": "Direct purchase",
+    "titleCustom": "Custom request",
+    "from": "From {name}",
+    "progress": "Progress",
+    "thread": "Conversation",
+    "steps": {
+      "0": "Requested",
+      "1": "Quote",
+      "2": "Confirmed",
+      "3": "Ready",
+      "4": "Handed over"
+    },
+    "roles": {
+      "buyer": "Buyer",
+      "seller": "Shop"
+    },
+    "quoteOf": "Quote: {amount} aUEC",
+    "contents": "Contents",
+    "total": "Total",
+    "pickup": "Handover",
+    "pickupProposed": "Location proposed by the buyer: the shop confirms it or replies with a quote.",
+    "paymentNote": "Nothing is paid on the site: payment happens in game, at handover.",
+    "messageLabel": "Message",
+    "messagePlaceholderBuyer": "Write to the shop…",
+    "messagePlaceholderSeller": "Write to the buyer…",
+    "send": "Send",
+    "quoteLabel": "Quote",
+    "quoteHelpDirect": "A quote replaces the listing price, for instance for another handover location. The buyer accepts or declines it.",
+    "actions": {
+      "confirm": "Confirm",
+      "quote": "Send quote",
+      "accept": "Accept quote",
+      "decline": "Decline quote",
+      "refuse": "Refuse order",
+      "cancel": "Cancel order",
+      "ready": "Mark ready",
+      "deliver": "Mark handed over"
+    },
+    "confirm": {
+      "refuse": "Confirm refusal",
+      "cancel": "Confirm cancellation",
+      "decline": "Confirm"
+    },
+    "errors": {
+      "NOT_ALLOWED": "This action is no longer possible: the order has probably changed, reload the page.",
+      "NOT_ENOUGH_STOCK": "Available stock no longer covers this order.",
+      "INVALID_QUOTE": "The quote must be a positive whole number.",
+      "MESSAGE_REQUIRED": "Write a message before sending it."
+    },
+    "status": {
+      "PENDING": "Requested",
+      "QUOTED": "Quote sent",
+      "CONFIRMED": "Confirmed",
+      "ACCEPTED": "Accepted",
+      "READY": "Ready",
+      "DELIVERED": "Handed over",
+      "REFUSED": "Refused",
+      "CANCELLED": "Cancelled"
+    },
+    "events": {
+      "PENDING": "{name} placed the order",
+      "QUOTED": "{name} sent a quote",
+      "CONFIRMED": "{name} confirmed the order, the quantity is reserved",
+      "ACCEPTED": "{name} accepted the quote",
+      "READY": "{name} marked the order as ready",
+      "DELIVERED": "{name} handed the order over",
+      "REFUSED": "{name} refused the order",
+      "CANCELLED": "{name} cancelled the order"
+    }
+  },
+  "Cart": {
+    "title": "Cart",
+    "summary": "{count, plural, one {# item} other {# items}} from {shops, plural, one {# shop} other {# shops}}",
+    "empty": "Your cart is empty.",
+    "backToShopping": "Back to the marketplace",
+    "orderOf": "Order {n} of {total}",
+    "unitLine": "{price} aUEC each · {available, plural, =0 {out of stock} other {# available}}",
+    "quantityLess": "One less",
+    "quantityMore": "One more",
+    "remove": "Remove {name} from the cart",
+    "pickup": "Handover location",
+    "pickupListing": "The location given by the shop",
+    "pickupOther": "Suggest another location",
+    "pickupOtherPlaceholder": "E.g. Area18, Riker Memorial",
+    "pickupNone": "These listings have no common handover location: suggest yours.",
+    "note": "Message to the shop",
+    "notePlaceholder": "Optional",
+    "subtotal": "Subtotal",
+    "recap": "Summary",
+    "total": "Total",
+    "explain": "Checking out creates {count, plural, one {# order} other {# orders, one per shop}}. Each shop confirms, prepares and hands over its own; you follow each one in My orders.",
+    "validate": "{count, plural, one {Place the order} other {Place the # orders}}",
+    "validating": "Sending…",
+    "paymentNote": "Payment happens in game, at handover. Nothing is charged here.",
+    "blocked": "An item in the cart can't be ordered as it is. Fix it to check out.",
+    "problems": {
+      "NOT_ENOUGH_STOCK": "Only {available} left. Lower the quantity to check out.",
+      "NOT_FOR_SALE": "This listing is no longer sold directly. Remove it to check out.",
+      "OWN_SHOP": "This is a listing from your shop. Remove it to check out."
+    },
+    "errors": {
+      "EMPTY_CART": "Your cart is empty.",
+      "CART_CHANGED": "The cart changed in the meantime: check it, then check out again.",
+      "PICKUP_REQUIRED": "Give a handover location for {shop}.",
+      "INVALID_QUANTITY": "Choose a quantity of at least 1."
+    },
+    "doneTitle": "{count, plural, one {# order sent} other {# orders sent}}",
+    "doneText": "Each shop received its own. The quantity is reserved when the shop confirms; you talk with it in each order's thread.",
+    "doneTotal": "{count, plural, one {Order total} other {Total of the # orders}}",
+    "doneNotFound": "This checkout can't be found.",
+    "itemsCount": "{count, plural, one {# item} other {# items}}",
+    "pickupProposed": "Suggested location: {name}",
+    "followOrders": "Follow my orders"
   }
 }

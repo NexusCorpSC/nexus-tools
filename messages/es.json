@@ -124,7 +124,8 @@
         }
       }
     },
-    "contribBadge": "Mis contribuciones: {points, plural, one {# punto} other {# puntos}}, nivel {level}"
+    "contribBadge": "Mis contribuciones: {points, plural, one {# punto} other {# puntos}}, nivel {level}",
+    "cart": "Carrito, {count, plural, =0 {vacío} one {# artículo} other {# artículos}}"
   },
   "HomePage": {
     "title": "¡Bienvenido!",
@@ -1312,29 +1313,99 @@
     "home": "Inicio",
     "title": "Marketplace",
     "ctaSellButton": "Vender un bien o un servicio",
-    "featuredItemsTitle": "Artículos destacados",
     "shop": "Tienda",
     "shops": "Tiendas",
-    "buy": "Comprar",
-    "noFeaturedItems": "No hay artículos destacados por el momento.",
-    "noShops": "No hay tiendas disponibles por el momento."
+    "noShops": "Ninguna tienda por el momento.",
+    "latestTitle": "Últimos anuncios",
+    "noItems": "Ningún anuncio en stock por el momento.",
+    "itemsCount": "{count, plural, =0 {Ningún anuncio en stock} one {# anuncio en stock} other {# anuncios en stock}}",
+    "myOrders": "Mis pedidos",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "pageInfo": "Página {page} de {totalPages}",
+    "searchPlaceholder": "Buscar un anuncio…",
+    "filterType": "Tipo",
+    "allTypes": "Todos los tipos",
+    "types": {
+      "OBJECT": "Objetos",
+      "SERVICE": "Servicios"
+    },
+    "filterCategory": "Categoría",
+    "allCategories": "Todas las categorías",
+    "filterSystem": "Sistema",
+    "allSystems": "Todos los sistemas",
+    "sortLabel": "Orden",
+    "sorts": {
+      "recent": "Más recientes",
+      "priceAsc": "Precio ascendente",
+      "priceDesc": "Precio descendente"
+    },
+    "resetFilters": "Borrar filtros",
+    "noResults": "Ningún anuncio coincide con estos filtros."
   },
   "ShoppingItem": {
     "notFound": "Objeto no encontrado",
-    "backToShopping": "Volver a la tienda",
+    "backToShopping": "Volver al marketplace",
     "productInfo": "Información del producto",
     "soldBy": "Vendido por:",
     "soldOut": "¡Agotado!",
     "lowStock": "¡Stock bajo!",
     "inStock": "En stock",
-    "buy": "Comprar"
+    "askShop": "Solicitud a medida",
+    "askShopHelp": "Para un servicio, una cantidad especial o una pregunta, describe lo que necesitas: la tienda responde con un presupuesto.",
+    "pickup": "Entrega",
+    "category": "Categoría",
+    "manufacturer": "Fabricante",
+    "size": "Tamaño",
+    "catalogueLink": "Ver la ficha del catálogo",
+    "quantity": "Cantidad",
+    "quantityLess": "Una menos",
+    "quantityMore": "Una más",
+    "pickupListing": "El lugar indicado por la tienda",
+    "pickupOther": "Proponer otro lugar",
+    "pickupOtherHelp": "La tienda lo confirmará o responderá con un presupuesto.",
+    "pickupOtherPlaceholder": "Ej.: Area18, Riker Memorial",
+    "orderNote": "Mensaje a la tienda (opcional)",
+    "orderNotePlaceholder": "Un horario, un detalle…",
+    "total": "Total",
+    "order": "Pedir",
+    "ordering": "Enviando…",
+    "orderHelp": "La tienda confirma el pedido y reserva la cantidad. El pago se hace en el juego, en la entrega.",
+    "loginToOrder": "Inicia sesión para pedir",
+    "ownListing": "Este anuncio es de tu tienda.",
+    "orderErrors": {
+      "LISTING_NOT_FOUND": "Este anuncio ya no existe.",
+      "NOT_FOR_SALE": "Este servicio se pide con una solicitud a medida.",
+      "OWN_SHOP": "No puedes pedir en tu propia tienda.",
+      "INVALID_QUANTITY": "Elige una cantidad de al menos 1.",
+      "NOT_ENOUGH_STOCK": "No queda suficiente stock para esta cantidad.",
+      "PICKUP_REQUIRED": "Indica un lugar de entrega."
+    },
+    "addToCart": "Añadir al carrito",
+    "adding": "Añadiendo…",
+    "addedToCart": "{count} × {name} añadido al carrito.",
+    "viewCart": "Ver el carrito",
+    "orderNow": "Pedir ahora",
+    "orderNowHelp": "Pide solo este anuncio, sin esperar al resto del carrito.",
+    "orderNowBack": "Volver",
+    "cartErrors": {
+      "LISTING_NOT_FOUND": "Este anuncio ya no existe.",
+      "NOT_FOR_SALE": "Este servicio se pide con una solicitud a medida.",
+      "OWN_SHOP": "No puedes pedir en tu propia tienda.",
+      "INVALID_QUANTITY": "Elige una cantidad de al menos 1.",
+      "NOT_ENOUGH_STOCK": "Con tu carrito, esta cantidad supera el stock disponible.",
+      "CART_FULL": "Tu carrito está lleno. Valídalo o quita artículos."
+    }
   },
   "ShopItemManagement": {
     "currentStock": "Stock actual:",
     "addToStock": "Añadir al stock",
     "removeFromStock": "Retirar del stock",
     "addOne": "Añadir 1",
-    "removeOne": "Retirar 1"
+    "removeOne": "Retirar 1",
+    "invalidChange": "Indica un número entero distinto de cero.",
+    "notEnoughStock": "El stock no puede bajar de cero ni de la cantidad reservada por pedidos.",
+    "reserved": "({count} reservado{count, plural, one {} other {s}})"
   },
   "ShoppingNewItem": {
     "title": "Venta",
@@ -1362,7 +1433,16 @@
     "cancel": "Cancelar",
     "addArticle": "Añadir el artículo a la tienda",
     "noFeaturedItems": "No hay artículos destacados por el momento.",
-    "noShops": "No hay tiendas disponibles por el momento."
+    "noShops": "No hay tiendas disponibles por el momento.",
+    "catalogueItem": "Objeto del catálogo (opcional)",
+    "catalogueSearchPlaceholder": "Buscar un objeto del juego…",
+    "catalogueNone": "Ningún objeto encontrado.",
+    "catalogueClear": "Quitar",
+    "catalogueHelp": "Vincular el anuncio al catálogo reutiliza su imagen y sus características, y permite encontrarlo por categoría.",
+    "pickup": "Lugar de entrega (opcional)",
+    "pickupPlaceholder": "Buscar un lugar…",
+    "pickupHelp": "Donde el comprador recoge el objeto. Permite filtrar los anuncios por sistema.",
+    "itemImageOptional": "Opcional si el anuncio está vinculado a un objeto del catálogo."
   },
   "ShopDetails": {
     "backOffice": "Back-Office",
@@ -1370,7 +1450,12 @@
     "manage": "Gestionar la tienda",
     "products": "Artículos en venta",
     "placeOrderCTA": "Haz un pedido",
-    "loginToOrder": "Inicia sesión para hacer un pedido a esta tienda."
+    "loginToOrder": "Inicia sesión para hacer un pedido a esta tienda.",
+    "soldOut": "Agotado",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "pageInfo": "Página {page} de {totalPages}",
+    "noItems": "Esta tienda aún no tiene anuncios."
   },
   "ShopOrders": {
     "formTitle": "Hacer un pedido libre",
@@ -1460,7 +1545,9 @@
       "ACCEPTED": "Aceptado",
       "REFUSED": "Rechazado",
       "CANCELLED": "Cancelado"
-    }
+    },
+    "cartGroup": "Carrito del {date}",
+    "cartGroupInfo": "{count, plural, one {# pedido} other {# pedidos}} · {delivered} de {count} entregado(s)"
   },
   "ShopManagement": {
     "addSeller": "Autorizar a un vendedor",
@@ -3142,5 +3229,120 @@
         "cta": "Indicar el lugar"
       }
     }
+  },
+  "Orders": {
+    "titleDirect": "Compra directa",
+    "titleCustom": "Solicitud a medida",
+    "from": "De {name}",
+    "progress": "Progreso",
+    "thread": "Conversación",
+    "steps": {
+      "0": "Solicitado",
+      "1": "Presupuesto",
+      "2": "Confirmado",
+      "3": "Listo",
+      "4": "Entregado"
+    },
+    "roles": {
+      "buyer": "Comprador",
+      "seller": "Tienda"
+    },
+    "quoteOf": "Presupuesto: {amount} aUEC",
+    "contents": "Contenido",
+    "total": "Total",
+    "pickup": "Entrega",
+    "pickupProposed": "Lugar propuesto por el comprador: la tienda lo confirma o responde con un presupuesto.",
+    "paymentNote": "No se paga nada en el sitio: el pago se hace en el juego, en la entrega.",
+    "messageLabel": "Mensaje",
+    "messagePlaceholderBuyer": "Escribir a la tienda…",
+    "messagePlaceholderSeller": "Escribir al comprador…",
+    "send": "Enviar",
+    "quoteLabel": "Presupuesto",
+    "quoteHelpDirect": "Un presupuesto sustituye el precio del anuncio, por ejemplo para otro lugar de entrega. El comprador lo acepta o lo rechaza.",
+    "actions": {
+      "confirm": "Confirmar",
+      "quote": "Enviar presupuesto",
+      "accept": "Aceptar presupuesto",
+      "decline": "Rechazar presupuesto",
+      "refuse": "Rechazar pedido",
+      "cancel": "Cancelar pedido",
+      "ready": "Marcar listo",
+      "deliver": "Marcar entregado"
+    },
+    "confirm": {
+      "refuse": "Confirmar el rechazo",
+      "cancel": "Confirmar la cancelación",
+      "decline": "Confirmar"
+    },
+    "errors": {
+      "NOT_ALLOWED": "Esta acción ya no es posible: el pedido probablemente cambió, recarga la página.",
+      "NOT_ENOUGH_STOCK": "El stock disponible ya no cubre este pedido.",
+      "INVALID_QUOTE": "El presupuesto debe ser un número entero positivo.",
+      "MESSAGE_REQUIRED": "Escribe un mensaje antes de enviarlo."
+    },
+    "status": {
+      "PENDING": "Solicitado",
+      "QUOTED": "Presupuesto enviado",
+      "CONFIRMED": "Confirmado",
+      "ACCEPTED": "Aceptado",
+      "READY": "Listo",
+      "DELIVERED": "Entregado",
+      "REFUSED": "Rechazado",
+      "CANCELLED": "Cancelado"
+    },
+    "events": {
+      "PENDING": "{name} hizo el pedido",
+      "QUOTED": "{name} envió un presupuesto",
+      "CONFIRMED": "{name} confirmó el pedido, la cantidad está reservada",
+      "ACCEPTED": "{name} aceptó el presupuesto",
+      "READY": "{name} indica que el pedido está listo",
+      "DELIVERED": "{name} entregó el pedido",
+      "REFUSED": "{name} rechazó el pedido",
+      "CANCELLED": "{name} canceló el pedido"
+    }
+  },
+  "Cart": {
+    "title": "Carrito",
+    "summary": "{count, plural, one {# artículo} other {# artículos}} de {shops, plural, one {# tienda} other {# tiendas}}",
+    "empty": "Tu carrito está vacío.",
+    "backToShopping": "Volver al mercado",
+    "orderOf": "Pedido {n} de {total}",
+    "unitLine": "{price} aUEC la unidad · {available, plural, =0 {sin stock} one {# disponible} other {# disponibles}}",
+    "quantityLess": "Una menos",
+    "quantityMore": "Una más",
+    "remove": "Quitar {name} del carrito",
+    "pickup": "Lugar de entrega",
+    "pickupListing": "El lugar indicado por la tienda",
+    "pickupOther": "Proponer otro lugar",
+    "pickupOtherPlaceholder": "Ej.: Area18, Riker Memorial",
+    "pickupNone": "Estos anuncios no tienen un lugar de entrega común: propón el tuyo.",
+    "note": "Mensaje a la tienda",
+    "notePlaceholder": "Opcional",
+    "subtotal": "Subtotal",
+    "recap": "Resumen",
+    "total": "Total",
+    "explain": "Al validar se {count, plural, one {crea # pedido} other {crean # pedidos, uno por tienda}}. Cada tienda confirma, prepara y entrega el suyo; sigues cada uno en Mis pedidos.",
+    "validate": "{count, plural, one {Validar el pedido} other {Validar los # pedidos}}",
+    "validating": "Enviando…",
+    "paymentNote": "El pago se hace en el juego, en la entrega. Aquí no se cobra nada.",
+    "blocked": "Un artículo del carrito no se puede pedir tal cual. Corrígelo para validar.",
+    "problems": {
+      "NOT_ENOUGH_STOCK": "Solo quedan {available}. Baja la cantidad para validar.",
+      "NOT_FOR_SALE": "Este anuncio ya no se vende directamente. Quítalo para validar.",
+      "OWN_SHOP": "Es un anuncio de tu tienda. Quítalo para validar."
+    },
+    "errors": {
+      "EMPTY_CART": "Tu carrito está vacío.",
+      "CART_CHANGED": "El carrito cambió mientras tanto: revísalo y valida de nuevo.",
+      "PICKUP_REQUIRED": "Indica un lugar de entrega para {shop}.",
+      "INVALID_QUANTITY": "Elige una cantidad de al menos 1."
+    },
+    "doneTitle": "{count, plural, one {# pedido enviado} other {# pedidos enviados}}",
+    "doneText": "Cada tienda recibió el suyo. La cantidad se reserva cuando la tienda confirma; hablas con ella en el hilo de cada pedido.",
+    "doneTotal": "{count, plural, one {Total del pedido} other {Total de los # pedidos}}",
+    "doneNotFound": "No se encuentra este carrito validado.",
+    "itemsCount": "{count, plural, one {# artículo} other {# artículos}}",
+    "pickupProposed": "Lugar propuesto: {name}",
+    "followOrders": "Seguir mis pedidos"
   }
 }

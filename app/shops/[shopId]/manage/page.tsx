@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
-import { getShop, getShopSellers } from "@/lib/shop-items";
+import { getShop, getShopSellers, isUserSellerOfShop } from "@/lib/shop-items";
+import { ObjectId } from "bson";
+import { redirect } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,6 +14,8 @@ import {
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { AddSellerButton, RemoveSellerButton, ShopInfoEditor } from "./components";
+import { PAGE_PANEL } from "@/app/shopping/ui";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Gestion de la boutique",
@@ -27,12 +31,20 @@ export default async function ShopManagementPage({
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  const { shopId } = await params;
+  if (!session?.user?.id) {
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/shops/${shopId}/manage`)}`);
+  }
+  if (!(await isUserSellerOfShop(shopId, new ObjectId(session.user.id)))) {
+    redirect(`/shops/${shopId}`);
+  }
   const t = await getTranslations("ShopManagement");
-  const shop = await getShop((await params).shopId);
+  const tShopping = await getTranslations("Shopping");
+  const shop = await getShop(shopId);
 
   if (!shop) {
     return (
-      <div className="m-2 p-6 max-w-2xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+      <div className={cn(PAGE_PANEL, "max-w-2xl")}>
         <h1 className="text-2xl font-bold mb-4">{t("notFound")}</h1>
       </div>
     );
@@ -41,11 +53,11 @@ export default async function ShopManagementPage({
   const sellers = await getShopSellers(shop.id);
 
   return (
-    <div className="m-2 p-6 max-w-2xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+    <div className={cn(PAGE_PANEL, "max-w-2xl")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{tShopping("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -87,7 +99,7 @@ export default async function ShopManagementPage({
           {sellers.map((seller) => (
             <div
               key={seller.id}
-              className="p-2 border rounded mb-2 flex flex-row justify-between"
+              className="mb-2 flex flex-row items-center justify-between rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/50 px-3 py-2"
             >
               <p className="text-lg">{seller.name}</p>
               <div>

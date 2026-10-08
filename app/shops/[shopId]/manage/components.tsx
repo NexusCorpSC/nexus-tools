@@ -79,8 +79,8 @@ export function ShopInfoEditor({
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {success && <p className="text-sm text-green-600">{t("saveSuccess")}</p>}
+      {error && <p className="text-sm text-red-300">{error}</p>}
+      {success && <p className="text-sm text-emerald-300">{t("saveSuccess")}</p>}
 
       <Button type="submit" disabled={isPending || !isDirty || !name.trim()}>
         {isPending ? t("saving") : t("save")}
@@ -144,7 +144,7 @@ export function AddSellerButton({ shopId }: { shopId: string }) {
                 required
                 disabled={isPending}
               />
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-red-300">{error}</p>}
             </div>
 
             <DialogFooter>
@@ -203,7 +203,7 @@ export function RemoveSellerButton({
       >
         {isPending ? t("removing") : t("removeSeller")}
       </Button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-300">{error}</p>}
     </div>
   );
 }

@@ -3,6 +3,21 @@ import "server-only";
 import { ObjectId } from "bson";
 import db from "@/lib/db";
 
+/** Le lieu de remise d'une annonce, recopié de la collection `locations`. */
+export type ListingLocation = {
+  id: string;
+  name: string;
+  system?: string;
+};
+
+/** Ce qui reste à vendre : le stock moins ce que des commandes réservent. */
+export const AVAILABLE_STOCK = {
+  $subtract: ["$stock", { $ifNull: ["$reserved", 0] }],
+};
+
+/** Filtre des annonces qu'on peut encore commander. */
+export const IN_STOCK = { $expr: { $gte: [AVAILABLE_STOCK, 1] } };
+
 export type ShopItem = {
   id: string;
   name: string;
@@ -11,7 +26,17 @@ export type ShopItem = {
   image: string;
   price: string;
   stock: number;
+  /** Quantité réservée par des commandes confirmées. */
+  reserved?: number;
   createdAt: string;
+  /** L'objet du catalogue vendu, quand le vendeur l'a choisi. */
+  itemSlug?: string;
+  /** Recopiés du catalogue à la création, pour filtrer sans jointure. */
+  category?: string;
+  manufacturer?: string;
+  size?: number;
+  /** Où l'objet est remis. */
+  location?: ListingLocation;
   shop: {
     id: string;
     name: string;
@@ -27,8 +52,18 @@ export type ShopItemDbModel = {
   image: string;
   price: string;
   stock: number;
+  /** Quantité réservée par des commandes confirmées. */
+  reserved?: number;
   shopId: string;
   createdAt: string;
+  /** L'objet du catalogue vendu, quand le vendeur l'a choisi. */
+  itemSlug?: string;
+  /** Recopiés du catalogue à la création, pour filtrer sans jointure. */
+  category?: string;
+  manufacturer?: string;
+  size?: number;
+  /** Où l'objet est remis. */
+  location?: ListingLocation;
 };
 
 export type Shop = {
@@ -50,67 +85,113 @@ export type ShopDbModel = {
   sellers: ObjectId[];
 };
 
-export async function getFeaturedItems(): Promise<ShopItem[]> {
-  return db
-    .db()
-    .collection("shopItems")
-    .aggregate<ShopItem>([
-      {
-        $match: { stock: { $gte: 1 } },
-      },
-      {
-        $lookup: {
-          from: "shops",
-          localField: "shopId",
-          foreignField: "id",
-          as: "shop",
-          pipeline: [
-            {
-              $project: {
-                id: -1,
-                name: -1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: "$shop",
-      },
-      {
-        $sort: { createdAt: 1 },
-      },
-    ])
-    .limit(8)
-    .toArray();
+export const LISTING_SORTS = ["recent", "priceAsc", "priceDesc"] as const;
+export type ListingSort = (typeof LISTING_SORTS)[number];
+
+export type ListingFilters = {
+  query?: string;
+  type?: "OBJECT" | "SERVICE";
+  category?: string;
+  system?: string;
+  sort?: ListingSort;
+};
+
+function escapeRegex(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export async function getFeaturedShops(): Promise<Shop[]> {
+/** Le prix est parfois un texte dans les anciennes annonces. */
+const PRICE_VALUE = {
+  $convert: { input: "$price", to: "double", onError: 0, onNull: 0 },
+};
+
+const SORT_STAGES: Record<ListingSort, Record<string, 1 | -1>> = {
+  recent: { createdAt: -1, id: 1 },
+  priceAsc: { priceValue: 1, createdAt: -1, id: 1 },
+  priceDesc: { priceValue: -1, createdAt: -1, id: 1 },
+};
+
+/** Les annonces en stock qui répondent aux filtres de la marketplace. */
+export async function searchListings(
+  filters: ListingFilters,
+  { offset, limit }: { offset: number; limit: number },
+): Promise<{ items: ShopItem[]; total: number }> {
+  const match: Record<string, unknown> = { ...IN_STOCK };
+  const query = filters.query?.trim();
+  if (query) match.name = { $regex: escapeRegex(query), $options: "i" };
+  if (filters.type) match.type = filters.type;
+  if (filters.category) match.category = filters.category;
+  if (filters.system) match["location.system"] = filters.system;
+
+  const collection = db.db().collection("shopItems");
+  const [items, total] = await Promise.all([
+    collection
+      .aggregate<ShopItem>([
+        { $match: match },
+        { $addFields: { priceValue: PRICE_VALUE } },
+        { $sort: SORT_STAGES[filters.sort ?? "recent"] },
+        { $skip: offset },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: "shops",
+            localField: "shopId",
+            foreignField: "id",
+            as: "shop",
+            pipeline: [{ $project: { _id: 0, id: 1, name: 1 } }],
+          },
+        },
+        { $unwind: "$shop" },
+      ])
+      .toArray(),
+    collection.countDocuments(match),
+  ]);
+  return { items, total };
+}
+
+/** Les catégories et systèmes proposés par les annonces en stock. */
+export async function getListingFacets(): Promise<{
+  categories: string[];
+  systems: string[];
+}> {
+  const collection = db.db().collection("shopItems");
+  const [categories, systems] = await Promise.all([
+    collection.distinct("category", IN_STOCK),
+    collection.distinct("location.system", IN_STOCK),
+  ]);
+  const clean = (values: unknown[]) =>
+    values
+      .filter((value): value is string => typeof value === "string" && !!value)
+      .sort((a, b) => a.localeCompare(b));
+  return { categories: clean(categories), systems: clean(systems) };
+}
+
+export type ShopSummary = {
+  id: string;
+  name: string;
+  /** Annonces encore en stock. */
+  itemCount: number;
+};
+
+/** Les magasins, ceux qui ont le plus d'annonces en stock d'abord. */
+export async function getShopSummaries(limit: number): Promise<ShopSummary[]> {
   return db
     .db()
     .collection("shops")
-    .aggregate<Shop>([
+    .aggregate<ShopSummary>([
       {
         $lookup: {
-          from: "users",
-          localField: "ownerId",
-          foreignField: "_id",
-          as: "owner",
-          pipeline: [
-            {
-              $project: {
-                _id: -1,
-                name: -1,
-              },
-            },
-          ],
+          from: "shopItems",
+          localField: "id",
+          foreignField: "shopId",
+          as: "items",
+          pipeline: [{ $match: IN_STOCK }, { $project: { _id: 1 } }],
         },
       },
-      {
-        $unwind: "$owner",
-      },
+      { $project: { _id: 0, id: 1, name: 1, itemCount: { $size: "$items" } } },
+      { $sort: { itemCount: -1, name: 1 } },
+      { $limit: limit },
     ])
-    .limit(8)
     .toArray();
 }
 
@@ -153,9 +234,17 @@ export async function getShopItemsOfShop(
     .db()
     .collection<ShopItemDbModel>("shopItems")
     .find({ shopId })
+    .sort({ createdAt: -1, id: 1 })
     .skip(offset)
     .limit(limit)
     .toArray();
+}
+
+export async function countShopItems(shopId: string): Promise<number> {
+  return db
+    .db()
+    .collection<ShopItemDbModel>("shopItems")
+    .countDocuments({ shopId });
 }
 
 export async function getShop(shopId: string): Promise<Shop | null> {
@@ -262,4 +351,17 @@ export async function isUserSellerOfShop(shopId: string, userId: ObjectId) {
     .findOne({ id: shopId, sellers: userId });
 
   return !!shop;
+}
+
+/** Les noms des magasins, pour les listes qui n'ont que leurs identifiants. */
+export async function getShopNames(
+  shopIds: string[],
+): Promise<Map<string, string>> {
+  if (shopIds.length === 0) return new Map();
+  const shops = await db
+    .db()
+    .collection<ShopDbModel>("shops")
+    .find({ id: { $in: [...new Set(shopIds)] } }, { projection: { id: 1, name: 1 } })
+    .toArray();
+  return new Map(shops.map((shop) => [shop.id, shop.name]));
 }

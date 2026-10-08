@@ -2,12 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import {
-  placeOrder,
-  cancelOrder,
-  acceptQuote,
-  refuseQuote,
-} from "@/lib/shop-orders";
+import { placeOrder } from "@/lib/shop-orders";
 import { ObjectId } from "bson";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -39,47 +34,7 @@ export async function placeOrderAction(
     message,
   );
 
-  revalidatePath(`/shops/${shopId}`);
+  revalidatePath(`/shops/${shopId}/bo/orders`);
+  revalidatePath("/shopping/my-orders");
   redirect(`/shopping/my-orders/${orderId}`);
-}
-
-export async function cancelOrderAction(
-  orderId: string,
-  comment?: string,
-): Promise<{ error?: string }> {
-  const session = await getAuthSession();
-  const success = await cancelOrder(orderId, new ObjectId(session.user.id), comment);
-  if (!success) {
-    return { error: "CANNOT_CANCEL" };
-  }
-  revalidatePath(`/shopping/my-order/${orderId}`);
-  revalidatePath(`/shopping/my-orders`);
-  return {};
-}
-
-export async function acceptQuoteAction(
-  orderId: string,
-  comment?: string,
-): Promise<{ error?: string }> {
-  const session = await getAuthSession();
-  const success = await acceptQuote(orderId, new ObjectId(session.user.id), comment);
-  if (!success) {
-    return { error: "CANNOT_ACCEPT" };
-  }
-  revalidatePath(`/shopping/my-order/${orderId}`);
-  return {};
-}
-
-export async function refuseQuoteAction(
-  orderId: string,
-  comment?: string,
-): Promise<{ error?: string }> {
-  const session = await getAuthSession();
-  const success = await refuseQuote(orderId, new ObjectId(session.user.id), comment);
-  if (!success) {
-    return { error: "CANNOT_REFUSE" };
-  }
-  revalidatePath(`/shopping/my-order/${orderId}`);
-  revalidatePath(`/shopping/my-orders`);
-  return {};
 }

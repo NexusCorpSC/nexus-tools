@@ -14,20 +14,15 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { OrderActions } from "../components";
+import { PAGE_PANEL } from "@/app/shopping/ui";
+import { OrderView } from "@/app/shopping/order-view";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Détail de commande",
-  description: "Consultez le détail de votre commande sur le Marketplace Nexus Tools.",
+  description:
+    "Consultez le détail de votre commande sur le Marketplace Nexus Tools.",
   robots: { index: false, follow: false },
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  QUOTED: "bg-blue-100 text-blue-800",
-  ACCEPTED: "bg-green-100 text-green-800",
-  REFUSED: "bg-red-100 text-red-800",
-  CANCELLED: "bg-gray-100 text-gray-600",
 };
 
 export default async function MyOrderDetailPage({
@@ -39,10 +34,13 @@ export default async function MyOrderDetailPage({
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect(
+      `/login?callbackUrl=${encodeURIComponent(`/shopping/my-orders/${orderId}`)}`,
+    );
   }
 
   const t = await getTranslations("MyOrders");
+  const tShopping = await getTranslations("Shopping");
   const order = await getOrderById(orderId);
 
   if (!order || order.userId !== session.user.id) {
@@ -52,11 +50,11 @@ export default async function MyOrderDetailPage({
   const shop = await getShop(order.shopId);
 
   return (
-    <div className="m-2 p-6 max-w-2xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+    <div className={cn(PAGE_PANEL, "max-w-5xl")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{tShopping("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -71,64 +69,10 @@ export default async function MyOrderDetailPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("orderDetail")}</h1>
-        <span
-          className={`px-3 py-1 rounded text-sm font-semibold ${STATUS_COLORS[order.status] ?? "bg-gray-100"}`}
-        >
-          {t(`status.${order.status}`)}
-        </span>
-      </div>
-
-      <div className="space-y-1 text-sm text-gray-500">
-        {shop && (
-          <p>
-            {t("shop")} :{" "}
-            <a
-              href={`/shops/${shop.id}`}
-              className="font-medium text-blue-600 hover:underline"
-            >
-              {shop.name}
-            </a>
-          </p>
-        )}
-        <p>
-          {t("date")} : {new Date(order.createdAt).toLocaleString()}
-        </p>
-        {order.updatedAt !== order.createdAt && (
-          <p>
-            {t("updated")} : {new Date(order.updatedAt).toLocaleString()}
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold">{t("yourMessage")}</h2>
-        <div className="rounded-lg bg-gray-50 border p-4 text-sm whitespace-pre-wrap">
-          {order.message}
-        </div>
-      </div>
-
-      {order.response && (
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold">{t("shopResponse")}</h2>
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm whitespace-pre-wrap">
-            {order.response}
-          </div>
-          {order.quote !== undefined && (
-            <div className="rounded-lg bg-green-50 border border-green-200 p-4">
-              <p className="text-sm font-semibold text-green-800">
-                {t("quoteAmount")} : {order.quote} aUEC
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      <OrderActions
-        orderId={order.id}
-        status={order.status}
-        hasQuote={order.quote !== undefined}
+      <OrderView
+        order={order}
+        role="buyer"
+        shop={shop ? { id: shop.id, name: shop.name } : null}
       />
     </div>
   );

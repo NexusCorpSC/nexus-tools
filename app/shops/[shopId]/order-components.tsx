@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { placeOrderAction } from "@/app/shopping/my-orders/actions";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 
 export function PlaceOrderForm({ shopId }: { shopId: string }) {
   const t = useTranslations("ShopOrders");
@@ -28,37 +28,33 @@ export function PlaceOrderForm({ shopId }: { shopId: string }) {
   }
 
   return (
-    <Card className="bg-nexus-bg">
-      <CardHeader>
-        <h2 className="text-xl font-bold">{t("formTitle")}</h2>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-sm text-nexus-primary">{t("formDescription")}</p>
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 rounded-xl border border-[#9ED0FF]/25 bg-[#092F49]/50 p-4"
+    >
+      <p className="text-sm text-[#9ED0FF]/70">{t("formDescription")}</p>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="space-y-1">
+        <label htmlFor="order-message" className="block text-sm font-medium">
+          {t("messageLabel")}
+        </label>
+        <Textarea
+          id="order-message"
+          name="message"
+          rows={4}
+          required
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          disabled={isPending}
+          placeholder={t("messagePlaceholder")}
+        />
+      </div>
 
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-nexus-primary">
-              {t("messageLabel")}
-            </label>
-            <textarea
-              name="message"
-              rows={4}
-              required
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              disabled={isPending}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
-              placeholder={t("messagePlaceholder")}
-            />
-          </div>
+      {error && <p className="text-sm text-red-300">{error}</p>}
 
-          <Button type="submit" disabled={isPending || !message.trim()}>
-            {isPending ? t("submitting") : t("submit")}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <Button type="submit" disabled={isPending || !message.trim()}>
+        {isPending ? t("submitting") : t("submit")}
+      </Button>
+    </form>
   );
 }

@@ -1,8 +1,17 @@
-import { getFeaturedItems, ShopItem } from "@/lib/shop-items";
+import {
+  getListingFacets,
+  getShopSummaries,
+  LISTING_SORTS,
+  type ListingFilters as Filters,
+  searchListings,
+} from "@/lib/shop-items";
+import { Suspense } from "react";
+import { MapPinIcon } from "@heroicons/react/24/outline";
+import { ListingFilters } from "@/app/shopping/filters";
 import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,11 +20,15 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { RememberListUrl } from "@/components/remember-list-url";
+import { MUTED, PAGE_PANEL } from "@/app/shopping/ui";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Marketplace",
   description:
-    "Achetez et vendez des objets, vaisseaux et services Star Citizen sur le Marketplace Nexus Tools. Parcourez les articles en vedette et les boutiques disponibles.",
+    "Achetez et vendez des objets, vaisseaux et services Star Citizen sur le Marketplace Nexus Tools. Parcourez les dernières annonces et les boutiques disponibles.",
   openGraph: {
     title: "Marketplace — Nexus Tools",
     description:
@@ -24,13 +37,62 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function ShoppingPage() {
-  const t = await getTranslations("Shopping");
+const PAGE_SIZE = 12;
 
-  const showcasedItems: ShopItem[] = await getFeaturedItems();
+export default async function ShoppingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const t = await getTranslations("Shopping");
+  const format = await getFormatter();
+
+  const params = await searchParams;
+  const read = (key: string) => {
+    const value = params[key];
+    return (Array.isArray(value) ? value[0] : value)?.trim() || undefined;
+  };
+  const page = Math.max(1, parseInt(read("page") ?? "1", 10) || 1);
+  const type = read("type");
+  const sort = read("sort");
+  const filters: Filters = {
+    query: read("q"),
+    type: type === "OBJECT" || type === "SERVICE" ? type : undefined,
+    category: read("category"),
+    system: read("system"),
+    sort: LISTING_SORTS.find((entry) => entry === sort),
+  };
+  const filtered = !!(
+    filters.query ||
+    filters.type ||
+    filters.category ||
+    filters.system
+  );
+
+  const [{ items, total }, facets, shops] = await Promise.all([
+    searchListings(filters, {
+      offset: (page - 1) * PAGE_SIZE,
+      limit: PAGE_SIZE,
+    }),
+    getListingFacets(),
+    getShopSummaries(8),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  /** L'adresse d'une autre page de résultats, filtres conservés. */
+  const pageHref = (target: number) => {
+    const search = new URLSearchParams();
+    for (const key of ["q", "type", "category", "system", "sort"]) {
+      const value = read(key);
+      if (value) search.set(key, value);
+    }
+    if (target > 1) search.set("page", String(target));
+    const query = search.toString();
+    return query ? `/shopping?${query}` : "/shopping";
+  };
 
   return (
-    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm h-dvh">
+    <div className={cn(PAGE_PANEL, "max-w-7xl")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -42,74 +104,132 @@ export default async function ShoppingPage() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
+      <RememberListUrl />
 
-      <Link
-        href="/shopping/sell"
-        className="block rounded-lg bg-primary bg-linear-to-r p-4 m-4 text-secondary font-bold"
-      >
-        {t("ctaSellButton")}
-      </Link>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <p className={cn("text-sm", MUTED)}>
+            {t("itemsCount", { count: total })}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/shopping/my-orders">{t("myOrders")}</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/shopping/sell">{t("ctaSellButton")}</Link>
+          </Button>
+        </div>
+      </div>
 
-      <div>
-        <h2 className="text-xl font-bold mb-4">{t("featuredItemsTitle")}</h2>
+      <section className="space-y-4">
+        <h2 className="sr-only">{t("latestTitle")}</h2>
+        <Suspense fallback={null}>
+          <ListingFilters
+            categories={facets.categories}
+            systems={facets.systems}
+          />
+        </Suspense>
 
-        {showcasedItems.length === 0 ? (
-          <p>{t("noFeaturedItems")}</p>
+        {items.length === 0 ? (
+          <p className={MUTED}>{filtered ? t("noResults") : t("noItems")}</p>
         ) : (
-          <div className="mt-8 grid grid-cols-1 gap-y-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4 xl:gap-x-8">
-            {showcasedItems.map((item) => (
-              <div key={item.id}>
-                <div className="relative">
-                  <div className="relative h-72 w-full overflow-hidden rounded-lg">
-                    <Image
-                      alt={item.name}
-                      src={item.image ?? "/item_empty.png"}
-                      className="size-full object-cover"
-                      width={200}
-                      height={200}
-                    />
-                  </div>
-                  <div className="relative mt-4">
-                    <h3 className="text-sm font-medium ">{item.name}</h3>
-                    <p className="mt-1 text-sm ">
-                      {t("shop")} :{" "}
-                      <Link
-                        href={`/shops/${item.shop.id}`}
-                        className="text-nexus-primary/70 hover:text-nexus-primary"
-                      >
-                        {item.shop.name}
-                      </Link>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="relative flex flex-col overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/50 transition-colors hover:border-[#9ED0FF]/50"
+              >
+                <Image
+                  alt=""
+                  src={item.image || "/item_empty.png"}
+                  className="aspect-4/3 w-full object-cover"
+                  width={400}
+                  height={300}
+                />
+                <div className="flex flex-1 flex-col gap-1 p-3">
+                  <h3 className="font-semibold text-[#CCE7FF]">
+                    <Link
+                      href={`/shopping/i/${item.id}`}
+                      className="after:absolute after:inset-0"
+                    >
+                      {item.name}
+                    </Link>
+                  </h3>
+                  <p className={cn("text-sm", MUTED)}>
+                    {t("shop")} :{" "}
+                    <Link
+                      href={`/shops/${item.shop.id}`}
+                      className="relative z-10 text-[#CCE7FF] hover:underline"
+                    >
+                      {item.shop.name}
+                    </Link>
+                  </p>
+                  {(item.category || item.type === "SERVICE") && (
+                    <p className={cn("text-xs", MUTED)}>
+                      {item.type === "SERVICE"
+                        ? t("types.SERVICE")
+                        : item.category}
                     </p>
-                  </div>
-                  <div className="absolute inset-x-0 top-0 flex h-72 items-end justify-end overflow-hidden rounded-lg p-4">
-                    <div
-                      aria-hidden="true"
-                      className="absolute inset-x-0 bottom-0 h-36 bg-linear-to-t from-black opacity-50"
-                    />
-                    <p className="relative text-lg font-semibold text-white">
-                      {item.price} aUEC
+                  )}
+                  {item.location && (
+                    <p className={cn("flex items-center gap-1 text-xs", MUTED)}>
+                      <MapPinIcon aria-hidden="true" className="size-3.5" />
+                      {item.location.name}
                     </p>
-                  </div>
-                </div>
-                <div className="mt-6">
-                  <Link
-                    href={`/shopping/i/${item.id}`}
-                    className="relative flex items-center justify-center rounded-md border border-transparent bg-gray-100 px-8 py-2 text-sm font-medium text-gray-900 hover:bg-gray-200"
-                  >
-                    {t("buy")}
-                    <span className="sr-only">, {item.name}</span>
-                  </Link>
+                  )}
+                  <p className="mt-auto pt-2 font-mono font-semibold text-[#CFE8FF]">
+                    {format.number(Number(item.price))} aUEC
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-      <div>
-        <h2 className="text-xl font-bold mb-4">{t("shops")}</h2>
-        <p>{t("noShops")}</p>
-      </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            {page > 1 && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={pageHref(page - 1)}>{t("prev")}</Link>
+              </Button>
+            )}
+            <span className={cn("text-sm", MUTED)}>
+              {t("pageInfo", { page, totalPages })}
+            </span>
+            {page < totalPages && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={pageHref(page + 1)}>{t("next")}</Link>
+              </Button>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold">{t("shops")}</h2>
+        {shops.length === 0 ? (
+          <p className={MUTED}>{t("noShops")}</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {shops.map((shop) => (
+              <Link
+                key={shop.id}
+                href={`/shops/${shop.id}`}
+                className="flex flex-col gap-0.5 rounded-xl border border-[#9ED0FF]/25 bg-[#092F49]/50 px-4 py-3 transition-colors hover:border-[#9ED0FF]/50"
+              >
+                <span className="font-semibold text-[#CCE7FF]">
+                  {shop.name}
+                </span>
+                <span className={cn("text-xs", MUTED)}>
+                  {t("itemsCount", { count: shop.itemCount })}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
