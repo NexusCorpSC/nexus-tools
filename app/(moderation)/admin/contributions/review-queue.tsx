@@ -31,6 +31,7 @@ import {
   rejectContributionsAction,
   requestChangesAction,
   type ReviewActionResult,
+  type ReviewScope,
 } from "./actions";
 import { ContributionBody } from "./change-table";
 
@@ -96,9 +97,12 @@ function groupItems(
 export function ReviewQueue({
   items,
   total,
+  scope = "moderation",
 }: {
   items: PendingContribution[];
   total: number;
+  /** La vue des Archivistes fait relire en joueur, point de relecture compris. */
+  scope?: ReviewScope;
 }) {
   const t = useTranslations("Contributions.Admin");
   const tErrors = useTranslations("Contributions.errors");
@@ -180,7 +184,7 @@ export function ReviewQueue({
     startTransition(async () => {
       try {
         report(
-          await publishContributionsAction(ids, versionsOf(ids)),
+          await publishContributionsAction(ids, versionsOf(ids), scope),
           "published",
         );
       } catch {
@@ -198,6 +202,7 @@ export function ReviewQueue({
             reason,
             message,
             versionsOf(ids),
+            scope,
           ),
           "rejected",
         );
@@ -212,7 +217,12 @@ export function ReviewQueue({
     startTransition(async () => {
       try {
         report(
-          await requestChangesAction(ids, message, versionsOf(ids)),
+          await requestChangesAction(
+            ids,
+            message,
+            versionsOf(ids),
+            scope,
+          ),
           "changesRequested",
         );
         setRequesting(null);

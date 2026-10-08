@@ -66,16 +66,28 @@ async function moderator(): Promise<Contributor> {
 }
 
 /**
+ * D'où vient la décision : la file de modération (`/admin/contributions`) ou
+ * la vue des Archivistes (`/contributions/review`).
+ */
+export type ReviewScope = "moderation" | "archivist";
+
+/**
  * Un modérateur, ou un joueur Archiviste (`REVIEW_LEVEL`) non suspendu, qui
  * relit depuis `/contributions/review`. Le joueur ne décide jamais de ses
  * propres contributions : `own` le lui interdit aussi pour un refus.
+ *
+ * Un modérateur qui passe par la vue des Archivistes relit en joueur : mêmes
+ * lots, mêmes règles, et le point de relecture. Depuis la modération, il relit
+ * au titre de son rôle et ne gagne rien.
  */
-async function reviewer(): Promise<Contributor & { player: boolean }> {
+async function reviewer(
+  scope: ReviewScope = "moderation",
+): Promise<Contributor & { player: boolean }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
   const by = { id: new ObjectId(session.user.id), name: session.user.name };
   if (await hasPermission(CONTRIBUTIONS_REVIEW_PERMISSION)) {
-    return { ...by, player: false };
+    return { ...by, player: scope === "archivist" };
   }
   const standing = await getStanding(by.id);
   if (standing.suspendedUntil || standing.level < REVIEW_LEVEL) {
@@ -183,8 +195,9 @@ async function forEachId(
 export async function publishContributionsAction(
   ids: string[],
   versions: ReviewVersions = {},
+  scope: ReviewScope = "moderation",
 ): Promise<ReviewActionResult> {
-  const by = await reviewer();
+  const by = await reviewer(scope);
   return forEachId(ids, (id) => publishContribution(id, by, versions[id]), {
     by,
     action: "contribution.publish",
@@ -196,8 +209,9 @@ export async function rejectContributionsAction(
   reason: string,
   message?: string,
   versions: ReviewVersions = {},
+  scope: ReviewScope = "moderation",
 ): Promise<ReviewActionResult> {
-  const by = await reviewer();
+  const by = await reviewer(scope);
   // « Expirée » ne se choisit pas : c'est le délai qui la donne.
   if (!(REVIEWER_REJECT_REASONS as readonly string[]).includes(reason)) {
     throw new Error("Invalid reason");
@@ -223,8 +237,9 @@ export async function requestChangesAction(
   ids: string[],
   message: string,
   versions: ReviewVersions = {},
+  scope: ReviewScope = "moderation",
 ): Promise<ReviewActionResult> {
-  const by = await reviewer();
+  const by = await reviewer(scope);
   if (!message.trim()) throw new Error("Message required");
   return forEachId(
     ids,
