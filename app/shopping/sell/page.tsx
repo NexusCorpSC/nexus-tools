@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PAGE_PANEL } from "@/app/shopping/ui";
 import { cn } from "@/lib/utils";
+import { CatalogueFields, PickupField } from "./listing-fields";
 
 export const metadata: Metadata = {
   title: "Vendre un article",
@@ -100,21 +101,7 @@ export default async function SellPage() {
           </div>
         </div>
 
-        <div>
-          <label htmlFor="name" className="block text-sm/6 font-medium ">
-            {t("itemName")}
-          </label>
-          <div className="mt-2">
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              placeholder={t("itemNamePlaceholder")}
-              required
-              maxLength={500}
-            />
-          </div>
-        </div>
+        <CatalogueFields />
 
         <div>
           <label htmlFor="type" className="block text-sm/6 font-medium">
@@ -169,6 +156,8 @@ export default async function SellPage() {
           </div>
         </div>
 
+        <PickupField />
+
         <div>
           <label htmlFor="image-cover" className="block text-sm/6 font-medium ">
             {t("itemImage")}
@@ -188,12 +177,14 @@ export default async function SellPage() {
                     type="file"
                     className="sr-only"
                     accept=".png,.jpg,.jpeg"
-                    required
                   />
                 </label>
                 <p className="pl-1">{t("itemImageDrop")}</p>
               </div>
               <p className="text-xs/5">{t("itemImageFormats")}</p>
+              <p className="mt-1 text-xs/5 text-[#9ED0FF]/70">
+                {t("itemImageOptional")}
+              </p>
             </div>
           </div>
         </div>

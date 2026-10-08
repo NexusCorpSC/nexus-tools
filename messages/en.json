@@ -1320,7 +1320,26 @@
     "noShops": "No shop yet.",
     "prev": "Previous",
     "next": "Next",
-    "pageInfo": "Page {page} of {totalPages}"
+    "pageInfo": "Page {page} of {totalPages}",
+    "searchPlaceholder": "Search listings…",
+    "filterType": "Type",
+    "allTypes": "All types",
+    "types": {
+      "OBJECT": "Items",
+      "SERVICE": "Services"
+    },
+    "filterCategory": "Category",
+    "allCategories": "All categories",
+    "filterSystem": "System",
+    "allSystems": "All systems",
+    "sortLabel": "Sort",
+    "sorts": {
+      "recent": "Newest",
+      "priceAsc": "Price: low to high",
+      "priceDesc": "Price: high to low"
+    },
+    "resetFilters": "Clear filters",
+    "noResults": "No listing matches these filters."
   },
   "ShoppingItem": {
     "notFound": "Item not found",
@@ -1331,7 +1350,12 @@
     "lowStock": "Low stock!",
     "inStock": "In stock",
     "askShop": "Ask the shop",
-    "askShopHelp": "Describe what you need to the shop and it will reply with a quote. Direct purchase is coming soon."
+    "askShopHelp": "Describe what you need to the shop and it will reply with a quote. Direct purchase is coming soon.",
+    "pickup": "Handover",
+    "category": "Category",
+    "manufacturer": "Manufacturer",
+    "size": "Size",
+    "catalogueLink": "View in the catalogue"
   },
   "ShopItemManagement": {
     "currentStock": "Current stock:",
@@ -1368,7 +1392,16 @@
     "cancel": "Cancel",
     "addArticle": "Add the item to the shop",
     "noFeaturedItems": "No featured items at the moment.",
-    "noShops": "No shops available at the moment."
+    "noShops": "No shops available at the moment.",
+    "catalogueItem": "Catalogue item (optional)",
+    "catalogueSearchPlaceholder": "Search a game item…",
+    "catalogueNone": "No item found.",
+    "catalogueClear": "Remove",
+    "catalogueHelp": "Linking the listing to the catalogue reuses its image and specs, and makes it findable by category.",
+    "pickup": "Handover location (optional)",
+    "pickupPlaceholder": "Search a location…",
+    "pickupHelp": "Where the buyer collects the item. It lets buyers filter listings by system.",
+    "itemImageOptional": "Optional when the listing is linked to a catalogue item."
   },
   "ShopDetails": {
     "backOffice": "Back-Office",

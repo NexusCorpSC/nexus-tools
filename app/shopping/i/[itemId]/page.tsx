@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { CheckIcon, CrossCircledIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
+import { MapPinIcon } from "@heroicons/react/24/outline";
 import { Suspense } from "react";
 import { StockModificationSection } from "@/app/shopping/i/[itemId]/server-components";
 import { getFormatter, getTranslations } from "next-intl/server";
@@ -160,6 +161,51 @@ export default async function ShopItemDetailsPage({
               />
               {t("inStock")}
             </p>
+          )}
+
+          {(item.location || item.itemSlug) && (
+            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+              {item.location && (
+                <>
+                  <dt className={MUTED}>{t("pickup")}</dt>
+                  <dd className="flex items-center gap-1">
+                    <MapPinIcon aria-hidden="true" className="size-4" />
+                    {item.location.name}
+                    {item.location.system && (
+                      <span className={MUTED}>· {item.location.system}</span>
+                    )}
+                  </dd>
+                </>
+              )}
+              {item.category && (
+                <>
+                  <dt className={MUTED}>{t("category")}</dt>
+                  <dd>{item.category}</dd>
+                </>
+              )}
+              {item.manufacturer && (
+                <>
+                  <dt className={MUTED}>{t("manufacturer")}</dt>
+                  <dd>{item.manufacturer}</dd>
+                </>
+              )}
+              {item.size !== undefined && (
+                <>
+                  <dt className={MUTED}>{t("size")}</dt>
+                  <dd className="font-mono">S{item.size}</dd>
+                </>
+              )}
+              {item.itemSlug && (
+                <dd className="col-span-2">
+                  <Link
+                    href={`/items/${item.itemSlug}`}
+                    className="text-[#CCE7FF] hover:underline"
+                  >
+                    {t("catalogueLink")}
+                  </Link>
+                </dd>
+              )}
+            </dl>
           )}
 
           {item.description && (

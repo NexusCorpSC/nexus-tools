@@ -1,4 +1,13 @@
-import { getAvailableItems, getShopSummaries } from "@/lib/shop-items";
+import {
+  getListingFacets,
+  getShopSummaries,
+  LISTING_SORTS,
+  type ListingFilters as Filters,
+  searchListings,
+} from "@/lib/shop-items";
+import { Suspense } from "react";
+import { MapPinIcon } from "@heroicons/react/24/outline";
+import { ListingFilters } from "@/app/shopping/filters";
 import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -33,19 +42,54 @@ const PAGE_SIZE = 12;
 export default async function ShoppingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const t = await getTranslations("Shopping");
   const format = await getFormatter();
 
-  const { page: pageStr } = await searchParams;
-  const page = Math.max(1, parseInt(pageStr ?? "1", 10) || 1);
+  const params = await searchParams;
+  const read = (key: string) => {
+    const value = params[key];
+    return (Array.isArray(value) ? value[0] : value)?.trim() || undefined;
+  };
+  const page = Math.max(1, parseInt(read("page") ?? "1", 10) || 1);
+  const type = read("type");
+  const sort = read("sort");
+  const filters: Filters = {
+    query: read("q"),
+    type: type === "OBJECT" || type === "SERVICE" ? type : undefined,
+    category: read("category"),
+    system: read("system"),
+    sort: LISTING_SORTS.find((entry) => entry === sort),
+  };
+  const filtered = !!(
+    filters.query ||
+    filters.type ||
+    filters.category ||
+    filters.system
+  );
 
-  const [{ items, total }, shops] = await Promise.all([
-    getAvailableItems({ offset: (page - 1) * PAGE_SIZE, limit: PAGE_SIZE }),
+  const [{ items, total }, facets, shops] = await Promise.all([
+    searchListings(filters, {
+      offset: (page - 1) * PAGE_SIZE,
+      limit: PAGE_SIZE,
+    }),
+    getListingFacets(),
     getShopSummaries(8),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  /** L'adresse d'une autre page de résultats, filtres conservés. */
+  const pageHref = (target: number) => {
+    const search = new URLSearchParams();
+    for (const key of ["q", "type", "category", "system", "sort"]) {
+      const value = read(key);
+      if (value) search.set(key, value);
+    }
+    if (target > 1) search.set("page", String(target));
+    const query = search.toString();
+    return query ? `/shopping?${query}` : "/shopping";
+  };
 
   return (
     <div className={cn(PAGE_PANEL, "max-w-7xl")}>
@@ -80,10 +124,16 @@ export default async function ShoppingPage({
       </div>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-bold">{t("latestTitle")}</h2>
+        <h2 className="sr-only">{t("latestTitle")}</h2>
+        <Suspense fallback={null}>
+          <ListingFilters
+            categories={facets.categories}
+            systems={facets.systems}
+          />
+        </Suspense>
 
         {items.length === 0 ? (
-          <p className={MUTED}>{t("noItems")}</p>
+          <p className={MUTED}>{filtered ? t("noResults") : t("noItems")}</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((item) => (
@@ -116,6 +166,19 @@ export default async function ShoppingPage({
                       {item.shop.name}
                     </Link>
                   </p>
+                  {(item.category || item.type === "SERVICE") && (
+                    <p className={cn("text-xs", MUTED)}>
+                      {item.type === "SERVICE"
+                        ? t("types.SERVICE")
+                        : item.category}
+                    </p>
+                  )}
+                  {item.location && (
+                    <p className={cn("flex items-center gap-1 text-xs", MUTED)}>
+                      <MapPinIcon aria-hidden="true" className="size-3.5" />
+                      {item.location.name}
+                    </p>
+                  )}
                   <p className="mt-auto pt-2 font-mono font-semibold text-[#CFE8FF]">
                     {format.number(Number(item.price))} aUEC
                   </p>
@@ -129,7 +192,7 @@ export default async function ShoppingPage({
           <div className="flex items-center justify-center gap-2">
             {page > 1 && (
               <Button asChild variant="outline" size="sm">
-                <Link href={`/shopping?page=${page - 1}`}>{t("prev")}</Link>
+                <Link href={pageHref(page - 1)}>{t("prev")}</Link>
               </Button>
             )}
             <span className={cn("text-sm", MUTED)}>
@@ -137,7 +200,7 @@ export default async function ShoppingPage({
             </span>
             {page < totalPages && (
               <Button asChild variant="outline" size="sm">
-                <Link href={`/shopping?page=${page + 1}`}>{t("next")}</Link>
+                <Link href={pageHref(page + 1)}>{t("next")}</Link>
               </Button>
             )}
           </div>

@@ -3,6 +3,13 @@ import "server-only";
 import { ObjectId } from "bson";
 import db from "@/lib/db";
 
+/** Le lieu de remise d'une annonce, recopié de la collection `locations`. */
+export type ListingLocation = {
+  id: string;
+  name: string;
+  system?: string;
+};
+
 export type ShopItem = {
   id: string;
   name: string;
@@ -12,6 +19,14 @@ export type ShopItem = {
   price: string;
   stock: number;
   createdAt: string;
+  /** L'objet du catalogue vendu, quand le vendeur l'a choisi. */
+  itemSlug?: string;
+  /** Recopiés du catalogue à la création, pour filtrer sans jointure. */
+  category?: string;
+  manufacturer?: string;
+  size?: number;
+  /** Où l'objet est remis. */
+  location?: ListingLocation;
   shop: {
     id: string;
     name: string;
@@ -29,6 +44,14 @@ export type ShopItemDbModel = {
   stock: number;
   shopId: string;
   createdAt: string;
+  /** L'objet du catalogue vendu, quand le vendeur l'a choisi. */
+  itemSlug?: string;
+  /** Recopiés du catalogue à la création, pour filtrer sans jointure. */
+  category?: string;
+  manufacturer?: string;
+  size?: number;
+  /** Où l'objet est remis. */
+  location?: ListingLocation;
 };
 
 export type Shop = {
@@ -50,20 +73,51 @@ export type ShopDbModel = {
   sellers: ObjectId[];
 };
 
-/** Les annonces encore en stock, des plus récentes aux plus anciennes. */
-export async function getAvailableItems({
-  offset,
-  limit,
-}: {
-  offset: number;
-  limit: number;
-}): Promise<{ items: ShopItem[]; total: number }> {
+export const LISTING_SORTS = ["recent", "priceAsc", "priceDesc"] as const;
+export type ListingSort = (typeof LISTING_SORTS)[number];
+
+export type ListingFilters = {
+  query?: string;
+  type?: "OBJECT" | "SERVICE";
+  category?: string;
+  system?: string;
+  sort?: ListingSort;
+};
+
+function escapeRegex(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Le prix est parfois un texte dans les anciennes annonces. */
+const PRICE_VALUE = {
+  $convert: { input: "$price", to: "double", onError: 0, onNull: 0 },
+};
+
+const SORT_STAGES: Record<ListingSort, Record<string, 1 | -1>> = {
+  recent: { createdAt: -1, id: 1 },
+  priceAsc: { priceValue: 1, createdAt: -1, id: 1 },
+  priceDesc: { priceValue: -1, createdAt: -1, id: 1 },
+};
+
+/** Les annonces en stock qui répondent aux filtres de la marketplace. */
+export async function searchListings(
+  filters: ListingFilters,
+  { offset, limit }: { offset: number; limit: number },
+): Promise<{ items: ShopItem[]; total: number }> {
+  const match: Record<string, unknown> = { stock: { $gte: 1 } };
+  const query = filters.query?.trim();
+  if (query) match.name = { $regex: escapeRegex(query), $options: "i" };
+  if (filters.type) match.type = filters.type;
+  if (filters.category) match.category = filters.category;
+  if (filters.system) match["location.system"] = filters.system;
+
   const collection = db.db().collection("shopItems");
   const [items, total] = await Promise.all([
     collection
       .aggregate<ShopItem>([
-        { $match: { stock: { $gte: 1 } } },
-        { $sort: { createdAt: -1, id: 1 } },
+        { $match: match },
+        { $addFields: { priceValue: PRICE_VALUE } },
+        { $sort: SORT_STAGES[filters.sort ?? "recent"] },
         { $skip: offset },
         { $limit: limit },
         {
@@ -78,9 +132,26 @@ export async function getAvailableItems({
         { $unwind: "$shop" },
       ])
       .toArray(),
-    collection.countDocuments({ stock: { $gte: 1 } }),
+    collection.countDocuments(match),
   ]);
   return { items, total };
+}
+
+/** Les catégories et systèmes proposés par les annonces en stock. */
+export async function getListingFacets(): Promise<{
+  categories: string[];
+  systems: string[];
+}> {
+  const collection = db.db().collection("shopItems");
+  const [categories, systems] = await Promise.all([
+    collection.distinct("category", { stock: { $gte: 1 } }),
+    collection.distinct("location.system", { stock: { $gte: 1 } }),
+  ]);
+  const clean = (values: unknown[]) =>
+    values
+      .filter((value): value is string => typeof value === "string" && !!value)
+      .sort((a, b) => a.localeCompare(b));
+  return { categories: clean(categories), systems: clean(systems) };
 }
 
 export type ShopSummary = {

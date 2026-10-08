@@ -1321,7 +1321,26 @@
     "myOrders": "Mes commandes",
     "prev": "Précédent",
     "next": "Suivant",
-    "pageInfo": "Page {page} sur {totalPages}"
+    "pageInfo": "Page {page} sur {totalPages}",
+    "searchPlaceholder": "Rechercher une annonce…",
+    "filterType": "Type",
+    "allTypes": "Tous les types",
+    "types": {
+      "OBJECT": "Objets",
+      "SERVICE": "Services"
+    },
+    "filterCategory": "Catégorie",
+    "allCategories": "Toutes les catégories",
+    "filterSystem": "Système",
+    "allSystems": "Tous les systèmes",
+    "sortLabel": "Tri",
+    "sorts": {
+      "recent": "Plus récentes",
+      "priceAsc": "Prix croissant",
+      "priceDesc": "Prix décroissant"
+    },
+    "resetFilters": "Effacer les filtres",
+    "noResults": "Aucune annonce ne correspond à ces filtres."
   },
   "ShoppingItem": {
     "notFound": "Objet non trouvé",
@@ -1332,7 +1351,12 @@
     "lowStock": "Stock faible !",
     "inStock": "En stock",
     "askShop": "Demander à la boutique",
-    "askShopHelp": "Décrivez votre besoin à la boutique : elle vous répond avec un devis. L'achat direct arrive bientôt."
+    "askShopHelp": "Décrivez votre besoin à la boutique : elle vous répond avec un devis. L'achat direct arrive bientôt.",
+    "pickup": "Remise",
+    "category": "Catégorie",
+    "manufacturer": "Fabricant",
+    "size": "Taille",
+    "catalogueLink": "Voir la fiche du catalogue"
   },
   "ShopItemManagement": {
     "currentStock": "Stock actuel :",
@@ -1367,7 +1391,16 @@
     "itemImageDrop": "ou glisser-déposer",
     "itemImageFormats": "PNG ou JPG, max 2MB",
     "cancel": "Annuler",
-    "addArticle": "Ajouter l'article au magasin"
+    "addArticle": "Ajouter l'article au magasin",
+    "catalogueItem": "Objet du catalogue (facultatif)",
+    "catalogueSearchPlaceholder": "Rechercher un objet du jeu…",
+    "catalogueNone": "Aucun objet trouvé.",
+    "catalogueClear": "Retirer",
+    "catalogueHelp": "Relier l'annonce au catalogue reprend son image et ses caractéristiques, et la rend trouvable par catégorie.",
+    "pickup": "Lieu de remise (facultatif)",
+    "pickupPlaceholder": "Rechercher un lieu…",
+    "pickupHelp": "L'endroit où l'acheteur récupère l'objet. Il permet de filtrer les annonces par système.",
+    "itemImageOptional": "Facultative si l'annonce est reliée à un objet du catalogue."
   },
   "ShopDetails": {
     "backOffice": "Back-Office",
