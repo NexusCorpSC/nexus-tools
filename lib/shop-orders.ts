@@ -140,7 +140,7 @@ function legacyTimeline(doc: ShopOrderDbModel): OrderEntry[] {
   return entries;
 }
 
-function toShopOrder(doc: ShopOrderDbModel): ShopOrder {
+export function toShopOrder(doc: ShopOrderDbModel): ShopOrder {
   return {
     id: doc.id,
     shopId: doc.shopId,
@@ -318,7 +318,7 @@ export async function getOrdersForUser(
 }
 
 /** Les états d'une commande qui n'est pas encore close. */
-const OPEN_STATUSES: OrderStatus[] = [
+export const OPEN_STATUSES: OrderStatus[] = [
   "PENDING",
   "QUOTED",
   "CONFIRMED",
