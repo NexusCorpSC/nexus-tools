@@ -25,8 +25,8 @@ export async function ShopButtons({ shopId }: { shopId: string }) {
       <Button asChild>
         <Link href={`/shops/${shopId}/bo`}>{t("backOffice")}</Link>
       </Button>
-      <Button asChild>
-        <Link href={`/shops/${shopId}/manage`}>{t("manage")}</Link>
+      <Button asChild variant="outline">
+        <Link href={`/shops/${shopId}/bo/listings`}>{t("manage")}</Link>
       </Button>
     </div>
   );

@@ -119,9 +119,9 @@ export function CatalogueFields() {
 }
 
 /** Le lieu où l'objet sera remis, parmi les lieux de l'inventaire. */
-export function PickupField() {
+export function PickupField({ initial }: { initial?: Location } = {}) {
   const t = useTranslations("ShoppingNewItem");
-  const [location, setLocation] = useState<Location | null>(null);
+  const [location, setLocation] = useState<Location | null>(initial ?? null);
 
   return (
     <div className="space-y-2">

@@ -1356,7 +1356,8 @@
       "lastOne": "Last one",
       "soldOut": "Sold out",
       "onQuote": "On quote"
-    }
+    },
+    "openShop": "Open a shop"
   },
   "ShoppingItem": {
     "notFound": "Item not found",
@@ -1425,31 +1426,16 @@
       "SERVICE": "Service"
     },
     "manageListing": "Manage listing",
-    "stockSummary": "Stock: {stock}, {reserved} reserved."
-  },
-  "ShopItemManagement": {
-    "currentStock": "Current stock:",
-    "addToStock": "Add to stock",
-    "removeFromStock": "Remove from stock",
-    "addOne": "Add 1",
-    "removeOne": "Remove 1",
-    "invalidChange": "Enter a whole number other than zero.",
-    "notEnoughStock": "Stock cannot go below zero or below the quantity reserved by orders.",
-    "reserved": "({count} reserved)",
-    "title": "Manage listing",
-    "stock": "Stock",
-    "reservedLabel": "Reserved",
-    "available": "Available",
-    "changeStock": "Adjust stock",
-    "changeStockHelp": "Add or remove units. Stock can't go below the quantity reserved by confirmed orders.",
-    "backToListing": "← Back to the listing"
+    "stockSummary": "Stock: {stock}, {reserved} reserved.",
+    "hiddenByModeration": "This listing is hidden by moderators after reports: only its sellers can see it.",
+    "hiddenBySeller": "This listing is off sale: only its sellers can see it. Put it back on sale from the back office."
   },
   "ShoppingNewItem": {
     "title": "Sell",
     "noShop": {
-      "error": "You are not a member of any shop and therefore cannot sell items on this platform.",
-      "explanation": "We limit access to sellers to ensure the quality of service. Our system engineers are working hard to open the platform to all sellers in the Verse!",
-      "contact": "Contact Nexus Corporation to obtain a sales license."
+      "error": "You don't sell for any shop yet.",
+      "explanation": "Open yours in a few seconds: a name, a description, and you can list your first items. Another player can also add you as a seller of their shop.",
+      "open": "Open my shop"
     },
     "itemShop": "Sales shop",
     "itemShopChoose": "Choose your shop",
@@ -1479,12 +1465,14 @@
     "pickup": "Handover location (optional)",
     "pickupPlaceholder": "Search a location…",
     "pickupHelp": "Where the buyer collects the item. It lets buyers filter listings by system.",
-    "itemImageOptional": "Optional when the listing is linked to a catalogue item."
+    "itemImageOptional": "Optional when the listing is linked to a catalogue item.",
+    "itemStock": "Quantity in stock",
+    "itemStockHelp": "How many units you sell. You can adjust it, or link the listing to a lot of your inventory, from the back office."
   },
   "ShopDetails": {
     "backOffice": "Back-Office",
     "notFound": "Shop not found",
-    "manage": "Manage shop",
+    "manage": "Manage listings",
     "products": "Products in store",
     "placeOrderCTA": "Place order",
     "loginToOrder": "Sign in to place an order with this shop.",
@@ -1492,7 +1480,8 @@
     "prev": "Previous",
     "next": "Next",
     "pageInfo": "Page {page} of {totalPages}",
-    "noItems": "This shop has no listings yet."
+    "noItems": "This shop has no listings yet.",
+    "hiddenByModeration": "This shop is hidden by moderators after reports: only its sellers can see it."
   },
   "ShopOrders": {
     "formTitle": "Place a free order",
@@ -1502,50 +1491,8 @@
     "submit": "Send request",
     "submitting": "Sending...",
     "errors": {
-      "MESSAGE_REQUIRED": "Please fill in your request."
-    }
-  },
-  "BoDashboard": {
-    "title": "Back-office",
-    "shopNotFound": "Shop not found.",
-    "tools": {
-      "orders": {
-        "label": "Orders",
-        "description": "View and manage your customers' requests."
-      }
-    }
-  },
-  "BoOrders": {
-    "title": "Orders",
-    "shopNotFound": "Shop not found.",
-    "empty": "No orders yet.",
-    "orderDetail": "Order detail",
-    "from": "From",
-    "date": "Date",
-    "customerMessage": "Customer message",
-    "currentResponse": "Response sent",
-    "currentQuote": "Current quote",
-    "respondTitle": "Respond to order",
-    "responseLabel": "Your response",
-    "responsePlaceholder": "Reply to the customer...",
-    "quoteLabel": "Quote (aUEC, optional)",
-    "submit": "Send response",
-    "submitting": "Sending...",
-    "prev": "Previous",
-    "next": "Next",
-    "pageInfo": "Page {page} of {totalPages}",
-    "navLink": "View orders (BO)",
-    "userComment": "Customer comment",
-    "status": {
-      "PENDING": "Pending",
-      "QUOTED": "Quote sent",
-      "ACCEPTED": "Accepted",
-      "REFUSED": "Refused",
-      "CANCELLED": "Cancelled"
-    },
-    "errors": {
-      "MESSAGE_REQUIRED": "A response message is required.",
-      "INVALID_QUOTE": "The quote must be a positive number."
+      "MESSAGE_REQUIRED": "Please fill in your request.",
+      "SHOP_UNAVAILABLE": "This shop no longer takes requests."
     }
   },
   "MyOrders": {
@@ -1614,8 +1561,20 @@
       "cannotRemoveSelf": "You cannot remove yourself.",
       "notAuthenticated": "You must be logged in.",
       "nameRequired": "The shop name is required.",
-      "error": "An error occurred. Please try again."
-    }
+      "error": "An error occurred. Please try again.",
+      "NAME_LENGTH": "The name must be 3 to 60 characters long.",
+      "NAME_TAKEN": "Another shop already has this name.",
+      "DESCRIPTION_LENGTH": "The description is too long (5,000 characters max).",
+      "LOGO_INVALID": "The logo must be a PNG, JPG or WebP image of 2 MB max.",
+      "cannotRemoveOwner": "The shop owner stays a seller."
+    },
+    "shopLogo": "Logo",
+    "shopLogoHelp": "PNG, JPG or WebP, 2 MB max. Without a logo, the shop shows its initials.",
+    "removeLogo": "Remove logo",
+    "keepLogo": "Keep logo",
+    "addSellerSearchLabel": "Add a seller",
+    "addSellerSearchPlaceholder": "Player name (3 letters at least)…",
+    "addSellerNone": "No player has this name."
   },
   "Profile": {
     "title": "My profile",
@@ -3090,7 +3049,9 @@
       "placeMedia": "Report this image",
       "plan": "Report this map",
       "item": "Report this item",
-      "org": "Report this organization"
+      "org": "Report this organization",
+      "shop": "Report this shop",
+      "listing": "Report this listing"
     },
     "types": {
       "place": "Place",
@@ -3098,7 +3059,9 @@
       "plan": "Map",
       "item": "Item",
       "org": "Organization",
-      "blueprint": "Blueprint"
+      "blueprint": "Blueprint",
+      "shop": "Shop",
+      "listing": "Listing"
     },
     "subtitle": "{name} · a moderator reviews every report",
     "question": "What's wrong?",
@@ -3392,5 +3355,194 @@
     "itemsCount": "{count, plural, one {# item} other {# items}}",
     "pickupProposed": "Suggested location: {name}",
     "followOrders": "Follow my orders"
+  },
+  "ShopCreate": {
+    "title": "Open a shop",
+    "intro": "Any signed-in player can open a shop: give it a name, describe what you sell, and list your first items.",
+    "name": "Shop name",
+    "namePlaceholder": "Lorville Armory…",
+    "nameHelp": "3 to 60 characters. Two shops cannot share the same name.",
+    "description": "Description",
+    "descriptionPlaceholder": "What you sell, where you hand over, when you play…",
+    "descriptionHelp": "Optional. Markdown is supported.",
+    "logo": "Logo (optional)",
+    "logoHelp": "PNG, JPG or WebP, 2 MB max. Without a logo, the shop shows its initials.",
+    "create": "Open my shop",
+    "creating": "Opening…",
+    "limitReached": "You already own {count, plural, one {a shop} other {# shops}}, the current maximum. You can also sell in another player's shop if they add you as a seller.",
+    "openBackOffice": "{name} back office",
+    "rules": "A shop that breaks the site rules can be reported by players and hidden by moderators.",
+    "errors": {
+      "NAME_LENGTH": "The name must be 3 to 60 characters long.",
+      "NAME_TAKEN": "A shop already has this name.",
+      "DESCRIPTION_LENGTH": "The description is too long (5,000 characters max).",
+      "LOGO_INVALID": "The logo must be a PNG, JPG or WebP image of 2 MB max.",
+      "TOO_MANY_SHOPS": "You already own the maximum number of shops.",
+      "NOT_AUTHENTICATED": "Sign in to open a shop."
+    }
+  },
+  "ShopBo": {
+    "title": "Back office",
+    "viewShop": "View shop",
+    "shopHidden": "This shop is hidden by moderators after reports: neither it nor its listings appear on the marketplace. Ongoing orders still need handling.",
+    "nav": {
+      "label": "Back office",
+      "orders": "Orders",
+      "listings": "Listings and stock",
+      "custom": "Custom requests",
+      "sellers": "Sellers",
+      "profile": "Shop profile"
+    },
+    "orders": {
+      "title": "Orders to handle",
+      "customTitle": "Custom requests",
+      "closedLink": "Closed orders",
+      "closedTitle": "Closed orders",
+      "closedEmpty": "No closed orders yet.",
+      "backToBoard": "← Back to orders",
+      "empty": "No ongoing orders.",
+      "customEmpty": "No ongoing custom requests.",
+      "kpis": {
+        "toHandle": "to handle",
+        "ready": "ready to hand over",
+        "delivered": "handed over this month",
+        "revenue": "aUEC handed over this month"
+      },
+      "columns": {
+        "pending": "Requested",
+        "quoted": "Quote sent",
+        "confirmed": "Confirmed",
+        "ready": "Ready"
+      },
+      "customSummary": "Custom: “{message}”",
+      "waiting": "Waiting for {hours} h",
+      "prev": "Previous",
+      "next": "Next",
+      "pageInfo": "Page {page} of {totalPages}"
+    },
+    "listings": {
+      "states": {
+        "active": "Active · {count}",
+        "soldout": "Sold out · {count}",
+        "hidden": "Hidden · {count}"
+      },
+      "search": "Filter listings",
+      "new": "+ New listing",
+      "empty": {
+        "active": "No listing on sale.",
+        "soldout": "No sold-out listing.",
+        "hidden": "No hidden listing."
+      },
+      "columns": {
+        "listing": "Listing",
+        "source": "Stock source",
+        "location": "Location",
+        "price": "Price",
+        "stock": "Stock",
+        "reserved": "Reserved",
+        "available": "Avail.",
+        "actions": "Actions"
+      },
+      "service": "Service",
+      "sources": {
+        "none": "No stock",
+        "lot": "Inventory lot",
+        "lotMissing": "Lot not found",
+        "manual": "Entered by hand"
+      },
+      "priceFrom": "from {price}",
+      "tags": {
+        "moderated": "Hidden by moderators",
+        "hidden": "Off sale",
+        "soldOut": "Sold out"
+      },
+      "edit": "Edit",
+      "stockLess": "Remove one unit",
+      "stockMore": "Add one unit",
+      "stockError": "Not possible: units are reserved",
+      "lastMovement": "Last movement: {name}, {delta} ({source}) {when}",
+      "movementBy": "by {name}",
+      "movementNote": "“{note}”",
+      "movementSources": {
+        "manual": "adjustment",
+        "delivery": "order handed over",
+        "lot": "lot tracking",
+        "link": "linked to a lot",
+        "unlink": "lot tracking stopped"
+      }
+    },
+    "editor": {
+      "back": "← Back to listings",
+      "onSale": "On sale",
+      "object": "Item",
+      "viewListing": "View listing",
+      "moderated": "This listing is hidden by moderators after reports. You can edit it, but it no longer appears on the marketplace.",
+      "info": "Details",
+      "name": "Name",
+      "description": "Description",
+      "price": "Price (aUEC)",
+      "pickupFromLot": "The pickup location is the tracked lot's.",
+      "saved": "Changes saved.",
+      "saving": "Saving…",
+      "save": "Save",
+      "stock": "Stock",
+      "stockTotal": "Stock",
+      "stockReserved": "Reserved",
+      "stockAvailable": "Available",
+      "sourceLot": "Linked to an inventory lot",
+      "sourceManual": "Entered by hand",
+      "sourceLotHelp": "Quantity and location come from the lot. Each handover lowers the lot by the same amount.",
+      "sourceManualHelp": "Add or remove units. Stock never goes below what confirmed orders have reserved.",
+      "linkTitle": "Or track a lot of your inventory",
+      "linkHelp": "The listing then takes the lot's quantity and location, and handing over an order lowers the lot.",
+      "stockLess": "One unit less",
+      "stockMore": "One unit more",
+      "stockChange": "Stock change",
+      "stockNote": "Reason (optional)",
+      "stockRemove": "Remove from stock",
+      "stockAdd": "Add to stock",
+      "lotFollowed": "Tracks the lot “{name}”: {quantity} available",
+      "lotMissing": "The tracked lot is no longer in the inventory: nothing is available. Link another lot, or switch back to manual stock.",
+      "unlink": "Stop tracking this lot",
+      "lotSearch": "Search my inventory…",
+      "lotNone": "No lot of your inventory matches.",
+      "lotLine": "{quantity} available · {location}",
+      "link": "Track this lot",
+      "visibility": "On the marketplace",
+      "show": "Put back on sale",
+      "hide": "Take off sale",
+      "delete": "Delete listing",
+      "deleteConfirm": "Confirm deletion",
+      "visibilityHelp": "A listing taken off sale stays visible here and goes back on sale in one click. A listing in an ongoing order cannot be deleted.",
+      "history": "Stock movements",
+      "historyEmpty": "No movement yet.",
+      "historyColumns": {
+        "when": "Date",
+        "what": "Movement",
+        "delta": "Change",
+        "after": "Stock after",
+        "by": "By"
+      },
+      "historyOrder": "view order",
+      "errors": {
+        "NAME_REQUIRED": "The name is required.",
+        "INVALID_PRICE": "The price must be a positive whole number.",
+        "INVALID_CHANGE": "Enter a whole number other than zero.",
+        "NOT_ENOUGH_STOCK": "Stock can go neither below zero nor below the quantity reserved by orders.",
+        "LINKED": "This listing tracks a lot: its stock comes from the lot.",
+        "LOT_NOT_FOUND": "This lot is no longer in your inventory.",
+        "NOT_AN_OBJECT": "Only an item listing can track a lot.",
+        "OPEN_ORDERS": "This listing is part of an ongoing order: take it off sale in the meantime."
+      }
+    },
+    "sellers": {
+      "title": "Sellers",
+      "intro": "Sellers manage the shop's listings, stock and orders.",
+      "owner": "Owner",
+      "you": "You"
+    },
+    "profile": {
+      "title": "Shop profile"
+    }
   }
 }

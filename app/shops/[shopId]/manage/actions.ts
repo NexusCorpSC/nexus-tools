@@ -6,6 +6,14 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { ObjectId } from "bson";
 import { revalidatePath } from "next/cache";
+import {
+  checkLogo,
+  checkShopFields,
+  cleanShopName,
+  searchUsersByName,
+  uploadShopLogo,
+  type UserMatch,
+} from "@/lib/shops";
 
 async function assertIsSeller(shopId: string): Promise<void> {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -59,7 +67,7 @@ export async function addSeller(
       .collection<ShopDbModel>("shops")
       .updateOne({ id: shopId }, { $push: { sellers: userObjectId } });
 
-    revalidatePath(`/shops/${shopId}/manage`);
+    revalidatePath(`/shops/${shopId}/bo/sellers`);
     return { success: true };
   } catch (e) {
     console.error(e);
@@ -67,36 +75,54 @@ export async function addSeller(
   }
 }
 
+/** Le nom, la description et le logo du magasin. */
 export async function updateShopInfo(
   shopId: string,
-  name: string,
-  description: string,
+  formData: FormData,
 ): Promise<{ success: boolean; message?: string }> {
   try {
     await assertIsSeller(shopId);
 
-    const trimmedName = name.trim();
-    const trimmedDescription = description.trim();
+    const name = cleanShopName(String(formData.get("name") ?? ""));
+    const description = String(formData.get("description") ?? "").trim();
+    const invalid = await checkShopFields(name, description, shopId);
+    if (invalid) return { success: false, message: invalid };
 
-    if (!trimmedName) {
-      return { success: false, message: "nameRequired" };
-    }
+    const logo = checkLogo(formData.get("logo"));
+    if (logo === "invalid") return { success: false, message: "LOGO_INVALID" };
+
+    const set: Partial<ShopDbModel> = { name, description };
+    if (logo) set.logo = await uploadShopLogo(shopId, logo);
+    const removeLogo = formData.get("removeLogo") === "1" && !logo;
 
     await db
       .db()
       .collection<ShopDbModel>("shops")
       .updateOne(
         { id: shopId },
-        { $set: { name: trimmedName, description: trimmedDescription } },
+        { $set: set, ...(removeLogo && { $unset: { logo: "" } }) },
       );
 
-    revalidatePath(`/shops/${shopId}/manage`);
-    revalidatePath(`/shops/${shopId}`);
+    revalidatePath(`/shops/${shopId}`, "layout");
+    revalidatePath("/shopping");
     return { success: true };
   } catch (e) {
     console.error(e);
     return { success: false, message: "error" };
   }
+}
+
+/** Les joueurs à qui ouvrir le magasin, cherchés par leur pseudo. */
+export async function searchSellerCandidates(
+  shopId: string,
+  query: string,
+): Promise<UserMatch[]> {
+  await assertIsSeller(shopId);
+  const shop = await db
+    .db()
+    .collection<ShopDbModel>("shops")
+    .findOne({ id: shopId }, { projection: { sellers: 1 } });
+  return searchUsersByName(query.slice(0, 60), shop?.sellers ?? []);
 }
 
 export async function removeSeller(
@@ -113,15 +139,24 @@ export async function removeSeller(
     if (sellerId === session.user.id) {
       return { success: false, message: "cannotRemoveSelf" };
     }
+    if (!ObjectId.isValid(sellerId)) {
+      return { success: false, message: "invalidUserId" };
+    }
 
     const sellerObjectId = new ObjectId(sellerId);
+    // Le propriétaire reste vendeur de son magasin.
+    const owned = await db
+      .db()
+      .collection<ShopDbModel>("shops")
+      .countDocuments({ id: shopId, ownerId: sellerObjectId });
+    if (owned > 0) return { success: false, message: "cannotRemoveOwner" };
 
     await db
       .db()
       .collection<ShopDbModel>("shops")
       .updateOne({ id: shopId }, { $pull: { sellers: sellerObjectId } });
 
-    revalidatePath(`/shops/${shopId}/manage`);
+    revalidatePath(`/shops/${shopId}/bo/sellers`);
     return { success: true };
   } catch (e) {
     console.error(e);

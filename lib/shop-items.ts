@@ -39,9 +39,15 @@ export type ShopItem = {
   location?: ListingLocation;
   /** Stock moins réservé, calculé par la recherche. */
   available?: number;
+  hidden?: boolean;
+  reportHidden?: boolean;
+  inventoryItemId?: string;
+  lotMissing?: boolean;
   shop: {
     id: string;
     name: string;
+    logo?: string;
+    reportHidden?: boolean;
   };
 };
 
@@ -66,6 +72,17 @@ export type ShopItemDbModel = {
   size?: number;
   /** Où l'objet est remis. */
   location?: ListingLocation;
+  /** Retirée de la vente par un vendeur : seuls les vendeurs la voient. */
+  hidden?: boolean;
+  /** Masquée par un dossier de signalement, en attente ou retirée. */
+  reportHidden?: boolean;
+  /**
+   * Le lot de l'inventaire personnel que l'annonce suit : son stock et son
+   * lieu viennent du lot (voir `lib/shop-stock.ts`).
+   */
+  inventoryItemId?: string;
+  /** Le lot suivi a disparu de l'inventaire : plus rien n'est disponible. */
+  lotMissing?: boolean;
 };
 
 export type Shop = {
@@ -76,6 +93,8 @@ export type Shop = {
   };
   name: string;
   description: string;
+  logo?: string;
+  reportHidden?: boolean;
 };
 
 export type ShopDbModel = {
@@ -85,7 +104,43 @@ export type ShopDbModel = {
   name: string;
   description: string;
   sellers: ObjectId[];
+  /** L'image du magasin ; sans elle, ses initiales. */
+  logo?: string;
+  createdAt?: string;
+  /** Masqué par un dossier de signalement, en attente ou retiré. */
+  reportHidden?: boolean;
 };
+
+/** Une annonce en vente : ni retirée par ses vendeurs, ni masquée. */
+export const LISTING_ON_SALE = {
+  hidden: { $ne: true },
+  reportHidden: { $ne: true },
+};
+
+/** Les magasins masqués par la modération : leurs annonces disparaissent. */
+export async function getHiddenShopIds(): Promise<string[]> {
+  return db
+    .db()
+    .collection<ShopDbModel>("shops")
+    .distinct("id", { reportHidden: true });
+}
+
+/** Le filtre des annonces que le public voit sur la marketplace. */
+export async function publicListingFilter(): Promise<Record<string, unknown>> {
+  const hiddenShops = await getHiddenShopIds();
+  return {
+    ...LISTING_ON_SALE,
+    ...(hiddenShops.length > 0 && { shopId: { $nin: hiddenShops } }),
+  };
+}
+
+/** L'annonce se vend-elle encore, elle et son magasin ? */
+export function isListingOnSale(
+  listing: { hidden?: boolean; reportHidden?: boolean },
+  shop?: { reportHidden?: boolean } | null,
+): boolean {
+  return !listing.hidden && !listing.reportHidden && !shop?.reportHidden;
+}
 
 export const LISTING_SORTS = ["recent", "priceAsc", "priceDesc"] as const;
 export type ListingSort = (typeof LISTING_SORTS)[number];
@@ -124,7 +179,7 @@ export async function searchListings(
   filters: ListingFilters,
   { offset, limit }: { offset: number; limit: number },
 ): Promise<{ items: ShopItem[]; total: number; shopCount: number }> {
-  const match: Record<string, unknown> = {};
+  const match: Record<string, unknown> = await publicListingFilter();
   const exprs: unknown[] = [];
   if (!filters.includeSoldOut) exprs.push(IN_STOCK.$expr);
   if (filters.minPrice !== undefined) {
@@ -179,10 +234,11 @@ export async function getListingFacets(): Promise<{
   sizes: number[];
 }> {
   const collection = db.db().collection("shopItems");
+  const onSale = { ...(await publicListingFilter()), ...IN_STOCK };
   const [categories, systems, sizes] = await Promise.all([
-    collection.distinct("category", IN_STOCK),
-    collection.distinct("location.system", IN_STOCK),
-    collection.distinct("size", IN_STOCK),
+    collection.distinct("category", onSale),
+    collection.distinct("location.system", onSale),
+    collection.distinct("size", onSale),
   ]);
   const clean = (values: unknown[]) =>
     values
@@ -204,6 +260,7 @@ export type ShopSummary = {
   itemCount: number;
   /** Le système où le magasin remet le plus souvent. */
   system?: string;
+  logo?: string;
 };
 
 /** Les magasins, ceux qui ont le plus d'annonces en stock d'abord. */
@@ -212,6 +269,7 @@ export async function getShopSummaries(limit: number): Promise<ShopSummary[]> {
     .db()
     .collection("shops")
     .aggregate<ShopSummary & { systems?: (string | null)[] }>([
+      { $match: { reportHidden: { $ne: true } } },
       {
         $lookup: {
           from: "shopItems",
@@ -219,7 +277,7 @@ export async function getShopSummaries(limit: number): Promise<ShopSummary[]> {
           foreignField: "shopId",
           as: "items",
           pipeline: [
-            { $match: IN_STOCK },
+            { $match: { ...LISTING_ON_SALE, ...IN_STOCK } },
             { $project: { _id: 0, system: "$location.system" } },
           ],
         },
@@ -229,6 +287,7 @@ export async function getShopSummaries(limit: number): Promise<ShopSummary[]> {
           _id: 0,
           id: 1,
           name: 1,
+          logo: 1,
           itemCount: { $size: "$items" },
           systems: "$items.system",
         },
@@ -272,12 +331,7 @@ export async function getShopItem(itemId: string): Promise<ShopItem | null> {
           foreignField: "id",
           as: "shop",
           pipeline: [
-            {
-              $project: {
-                id: -1,
-                name: -1,
-              },
-            },
+            { $project: { _id: 0, id: 1, name: 1, logo: 1, reportHidden: 1 } },
           ],
         },
       },
@@ -295,7 +349,7 @@ export async function getShopItemsOfShop(
   return db
     .db()
     .collection<ShopItemDbModel>("shopItems")
-    .find({ shopId })
+    .find({ shopId, ...LISTING_ON_SALE })
     .sort({ createdAt: -1, id: 1 })
     .skip(offset)
     .limit(limit)
@@ -303,6 +357,80 @@ export async function getShopItemsOfShop(
 }
 
 export async function countShopItems(shopId: string): Promise<number> {
+  return db
+    .db()
+    .collection<ShopItemDbModel>("shopItems")
+    .countDocuments({ shopId, ...LISTING_ON_SALE });
+}
+
+/** Les onglets du tableau des annonces, dans le back-office. */
+export const BO_LISTING_STATES = ["active", "soldout", "hidden"] as const;
+export type BoListingState = (typeof BO_LISTING_STATES)[number];
+
+const NOT_ON_SALE = {
+  $or: [{ hidden: true }, { reportHidden: true }],
+};
+const SOLD_OUT_EXPR = {
+  $and: [
+    { $eq: ["$type", "OBJECT"] },
+    { $lte: [AVAILABLE_STOCK, 0] },
+  ],
+};
+
+function boStateFilter(state: BoListingState): Record<string, unknown> {
+  switch (state) {
+    case "hidden":
+      return NOT_ON_SALE;
+    case "soldout":
+      return { ...LISTING_ON_SALE, $expr: SOLD_OUT_EXPR };
+    case "active":
+      return { ...LISTING_ON_SALE, $expr: { $not: [SOLD_OUT_EXPR] } };
+  }
+}
+
+/** Les annonces d'un magasin pour le back-office, filtrées par onglet et par nom. */
+export async function getBoListings(
+  shopId: string,
+  state: BoListingState,
+  query?: string,
+): Promise<ShopItemDbModel[]> {
+  const text = query?.trim();
+  return db
+    .db()
+    .collection<ShopItemDbModel>("shopItems")
+    .find({
+      shopId,
+      ...boStateFilter(state),
+      ...(text && { name: { $regex: escapeRegex(text), $options: "i" } }),
+    })
+    .sort({ name: 1, id: 1 })
+    .limit(300)
+    .toArray();
+}
+
+/** Le nombre d'annonces de chaque onglet. */
+export async function countBoListings(
+  shopId: string,
+  query?: string,
+): Promise<Record<BoListingState, number>> {
+  const text = query?.trim();
+  const collection = db.db().collection<ShopItemDbModel>("shopItems");
+  const counts = await Promise.all(
+    BO_LISTING_STATES.map((state) =>
+      collection.countDocuments({
+        shopId,
+        ...boStateFilter(state),
+        ...(text && { name: { $regex: escapeRegex(text), $options: "i" } }),
+      }),
+    ),
+  );
+  return Object.fromEntries(
+    BO_LISTING_STATES.map((state, index) => [state, counts[index]]),
+  ) as Record<BoListingState, number>;
+}
+
+/** Toutes les annonces d'un magasin, retirées et masquées comprises. */
+export async function countAllShopListings(shopId: string): Promise<number> {
   return db
     .db()
     .collection<ShopItemDbModel>("shopItems")
@@ -406,6 +534,15 @@ export async function getShopSellers(shopId: string): Promise<
   return shop.sellers;
 }
 
+/** Celui qui a ouvert le magasin : il en reste vendeur. */
+export async function getShopOwnerId(shopId: string): Promise<string | null> {
+  const shop = await db
+    .db()
+    .collection<ShopDbModel>("shops")
+    .findOne({ id: shopId }, { projection: { ownerId: 1 } });
+  return shop?.ownerId?.toString() ?? null;
+}
+
 export async function isUserSellerOfShop(shopId: string, userId: ObjectId) {
   const shop = await db
     .db()
@@ -429,4 +566,30 @@ export async function getShopNames(
     )
     .toArray();
   return new Map(shops.map((shop) => [shop.id, shop.name]));
+}
+
+/**
+ * Le lieu de remise choisi, s'il fait partie de ceux que le vendeur peut
+ * utiliser : les lieux communs et ceux qu'il a nommés lui-même.
+ */
+export async function findPickupLocation(
+  locationId: string | undefined,
+  userId: string,
+): Promise<ListingLocation | null> {
+  if (!locationId || !ObjectId.isValid(locationId)) return null;
+  const location = await db
+    .db()
+    .collection<{ _id: ObjectId; name: string; system?: string; userId?: string }>(
+      "locations",
+    )
+    .findOne({
+      _id: new ObjectId(locationId),
+      $or: [{ userId: { $exists: false } }, { userId }],
+    });
+  if (!location) return null;
+  return {
+    id: location._id.toString(),
+    name: location.name,
+    ...(location.system && { system: location.system }),
+  };
 }

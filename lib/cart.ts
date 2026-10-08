@@ -2,11 +2,13 @@ import "server-only";
 
 import { ObjectId } from "bson";
 import db from "@/lib/db";
-import type {
-  ListingLocation,
-  ShopDbModel,
-  ShopItemDbModel,
+import {
+  isListingOnSale,
+  type ListingLocation,
+  type ShopDbModel,
+  type ShopItemDbModel,
 } from "@/lib/shop-items";
+import { syncLinkedListings } from "@/lib/shop-stock";
 
 /**
  * Le panier d'un joueur : des annonces de plusieurs magasins, gardées sur le
@@ -156,8 +158,10 @@ export async function getCartGroups(userId: ObjectId): Promise<CartGroup[]> {
   const lines = await getCartLines(userId);
   if (lines.length === 0) return [];
 
+  const ids = lines.map((line) => line.listingId);
+  await syncLinkedListings({ id: { $in: ids } });
   const docs = await listings()
-    .find({ id: { $in: lines.map((line) => line.listingId) } })
+    .find({ id: { $in: ids } })
     .toArray();
   const byId = new Map(docs.map((doc) => [doc.id, doc]));
 
@@ -172,7 +176,7 @@ export async function getCartGroups(userId: ObjectId): Promise<CartGroup[]> {
     .collection<ShopDbModel>("shops")
     .find(
       { id: { $in: shopIds } },
-      { projection: { id: 1, name: 1, sellers: 1 } },
+      { projection: { id: 1, name: 1, sellers: 1, reportHidden: 1 } },
     )
     .toArray();
   const shopById = new Map(shops.map((shop) => [shop.id, shop]));
@@ -194,8 +198,9 @@ export async function getCartGroups(userId: ObjectId): Promise<CartGroup[]> {
       available,
       location: doc.location,
     };
-    if (doc.type !== "OBJECT") cartLine.problem = "NOT_FOR_SALE";
-    else if (own) cartLine.problem = "OWN_SHOP";
+    if (doc.type !== "OBJECT" || !isListingOnSale(doc, shop)) {
+      cartLine.problem = "NOT_FOR_SALE";
+    } else if (own) cartLine.problem = "OWN_SHOP";
     else if (line.quantity > available) cartLine.problem = "NOT_ENOUGH_STOCK";
 
     let group = groups.get(doc.shopId);

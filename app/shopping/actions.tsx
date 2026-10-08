@@ -7,10 +7,10 @@ import Ajv from "ajv";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ObjectId } from "bson";
+import { changeManualStock, type StockError } from "@/lib/shop-stock";
 import {
-  AVAILABLE_STOCK,
+  findPickupLocation,
   isUserSellerOfShop,
-  type ListingLocation,
   ShopItemDbModel,
 } from "@/lib/shop-items";
 import { getItemBySlug } from "@/lib/items";
@@ -103,7 +103,7 @@ export async function addArticleToShop(formData: FormData) {
     shopId: itemData.shopId,
     type: itemData.type,
     image,
-    stock: 1,
+    stock: initialStock(formData.get("stock")),
     createdAt: new Date().toISOString(),
     ...(catalogueItem && {
       itemSlug: catalogueItem.slug,
@@ -122,46 +122,26 @@ export async function addArticleToShop(formData: FormData) {
   return redirect(`/shopping/i/${itemId}`);
 }
 
-/**
- * Le lieu de remise choisi, s'il fait partie de ceux que le vendeur peut
- * utiliser : les lieux communs et ceux qu'il a nommés lui-même.
- */
-async function findPickupLocation(
-  locationId: string | undefined,
-  userId: string,
-): Promise<ListingLocation | null> {
-  if (!locationId || !ObjectId.isValid(locationId)) return null;
-  const location = await db
-    .db()
-    .collection<{ _id: ObjectId; name: string; system?: string; userId?: string }>(
-      "locations",
-    )
-    .findOne({
-      _id: new ObjectId(locationId),
-      $or: [{ userId: { $exists: false } }, { userId }],
-    });
-  if (!location) return null;
-  return {
-    id: location._id.toString(),
-    name: location.name,
-    ...(location.system && { system: location.system }),
-  };
+/** La quantité saisie à la création ; une unité si le champ manque. */
+function initialStock(value: FormDataEntryValue | null): number {
+  if (value === null) return 1;
+  const stock = Number(value);
+  return Number.isInteger(stock) && stock >= 0 && stock <= 1_000_000
+    ? stock
+    : 1;
 }
 
 export async function incrementShopItemStock(
   itemId: string,
   stockModification: number,
-): Promise<{ error?: "INVALID_CHANGE" | "NOT_ENOUGH_STOCK" }> {
+  note?: string,
+): Promise<{ error?: StockError }> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session || !session.user) {
     throw new Error("User not authenticated");
-  }
-
-  if (!Number.isInteger(stockModification) || stockModification === 0) {
-    return { error: "INVALID_CHANGE" };
   }
 
   const item = await db
@@ -177,27 +157,15 @@ export async function incrementShopItemStock(
     throw new Error("User is not a seller of the shop");
   }
 
-  // Le filtre en base tient même si deux vendeurs corrigent en même temps.
-  const result = await db
-    .db()
-    .collection<ShopItemDbModel>("shopItems")
-    .updateOne(
-      stockModification < 0
-        ? {
-            id: itemId,
-            // Ni sous zéro, ni sous ce que des commandes ont réservé.
-            $expr: { $gte: [AVAILABLE_STOCK, -stockModification] },
-          }
-        : { id: itemId },
-      { $inc: { stock: stockModification } },
-    );
-
-  if (result.modifiedCount === 0) {
-    return { error: "NOT_ENOUGH_STOCK" };
-  }
+  const result = await changeManualStock(item, stockModification, {
+    note,
+    byName: session.user.name || session.user.email || "?",
+  });
+  if (result.error) return result;
 
   revalidatePath(`/shopping/i/${itemId}`);
-  revalidatePath(`/shopping/i/${itemId}/manage`);
+  revalidatePath(`/shops/${item.shopId}/bo/listings`);
+  revalidatePath(`/shops/${item.shopId}/bo/listings/${itemId}`);
   revalidatePath(`/shops/${item.shopId}`);
   revalidatePath("/shopping");
   return {};

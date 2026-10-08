@@ -111,6 +111,16 @@ async function ensureMarketplace(database: Db) {
   await database
     .collection("shopOrders")
     .createIndex({ shopId: 1, createdAt: -1 }, { name: "shopOrders_shop" });
+  // Les magasins d'un joueur, comptés à la création d'un nouveau.
+  await database.collection("shops").createIndex({ ownerId: 1 });
+  // Les annonces qui suivent un lot, resynchronisées à chaque lecture.
+  await database
+    .collection("shopItems")
+    .createIndex({ inventoryItemId: 1 }, { sparse: true });
+  // L'historique du stock, par annonce et par magasin.
+  const movements = database.collection("shopStockMovements");
+  await movements.createIndex({ listingId: 1, at: -1 });
+  await movements.createIndex({ shopId: 1, at: -1 });
 }
 
 // ─── Présence en jeu ──────────────────────────────────────────────────────────

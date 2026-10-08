@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/shop-orders";
 
@@ -91,14 +92,27 @@ export function stockTag(
 
 const LOGO_TONES = ["#CCE7FF", "#9EE6C4", "#F6CF94", "#FFB3B3", "#C9B8FF"];
 
-/** Les initiales d'un magasin, dans une pastille de couleur stable. */
+/** Le logo d'un magasin, ou ses initiales dans une pastille de couleur stable. */
 export function ShopLogo({
   name,
+  logo,
   className,
 }: {
   name: string;
+  logo?: string;
   className?: string;
 }) {
+  if (logo) {
+    return (
+      <Image
+        alt=""
+        src={logo}
+        width={72}
+        height={72}
+        className={cn("size-9 shrink-0 rounded-lg object-cover", className)}
+      />
+    );
+  }
   const initials =
     name
       .split(/\s+/)

@@ -56,6 +56,12 @@ export async function resolveReportAction(
   if (detail) {
     revalidatePath(targetHref(detail.report.target).split("?")[0]);
     if (detail.report.target.type === "org") revalidatePath("/orgs");
+    if (
+      detail.report.target.type === "shop" ||
+      detail.report.target.type === "listing"
+    ) {
+      revalidatePath("/shopping");
+    }
   }
   return { ok: true };
 }

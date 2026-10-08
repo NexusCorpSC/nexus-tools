@@ -30,8 +30,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SellPage() {
+export default async function SellPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ shop?: string }>;
+}) {
   const t = await getTranslations("ShoppingNewItem");
+  const { shop: wantedShopId } = await searchParams;
 
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -50,16 +55,15 @@ export default async function SellPage() {
     redirect(`/login?callbackUrl=${encodeURIComponent("/shopping/sell")}`);
   }
 
-  const selectedShop = await db
-    .db()
-    .collection<Shop>("shops")
-    .findOne({ id: user.defaultShopId });
-
   const userShops = await db
     .db()
     .collection<Shop>("shops")
     .find({ sellers: user._id })
     .toArray();
+  // Le magasin demandé par le back-office, sinon celui par défaut.
+  const selectedShop =
+    userShops.find((shop) => shop.id === wantedShopId) ??
+    userShops.find((shop) => shop.id === user.defaultShopId);
 
   if (userShops.length === 0) {
     return (
@@ -70,7 +74,9 @@ export default async function SellPage() {
 
         <p>{t("noShop.explanation")}</p>
 
-        <p>{t("noShop.contact")}</p>
+        <Button asChild>
+          <Link href="/shops/new">{t("noShop.open")}</Link>
+        </Button>
       </div>
     );
   }
@@ -154,6 +160,25 @@ export default async function SellPage() {
               defaultValue={5000}
             />
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="stock" className="block text-sm/6 font-medium">
+            {t("itemStock")}
+          </label>
+          <div className="mt-2">
+            <Input
+              id="stock"
+              name="stock"
+              type="number"
+              step={1}
+              min={0}
+              max={1000000}
+              required
+              defaultValue={1}
+            />
+          </div>
+          <p className="mt-3 text-sm/6">{t("itemStockHelp")}</p>
         </div>
 
         <PickupField />

@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { RememberListUrl } from "@/components/remember-list-url";
 import { MUTED, PAGE_PANEL, ShopLogo, stockTag, Tag } from "@/app/shopping/ui";
 import { cn } from "@/lib/utils";
+import { syncAllLinkedListingsThrottled } from "@/lib/shop-stock";
 import { FILTER_KEYS } from "@/app/shopping/filter-keys";
 
 export const metadata: Metadata = {
@@ -84,6 +85,8 @@ export default async function ShoppingPage({
   const filtered = FILTER_KEYS.some((key) => key !== "sort" && read(key));
 
   const session = await auth.api.getSession({ headers: await headers() });
+  // Les annonces reliées à un lot d'inventaire reprennent son état récent.
+  await syncAllLinkedListingsThrottled();
   const [{ items, total, shopCount }, facets, shops, openOrders] =
     await Promise.all([
       searchListings(filters, {
@@ -270,7 +273,15 @@ export default async function ShoppingPage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-bold">{t("shops")}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xl font-bold">{t("shops")}</h2>
+          <Link
+            href="/shops/new"
+            className="text-sm text-[#CCE7FF] hover:underline"
+          >
+            {t("openShop")}
+          </Link>
+        </div>
         {shops.length === 0 ? (
           <p className={MUTED}>{t("noShops")}</p>
         ) : (
@@ -281,7 +292,7 @@ export default async function ShoppingPage({
                 href={`/shops/${shop.id}`}
                 className="flex items-center gap-3 rounded-xl border border-[#9ED0FF]/25 bg-[#092F49]/50 px-3 py-3 transition-colors hover:border-[#9ED0FF]/50"
               >
-                <ShopLogo name={shop.name} />
+                <ShopLogo name={shop.name} logo={shop.logo} />
                 <span className="min-w-0">
                   <span className="block truncate font-semibold text-[#CCE7FF]">
                     {shop.name}

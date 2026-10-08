@@ -1357,7 +1357,8 @@
       "lastOne": "Último",
       "soldOut": "Agotado",
       "onQuote": "Bajo presupuesto"
-    }
+    },
+    "openShop": "Abrir una tienda"
   },
   "ShoppingItem": {
     "notFound": "Objeto no encontrado",
@@ -1426,31 +1427,16 @@
       "SERVICE": "Servicio"
     },
     "manageListing": "Gestionar el anuncio",
-    "stockSummary": "Stock: {stock}, {reserved} reservado(s)."
-  },
-  "ShopItemManagement": {
-    "currentStock": "Stock actual:",
-    "addToStock": "Añadir al stock",
-    "removeFromStock": "Retirar del stock",
-    "addOne": "Añadir 1",
-    "removeOne": "Retirar 1",
-    "invalidChange": "Indica un número entero distinto de cero.",
-    "notEnoughStock": "El stock no puede bajar de cero ni de la cantidad reservada por pedidos.",
-    "reserved": "({count} reservado{count, plural, one {} other {s}})",
-    "title": "Gestionar el anuncio",
-    "stock": "Stock",
-    "reservedLabel": "Reservado",
-    "available": "Disponible",
-    "changeStock": "Corregir el stock",
-    "changeStockHelp": "Añade o quita unidades. El stock no baja de la cantidad reservada por pedidos confirmados.",
-    "backToListing": "← Volver al anuncio"
+    "stockSummary": "Stock: {stock}, {reserved} reservado(s).",
+    "hiddenByModeration": "Este anuncio está ocultado por la moderación tras unas denuncias: solo sus vendedores lo ven.",
+    "hiddenBySeller": "Este anuncio está retirado de la venta: solo sus vendedores lo ven. Vuelve a ponerlo a la venta desde el back-office."
   },
   "ShoppingNewItem": {
     "title": "Venta",
     "noShop": {
-      "error": "No eres miembro de ninguna tienda, así que no puedes vender objetos en esta plataforma.",
-      "explanation": "Limitamos el acceso de los vendedores para garantizar la calidad del servicio. ¡Nuestros ingenieros de sistemas trabajan duro para abrir la plataforma a todos los vendedores del Verse!",
-      "contact": "Contacta con la Nexus Corporation para obtener una licencia de venta."
+      "error": "Todavía no vendes para ninguna tienda.",
+      "explanation": "Abre la tuya en unos segundos: un nombre, una descripción, y puedes publicar tus primeros objetos. Otro jugador también puede añadirte como vendedor de su tienda.",
+      "open": "Abrir mi tienda"
     },
     "itemShop": "Tienda de venta",
     "itemShopChoose": "Elige tu tienda",
@@ -1480,12 +1466,14 @@
     "pickup": "Lugar de entrega (opcional)",
     "pickupPlaceholder": "Buscar un lugar…",
     "pickupHelp": "Donde el comprador recoge el objeto. Permite filtrar los anuncios por sistema.",
-    "itemImageOptional": "Opcional si el anuncio está vinculado a un objeto del catálogo."
+    "itemImageOptional": "Opcional si el anuncio está vinculado a un objeto del catálogo.",
+    "itemStock": "Cantidad en stock",
+    "itemStockHelp": "Las unidades que vendes. Podrás corregirlas, o vincular el anuncio a un lote de tu inventario, desde el back-office."
   },
   "ShopDetails": {
     "backOffice": "Back-Office",
     "notFound": "Tienda no encontrada",
-    "manage": "Gestionar la tienda",
+    "manage": "Gestionar los anuncios",
     "products": "Artículos en venta",
     "placeOrderCTA": "Haz un pedido",
     "loginToOrder": "Inicia sesión para hacer un pedido a esta tienda.",
@@ -1493,7 +1481,8 @@
     "prev": "Anterior",
     "next": "Siguiente",
     "pageInfo": "Página {page} de {totalPages}",
-    "noItems": "Esta tienda aún no tiene anuncios."
+    "noItems": "Esta tienda aún no tiene anuncios.",
+    "hiddenByModeration": "Esta tienda está ocultada por la moderación tras unas denuncias: solo sus vendedores la ven."
   },
   "ShopOrders": {
     "formTitle": "Hacer un pedido libre",
@@ -1503,50 +1492,8 @@
     "submit": "Enviar la solicitud",
     "submitting": "Enviando...",
     "errors": {
-      "MESSAGE_REQUIRED": "Por favor, rellena tu solicitud."
-    }
-  },
-  "BoDashboard": {
-    "title": "Back-office",
-    "shopNotFound": "Tienda no encontrada.",
-    "tools": {
-      "orders": {
-        "label": "Pedidos",
-        "description": "Consulta y gestiona las solicitudes de tus clientes."
-      }
-    }
-  },
-  "BoOrders": {
-    "title": "Pedidos",
-    "shopNotFound": "Tienda no encontrada.",
-    "empty": "Todavía no hay pedidos.",
-    "orderDetail": "Detalle del pedido",
-    "from": "De",
-    "date": "Fecha",
-    "customerMessage": "Mensaje del cliente",
-    "currentResponse": "Respuesta enviada",
-    "currentQuote": "Presupuesto actual",
-    "respondTitle": "Responder al pedido",
-    "responseLabel": "Tu respuesta",
-    "responsePlaceholder": "Responde al cliente...",
-    "quoteLabel": "Presupuesto (aUEC, opcional)",
-    "submit": "Enviar la respuesta",
-    "submitting": "Enviando...",
-    "prev": "Anterior",
-    "next": "Siguiente",
-    "pageInfo": "Página {page} de {totalPages}",
-    "navLink": "Ver los pedidos (BO)",
-    "userComment": "Comentario del cliente",
-    "status": {
-      "PENDING": "Pendiente",
-      "QUOTED": "Presupuesto enviado",
-      "ACCEPTED": "Aceptado",
-      "REFUSED": "Rechazado",
-      "CANCELLED": "Cancelado"
-    },
-    "errors": {
-      "MESSAGE_REQUIRED": "La respuesta es obligatoria.",
-      "INVALID_QUOTE": "El presupuesto debe ser un número positivo."
+      "MESSAGE_REQUIRED": "Por favor, rellena tu solicitud.",
+      "SHOP_UNAVAILABLE": "Esta tienda ya no acepta solicitudes."
     }
   },
   "MyOrders": {
@@ -1615,8 +1562,20 @@
       "cannotRemoveSelf": "No puedes quitarte a ti mismo.",
       "notAuthenticated": "Debes haber iniciado sesión.",
       "nameRequired": "El nombre de la tienda es obligatorio.",
-      "error": "Se ha producido un error. Inténtalo de nuevo."
-    }
+      "error": "Se ha producido un error. Inténtalo de nuevo.",
+      "NAME_LENGTH": "El nombre debe tener entre 3 y 60 caracteres.",
+      "NAME_TAKEN": "Otra tienda ya tiene este nombre.",
+      "DESCRIPTION_LENGTH": "La descripción es demasiado larga (5000 caracteres como máximo).",
+      "LOGO_INVALID": "El logo debe ser una imagen PNG, JPG o WebP de 2 MB como máximo.",
+      "cannotRemoveOwner": "El propietario de la tienda sigue siendo vendedor."
+    },
+    "shopLogo": "Logo",
+    "shopLogoHelp": "PNG, JPG o WebP, 2 MB como máximo. Sin logo, la tienda muestra sus iniciales.",
+    "removeLogo": "Quitar el logo",
+    "keepLogo": "Conservar el logo",
+    "addSellerSearchLabel": "Añadir un vendedor",
+    "addSellerSearchPlaceholder": "Nombre del jugador (al menos 3 letras)…",
+    "addSellerNone": "Ningún jugador tiene este nombre."
   },
   "Profile": {
     "title": "Mi perfil",
@@ -3081,7 +3040,9 @@
       "placeMedia": "Reportar esta imagen",
       "plan": "Reportar este plano",
       "item": "Reportar este objeto",
-      "org": "Reportar esta organización"
+      "org": "Reportar esta organización",
+      "shop": "Denunciar esta tienda",
+      "listing": "Denunciar este anuncio"
     },
     "types": {
       "place": "Lugar",
@@ -3089,7 +3050,9 @@
       "plan": "Plano",
       "item": "Objeto",
       "org": "Organización",
-      "blueprint": "Blueprint"
+      "blueprint": "Blueprint",
+      "shop": "Tienda",
+      "listing": "Anuncio"
     },
     "subtitle": "{name} · un moderador revisa cada reporte",
     "question": "¿Cuál es el problema?",
@@ -3383,5 +3346,194 @@
     "itemsCount": "{count, plural, one {# artículo} other {# artículos}}",
     "pickupProposed": "Lugar propuesto: {name}",
     "followOrders": "Seguir mis pedidos"
+  },
+  "ShopCreate": {
+    "title": "Abrir una tienda",
+    "intro": "Cualquier jugador conectado puede abrir su tienda: ponle un nombre, describe lo que vendes y publica tus primeros objetos.",
+    "name": "Nombre de la tienda",
+    "namePlaceholder": "Armería de Lorville…",
+    "nameHelp": "De 3 a 60 caracteres. Dos tiendas no pueden tener el mismo nombre.",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Lo que vendes, dónde entregas, cuándo juegas…",
+    "descriptionHelp": "Opcional. Se acepta Markdown.",
+    "logo": "Logo (opcional)",
+    "logoHelp": "PNG, JPG o WebP, 2 MB como máximo. Sin logo, la tienda muestra sus iniciales.",
+    "create": "Abrir mi tienda",
+    "creating": "Abriendo…",
+    "limitReached": "Ya tienes {count, plural, one {una tienda} other {# tiendas}}, el máximo por ahora. También puedes vender en la tienda de otro jugador si te añade como vendedor.",
+    "openBackOffice": "Back-office de {name}",
+    "rules": "Una tienda que incumple las normas del sitio puede ser denunciada por los jugadores y ocultada por la moderación.",
+    "errors": {
+      "NAME_LENGTH": "El nombre debe tener entre 3 y 60 caracteres.",
+      "NAME_TAKEN": "Ya existe una tienda con este nombre.",
+      "DESCRIPTION_LENGTH": "La descripción es demasiado larga (5000 caracteres como máximo).",
+      "LOGO_INVALID": "El logo debe ser una imagen PNG, JPG o WebP de 2 MB como máximo.",
+      "TOO_MANY_SHOPS": "Ya tienes el número máximo de tiendas.",
+      "NOT_AUTHENTICATED": "Inicia sesión para abrir una tienda."
+    }
+  },
+  "ShopBo": {
+    "title": "Back-office",
+    "viewShop": "Ver la tienda",
+    "shopHidden": "Esta tienda está ocultada por la moderación tras unas denuncias: ni ella ni sus anuncios aparecen en el marketplace. Los pedidos en curso siguen pendientes.",
+    "nav": {
+      "label": "Back-office",
+      "orders": "Pedidos",
+      "listings": "Anuncios y stock",
+      "custom": "Solicitudes a medida",
+      "sellers": "Vendedores",
+      "profile": "Perfil de la tienda"
+    },
+    "orders": {
+      "title": "Pedidos por atender",
+      "customTitle": "Solicitudes a medida",
+      "closedLink": "Pedidos cerrados",
+      "closedTitle": "Pedidos cerrados",
+      "closedEmpty": "Todavía no hay pedidos cerrados.",
+      "backToBoard": "← Volver a los pedidos",
+      "empty": "No hay pedidos en curso.",
+      "customEmpty": "No hay solicitudes a medida en curso.",
+      "kpis": {
+        "toHandle": "por atender",
+        "ready": "listos para entregar",
+        "delivered": "entregados este mes",
+        "revenue": "aUEC entregados este mes"
+      },
+      "columns": {
+        "pending": "Solicitados",
+        "quoted": "Presupuesto enviado",
+        "confirmed": "Confirmados",
+        "ready": "Listos"
+      },
+      "customSummary": "A medida: «{message}»",
+      "waiting": "Espera desde hace {hours} h",
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "pageInfo": "Página {page} de {totalPages}"
+    },
+    "listings": {
+      "states": {
+        "active": "Activos · {count}",
+        "soldout": "Agotados · {count}",
+        "hidden": "Ocultos · {count}"
+      },
+      "search": "Filtrar los anuncios",
+      "new": "+ Nuevo anuncio",
+      "empty": {
+        "active": "Ningún anuncio a la venta.",
+        "soldout": "Ningún anuncio agotado.",
+        "hidden": "Ningún anuncio oculto."
+      },
+      "columns": {
+        "listing": "Anuncio",
+        "source": "Origen del stock",
+        "location": "Lugar",
+        "price": "Precio",
+        "stock": "Stock",
+        "reserved": "Reservado",
+        "available": "Disp.",
+        "actions": "Acciones"
+      },
+      "service": "Servicio",
+      "sources": {
+        "none": "Sin stock",
+        "lot": "Lote de inventario",
+        "lotMissing": "Lote no encontrado",
+        "manual": "Introducido a mano"
+      },
+      "priceFrom": "desde {price}",
+      "tags": {
+        "moderated": "Ocultado por la moderación",
+        "hidden": "Retirado de la venta",
+        "soldOut": "Agotado"
+      },
+      "edit": "Editar",
+      "stockLess": "Quitar una unidad",
+      "stockMore": "Añadir una unidad",
+      "stockError": "Imposible: unidades reservadas",
+      "lastMovement": "Último movimiento: {name}, {delta} ({source}) {when}",
+      "movementBy": "por {name}",
+      "movementNote": "«{note}»",
+      "movementSources": {
+        "manual": "corrección",
+        "delivery": "entrega de un pedido",
+        "lot": "seguimiento del lote",
+        "link": "vinculado a un lote",
+        "unlink": "fin del seguimiento del lote"
+      }
+    },
+    "editor": {
+      "back": "← Volver a los anuncios",
+      "onSale": "A la venta",
+      "object": "Objeto",
+      "viewListing": "Ver el anuncio",
+      "moderated": "Este anuncio está ocultado por la moderación tras unas denuncias. Puedes editarlo, pero ya no aparece en el marketplace.",
+      "info": "Información",
+      "name": "Nombre",
+      "description": "Descripción",
+      "price": "Precio (aUEC)",
+      "pickupFromLot": "El lugar de entrega es el del lote seguido.",
+      "saved": "Cambios guardados.",
+      "saving": "Guardando…",
+      "save": "Guardar",
+      "stock": "Stock",
+      "stockTotal": "Stock",
+      "stockReserved": "Reservado",
+      "stockAvailable": "Disponible",
+      "sourceLot": "Vinculado a un lote del inventario",
+      "sourceManual": "Introducido a mano",
+      "sourceLotHelp": "La cantidad y el lugar vienen del lote. Cada entrega reduce el lote en la misma cantidad.",
+      "sourceManualHelp": "Añade o quita unidades. El stock nunca baja de lo que los pedidos confirmados han reservado.",
+      "linkTitle": "O seguir un lote de tu inventario",
+      "linkHelp": "El anuncio toma entonces la cantidad y el lugar del lote, y entregar un pedido reduce el lote.",
+      "stockLess": "Una unidad menos",
+      "stockMore": "Una unidad más",
+      "stockChange": "Variación del stock",
+      "stockNote": "Motivo (opcional)",
+      "stockRemove": "Quitar del stock",
+      "stockAdd": "Añadir al stock",
+      "lotFollowed": "Sigue el lote «{name}»: {quantity} disponible{quantity, plural, one {} other {s}}",
+      "lotMissing": "El lote seguido ya no está en el inventario: no hay nada disponible. Vincula otro lote o vuelve al stock manual.",
+      "unlink": "Dejar de seguir este lote",
+      "lotSearch": "Buscar en mi inventario…",
+      "lotNone": "Ningún lote de tu inventario coincide.",
+      "lotLine": "{quantity} disponible{quantity, plural, one {} other {s}} · {location}",
+      "link": "Seguir este lote",
+      "visibility": "En el marketplace",
+      "show": "Volver a poner a la venta",
+      "hide": "Retirar de la venta",
+      "delete": "Eliminar el anuncio",
+      "deleteConfirm": "Confirmar la eliminación",
+      "visibilityHelp": "Un anuncio retirado de la venta sigue visible aquí y vuelve a la venta con un clic. Un anuncio incluido en un pedido en curso no se puede eliminar.",
+      "history": "Movimientos de stock",
+      "historyEmpty": "Todavía no hay movimientos.",
+      "historyColumns": {
+        "when": "Fecha",
+        "what": "Movimiento",
+        "delta": "Variación",
+        "after": "Stock después",
+        "by": "Por"
+      },
+      "historyOrder": "ver el pedido",
+      "errors": {
+        "NAME_REQUIRED": "El nombre es obligatorio.",
+        "INVALID_PRICE": "El precio debe ser un número entero positivo.",
+        "INVALID_CHANGE": "Indica un número entero distinto de cero.",
+        "NOT_ENOUGH_STOCK": "El stock no puede bajar de cero ni de la cantidad reservada por pedidos.",
+        "LINKED": "Este anuncio sigue un lote: su stock viene del lote.",
+        "LOT_NOT_FOUND": "Este lote ya no está en tu inventario.",
+        "NOT_AN_OBJECT": "Solo un anuncio de objeto puede seguir un lote.",
+        "OPEN_ORDERS": "Este anuncio forma parte de un pedido en curso: retíralo de la venta mientras tanto."
+      }
+    },
+    "sellers": {
+      "title": "Vendedores",
+      "intro": "Los vendedores gestionan los anuncios, el stock y los pedidos de la tienda.",
+      "owner": "Propietario",
+      "you": "Tú"
+    },
+    "profile": {
+      "title": "Perfil de la tienda"
+    }
   }
 }

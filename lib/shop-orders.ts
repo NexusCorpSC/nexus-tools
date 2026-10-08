@@ -4,6 +4,7 @@ import { ObjectId } from "bson";
 import { randomUUID } from "node:crypto";
 import db from "@/lib/db";
 import type { ShopItemDbModel } from "@/lib/shop-items";
+import { consumeStock, syncLinkedListings } from "@/lib/shop-stock";
 
 /**
  * Le cycle d'une commande :
@@ -339,6 +340,98 @@ export async function countDeliveredOrdersForShop(
   return orders().countDocuments({ shopId, status: "DELIVERED" });
 }
 
+/** Les commandes qui attendent le magasin : à confirmer ou à préparer. */
+const SELLER_TODO: OrderStatus[] = ["PENDING", "CONFIRMED", "ACCEPTED"];
+
+/** Ce que la navigation du back-office compte. */
+export async function getShopOrderCounts(
+  shopId: string,
+): Promise<{ toHandle: number; custom: number }> {
+  const [toHandle, custom] = await Promise.all([
+    orders().countDocuments({ shopId, status: { $in: SELLER_TODO } }),
+    orders().countDocuments({
+      shopId,
+      kind: { $ne: "DIRECT" },
+      status: { $in: OPEN_STATUSES },
+    }),
+  ]);
+  return { toHandle, custom };
+}
+
+/** Les commandes en cours d'un magasin, pour le tableau par étape. */
+export async function getOpenOrdersForShop(
+  shopId: string,
+  { kind }: { kind?: OrderKind } = {},
+): Promise<ShopOrder[]> {
+  const docs = await orders()
+    .find({
+      shopId,
+      status: { $in: OPEN_STATUSES },
+      ...(kind === "DIRECT" && { kind: "DIRECT" }),
+      ...(kind === "CUSTOM" && { kind: { $ne: "DIRECT" } }),
+    })
+    .sort({ updatedAt: 1 })
+    .limit(300)
+    .toArray();
+  return docs.map(toShopOrder);
+}
+
+/** Les commandes closes d'un magasin, les plus récentes d'abord. */
+export async function getClosedOrdersForShop(
+  shopId: string,
+  { offset, limit }: { offset: number; limit: number },
+): Promise<{ orders: ShopOrder[]; total: number }> {
+  const filter = { shopId, status: { $nin: OPEN_STATUSES } };
+  const [docs, total] = await Promise.all([
+    orders()
+      .find(filter)
+      .sort({ updatedAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .toArray(),
+    orders().countDocuments(filter),
+  ]);
+  return { orders: docs.map(toShopOrder), total };
+}
+
+/** Les remises du mois en cours : leur nombre et ce qu'elles ont rapporté. */
+export async function getShopMonthStats(
+  shopId: string,
+): Promise<{ delivered: number; revenue: number }> {
+  const start = new Date();
+  start.setUTCDate(1);
+  start.setUTCHours(0, 0, 0, 0);
+  const [stats] = await orders()
+    .aggregate<{ delivered: number; revenue: number }>([
+      {
+        $match: {
+          shopId,
+          status: "DELIVERED",
+          updatedAt: { $gte: start.toISOString() },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          delivered: { $sum: 1 },
+          revenue: { $sum: { $ifNull: ["$total", 0] } },
+        },
+      },
+    ])
+    .toArray();
+  return stats ?? { delivered: 0, revenue: 0 };
+}
+
+/** Une annonce encore engagée dans une commande en cours ne se supprime pas. */
+export async function isListingInOpenOrder(listingId: string): Promise<boolean> {
+  return (
+    (await orders().countDocuments({
+      "lines.listingId": listingId,
+      status: { $in: OPEN_STATUSES },
+    })) > 0
+  );
+}
+
 export async function countOrdersForUser(userId: ObjectId): Promise<number> {
   return orders().countDocuments({ userId });
 }
@@ -398,16 +491,6 @@ async function releaseLines(lines: OrderLine[]): Promise<void> {
     await listings().updateOne(
       { id: line.listingId },
       { $inc: { reserved: -line.quantity } },
-    );
-  }
-}
-
-/** La remise : la réservation devient une sortie de stock. */
-async function consumeLines(lines: OrderLine[]): Promise<void> {
-  for (const line of lines) {
-    await listings().updateOne(
-      { id: line.listingId },
-      { $inc: { reserved: -line.quantity, stock: -line.quantity } },
     );
   }
 }
@@ -502,6 +585,12 @@ export async function transitionOrder(
 
   // La confirmation réserve le stock d'un achat direct.
   const reserving = rule.to === "CONFIRMED" && order.lines.length > 0;
+  // Un lot d'inventaire a pu bouger depuis : on réserve sur son état du moment.
+  if (reserving) {
+    await syncLinkedListings({
+      id: { $in: order.lines.map((line) => line.listingId) },
+    });
+  }
   if (reserving && !(await reserveLines(order.lines))) {
     return { error: "NOT_ENOUGH_STOCK" };
   }
@@ -551,7 +640,7 @@ export async function transitionOrder(
     await releaseLines(order.lines);
   }
   if (rule.to === "DELIVERED" && doc.reserved) {
-    await consumeLines(order.lines);
+    await consumeStock(order.lines, { orderId, byName: authorName });
   }
 
   return {};
