@@ -197,6 +197,7 @@ export async function incrementShopItemStock(
   }
 
   revalidatePath(`/shopping/i/${itemId}`);
+  revalidatePath(`/shopping/i/${itemId}/manage`);
   revalidatePath(`/shops/${item.shopId}`);
   revalidatePath("/shopping");
   return {};

@@ -37,6 +37,8 @@ export type ShopItem = {
   size?: number;
   /** Où l'objet est remis. */
   location?: ListingLocation;
+  /** Stock moins réservé, calculé par la recherche. */
+  available?: number;
   shop: {
     id: string;
     name: string;
@@ -92,7 +94,13 @@ export type ListingFilters = {
   query?: string;
   type?: "OBJECT" | "SERVICE";
   category?: string;
-  system?: string;
+  /** Un ou plusieurs systèmes de remise. */
+  systems?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  size?: number;
+  /** Vrai : les annonces épuisées sont montrées aussi. */
+  includeSoldOut?: boolean;
   sort?: ListingSort;
 };
 
@@ -111,24 +119,38 @@ const SORT_STAGES: Record<ListingSort, Record<string, 1 | -1>> = {
   priceDesc: { priceValue: -1, createdAt: -1, id: 1 },
 };
 
-/** Les annonces en stock qui répondent aux filtres de la marketplace. */
+/** Les annonces qui répondent aux filtres de la marketplace. */
 export async function searchListings(
   filters: ListingFilters,
   { offset, limit }: { offset: number; limit: number },
-): Promise<{ items: ShopItem[]; total: number }> {
-  const match: Record<string, unknown> = { ...IN_STOCK };
+): Promise<{ items: ShopItem[]; total: number; shopCount: number }> {
+  const match: Record<string, unknown> = {};
+  const exprs: unknown[] = [];
+  if (!filters.includeSoldOut) exprs.push(IN_STOCK.$expr);
+  if (filters.minPrice !== undefined) {
+    exprs.push({ $gte: [PRICE_VALUE, filters.minPrice] });
+  }
+  if (filters.maxPrice !== undefined) {
+    exprs.push({ $lte: [PRICE_VALUE, filters.maxPrice] });
+  }
+  if (exprs.length > 0) match.$expr = { $and: exprs };
   const query = filters.query?.trim();
   if (query) match.name = { $regex: escapeRegex(query), $options: "i" };
   if (filters.type) match.type = filters.type;
   if (filters.category) match.category = filters.category;
-  if (filters.system) match["location.system"] = filters.system;
+  if (filters.systems?.length) {
+    match["location.system"] = { $in: filters.systems };
+  }
+  if (filters.size !== undefined) match.size = filters.size;
 
   const collection = db.db().collection("shopItems");
-  const [items, total] = await Promise.all([
+  const [items, total, shopIds] = await Promise.all([
     collection
       .aggregate<ShopItem>([
         { $match: match },
-        { $addFields: { priceValue: PRICE_VALUE } },
+        {
+          $addFields: { priceValue: PRICE_VALUE, available: AVAILABLE_STOCK },
+        },
         { $sort: SORT_STAGES[filters.sort ?? "recent"] },
         { $skip: offset },
         { $limit: limit },
@@ -145,25 +167,34 @@ export async function searchListings(
       ])
       .toArray(),
     collection.countDocuments(match),
+    collection.distinct("shopId", match),
   ]);
-  return { items, total };
+  return { items, total, shopCount: shopIds.length };
 }
 
-/** Les catégories et systèmes proposés par les annonces en stock. */
+/** Les catégories, systèmes et tailles proposés par les annonces en stock. */
 export async function getListingFacets(): Promise<{
   categories: string[];
   systems: string[];
+  sizes: number[];
 }> {
   const collection = db.db().collection("shopItems");
-  const [categories, systems] = await Promise.all([
+  const [categories, systems, sizes] = await Promise.all([
     collection.distinct("category", IN_STOCK),
     collection.distinct("location.system", IN_STOCK),
+    collection.distinct("size", IN_STOCK),
   ]);
   const clean = (values: unknown[]) =>
     values
       .filter((value): value is string => typeof value === "string" && !!value)
       .sort((a, b) => a.localeCompare(b));
-  return { categories: clean(categories), systems: clean(systems) };
+  return {
+    categories: clean(categories),
+    systems: clean(systems),
+    sizes: sizes
+      .filter((value): value is number => typeof value === "number")
+      .sort((a, b) => a - b),
+  };
 }
 
 export type ShopSummary = {
@@ -171,6 +202,8 @@ export type ShopSummary = {
   name: string;
   /** Annonces encore en stock. */
   itemCount: number;
+  /** Le système où le magasin remet le plus souvent. */
+  system?: string;
 };
 
 /** Les magasins, ceux qui ont le plus d'annonces en stock d'abord. */
@@ -178,21 +211,50 @@ export async function getShopSummaries(limit: number): Promise<ShopSummary[]> {
   return db
     .db()
     .collection("shops")
-    .aggregate<ShopSummary>([
+    .aggregate<ShopSummary & { systems?: (string | null)[] }>([
       {
         $lookup: {
           from: "shopItems",
           localField: "id",
           foreignField: "shopId",
           as: "items",
-          pipeline: [{ $match: IN_STOCK }, { $project: { _id: 1 } }],
+          pipeline: [
+            { $match: IN_STOCK },
+            { $project: { _id: 0, system: "$location.system" } },
+          ],
         },
       },
-      { $project: { _id: 0, id: 1, name: 1, itemCount: { $size: "$items" } } },
+      {
+        $project: {
+          _id: 0,
+          id: 1,
+          name: 1,
+          itemCount: { $size: "$items" },
+          systems: "$items.system",
+        },
+      },
       { $sort: { itemCount: -1, name: 1 } },
       { $limit: limit },
     ])
-    .toArray();
+    .toArray()
+    .then((shops) =>
+      shops.map(({ systems, ...shop }) => ({
+        ...shop,
+        system: mostFrequent(systems),
+      })),
+    );
+}
+
+function mostFrequent(values: (string | null | undefined)[] = []) {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  let best: string | undefined;
+  for (const [value, count] of counts) {
+    if (!best || count > counts.get(best)!) best = value;
+  }
+  return best;
 }
 
 export async function getShopItem(itemId: string): Promise<ShopItem | null> {
@@ -361,7 +423,10 @@ export async function getShopNames(
   const shops = await db
     .db()
     .collection<ShopDbModel>("shops")
-    .find({ id: { $in: [...new Set(shopIds)] } }, { projection: { id: 1, name: 1 } })
+    .find(
+      { id: { $in: [...new Set(shopIds)] } },
+      { projection: { id: 1, name: 1 } },
+    )
     .toArray();
   return new Map(shops.map((shop) => [shop.id, shop.name]));
 }

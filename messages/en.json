@@ -1340,7 +1340,23 @@
       "priceDesc": "Price: high to low"
     },
     "resetFilters": "Clear filters",
-    "noResults": "No listings match these filters."
+    "noResults": "No listings match these filters.",
+    "resultsCount": "{count, plural, =0 {No listings} one {# listing} other {# listings}} from {shops, plural, one {# shop} other {# shops}}",
+    "filtersLabel": "Filters",
+    "facetAvailability": "Availability",
+    "inStockOnly": "In stock only",
+    "directOnly": "Direct purchase",
+    "facetPickup": "Handover location",
+    "facetPrice": "Price (aUEC)",
+    "priceMin": "Min",
+    "priceMax": "Max",
+    "facetSize": "Size",
+    "stockTags": {
+      "available": "{count} available",
+      "lastOne": "Last one",
+      "soldOut": "Sold out",
+      "onQuote": "On quote"
+    }
   },
   "ShoppingItem": {
     "notFound": "Item not found",
@@ -1356,7 +1372,7 @@
     "category": "Category",
     "manufacturer": "Manufacturer",
     "size": "Size",
-    "catalogueLink": "View in the catalogue",
+    "catalogueLink": "Catalogue entry →",
     "quantity": "Quantity",
     "quantityLess": "One less",
     "quantityMore": "One more",
@@ -1394,7 +1410,22 @@
       "INVALID_QUANTITY": "Choose a quantity of at least 1.",
       "NOT_ENOUGH_STOCK": "With your cart, this quantity exceeds the available stock.",
       "CART_FULL": "Your cart is full. Check it out or remove items."
-    }
+    },
+    "specs": "Specifications",
+    "perUnit": "each",
+    "deliveredCount": "{count, plural, one {# sale handed over} other {# sales handed over}}",
+    "stockTags": {
+      "available": "In stock · {count}",
+      "lastOne": "Last one in stock",
+      "soldOut": "Sold out",
+      "onQuote": "On quote"
+    },
+    "types": {
+      "OBJECT": "Item",
+      "SERVICE": "Service"
+    },
+    "manageListing": "Manage listing",
+    "stockSummary": "Stock: {stock}, {reserved} reserved."
   },
   "ShopItemManagement": {
     "currentStock": "Current stock:",
@@ -1404,7 +1435,14 @@
     "removeOne": "Remove 1",
     "invalidChange": "Enter a whole number other than zero.",
     "notEnoughStock": "Stock cannot go below zero or below the quantity reserved by orders.",
-    "reserved": "({count} reserved)"
+    "reserved": "({count} reserved)",
+    "title": "Manage listing",
+    "stock": "Stock",
+    "reservedLabel": "Reserved",
+    "available": "Available",
+    "changeStock": "Adjust stock",
+    "changeStockHelp": "Add or remove units. Stock can't go below the quantity reserved by confirmed orders.",
+    "backToListing": "← Back to the listing"
   },
   "ShoppingNewItem": {
     "title": "Sell",
