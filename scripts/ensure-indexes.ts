@@ -97,8 +97,9 @@ async function ensureNotes(database: Db) {
 // ─── Marketplace ──────────────────────────────────────────────────────────────
 
 /**
- * Un panier par joueur, tenu par la base ; et les commandes d'un joueur, que
- * « Mes commandes » et la page d'un panier validé lisent.
+ * Un panier par joueur, tenu par la base ; les commandes d'un joueur, que
+ * « Mes commandes » et la page d'un panier validé lisent ; et celles d'un
+ * magasin, que son back-office liste.
  */
 async function ensureMarketplace(database: Db) {
   await database
@@ -107,6 +108,9 @@ async function ensureMarketplace(database: Db) {
   await database
     .collection("shopOrders")
     .createIndex({ userId: 1, createdAt: -1 }, { name: "shopOrders_user" });
+  await database
+    .collection("shopOrders")
+    .createIndex({ shopId: 1, createdAt: -1 }, { name: "shopOrders_shop" });
 }
 
 // ─── Présence en jeu ──────────────────────────────────────────────────────────
