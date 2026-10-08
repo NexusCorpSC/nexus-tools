@@ -1,19 +1,27 @@
-import {
-  getShop,
-  getShopItemsOfShop,
-  isUserSellerOfShop,
-} from "@/lib/shop-items";
+import { countShopItems, getShop, getShopItemsOfShop } from "@/lib/shop-items";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { ShopButtons } from "@/app/shops/[shopId]/components";
 import { MarkdownContent } from "@/components/markdown-content";
 import { PlaceOrderForm } from "@/app/shops/[shopId]/order-components";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { ObjectId } from "bson";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { ListLink } from "@/components/list-link";
+import { RememberListUrl } from "@/components/remember-list-url";
+import { MUTED, PAGE_PANEL } from "@/app/shopping/ui";
+import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -42,33 +50,66 @@ export async function generateMetadata({
   };
 }
 
+const PAGE_SIZE = 24;
+
 export default async function ShopPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ shopId: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const t = await getTranslations("ShopDetails");
+  const tShopping = await getTranslations("Shopping");
+  const format = await getFormatter();
   const shopId = (await params).shopId;
-  const shop = await getShop(shopId);
-  const session = await auth.api.getSession({ headers: await headers() });
-  const isSeller =
-    session?.user?.id &&
-    (await isUserSellerOfShop(shopId, new ObjectId(session.user.id)));
+  const { page: pageStr } = await searchParams;
+  const page = Math.max(1, parseInt(pageStr ?? "1", 10) || 1);
+  const [shop, session] = await Promise.all([
+    getShop(shopId),
+    auth.api.getSession({ headers: await headers() }),
+  ]);
 
   if (!shop) {
     return (
-      <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
-        <h1 className="text-2xl font-bold mb-4">{t("notFound")}</h1>
+      <div className={cn(PAGE_PANEL, "max-w-7xl")}>
+        <h1 className="text-2xl font-bold">{t("notFound")}</h1>
       </div>
     );
   }
 
-  const shopItems = await getShopItemsOfShop(shopId, { offset: 0, limit: 10 });
+  const [shopItems, total] = await Promise.all([
+    getShopItemsOfShop(shopId, {
+      offset: (page - 1) * PAGE_SIZE,
+      limit: PAGE_SIZE,
+    }),
+    countShopItems(shopId),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold mb-4">{shop.name}</h1>
+    <div className={cn(PAGE_PANEL, "max-w-7xl")}>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">{tShopping("home")}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <ListLink href="/shopping">{tShopping("title")}</ListLink>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{shop.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <RememberListUrl />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{shop.name}</h1>
         <Suspense fallback={null}>
           <ShopButtons shopId={shop.id} />
         </Suspense>
@@ -76,34 +117,79 @@ export default async function ShopPage({
 
       <MarkdownContent content={shop.description} />
 
-      <h2 className="text-xl font-bold mb-4">{t("products")}</h2>
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold">{t("products")}</h2>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
-        {shopItems.map((item) => (
-          <Link key={item.id} href={`/shopping/i/${item.id}`} className="group">
-            <Image
-              alt={item.name}
-              src={item.image}
-              className="aspect-square w-full rounded-lg bg-gray-200 object-cover group-hover:opacity-75 xl:aspect-7/8"
-              width={300}
-              height={300}
-              loading="lazy"
-            />
-            <h3 className="mt-4 text-sm text-nexus-primary">{item.name}</h3>
-            <p className="mt-1 text-lg font-medium text-nexus-primary/50">
-              {item.price} aUEC
-            </p>
-          </Link>
-        ))}
-      </div>
+        {shopItems.length === 0 ? (
+          <p className={MUTED}>{t("noItems")}</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {shopItems.map((item) => (
+              <Link
+                key={item.id}
+                href={`/shopping/i/${item.id}`}
+                className="flex flex-col overflow-hidden rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/50 transition-colors hover:border-[#9ED0FF]/50"
+              >
+                <Image
+                  alt=""
+                  src={item.image || "/item_empty.png"}
+                  className={cn(
+                    "aspect-4/3 w-full object-cover",
+                    item.stock <= 0 && "opacity-50",
+                  )}
+                  width={400}
+                  height={300}
+                  loading="lazy"
+                />
+                <div className="flex flex-1 flex-col gap-1 p-3">
+                  <h3 className="font-semibold text-[#CCE7FF]">{item.name}</h3>
+                  <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+                    <span className="font-mono font-semibold text-[#CFE8FF]">
+                      {format.number(Number(item.price))} aUEC
+                    </span>
+                    {item.stock <= 0 && (
+                      <span className="inline-flex h-5 items-center rounded border border-red-300/40 px-1.5 text-[11px] font-semibold text-red-200">
+                        {t("soldOut")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
-      <h2 className="text-xl font-bold mb-4">{t("placeOrderCTA")}</h2>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            {page > 1 && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/shops/${shopId}?page=${page - 1}`}>
+                  {t("prev")}
+                </Link>
+              </Button>
+            )}
+            <span className={cn("text-sm", MUTED)}>
+              {t("pageInfo", { page, totalPages })}
+            </span>
+            {page < totalPages && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/shops/${shopId}?page=${page + 1}`}>
+                  {t("next")}
+                </Link>
+              </Button>
+            )}
+          </div>
+        )}
+      </section>
 
-      {session?.user ? (
-        <PlaceOrderForm shopId={shop.id} />
-      ) : (
-        <p className="text-sm text-gray-500">{t("loginToOrder")}</p>
-      )}
+      <section id="commander" className="scroll-mt-24 space-y-4">
+        <h2 className="text-xl font-bold">{t("placeOrderCTA")}</h2>
+        {session?.user ? (
+          <PlaceOrderForm shopId={shop.id} />
+        ) : (
+          <p className={cn("text-sm", MUTED)}>{t("loginToOrder")}</p>
+        )}
+      </section>
     </div>
   );
 }

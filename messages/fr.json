@@ -1312,29 +1312,36 @@
     "home": "Accueil",
     "title": "Marketplace",
     "ctaSellButton": "Vendre un bien ou un service",
-    "featuredItemsTitle": "Articles mis en avant",
     "shop": "Magasin",
     "shops": "Magasins",
-    "buy": "Acheter",
-    "noFeaturedItems": "Aucun article mis en avant pour le moment.",
-    "noShops": "Aucun magasin disponible pour le moment."
+    "noShops": "Aucun magasin pour le moment.",
+    "latestTitle": "Dernières annonces",
+    "noItems": "Aucune annonce en stock pour le moment.",
+    "itemsCount": "{count, plural, =0 {Aucune annonce en stock} one {# annonce en stock} other {# annonces en stock}}",
+    "myOrders": "Mes commandes",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "pageInfo": "Page {page} sur {totalPages}"
   },
   "ShoppingItem": {
     "notFound": "Objet non trouvé",
-    "backToShopping": "Retour au shoppinh",
+    "backToShopping": "Retour à la marketplace",
     "productInfo": "Informations sur le produit",
     "soldBy": "Vendu par :",
     "soldOut": "Épuisé !",
     "lowStock": "Stock faible !",
     "inStock": "En stock",
-    "buy": "Acheter"
+    "askShop": "Demander à la boutique",
+    "askShopHelp": "Décrivez votre besoin à la boutique : elle vous répond avec un devis. L'achat direct arrive bientôt."
   },
   "ShopItemManagement": {
     "currentStock": "Stock actuel :",
     "addToStock": "Ajouter au stock",
     "removeFromStock": "Retirer du stock",
     "addOne": "Ajouter 1",
-    "removeOne": "Retirer 1"
+    "removeOne": "Retirer 1",
+    "invalidChange": "Indiquez un nombre entier différent de zéro.",
+    "notEnoughStock": "Le stock ne peut pas devenir négatif."
   },
   "ShoppingNewItem": {
     "title": "Vente",
@@ -1368,7 +1375,12 @@
     "manage": "Gérer la boutique",
     "products": "Articles en vente",
     "placeOrderCTA": "Passez commande",
-    "loginToOrder": "Connectez-vous pour passer une commande auprès de cette boutique."
+    "loginToOrder": "Connectez-vous pour passer une commande auprès de cette boutique.",
+    "soldOut": "Épuisé",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "pageInfo": "Page {page} sur {totalPages}",
+    "noItems": "Cette boutique n'a encore aucune annonce."
   },
   "ShopOrders": {
     "formTitle": "Passer une commande libre",

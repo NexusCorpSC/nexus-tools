@@ -94,13 +94,17 @@ export async function addArticleToShop(formData: FormData) {
 export async function incrementShopItemStock(
   itemId: string,
   stockModification: number,
-) {
+): Promise<{ error?: "INVALID_CHANGE" | "NOT_ENOUGH_STOCK" }> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session || !session.user) {
     throw new Error("User not authenticated");
+  }
+
+  if (!Number.isInteger(stockModification) || stockModification === 0) {
+    return { error: "INVALID_CHANGE" };
   }
 
   const item = await db
@@ -116,10 +120,24 @@ export async function incrementShopItemStock(
     throw new Error("User is not a seller of the shop");
   }
 
-  await db
+  // Le filtre empêche un retrait de faire passer le stock sous zéro, même si
+  // deux vendeurs le corrigent en même temps.
+  const result = await db
     .db()
-    .collection("shopItems")
-    .updateOne({ id: itemId }, { $inc: { stock: stockModification } });
+    .collection<ShopItemDbModel>("shopItems")
+    .updateOne(
+      stockModification < 0
+        ? { id: itemId, stock: { $gte: -stockModification } }
+        : { id: itemId },
+      { $inc: { stock: stockModification } },
+    );
+
+  if (result.modifiedCount === 0) {
+    return { error: "NOT_ENOUGH_STOCK" };
+  }
 
   revalidatePath(`/shopping/i/${itemId}`);
+  revalidatePath(`/shops/${item.shopId}`);
+  revalidatePath("/shopping");
+  return {};
 }

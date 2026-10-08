@@ -2,6 +2,9 @@ import { getTranslations } from "next-intl/server";
 import { RememberListUrl } from "@/components/remember-list-url";
 import type { Metadata } from "next";
 import { getOrdersForUser, countOrdersForUser } from "@/lib/shop-orders";
+import { getShopNames } from "@/lib/shop-items";
+import { MUTED, OrderStatusBadge, PAGE_PANEL, ROW_LINK } from "@/app/shopping/ui";
+import { cn } from "@/lib/utils";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { ObjectId } from "bson";
@@ -25,13 +28,6 @@ export const metadata: Metadata = {
 
 const PAGE_SIZE = 15;
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  QUOTED: "bg-blue-100 text-blue-800",
-  ACCEPTED: "bg-green-100 text-green-800",
-  REFUSED: "bg-red-100 text-red-800",
-  CANCELLED: "bg-gray-100 text-gray-600",
-};
 
 export default async function MyOrdersPage({
   searchParams,
@@ -48,6 +44,7 @@ export default async function MyOrdersPage({
   const offset = (page - 1) * PAGE_SIZE;
 
   const t = await getTranslations("MyOrders");
+  const tShopping = await getTranslations("Shopping");
   const userId = new ObjectId(session.user.id);
 
   const [orders, total] = await Promise.all([
@@ -56,13 +53,14 @@ export default async function MyOrdersPage({
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const shopNames = await getShopNames(orders.map((order) => order.shopId));
 
   return (
-    <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+    <div className={cn(PAGE_PANEL, "max-w-4xl")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{tShopping("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -79,7 +77,7 @@ export default async function MyOrdersPage({
       <RememberListUrl />
 
       {orders.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">
+        <div className={cn("py-10 text-center", MUTED)}>
           <p>{t("empty")}</p>
           <Button asChild className="mt-4" variant="outline">
             <Link href="/shopping">{t("backToShopping")}</Link>
@@ -91,27 +89,29 @@ export default async function MyOrdersPage({
             <Link
               key={order.id}
               href={`/shopping/my-orders/${order.id}`}
-              className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+              className={ROW_LINK}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-[#CCE7FF]">
+                    {shopNames.get(order.shopId) ?? t("shop")}
+                  </p>
+                  <p className={cn("mt-1 line-clamp-1 text-sm", MUTED)}>
                     {order.message}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className={cn("mt-1 text-xs", MUTED)}>
                     {new Date(order.createdAt).toLocaleDateString()}
                   </p>
                   {order.quote !== undefined && (
-                    <p className="text-sm font-medium text-green-700 mt-1">
+                    <p className="mt-1 font-mono text-sm font-semibold text-[#CFE8FF]">
                       {t("quote")} : {order.quote} aUEC
                     </p>
                   )}
                 </div>
-                <span
-                  className={`px-2 py-1 rounded text-xs font-semibold ${STATUS_COLORS[order.status] ?? "bg-gray-100"}`}
-                >
-                  {t(`status.${order.status}`)}
-                </span>
+                <OrderStatusBadge
+                  status={order.status}
+                  label={t(`status.${order.status}`)}
+                />
               </div>
             </Link>
           ))}
@@ -127,7 +127,7 @@ export default async function MyOrdersPage({
               </Link>
             </Button>
           )}
-          <span className="text-sm text-gray-600">
+          <span className={cn("text-sm", MUTED)}>
             {t("pageInfo", { page, totalPages })}
           </span>
           {page < totalPages && (

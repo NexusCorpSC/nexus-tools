@@ -15,6 +15,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ClipboardList } from "lucide-react";
+import { MUTED, PAGE_PANEL, ROW_LINK } from "@/app/shopping/ui";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Back-office",
@@ -40,11 +42,12 @@ export default async function BoDashboardPage({
   }
 
   const t = await getTranslations("BoDashboard");
+  const tShopping = await getTranslations("Shopping");
   const shop = await getShop(shopId);
 
   if (!shop) {
     return (
-      <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md">
+      <div className={cn(PAGE_PANEL, "max-w-4xl")}>
         <p>{t("shopNotFound")}</p>
       </div>
     );
@@ -60,11 +63,11 @@ export default async function BoDashboardPage({
   ];
 
   return (
-    <div className="m-2 p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+    <div className={cn(PAGE_PANEL, "max-w-4xl")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{tShopping("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -79,7 +82,7 @@ export default async function BoDashboardPage({
 
       <div>
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-gray-500 mt-1">{shop.name}</p>
+        <p className={cn("mt-1", MUTED)}>{shop.name}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -89,15 +92,15 @@ export default async function BoDashboardPage({
             <Link
               key={tool.href}
               href={tool.href}
-              className="group flex flex-col gap-3 rounded-xl border p-5 hover:border-orange-400 hover:bg-orange-50 transition-colors"
+              className={cn(ROW_LINK, "flex flex-col gap-3 p-5")}
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 text-orange-700 group-hover:bg-orange-200 transition-colors">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#9ED0FF]/12 text-[#CCE7FF]">
                   <Icon className="h-5 w-5" />
                 </div>
-                <span className="font-semibold text-gray-900">{tool.label}</span>
+                <span className="font-semibold text-[#CCE7FF]">{tool.label}</span>
               </div>
-              <p className="text-sm text-gray-500">{tool.description}</p>
+              <p className={cn("text-sm", MUTED)}>{tool.description}</p>
             </Link>
           );
         })}

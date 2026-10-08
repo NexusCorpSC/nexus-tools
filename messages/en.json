@@ -1311,27 +1311,36 @@
     "home": "Home",
     "title": "Marketplace",
     "ctaSellButton": "Sell an item or service",
-    "featuredItemsTitle": "Featured Items",
     "shop": "Shop",
     "shops": "Shops",
-    "buy": "Buy"
+    "latestTitle": "Latest listings",
+    "noItems": "No listing in stock yet.",
+    "itemsCount": "{count, plural, =0 {No listing in stock} one {# listing in stock} other {# listings in stock}}",
+    "myOrders": "My orders",
+    "noShops": "No shop yet.",
+    "prev": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {page} of {totalPages}"
   },
   "ShoppingItem": {
     "notFound": "Item not found",
-    "backToShopping": "Back to shopping",
+    "backToShopping": "Back to the marketplace",
     "productInfo": "Product information",
     "soldBy": "Sold by:",
     "soldOut": "Sold out!",
     "lowStock": "Low stock!",
     "inStock": "In stock",
-    "buy": "Buy"
+    "askShop": "Ask the shop",
+    "askShopHelp": "Describe what you need to the shop and it will reply with a quote. Direct purchase is coming soon."
   },
   "ShopItemManagement": {
     "currentStock": "Current stock:",
     "addToStock": "Add to stock",
     "removeFromStock": "Remove from stock",
     "addOne": "Add 1",
-    "removeOne": "Remove 1"
+    "removeOne": "Remove 1",
+    "invalidChange": "Enter a whole number other than zero.",
+    "notEnoughStock": "Stock cannot go below zero."
   },
   "ShoppingNewItem": {
     "title": "Sell",
@@ -1367,7 +1376,12 @@
     "manage": "Manage shop",
     "products": "Products in store",
     "placeOrderCTA": "Place order",
-    "loginToOrder": "Sign in to place an order with this shop."
+    "loginToOrder": "Sign in to place an order with this shop.",
+    "soldOut": "Sold out",
+    "prev": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {page} of {totalPages}",
+    "noItems": "This shop has no listing yet."
   },
   "ShopOrders": {
     "formTitle": "Place a free order",

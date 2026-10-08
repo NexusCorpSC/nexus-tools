@@ -1,59 +1,88 @@
 "use client";
 
 import { MinusIcon, PlusIcon } from "@heroicons/react/24/solid";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { incrementShopItemStock } from "@/app/shopping/actions";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 
 export function StockModificationForm({ itemId }: { itemId: string }) {
   const t = useTranslations("ShopItemManagement");
 
-  const [stockModification, setStockModification] = useState(0);
+  // Texte brut : un champ vide ou « - » en cours de saisie reste possible.
+  const [value, setValue] = useState("0");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const change = Number(value);
+  const valid = value.trim() !== "" && Number.isInteger(change) && change !== 0;
+
+  function step(delta: number) {
+    setError(null);
+    setValue(String((Number.isInteger(change) ? change : 0) + delta));
+  }
 
   return (
     <form
-      onSubmit={async (event) => {
-        event?.preventDefault();
-
-        await incrementShopItemStock(itemId, stockModification);
-
-        setStockModification(0);
+      className="space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!valid) {
+          setError(t("invalidChange"));
+          return;
+        }
+        setError(null);
+        startTransition(async () => {
+          const result = await incrementShopItemStock(itemId, change);
+          if (result.error === "NOT_ENOUGH_STOCK") {
+            setError(t("notEnoughStock"));
+          } else if (result.error) {
+            setError(t("invalidChange"));
+          } else {
+            setValue("0");
+          }
+        });
       }}
     >
-      <span className="isolate inline-flex rounded-md shadow-xs">
-        <button
-          type="button"
-          className="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset   focus:z-10"
-          onClick={() => setStockModification(stockModification - 1)}
-        >
-          <span className="sr-only">{t("removeOne")}</span>
-          <MinusIcon aria-hidden="true" className="size-5" />
-        </button>
-        <input
-          type="number"
-          name="stockModification"
-          id="stockModification"
-          className="w-20 ring-1 ring-inset  px-2 py-2 text-center "
-          value={stockModification}
-          onChange={(event) =>
-            setStockModification(parseInt(event.target.value))
-          }
-        />
-        <button
-          type="button"
-          className="relative -ml-px inline-flex items-center rounded-r-md  px-2 py-2  ring-1 ring-inset  focus:z-10"
-          onClick={() => setStockModification(stockModification + 1)}
-        >
-          <span className="sr-only">{t("addOne")}</span>
-          <PlusIcon aria-hidden="true" className="size-5" />
-        </button>
-        <button
-          type="submit"
-          className="ml-4 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-        >
-          {stockModification < 0 ? t("removeFromStock") : t("addToStock")}
-        </button>
-      </span>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="isolate inline-flex overflow-hidden rounded-md border border-[#9ED0FF]/30">
+          <button
+            type="button"
+            className="inline-flex items-center px-2 py-2 hover:bg-[#9ED0FF]/10"
+            onClick={() => step(-1)}
+            disabled={isPending}
+          >
+            <span className="sr-only">{t("removeOne")}</span>
+            <MinusIcon aria-hidden="true" className="size-5" />
+          </button>
+          <input
+            type="number"
+            step={1}
+            name="stockModification"
+            id="stockModification"
+            className="w-20 border-x border-[#9ED0FF]/30 bg-transparent px-2 py-2 text-center font-mono"
+            value={value}
+            onChange={(event) => {
+              setError(null);
+              setValue(event.target.value);
+            }}
+            disabled={isPending}
+          />
+          <button
+            type="button"
+            className="inline-flex items-center px-2 py-2 hover:bg-[#9ED0FF]/10"
+            onClick={() => step(1)}
+            disabled={isPending}
+          >
+            <span className="sr-only">{t("addOne")}</span>
+            <PlusIcon aria-hidden="true" className="size-5" />
+          </button>
+        </span>
+        <Button type="submit" variant="outline" disabled={isPending || !valid}>
+          {change < 0 ? t("removeFromStock") : t("addToStock")}
+        </Button>
+      </div>
+      {error && <p className="text-sm text-red-300">{error}</p>}
     </form>
   );
 }

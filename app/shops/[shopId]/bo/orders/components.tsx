@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { respondToOrderAction } from "@/app/shops/[shopId]/bo/actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useTranslations } from "next-intl";
 
 export function RespondForm({
@@ -42,38 +44,39 @@ export function RespondForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-300">{error}</p>}
 
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">
+        <label htmlFor="order-response" className="block text-sm font-medium">
           {t("responseLabel")}
         </label>
-        <textarea
+        <Textarea
+          id="order-response"
           rows={5}
           required
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           disabled={isPending}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
           placeholder={t("responsePlaceholder")}
         />
       </div>
 
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">
+        <label htmlFor="order-quote" className="block text-sm font-medium">
           {t("quoteLabel")}
         </label>
         <div className="flex items-center gap-2">
-          <input
+          <Input
+            id="order-quote"
             type="number"
             min={0}
             value={quote}
             onChange={(e) => setQuote(e.target.value)}
             disabled={isPending}
-            className="w-40 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+            className="w-40"
             placeholder="0"
           />
-          <span className="text-sm text-gray-500">aUEC</span>
+          <span className="text-sm text-[#9ED0FF]/70">aUEC</span>
         </div>
       </div>
 

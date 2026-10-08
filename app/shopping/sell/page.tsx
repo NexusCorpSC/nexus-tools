@@ -17,6 +17,11 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { PAGE_PANEL } from "@/app/shopping/ui";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Vendre un article",
@@ -57,7 +62,7 @@ export default async function SellPage() {
 
   if (userShops.length === 0) {
     return (
-      <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm h-dvh">
+      <div className={cn(PAGE_PANEL, "max-w-3xl")}>
         <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
         <p>{t("noShop.error")}</p>
@@ -70,10 +75,10 @@ export default async function SellPage() {
   }
 
   return (
-    <div className="m-2 mx-auto max-w-7xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm h-dvh">
+    <div className={cn(PAGE_PANEL, "max-w-3xl")}>
       <h1 className="text-2xl font-bold mb-4">{t("title")}</h1>
 
-      <form action={addArticleToShop}>
+      <form action={addArticleToShop} className="space-y-5">
         <div>
           <label htmlFor="shopId" className="block text-sm/6 font-medium">
             {t("itemShop")}
@@ -100,14 +105,13 @@ export default async function SellPage() {
             {t("itemName")}
           </label>
           <div className="mt-2">
-            <input
+            <Input
               id="name"
               name="name"
               type="text"
               placeholder={t("itemNamePlaceholder")}
               required
-              className="block w-full rounded-md  px-3 py-1.5 text-base outline-solid outline-1 -outline-offset-1 focus:outline-solid focus:outline-2 focus:-outline-offset-2 sm:text-sm/6"
-              maxLength={500}
+                            maxLength={500}
             />
           </div>
         </div>
@@ -136,12 +140,11 @@ export default async function SellPage() {
             {t("itemDescription")}
           </label>
           <div className="mt-2">
-            <textarea
+            <Textarea
               id="description"
               name="description"
               rows={3}
-              className="block w-full rounded-md px-3 py-1.5 text-base outline-solid outline-1 -outline-offset-1 focus:outline-solid focus:outline-2 focus:-outline-offset-2  sm:text-sm/6"
-              defaultValue={""}
+                            defaultValue={""}
               required
               maxLength={5000}
             />
@@ -154,7 +157,7 @@ export default async function SellPage() {
             {t("itemPrice")}
           </label>
           <div className="mt-2">
-            <input
+            <Input
               id="price"
               name="price"
               type="number"
@@ -162,8 +165,7 @@ export default async function SellPage() {
               min={0}
               required
               defaultValue={5000}
-              className="block w-full rounded-md  px-3 py-1.5 text-base outline-solid outline-1 -outline-offset-1 focus:outline-solid focus:outline-2 focus:-outline-offset-2 sm:text-sm/6"
-            />
+                          />
           </div>
         </div>
 
@@ -171,7 +173,7 @@ export default async function SellPage() {
           <label htmlFor="image-cover" className="block text-sm/6 font-medium ">
             {t("itemImage")}
           </label>
-          <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+          <div className="mt-2 flex justify-center rounded-lg border border-dashed border-[#9ED0FF]/30 px-6 py-10">
             <div className="text-center">
               <PhotoIcon aria-hidden="true" className="mx-auto size-12" />
               <div className="mt-4 flex text-sm/6">
@@ -200,12 +202,7 @@ export default async function SellPage() {
           <Link href="/shopping" className="text-sm/6 font-semibold ">
             {t("cancel")}
           </Link>
-          <button
-            type="submit"
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            {t("addArticle")}
-          </button>
+          <Button type="submit">{t("addArticle")}</Button>
         </div>
       </form>
     </div>

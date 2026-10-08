@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { Textarea } from "@/components/ui/textarea";
 
 export function OrderActions({
   orderId,
@@ -76,31 +77,27 @@ export function OrderActions({
   }
 
   return (
-    <div className="space-y-4 pt-4 border-t">
+    <div className="space-y-4 border-t border-[#9ED0FF]/15 pt-4">
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">
+        <label htmlFor="order-comment" className="block text-sm font-medium">
           {t("commentLabel")}
         </label>
-        <textarea
+        <Textarea
+          id="order-comment"
           rows={3}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           disabled={isPending}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
           placeholder={t("commentPlaceholder")}
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-300">{error}</p>}
 
       <div className="flex flex-wrap gap-3">
         {canActOnQuote && (
           <>
-            <Button
-              onClick={handleAccept}
-              disabled={isPending}
-              className="bg-green-600 hover:bg-green-700"
-            >
+            <Button onClick={handleAccept} disabled={isPending}>
               {isPending ? t("processing") : t("acceptQuote")}
             </Button>
             <Button

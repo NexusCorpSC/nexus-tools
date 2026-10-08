@@ -16,6 +16,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { RespondForm } from "@/app/shops/[shopId]/bo/orders/components";
+import { MUTED, OrderStatusBadge, PAGE_PANEL, TEXT_BOX } from "@/app/shopping/ui";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Détail de commande — Back-office",
@@ -23,13 +25,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  QUOTED: "bg-blue-100 text-blue-800",
-  ACCEPTED: "bg-green-100 text-green-800",
-  REFUSED: "bg-red-100 text-red-800",
-  CANCELLED: "bg-gray-100 text-gray-600",
-};
 
 export default async function BoOrderDetailPage({
   params,
@@ -52,6 +47,7 @@ export default async function BoOrderDetailPage({
   }
 
   const t = await getTranslations("BoOrders");
+  const tShopping = await getTranslations("Shopping");
 
   const [shop, order] = await Promise.all([
     getShop(shopId),
@@ -65,11 +61,11 @@ export default async function BoOrderDetailPage({
   const canRespond = order.status === "PENDING" || order.status === "QUOTED";
 
   return (
-    <div className="m-2 p-6 max-w-2xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+    <div className={cn(PAGE_PANEL, "max-w-2xl")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{tShopping("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -98,18 +94,17 @@ export default async function BoOrderDetailPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t("orderDetail")}</h1>
-        <span
-          className={`px-3 py-1 rounded text-sm font-semibold ${STATUS_COLORS[order.status] ?? "bg-gray-100"}`}
-        >
-          {t(`status.${order.status}`)}
-        </span>
+        <OrderStatusBadge
+          status={order.status}
+          label={t(`status.${order.status}`)}
+        />
       </div>
 
-      <div className="space-y-1 text-sm ">
+      <div className={cn("space-y-1 text-sm", MUTED)}>
         <p>
-          {t("from")} : <span className="font-medium ">{order.userName}</span>
+          {t("from")} : <span className="font-medium text-[#CCE7FF]">{order.userName}</span>
         </p>
         <p>
           {t("date")} : {new Date(order.createdAt).toLocaleString()}
@@ -118,7 +113,7 @@ export default async function BoOrderDetailPage({
 
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">{t("customerMessage")}</h2>
-        <div className="rounded-lg bg-gray-50 border p-4 text-sm whitespace-pre-wrap">
+        <div className={TEXT_BOX}>
           {order.message}
         </div>
       </div>
@@ -126,11 +121,11 @@ export default async function BoOrderDetailPage({
       {order.response && (
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">{t("currentResponse")}</h2>
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm whitespace-pre-wrap">
+          <div className={cn(TEXT_BOX, "border-sky-300/30")}>
             {order.response}
           </div>
           {order.quote !== undefined && (
-            <p className="text-sm font-medium">
+            <p className="font-mono text-sm font-semibold text-[#CFE8FF]">
               {t("currentQuote")} : {order.quote} aUEC
             </p>
           )}
@@ -140,7 +135,7 @@ export default async function BoOrderDetailPage({
       {order.userComment && (
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">{t("userComment")}</h2>
-          <div className="rounded-lg bg-gray-50 border p-4 text-sm whitespace-pre-wrap italic ">
+          <div className={cn(TEXT_BOX, "italic")}>
             {order.userComment}
           </div>
         </div>

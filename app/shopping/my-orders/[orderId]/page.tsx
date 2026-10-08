@@ -3,6 +3,7 @@ import { ListLink } from "@/components/list-link";
 import type { Metadata } from "next";
 import { getOrderById } from "@/lib/shop-orders";
 import { getShop } from "@/lib/shop-items";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
@@ -15,6 +16,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { OrderActions } from "../components";
+import { MUTED, OrderStatusBadge, PAGE_PANEL, TEXT_BOX } from "@/app/shopping/ui";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Détail de commande",
@@ -22,13 +25,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  QUOTED: "bg-blue-100 text-blue-800",
-  ACCEPTED: "bg-green-100 text-green-800",
-  REFUSED: "bg-red-100 text-red-800",
-  CANCELLED: "bg-gray-100 text-gray-600",
-};
 
 export default async function MyOrderDetailPage({
   params,
@@ -43,6 +39,7 @@ export default async function MyOrderDetailPage({
   }
 
   const t = await getTranslations("MyOrders");
+  const tShopping = await getTranslations("Shopping");
   const order = await getOrderById(orderId);
 
   if (!order || order.userId !== session.user.id) {
@@ -52,11 +49,11 @@ export default async function MyOrderDetailPage({
   const shop = await getShop(order.shopId);
 
   return (
-    <div className="m-2 p-6 max-w-2xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+    <div className={cn(PAGE_PANEL, "max-w-2xl")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{tShopping("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -71,25 +68,24 @@ export default async function MyOrderDetailPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t("orderDetail")}</h1>
-        <span
-          className={`px-3 py-1 rounded text-sm font-semibold ${STATUS_COLORS[order.status] ?? "bg-gray-100"}`}
-        >
-          {t(`status.${order.status}`)}
-        </span>
+        <OrderStatusBadge
+          status={order.status}
+          label={t(`status.${order.status}`)}
+        />
       </div>
 
-      <div className="space-y-1 text-sm text-gray-500">
+      <div className={cn("space-y-1 text-sm", MUTED)}>
         {shop && (
           <p>
             {t("shop")} :{" "}
-            <a
+            <Link
               href={`/shops/${shop.id}`}
-              className="font-medium text-blue-600 hover:underline"
+              className="font-medium text-[#CCE7FF] hover:underline"
             >
               {shop.name}
-            </a>
+            </Link>
           </p>
         )}
         <p>
@@ -104,7 +100,7 @@ export default async function MyOrderDetailPage({
 
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">{t("yourMessage")}</h2>
-        <div className="rounded-lg bg-gray-50 border p-4 text-sm whitespace-pre-wrap">
+        <div className={TEXT_BOX}>
           {order.message}
         </div>
       </div>
@@ -112,12 +108,12 @@ export default async function MyOrderDetailPage({
       {order.response && (
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">{t("shopResponse")}</h2>
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm whitespace-pre-wrap">
+          <div className={cn(TEXT_BOX, "border-sky-300/30")}>
             {order.response}
           </div>
           {order.quote !== undefined && (
-            <div className="rounded-lg bg-green-50 border border-green-200 p-4">
-              <p className="text-sm font-semibold text-green-800">
+            <div className="rounded-xl border border-emerald-300/30 bg-[#092F49]/50 p-4">
+              <p className="font-mono text-sm font-semibold text-emerald-200">
                 {t("quoteAmount")} : {order.quote} aUEC
               </p>
             </div>

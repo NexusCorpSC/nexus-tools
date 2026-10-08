@@ -13,20 +13,20 @@ export async function StockModificationSection({ item }: { item: ShopItem }) {
   });
 
   if (!session?.user) {
-    return <></>;
+    return null;
   }
 
   if (await isUserSellerOfShop(item.shop.id, new ObjectId(session.user.id))) {
     return (
-      <>
-        <p>
-          {t("currentStock")}
-          {item.stock}
+      <div className="space-y-3 rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/35 p-4">
+        <p className="text-sm">
+          {t("currentStock")}{" "}
+          <span className="font-mono font-semibold">{item.stock}</span>
         </p>
         <StockModificationForm itemId={item.id} />
-      </>
+      </div>
     );
   }
 
-  return <></>;
+  return null;
 }

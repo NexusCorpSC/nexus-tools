@@ -50,67 +50,65 @@ export type ShopDbModel = {
   sellers: ObjectId[];
 };
 
-export async function getFeaturedItems(): Promise<ShopItem[]> {
-  return db
-    .db()
-    .collection("shopItems")
-    .aggregate<ShopItem>([
-      {
-        $match: { stock: { $gte: 1 } },
-      },
-      {
-        $lookup: {
-          from: "shops",
-          localField: "shopId",
-          foreignField: "id",
-          as: "shop",
-          pipeline: [
-            {
-              $project: {
-                id: -1,
-                name: -1,
-              },
-            },
-          ],
+/** Les annonces encore en stock, des plus récentes aux plus anciennes. */
+export async function getAvailableItems({
+  offset,
+  limit,
+}: {
+  offset: number;
+  limit: number;
+}): Promise<{ items: ShopItem[]; total: number }> {
+  const collection = db.db().collection("shopItems");
+  const [items, total] = await Promise.all([
+    collection
+      .aggregate<ShopItem>([
+        { $match: { stock: { $gte: 1 } } },
+        { $sort: { createdAt: -1, id: 1 } },
+        { $skip: offset },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: "shops",
+            localField: "shopId",
+            foreignField: "id",
+            as: "shop",
+            pipeline: [{ $project: { _id: 0, id: 1, name: 1 } }],
+          },
         },
-      },
-      {
-        $unwind: "$shop",
-      },
-      {
-        $sort: { createdAt: 1 },
-      },
-    ])
-    .limit(8)
-    .toArray();
+        { $unwind: "$shop" },
+      ])
+      .toArray(),
+    collection.countDocuments({ stock: { $gte: 1 } }),
+  ]);
+  return { items, total };
 }
 
-export async function getFeaturedShops(): Promise<Shop[]> {
+export type ShopSummary = {
+  id: string;
+  name: string;
+  /** Annonces encore en stock. */
+  itemCount: number;
+};
+
+/** Les magasins, ceux qui ont le plus d'annonces en stock d'abord. */
+export async function getShopSummaries(limit: number): Promise<ShopSummary[]> {
   return db
     .db()
     .collection("shops")
-    .aggregate<Shop>([
+    .aggregate<ShopSummary>([
       {
         $lookup: {
-          from: "users",
-          localField: "ownerId",
-          foreignField: "_id",
-          as: "owner",
-          pipeline: [
-            {
-              $project: {
-                _id: -1,
-                name: -1,
-              },
-            },
-          ],
+          from: "shopItems",
+          localField: "id",
+          foreignField: "shopId",
+          as: "items",
+          pipeline: [{ $match: { stock: { $gte: 1 } } }, { $project: { _id: 1 } }],
         },
       },
-      {
-        $unwind: "$owner",
-      },
+      { $project: { _id: 0, id: 1, name: 1, itemCount: { $size: "$items" } } },
+      { $sort: { itemCount: -1, name: 1 } },
+      { $limit: limit },
     ])
-    .limit(8)
     .toArray();
 }
 
@@ -153,9 +151,17 @@ export async function getShopItemsOfShop(
     .db()
     .collection<ShopItemDbModel>("shopItems")
     .find({ shopId })
+    .sort({ createdAt: -1, id: 1 })
     .skip(offset)
     .limit(limit)
     .toArray();
+}
+
+export async function countShopItems(shopId: string): Promise<number> {
+  return db
+    .db()
+    .collection<ShopItemDbModel>("shopItems")
+    .countDocuments({ shopId });
 }
 
 export async function getShop(shopId: string): Promise<Shop | null> {
@@ -262,4 +268,17 @@ export async function isUserSellerOfShop(shopId: string, userId: ObjectId) {
     .findOne({ id: shopId, sellers: userId });
 
   return !!shop;
+}
+
+/** Les noms des magasins, pour les listes qui n'ont que leurs identifiants. */
+export async function getShopNames(
+  shopIds: string[],
+): Promise<Map<string, string>> {
+  if (shopIds.length === 0) return new Map();
+  const shops = await db
+    .db()
+    .collection<ShopDbModel>("shops")
+    .find({ id: { $in: [...new Set(shopIds)] } }, { projection: { id: 1, name: 1 } })
+    .toArray();
+  return new Map(shops.map((shop) => [shop.id, shop.name]));
 }
