@@ -168,7 +168,9 @@ export async function syncLinkedListings(
   filter: Filter<ShopItemDbModel>,
 ): Promise<void> {
   const linked = await listings()
-    .find({ ...filter, inventoryItemId: { $exists: true } })
+    // `$and` garde un filtre de l'appelant sur `inventoryItemId` (les
+    // annonces de certains lots) au lieu de l'écraser.
+    .find({ $and: [filter, { inventoryItemId: { $exists: true } }] })
     .toArray();
   if (linked.length === 0) return;
 
