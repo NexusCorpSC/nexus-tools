@@ -2752,7 +2752,8 @@
       "tag": "Tag",
       "soldItems": "Objets vendus",
       "tip": "Astuce",
-      "placeSlugs": "Lieux"
+      "placeSlugs": "Lieux",
+      "position": "Coordonnées en jeu"
     },
     "Mine": {
       "title": "Mes contributions",
