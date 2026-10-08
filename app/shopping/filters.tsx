@@ -7,19 +7,7 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-/** Les clés de l'adresse que lisent les filtres de la marketplace. */
-const FILTER_KEYS = [
-  "q",
-  "type",
-  "category",
-  "system",
-  "min",
-  "max",
-  "size",
-  "stock",
-  "sort",
-] as const;
+import { FILTER_KEYS } from "./filter-keys";
 
 const SELECT =
   "h-9 rounded-md border border-[#9ED0FF]/30 bg-[#092F49]/60 px-2 text-sm text-[#C9E4FF]";

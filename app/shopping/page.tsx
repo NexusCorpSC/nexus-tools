@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { RememberListUrl } from "@/components/remember-list-url";
 import { MUTED, PAGE_PANEL, ShopLogo, stockTag, Tag } from "@/app/shopping/ui";
 import { cn } from "@/lib/utils";
+import { FILTER_KEYS } from "@/app/shopping/filter-keys";
 
 export const metadata: Metadata = {
   title: "Marketplace",
@@ -46,19 +47,6 @@ export const metadata: Metadata = {
 };
 
 const PAGE_SIZE = 12;
-
-/** Les clés de l'adresse que lisent les filtres, gardées d'une page à l'autre. */
-const FILTER_KEYS = [
-  "q",
-  "type",
-  "category",
-  "system",
-  "min",
-  "max",
-  "size",
-  "stock",
-  "sort",
-];
 
 function readNumber(value: string | undefined) {
   if (value === undefined) return undefined;
