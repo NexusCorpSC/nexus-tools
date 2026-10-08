@@ -111,7 +111,7 @@ export default async function SellPage() {
               type="text"
               placeholder={t("itemNamePlaceholder")}
               required
-                            maxLength={500}
+              maxLength={500}
             />
           </div>
         </div>
@@ -144,7 +144,7 @@ export default async function SellPage() {
               id="description"
               name="description"
               rows={3}
-                            defaultValue={""}
+              defaultValue={""}
               required
               maxLength={5000}
             />
@@ -165,7 +165,7 @@ export default async function SellPage() {
               min={0}
               required
               defaultValue={5000}
-                          />
+            />
           </div>
         </div>
 
