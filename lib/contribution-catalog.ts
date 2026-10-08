@@ -40,6 +40,7 @@ import {
   isPlacePlanRef,
   type Place,
   type PlacePlan,
+  type PlacePosition,
 } from "@/types/places";
 import {
   POINTS,
@@ -207,6 +208,7 @@ const PLACE_FIELDS = [
   "soldItems",
   "tip",
   "parentSlug",
+  "position",
 ] as const;
 
 /** Réservés au niveau 4 : le nom fait l'adresse, le parent fait l'arbre. */
@@ -224,7 +226,38 @@ export function placeToInput(place: Place): PlaceInput {
     soldItems: place.soldItems,
     tip: place.tip,
     parentSlug: place.parentSlug ?? null,
+    position: place.position,
   };
+}
+
+/**
+ * Une position se range sur un corps que le NPS connaît, ou dans l'espace :
+ * sur un corps sans paramètres, l'app ne saurait pas la relire.
+ */
+/**
+ * Un corps décrit pour le NPS, et du système du lieu : chaque système a son
+ * propre repère, une position relevée ailleurs ne veut rien dire ici.
+ */
+async function assertPositionBody(
+  position: PlacePosition | undefined,
+  systemSlug: string | undefined,
+) {
+  if (!position?.body) return;
+  const body = await getPlaceBySlug(position.body);
+  if (!body?.celestial) {
+    throw new ContributionError(
+      "invalidInput",
+      400,
+      `Corps céleste inconnu : ${position.body}`,
+    );
+  }
+  if (systemSlug && body.systemSlug && body.systemSlug !== systemSlug) {
+    throw new ContributionError(
+      "invalidInput",
+      400,
+      `${body.name} n'est pas dans le système du lieu`,
+    );
+  }
 }
 
 /** Un magasin ne vend que des objets du catalogue. */
@@ -267,6 +300,10 @@ export async function buildPlaceCreate(
   } as PlaceInput;
   const normalized = validate(() => normalizePlaceInput(proposal));
   await assertSoldItems(normalized.soldItems);
+  await assertPositionBody(
+    normalized.position,
+    parent.type === "star" ? parent.slug : parent.systemSlug,
+  );
   // Le slug suit le nom : un contributeur n'en choisit pas, et deux lieux du
   // même nom se départagent à la relecture plutôt que par un suffixe.
   if (await getPlaceBySlug(normalized.slug)) {
@@ -312,6 +349,9 @@ export async function buildPlaceEdit(
 
   const normalized = validate(() => normalizePlaceInput(proposal));
   await assertSoldItems(normalized.soldItems);
+  if ("position" in proposed) {
+    await assertPositionBody(normalized.position, place.systemSlug);
+  }
   if (normalized.parentSlug && !(await getPlaceBySlug(normalized.parentSlug))) {
     throw new ContributionError("placeNotFound", 404);
   }

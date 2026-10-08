@@ -2848,7 +2848,8 @@
       "tag": "Tag",
       "soldItems": "Items sold",
       "tip": "Tip",
-      "placeSlugs": "Locations"
+      "placeSlugs": "Locations",
+      "position": "In-game coordinates"
     },
     "Mine": {
       "title": "My contributions",

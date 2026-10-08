@@ -63,6 +63,8 @@ import {
   type PlaceService,
   type PlaceSourceName,
   type PlaceSummary,
+  type PlacePosition,
+  type NpsResponse,
   type PlaceTreeNode,
   type PlaceTreeResponse,
   type StoredPlacePlan,
@@ -176,6 +178,11 @@ export type PlaceInput = {
   tip?: string;
   parentSlug?: string | null;
   source?: unknown;
+  /**
+   * Absent de l'entrée : la position du lieu ne change pas. Un formulaire qui
+   * ne la montre pas ne doit pas l'effacer (voir `updatePlace`).
+   */
+  position?: unknown;
 };
 
 /** Ce qu'un formulaire ou un import écrit. Les champs dérivés n'en sont pas. */
@@ -191,7 +198,42 @@ type NormalizedPlace = {
   tip?: string;
   parentSlug?: string;
   source?: Place["source"];
+  position?: PlacePosition;
 };
+
+/**
+ * Bien au-delà du plus grand système connu (quelques dizaines de millions de
+ * kilomètres) : ce qui dépasse n'est pas un relevé, c'est une faute de frappe.
+ */
+const MAX_POSITION_METERS = 1e13;
+
+/** Une position de lieu, ou rien. Lève sur une position à moitié lisible. */
+export function normalizePlacePosition(
+  value: unknown,
+): PlacePosition | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const raw = value as Partial<Record<keyof PlacePosition, unknown>>;
+  const coordinates = [raw.x, raw.y, raw.z].map((coordinate) =>
+    typeof coordinate === "string" ? Number(coordinate) : coordinate,
+  );
+  if (
+    !coordinates.every(
+      (coordinate): coordinate is number =>
+        typeof coordinate === "number" &&
+        Number.isFinite(coordinate) &&
+        Math.abs(coordinate) <= MAX_POSITION_METERS,
+    )
+  ) {
+    throw new Error("Coordonnées du lieu invalides");
+  }
+  // Le centimètre ne veut rien dire pour un relevé fait à la main ou presque :
+  // arrondir au mètre garde l'avant/après lisible.
+  const [x, y, z] = coordinates.map((coordinate) => Math.round(coordinate));
+  const body = raw.body
+    ? toPlaceSlug(text(raw.body, MAX_PLACE_NAME_LENGTH))
+    : undefined;
+  return withoutUndefined({ body: body || undefined, x, y, z });
+}
 
 export function normalizePlaceInput(input: PlaceInput): NormalizedPlace {
   const name = text(input.name, MAX_PLACE_NAME_LENGTH);
@@ -225,6 +267,7 @@ export function normalizePlaceInput(input: PlaceInput): NormalizedPlace {
       ? toPlaceSlug(text(input.parentSlug, MAX_PLACE_NAME_LENGTH))
       : undefined,
     source: source?.name && source?.id ? source : undefined,
+    position: normalizePlacePosition(input.position),
   };
 }
 
@@ -1457,6 +1500,79 @@ export async function removeBorrowedPlan(
   return savePlacePlans(slug, plans);
 }
 
+/**
+ * Tout ce dont le NPS a besoin pour se repérer : les corps célestes et les
+ * lieux relevés. D'un bloc, parce que l'app calcule de son côté — la distance
+ * au lieu le plus proche demande de les avoir tous — et que les lieux relevés
+ * se comptent en centaines, pas en milliers.
+ */
+export async function getNpsData(): Promise<NpsResponse> {
+  const [bodies, places] = await Promise.all([
+    collection()
+      .find(
+        { celestial: { $exists: true } },
+        {
+          projection: {
+            _id: 0,
+            slug: 1,
+            name: 1,
+            systemSlug: 1,
+            systemName: 1,
+            celestial: 1,
+          },
+        },
+      )
+      .toArray(),
+    collection()
+      .find(
+        { position: { $exists: true } },
+        {
+          projection: {
+            _id: 0,
+            slug: 1,
+            name: 1,
+            type: 1,
+            systemSlug: 1,
+            systemName: 1,
+            bodyName: 1,
+            parentName: 1,
+            position: 1,
+          },
+        },
+      )
+      .sort({ path: 1 })
+      .toArray(),
+  ]);
+
+  return {
+    bodies: bodies.map(({ slug, name, systemSlug, systemName, celestial }) =>
+      withoutUndefined({ slug, name, systemSlug, systemName, ...celestial! }),
+    ),
+    places: places.map(
+      ({
+        slug,
+        name,
+        type,
+        systemSlug,
+        systemName,
+        bodyName,
+        parentName,
+        position,
+      }) =>
+        withoutUndefined({
+          slug,
+          name,
+          type,
+          systemSlug,
+          systemName,
+          bodyName,
+          parentName,
+          position: position!,
+        }),
+    ),
+  };
+}
+
 export async function getPlaceFacets(): Promise<PlaceFacets> {
   const [facets] = await collection()
     .aggregate<{
@@ -1669,9 +1785,13 @@ export async function updatePlace(
 
   const entries = (
     Object.entries(normalized) as [keyof NormalizedPlace, unknown][]
-  ).filter(
-    ([key]) => !options.only || (options.only as string[]).includes(key),
-  );
+  )
+    .filter(
+      ([key]) => !options.only || (options.only as string[]).includes(key),
+    )
+    // La position n'est écrite que par qui l'envoie : le formulaire d'un lieu
+    // ne la montre pas, et l'enregistrer ne doit pas effacer un relevé.
+    .filter(([key]) => key !== "position" || "position" in input);
 
   // Un champ vidé par le formulaire est retiré plutôt qu'écrit à `undefined`
   // (que le driver stockerait en `null`), sinon l'ancienne valeur survivrait à

@@ -16,7 +16,8 @@
     "merge:blueprints": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/merge-duplicate-blueprints.ts",
     "ensure:indexes": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/ensure-indexes.ts",
     "clean:blobs": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/clean-orphan-blobs.ts",
-    "backfill:banners": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/backfill-place-banners.ts"
+    "backfill:banners": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/backfill-place-banners.ts",
+    "import:celestial-bodies": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-celestial-bodies.ts"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",

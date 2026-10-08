@@ -566,6 +566,76 @@ export function isPlacePlanRef(
   );
 }
 
+// ─── NPS (Nexus Positioning System) ─────────────────────────────────────────
+
+/**
+ * Où se trouve un lieu en jeu, en mètres, tel que `/showlocation` le relève.
+ *
+ * `/showlocation` donne une position dans le repère du système, centré sur son
+ * étoile. Ce repère ne bouge pas, mais les planètes tournent : un avant-poste
+ * n'y a pas deux fois la même position. Un lieu posé sur un corps (`body`, le
+ * slug d'un lieu qui porte `celestial`) est donc rangé dans le repère de ce
+ * corps, rotation annulée — et là, il ne bouge plus. Un lieu dans l'espace
+ * (station, point de Lagrange) n'a pas de `body` et reste dans le repère du
+ * système : les orbites sont figées en jeu.
+ *
+ * C'est l'app qui fait la conversion au relevé, et la même qui la défait pour
+ * guider : une constante de rotation un peu fausse décale tous les lieux d'un
+ * même corps du même angle, et les distances entre eux restent justes.
+ */
+export type PlacePosition = {
+  body?: string;
+  x: number;
+  y: number;
+  z: number;
+};
+
+/** Ce que le NPS doit savoir d'une planète ou d'une lune. */
+export type CelestialBody = {
+  /** Le centre, en mètres, dans le repère du système. */
+  x: number;
+  y: number;
+  z: number;
+  /** Le rayon du sol, en mètres : l'altitude se mesure depuis lui. */
+  radius: number;
+  /**
+   * Jusqu'où, en mètres depuis le centre, on est « sur » ce corps : son repère
+   * tourne avec lui jusque-là.
+   */
+  zoneRadius: number;
+  /** La durée d'un tour sur lui-même, en heures. 0 : il ne tourne pas. */
+  rotationHours: number;
+  /** Son angle de rotation au 1er janvier 2020 à 0 h UTC, en degrés. */
+  rotationAdjust: number;
+};
+
+/** Un corps céleste tel que `GET /api/lieux/nps` le donne. */
+export type NpsBody = CelestialBody & {
+  slug: string;
+  name: string;
+  systemSlug?: string;
+  systemName?: string;
+};
+
+/** Un lieu relevé, tel que `GET /api/lieux/nps` le donne. */
+export type NpsPlace = {
+  slug: string;
+  name: string;
+  type: PlaceType;
+  /** Chaque système a son repère : une position n'a de sens que dans le sien. */
+  systemSlug?: string;
+  systemName?: string;
+  bodyName?: string;
+  parentName?: string;
+  position: PlacePosition;
+};
+
+/** `GET /api/lieux/nps` : de quoi se repérer, tout d'un bloc. */
+export type NpsResponse = {
+  bodies: NpsBody[];
+  places: NpsPlace[];
+};
+
 export type Place = {
   id: string;
   slug: string;
@@ -615,6 +685,10 @@ export type Place = {
 
   plans?: StoredPlacePlan[];
   source?: PlaceSource;
+  /** Où le lieu se trouve en jeu, pour le NPS. Relevé par les joueurs. */
+  position?: PlacePosition;
+  /** Pour une planète ou une lune : de quoi s'y repérer. Posé par import. */
+  celestial?: CelestialBody;
   createdAt?: string;
   updatedAt?: string;
 };
