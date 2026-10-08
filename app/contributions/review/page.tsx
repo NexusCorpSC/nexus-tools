@@ -24,7 +24,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * La file de relecture, pour les Archivistes : la même que celle des
- * modérateurs, sans leurs propres contributions. Annuler une publication ou
+ * modérateurs, sans leurs propres contributions. Un modérateur qui relit ici
+ * relit en joueur et gagne le point de relecture. Annuler une publication ou
  * traiter un signalement reste à la modération.
  */
 export default async function ReviewPage() {
@@ -41,10 +42,11 @@ export default async function ReviewPage() {
 
   const t = await getTranslations("Contributions.Review");
   const tAdmin = await getTranslations("Contributions.Admin");
-  // Un joueur relit par lots de `PLAYER_REVIEW_BATCH` : sa sélection ne
-  // dépasse jamais ce que l'action accepte.
+  // Ici, tout le monde relit en joueur, modérateurs compris : par lots de
+  // `PLAYER_REVIEW_BATCH`, et la sélection ne dépasse jamais ce que l'action
+  // accepte.
   const { items, total } = await listPendingContributions(
-    moderator ? 300 : PLAYER_REVIEW_BATCH,
+    PLAYER_REVIEW_BATCH,
     userId,
   );
 
@@ -65,7 +67,7 @@ export default async function ReviewPage() {
         )}
       </div>
 
-      <ReviewQueue items={items} total={total} />
+      <ReviewQueue items={items} total={total} scope="archivist" />
 
       <div className="border-t border-[#9ED0FF]/15 pt-4">
         <Button asChild variant="outline">
