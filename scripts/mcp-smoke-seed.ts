@@ -190,6 +190,19 @@ async function main() {
       location: { id: "smoke-outpost", name: "Smoke Outpost", system: "Smoke" },
     },
   );
+  // Les lieux d'inventaire du catalogue, comme le miroir des lieux en crée.
+  for (const place of ["smoke-outpost", "smoke-station"]) {
+    await upsert(
+      "locations",
+      { placeSlug: place },
+      {
+        placeSlug: place,
+        name: place === "smoke-outpost" ? "Smoke Outpost" : "Smoke Station",
+        slug: place,
+        system: "Smoke",
+      },
+    );
+  }
   console.log("Données de fumée en place.");
   await client.close();
 }

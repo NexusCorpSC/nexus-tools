@@ -27,7 +27,34 @@ type Case = {
   auth?: boolean;
   /** Réponses aux élicitations, par message contenant la clé. */
   answers?: Record<string, Record<string, unknown>>;
+  /**
+   * Un outil qui écrit : en 2025 (sans élicitation), le premier appel doit
+   * demander confirmation et le second, avec `confirm: true`, aboutir ; en
+   * 2026-07-28, l'élicitation confirme d'elle-même.
+   */
+  write?: boolean;
+  /** Le statut attendu d'une écriture (`done` par défaut). */
+  status?: string;
+  /** Seulement en 2026-07-28 (refus par l'élicitation). */
+  modernOnly?: boolean;
+  /** Retient des valeurs du résultat pour les arguments `$nom` des cas suivants. */
+  save?: (structured: Record<string, unknown>) => Record<string, string>;
 };
+
+/** Remplace les arguments `$nom` par les valeurs retenues. */
+function fill(
+  args: Record<string, unknown>,
+  vars: Record<string, string>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(args).map(([key, value]) => [
+      key,
+      typeof value === "string" && value.startsWith("$")
+        ? (vars[value.slice(1)] ?? value)
+        : value,
+    ]),
+  );
+}
 
 const CASES: Case[] = [
   { tool: "whoami", args: {}, auth: true },
@@ -64,6 +91,90 @@ const CASES: Case[] = [
   { tool: "list_listing_facets", args: {} },
   { tool: "get_listing", args: { id: "smoke-listing" } },
   { tool: "get_shop", args: { id: "smoke-shop" } },
+  // Outils personnels, avec MCP_TOKEN : écritures confirmées.
+  {
+    tool: "add_inventory",
+    args: {
+      location: "Smoke Outpost",
+      lots: [{ name: "Smoke Rifle", quantity: 2, quality: 500 }],
+    },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "list_inventory",
+    args: { query: "Smoke Rifle", location: "smoke-outpost" },
+    auth: true,
+    save: (s) => ({ lot: (s.lots as { id: string }[])[0]?.id ?? "" }),
+  },
+  { tool: "search_inventory_locations", args: { query: "smoke" }, auth: true },
+  {
+    tool: "add_inventory",
+    args: { location: "Nowhere at all", lots: [{ name: "X", quantity: 1 }] },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "update_inventory_lot",
+    args: { lotId: "$lot", adjust: 1, description: "fumée" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "update_inventory_lot",
+    args: { lotId: "$lot", remove: true },
+    auth: true,
+    write: true,
+    modernOnly: true,
+    answers: { Remove: { confirm: false } },
+    status: "cancelled",
+  },
+  {
+    tool: "move_inventory_lot",
+    args: { lotId: "$lot", location: "smoke-station", quantity: 1 },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "update_inventory_lot",
+    args: { lotId: "$lot", remove: true },
+    auth: true,
+    write: true,
+  },
+  { tool: "my_contributor_standing", args: {}, auth: true },
+  {
+    tool: "contribute_place_edit",
+    args: {
+      place: "smoke-station",
+      changes: { tip: `Astuce de fumée ${Date.now()}` },
+    },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "contribute_place_position",
+    args: {
+      place: "smoke-station",
+      location: "Coordinates: x:1000100000.000 y:1500.000 z:0.000",
+    },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "contribute_item_edit",
+    args: {
+      item: "smoke-item",
+      changes: { description: `Description de fumée ${Date.now()}` },
+    },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "contribute_place_edit",
+    args: { place: "nope", changes: { tip: "x" } },
+    auth: true,
+    expectError: true,
+  },
 ];
 
 /** Les modèles de ressources et prompts dont on essaie l'autocomplétion. */
@@ -156,23 +267,43 @@ async function run(era: "legacy" | "2026-07-28"): Promise<number> {
   }
 
   const known = new Set(tools.tools.map((t) => t.name));
+  const vars: Record<string, string> = {};
+  const call = async (name: string, args: Record<string, unknown>) => {
+    const result = await client.callTool({ name, arguments: args });
+    const first = (result.content as { type: string; text?: string }[])?.find(
+      (part) => part.type === "text",
+    )?.text;
+    return {
+      isError: Boolean(result.isError),
+      structured: (result.structuredContent ?? {}) as Record<string, unknown>,
+      text: (first ?? "").split("\n")[0].slice(0, 100),
+    };
+  };
   for (const c of CASES) {
     if ((c.atlas && local) || (c.auth && !token)) continue;
+    if (c.modernOnly && era === "legacy") continue;
     if (!known.has(c.tool)) {
       console.log(`✗ ${c.tool} : outil absent`);
       failures++;
       continue;
     }
     current.case = c;
+    const args = fill(c.args, vars);
     try {
-      const result = await client.callTool({ name: c.tool, arguments: c.args });
-      const isError = Boolean(result.isError);
-      const ok = isError === Boolean(c.expectError);
-      const first = (result.content as { type: string; text?: string }[])?.find(
-        (part) => part.type === "text",
-      )?.text;
+      let result = await call(c.tool, args);
+      let ok = result.isError === Boolean(c.expectError);
+      if (ok && c.write && era === "legacy") {
+        // Sans élicitation : rien n'est fait avant `confirm: true`.
+        ok = result.structured.status === "confirmation_required";
+        if (ok) result = await call(c.tool, { ...args, confirm: true });
+      }
+      if (ok && c.write) {
+        ok =
+          !result.isError && result.structured.status === (c.status ?? "done");
+      }
+      if (ok && c.save) Object.assign(vars, c.save(result.structured));
       console.log(
-        `${ok ? "✓" : "✗"} ${c.tool} ${JSON.stringify(c.args)}${isError ? " (erreur)" : ""} : ${(first ?? "").split("\n")[0].slice(0, 100)}`,
+        `${ok ? "✓" : "✗"} ${c.tool} ${JSON.stringify(args)}${result.isError ? " (erreur)" : ""} : ${result.text}`,
       );
       if (!ok) failures++;
     } catch (error) {

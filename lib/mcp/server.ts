@@ -4,6 +4,8 @@ import { registerNexusPrompts } from "./prompts";
 import { registerNexusResources } from "./resources";
 import { registerAccountTools } from "./tools/account";
 import { registerBlueprintTools } from "./tools/blueprints";
+import { registerContributionTools } from "./tools/contributions";
+import { registerInventoryTools } from "./tools/inventory";
 import { registerItemTools } from "./tools/items";
 import { registerMarketplaceReadTools } from "./tools/marketplace";
 import { registerPlaceTools } from "./tools/places";
@@ -26,6 +28,8 @@ export function registerNexusServer(server: McpServer) {
   registerItemTools(server);
   registerPlaceTools(server);
   registerMarketplaceReadTools(server);
+  registerInventoryTools(server);
+  registerContributionTools(server);
   registerNexusResources(server);
   registerNexusPrompts(server);
 }
@@ -44,4 +48,6 @@ export const MCP_CACHE_HINTS = {
 export const MCP_INSTRUCTIONS =
   "Nexus Tools is a community toolbox for Star Citizen. Use search first when the kind of thing is unclear, " +
   "then the dedicated get_* tools. Links point to tools.services.nexus pages: give them to the user. " +
-  "Prices are in aUEC. NPS coordinates come from the in-game /showlocation command.";
+  "Prices are in aUEC. NPS coordinates come from the in-game /showlocation command. " +
+  "Personal tools (inventory, contributions, orders…) need the user to sign in to their Nexus account; " +
+  "every change they make is shown to the user for confirmation first, and contributions go to community review unless the user is a trusted contributor.";

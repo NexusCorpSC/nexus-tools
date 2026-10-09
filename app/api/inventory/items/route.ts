@@ -3,8 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
-import { reservedQuantities } from "@/lib/parcels";
-import { getLotSales } from "@/lib/lot-sales";
+import { listInventory } from "@/lib/inventory";
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -17,80 +16,12 @@ export async function GET(request: NextRequest) {
   const locationId = searchParams.get("locationId") || undefined;
   const quality = searchParams.get("quality");
 
-  const userId = session.user.id;
-
-  const matchStage: Record<string, unknown> = { userId };
-
-  if (query) {
-    matchStage.name = { $regex: query, $options: "i" };
-  }
-  if (locationId) {
-    matchStage.locationId = locationId;
-  }
-  if (quality !== null && quality !== undefined && quality !== "") {
-    matchStage.quality = { $gte: parseInt(quality, 10) };
-  }
-
-  const items = await db
-    .db()
-    .collection("inventoryItems")
-    .aggregate([
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: "locations",
-          let: { locationId: "$locationId" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $eq: [{ $toString: "$_id" }, "$$locationId"],
-                },
-              },
-            },
-            { $limit: 1 },
-          ],
-          as: "locationData",
-        },
-      },
-      {
-        $addFields: {
-          location: { $arrayElemAt: ["$locationData", 0] },
-        },
-      },
-      { $unset: "locationData" },
-      { $sort: { updatedAt: -1 } },
-    ])
-    .toArray();
-
-  // What parcels still waiting promise of each lot (`lib/parcels.ts`).
-  const reserved = await reservedQuantities(userId);
-  // The listings that follow each lot, for the "on sale" badge.
-  const sales = await getLotSales(items.map((item) => item._id.toString()));
-
-  const result = items.map((item) => ({
-    id: item._id.toString(),
-    reserved: reserved.get(item._id.toString()),
-    sales: sales.get(item._id.toString()),
-    name: item.name,
-    description: item.description,
-    quality: item.quality,
-    quantity: item.quantity,
-    unit: item.unit,
-    locationId: item.locationId,
-    userId: item.userId,
-    updatedAt: item.updatedAt,
-    orgVisible: item.orgVisible === true,
-    location: item.location
-      ? {
-          id: item.location._id.toString(),
-          name: item.location.name,
-          slug: item.location.slug,
-          system: item.location.system,
-          userId: item.location.userId,
-        }
-      : null,
-  }));
+  const result = await listInventory(session.user.id, {
+    query,
+    locationId,
+    minQuality:
+      quality !== null && quality !== "" ? parseInt(quality, 10) : undefined,
+  });
 
   return NextResponse.json(result);
 }
@@ -117,13 +48,13 @@ export async function POST(request: NextRequest) {
   if (typeof quantity !== "number" || isNaN(quantity)) {
     return NextResponse.json(
       { error: "quantity must be a number" },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (typeof locationId !== "string" || !locationId.trim()) {
     return NextResponse.json(
       { error: "locationId is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (
@@ -133,7 +64,7 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json(
       { error: "quality must be a non-negative integer" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -142,9 +73,13 @@ export async function POST(request: NextRequest) {
     _id: new ObjectId(),
     name: (name as string).trim(),
     description:
-      typeof description === "string" ? description.trim() || undefined : undefined,
+      typeof description === "string"
+        ? description.trim() || undefined
+        : undefined,
     quality:
-      quality !== undefined && quality !== null ? (quality as number) : undefined,
+      quality !== undefined && quality !== null
+        ? (quality as number)
+        : undefined,
     quantity: quantity as number,
     unit: typeof unit === "string" ? unit.trim() || undefined : undefined,
     locationId: (locationId as string).trim(),
