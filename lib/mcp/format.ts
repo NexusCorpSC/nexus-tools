@@ -42,3 +42,27 @@ export const READ_ONLY = {
   idempotentHint: true,
   openWorldHint: false,
 } as const;
+
+/**
+ * Un objet en JSON, pour le texte de repli : les clients qui ne lisent pas
+ * `structuredContent` donnent au modèle ce texte-là, il doit donc tout porter.
+ */
+export function jsonBlock(data: unknown): string {
+  return "```json\n" + JSON.stringify(data, null, 1) + "\n```";
+}
+
+/** Retire les champs internes avant de rendre un document de la base. */
+export function withoutInternals<T extends Record<string, unknown>>(
+  doc: T,
+  extra: string[] = [],
+): Record<string, unknown> {
+  const drop = new Set(["_id", "source", ...extra]);
+  return Object.fromEntries(
+    Object.entries(doc).filter(
+      ([key, value]) => !drop.has(key) && value !== undefined,
+    ),
+  );
+}
+
+/** La taille de page des outils de recherche. */
+export const PAGE_SIZE = { default: 10, max: 50 } as const;

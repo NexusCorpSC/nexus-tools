@@ -133,7 +133,9 @@ export function registerBlueprintTools(server: McpServer) {
                   .map(
                     (option) =>
                       `${option.quantity}${option.unit ? ` ${option.unit}` : ""} ${option.name}` +
-                      (option.minQuality ? ` (quality ≥ ${option.minQuality})` : ""),
+                      (option.minQuality
+                        ? ` (quality ≥ ${option.minQuality})`
+                        : ""),
                   )
                   .join(" or "),
             )

@@ -1,5 +1,10 @@
 import { createMcpHandler } from "mcp-handler";
-import { MCP_SERVER_INFO, registerNexusServer } from "@/lib/mcp/server";
+import {
+  MCP_CACHE_HINTS,
+  MCP_INSTRUCTIONS,
+  MCP_SERVER_INFO,
+  registerNexusServer,
+} from "@/lib/mcp/server";
 
 /**
  * Le serveur MCP (https://modelcontextprotocol.io), en Streamable HTTP.
@@ -12,6 +17,8 @@ export const maxDuration = 60;
 
 const handler = createMcpHandler(registerNexusServer, {
   serverInfo: MCP_SERVER_INFO,
+  instructions: MCP_INSTRUCTIONS,
+  cacheHints: MCP_CACHE_HINTS,
   verboseLogs: process.env.NODE_ENV === "development",
 });
 

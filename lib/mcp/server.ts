@@ -1,6 +1,12 @@
 import "server-only";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { registerNexusPrompts } from "./prompts";
+import { registerNexusResources } from "./resources";
 import { registerBlueprintTools } from "./tools/blueprints";
+import { registerItemTools } from "./tools/items";
+import { registerMarketplaceReadTools } from "./tools/marketplace";
+import { registerPlaceTools } from "./tools/places";
+import { registerSearchTools } from "./tools/search";
 
 /**
  * Le serveur MCP de Nexus Tools, servi par `app/mcp/route.ts`.
@@ -13,5 +19,27 @@ import { registerBlueprintTools } from "./tools/blueprints";
 export const MCP_SERVER_INFO = { name: "Nexus Tools", version: "2.0.0" };
 
 export function registerNexusServer(server: McpServer) {
+  registerSearchTools(server);
   registerBlueprintTools(server);
+  registerItemTools(server);
+  registerPlaceTools(server);
+  registerMarketplaceReadTools(server);
+  registerNexusResources(server);
+  registerNexusPrompts(server);
 }
+
+/**
+ * Les listes ne changent qu'avec un déploiement : les clients peuvent les
+ * garder une heure (champs `ttlMs` / `cacheScope` de la spec 2026-07-28).
+ */
+export const MCP_CACHE_HINTS = {
+  "tools/list": { ttlMs: 60 * 60 * 1000, cacheScope: "public" },
+  "prompts/list": { ttlMs: 60 * 60 * 1000, cacheScope: "public" },
+  "resources/templates/list": { ttlMs: 60 * 60 * 1000, cacheScope: "public" },
+  "server/discover": { ttlMs: 60 * 60 * 1000, cacheScope: "public" },
+} as const;
+
+export const MCP_INSTRUCTIONS =
+  "Nexus Tools is a community toolbox for Star Citizen. Use search first when the kind of thing is unclear, " +
+  "then the dedicated get_* tools. Links point to tools.services.nexus pages: give them to the user. " +
+  "Prices are in aUEC. NPS coordinates come from the in-game /showlocation command.";

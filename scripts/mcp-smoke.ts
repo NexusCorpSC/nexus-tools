@@ -11,7 +11,10 @@
  * Une élicitation reçue est acceptée avec la réponse prévue par le cas
  * (`answers`), ou acceptée vide s'il n'en prévoit pas.
  */
-import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 
 type Case = {
   tool: string;
@@ -30,7 +33,56 @@ const CASES: Case[] = [
   { tool: "search_blueprints", args: { query: "rifle" }, atlas: true },
   { tool: "get_blueprint_by_slug", args: { slug: "smoke-blueprint" } },
   { tool: "get_blueprint_by_slug", args: { slug: "nope" }, expectError: true },
+  { tool: "search", args: { query: "smoke" } },
+  { tool: "search_items", args: { query: "smoke", kind: "weapon" } },
+  { tool: "list_item_facets", args: {} },
+  { tool: "get_item", args: { slug: "smoke-item" } },
+  { tool: "compare_items", args: { slugs: ["smoke-item", "smoke-item-2"] } },
+  { tool: "search_places", args: { query: "smoke" } },
+  { tool: "list_place_facets", args: {} },
+  { tool: "get_place", args: { slug: "smoke-outpost" } },
+  { tool: "get_place_plan", args: { slug: "smoke-outpost" } },
+  {
+    tool: "get_place_plan",
+    args: { slug: "smoke-station" },
+    expectError: true,
+  },
+  {
+    tool: "nps_locate",
+    args: {
+      location: "Coordinates: x:1000100000.000 y:1000.000 z:0.000",
+      destination: "smoke-station",
+    },
+  },
+  {
+    tool: "nps_locate",
+    args: { location: "n'importe quoi" },
+    expectError: true,
+  },
+  { tool: "search_listings", args: { query: "smoke" } },
+  { tool: "list_listing_facets", args: {} },
+  { tool: "get_listing", args: { id: "smoke-listing" } },
+  { tool: "get_shop", args: { id: "smoke-shop" } },
 ];
+
+/** Les modèles de ressources et prompts dont on essaie l'autocomplétion. */
+const COMPLETIONS = [
+  {
+    ref: { type: "ref/resource", uri: "nexus://items/{slug}" },
+    argument: "slug",
+    value: "smo",
+  },
+  {
+    ref: { type: "ref/resource", uri: "nexus://places/{slug}" },
+    argument: "slug",
+    value: "smoke-o",
+  },
+  {
+    ref: { type: "ref/prompt", name: "where_to_get_item" },
+    argument: "item",
+    value: "smoke",
+  },
+] as const;
 
 const url = new URL(process.env.MCP_URL || "http://localhost:3000/mcp");
 const token = process.env.MCP_TOKEN;
@@ -65,7 +117,9 @@ async function run(era: "legacy" | "2026-07-28"): Promise<number> {
   console.log(`\n== ${era} (${url.href})`);
 
   const tools = await client.listTools();
-  console.log(`tools (${tools.tools.length}) : ${tools.tools.map((t) => t.name).join(", ")}`);
+  console.log(
+    `tools (${tools.tools.length}) : ${tools.tools.map((t) => t.name).join(", ")}`,
+  );
   const caps = client.getServerCapabilities() ?? {};
   if (caps.resources) {
     const templates = await client.listResourceTemplates();
@@ -78,8 +132,29 @@ async function run(era: "legacy" | "2026-07-28"): Promise<number> {
     console.log(`prompts : ${prompts.prompts.map((p) => p.name).join(", ")}`);
   }
 
-  const known = new Set(tools.tools.map((t) => t.name));
   let failures = 0;
+  if (caps.completions) {
+    for (const c of COMPLETIONS) {
+      try {
+        const result = await client.complete({
+          ref: c.ref as never,
+          argument: { name: c.argument, value: c.value },
+        });
+        const values = result.completion.values;
+        console.log(
+          `${values.length ? "✓" : "✗"} complétion ${JSON.stringify(c.ref)} « ${c.value} » : ${values.slice(0, 5).join(", ")}`,
+        );
+        if (!values.length) failures++;
+      } catch (error) {
+        console.log(
+          `✗ complétion ${JSON.stringify(c.ref)} : ${(error as Error).message}`,
+        );
+        failures++;
+      }
+    }
+  }
+
+  const known = new Set(tools.tools.map((t) => t.name));
   for (const c of CASES) {
     if ((c.atlas && local) || (c.auth && !token)) continue;
     if (!known.has(c.tool)) {
