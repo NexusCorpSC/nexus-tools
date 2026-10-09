@@ -511,6 +511,16 @@ async function ensureOAuth(database: Db) {
   await refresh.createIndex({ clientId: 1, userId: 1 });
 }
 
+/**
+ * Les brouillons de plans dessinés par des agents (serveur MCP) : ceux d'un
+ * joueur, et l'expiration sept jours après la dernière modification.
+ */
+async function ensurePlanDrafts(database: Db) {
+  const drafts = database.collection("placePlanDrafts");
+  await drafts.createIndex({ userId: 1, updatedAt: -1 });
+  await drafts.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+}
+
 const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
@@ -530,6 +540,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["reports", ensureReports],
   ["community", ensureCommunity],
   ["oauth", ensureOAuth],
+  ["planDrafts", ensurePlanDrafts],
 ];
 
 async function main() {

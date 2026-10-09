@@ -203,6 +203,11 @@ async function main() {
       },
     );
   }
+  // Les contributions laissées par les essais précédents : sans cela, un
+  // compte de niveau 1 atteint vite sa limite de propositions en attente.
+  await db
+    .collection("contributions")
+    .deleteMany({ "target.slug": { $regex: "^smoke-" } });
   console.log("Données de fumée en place.");
   await client.close();
 }

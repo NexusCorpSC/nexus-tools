@@ -6,6 +6,8 @@ import { registerAccountTools } from "./tools/account";
 import { registerBlueprintTools } from "./tools/blueprints";
 import { registerContributionTools } from "./tools/contributions";
 import { registerInventoryTools } from "./tools/inventory";
+import { registerPlanDraftTools } from "./tools/plan-drafts";
+import { registerPlanFormatResource } from "./plan-format";
 import { registerItemTools } from "./tools/items";
 import { registerMarketplaceReadTools } from "./tools/marketplace";
 import { registerPlaceTools } from "./tools/places";
@@ -30,7 +32,9 @@ export function registerNexusServer(server: McpServer) {
   registerMarketplaceReadTools(server);
   registerInventoryTools(server);
   registerContributionTools(server);
+  registerPlanDraftTools(server);
   registerNexusResources(server);
+  registerPlanFormatResource(server);
   registerNexusPrompts(server);
 }
 

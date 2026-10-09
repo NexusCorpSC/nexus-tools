@@ -86,4 +86,34 @@ export function registerNexusPrompts(server: McpServer) {
           `Give me a shopping list with quantities.`,
       ),
   );
+
+  server.registerPrompt(
+    "survey_place_map",
+    {
+      title: "Draw the map of a place",
+      description:
+        "Survey and draw the floor map of a place with the plan draft tools, then submit it as a community contribution.",
+      argsSchema: z.object({
+        place: completable(
+          z.string().describe("Place slug"),
+          completePlaceSlug,
+        ),
+        notes: z
+          .string()
+          .optional()
+          .describe(
+            "What you know of the layout: screenshots, descriptions, sizes",
+          ),
+      }),
+    },
+    ({ place, notes }) =>
+      userPrompt(
+        `Draw the map of the place "${place}" for Nexus Tools. First read the resource nexus://docs/plan-format, ` +
+          `then get_place (its children become markers, its existing maps can be copied with fromPlanId). ` +
+          `Create a draft with plan_draft_create, build it level by level with plan_draft_edit, and call plan_draft_render ` +
+          `after each batch to look at the image and fix the anomalies it lists. ` +
+          (notes ? `What I know of the layout: ${notes} ` : "") +
+          `Show me the final render and submit it with plan_draft_submit once I agree.`,
+      ),
+  );
 }

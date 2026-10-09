@@ -41,18 +41,15 @@ type Case = {
   save?: (structured: Record<string, unknown>) => Record<string, string>;
 };
 
-/** Remplace les arguments `$nom` par les valeurs retenues. */
+/** Remplace les valeurs `"$nom"`, à toute profondeur, par les valeurs retenues. */
 function fill(
   args: Record<string, unknown>,
   vars: Record<string, string>,
 ): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(args).map(([key, value]) => [
-      key,
-      typeof value === "string" && value.startsWith("$")
-        ? (vars[value.slice(1)] ?? value)
-        : value,
-    ]),
+  return JSON.parse(
+    JSON.stringify(args).replace(/"\$(\w+)"/g, (match, name: string) =>
+      name in vars ? JSON.stringify(vars[name]) : match,
+    ),
   );
 }
 
@@ -175,6 +172,84 @@ const CASES: Case[] = [
     auth: true,
     expectError: true,
   },
+  // Plans dessinés par un agent.
+  {
+    tool: "plan_draft_create",
+    args: {
+      place: "smoke-station",
+      name: "Plan de fumée",
+      widthCm: 3000,
+      heightCm: 2000,
+    },
+    auth: true,
+    save: (s) => ({
+      draft: String(s.draftId),
+      level: (s.outline as { levels: { id: string }[] }).levels[0].id,
+    }),
+  },
+  {
+    tool: "plan_draft_edit",
+    args: {
+      draftId: "$draft",
+      ops: [
+        {
+          op: "add_room",
+          levelId: "$level",
+          id: "hall",
+          name: "Hall",
+          kind: "circulation",
+          x: 200,
+          y: 200,
+          w: 800,
+          h: 600,
+        },
+        {
+          op: "add_room",
+          levelId: "$level",
+          id: "store",
+          name: "Réserve",
+          kind: "storage",
+          w: 500,
+          h: 600,
+          nextTo: { room: "Hall", side: "east" },
+        },
+        { op: "add_door", levelId: "$level", x: 1000, y: 500 },
+        { op: "add_door", levelId: "$level", x: 600, y: 210, kind: "double" },
+        {
+          op: "add_marker",
+          levelId: "$level",
+          x: 450,
+          y: 400,
+          place: "smoke-outpost",
+          label: "Vers l'avant-poste",
+        },
+        { op: "add_label", levelId: "$level", text: "Nord", x: 1500, y: 100 },
+      ],
+    },
+    auth: true,
+  },
+  {
+    tool: "plan_draft_edit",
+    args: { draftId: "$draft", ops: [{ op: "remove", id: "nope" }] },
+    auth: true,
+    expectError: true,
+  },
+  { tool: "plan_draft_render", args: { draftId: "$draft" }, auth: true },
+  { tool: "plan_draft_get", args: { draftId: "$draft" }, auth: true },
+  { tool: "plan_draft_get", args: {}, auth: true },
+  {
+    tool: "plan_draft_submit",
+    args: { draftId: "$draft", source: "fumée" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "plan_draft_create",
+    args: { place: "smoke-outpost", fromPlanId: "smoke-plan" },
+    auth: true,
+    save: (s) => ({ copy: String(s.draftId) }),
+  },
+  { tool: "plan_draft_discard", args: { draftId: "$copy" }, auth: true },
 ];
 
 /** Les modèles de ressources et prompts dont on essaie l'autocomplétion. */
