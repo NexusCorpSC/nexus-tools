@@ -11,7 +11,8 @@ import type { ListingLocation, ShopItemDbModel } from "@/lib/shop-items";
  * - saisi à la main : le vendeur le corrige depuis le back-office ;
  * - relié à un lot de son inventaire personnel (`inventoryItemId`) : la
  *   quantité et le lieu viennent du lot, et la remise d'une commande fait
- *   baisser le lot.
+ *   baisser le lot. Un plafond (`lotLimit`) peut limiter la part du lot
+ *   proposée ; il baisse à chaque remise.
  *
  * Un lot change aussi hors de la marketplace (inventaire, colis, app) : les
  * annonces qui le suivent sont resynchronisées à la lecture
@@ -61,6 +62,8 @@ export type LotSummary = {
   location?: ListingLocation;
 };
 
+export const MAX_LOT_LIMIT = 1_000_000;
+
 export const MAX_STOCK_NOTE = 200;
 
 function listings() {
@@ -84,6 +87,13 @@ function toObjectIds(ids: (string | undefined)[]): ObjectId[] {
 /** Ce que le lot peut encore vendre : ni fractions, ni ce que des colis ont promis. */
 function lotStock(lot: LotDbModel): number {
   return Math.max(0, Math.floor(lot.quantity - (lot.reserved ?? 0)));
+}
+
+/** Ce que l'annonce propose du lot : tout, ou au plus son plafond. */
+function cappedStock(lotLeft: number, lotLimit: number | undefined): number {
+  return lotLimit === undefined
+    ? lotLeft
+    : Math.min(lotLeft, Math.max(0, lotLimit));
 }
 
 async function locationsById(
@@ -158,7 +168,9 @@ export async function syncLinkedListings(
   filter: Filter<ShopItemDbModel>,
 ): Promise<void> {
   const linked = await listings()
-    .find({ ...filter, inventoryItemId: { $exists: true } })
+    // `$and` garde un filtre de l'appelant sur `inventoryItemId` (les
+    // annonces de certains lots) au lieu de l'écraser.
+    .find({ $and: [filter, { inventoryItemId: { $exists: true } }] })
     .toArray();
   if (linked.length === 0) return;
 
@@ -171,7 +183,8 @@ export async function syncLinkedListings(
   for (const listing of linked) {
     const lot = lotById.get(listing.inventoryItemId!);
     const reserved = listing.reserved ?? 0;
-    const stock = lot ? Math.max(reserved, lotStock(lot)) : reserved;
+    const offered = lot ? cappedStock(lotStock(lot), listing.lotLimit) : 0;
+    const stock = Math.max(reserved, offered);
     const location = lot ? places.get(lot.locationId) : undefined;
     const missing = !lot;
 
@@ -264,7 +277,10 @@ export type StockError =
   | "NOT_ENOUGH_STOCK"
   | "LINKED"
   | "LOT_NOT_FOUND"
-  | "NOT_AN_OBJECT";
+  | "NOT_AN_OBJECT"
+  | "ALREADY_ON_SALE"
+  | "INVALID_LIMIT"
+  | "NOT_LINKED";
 
 /** Corrige à la main le stock d'une annonce qui ne suit pas de lot. */
 export async function changeManualStock(
@@ -317,10 +333,17 @@ export async function linkLot(
   if (!ObjectId.isValid(lotId)) return { error: "LOT_NOT_FOUND" };
   const lot = await lots().findOne({ _id: new ObjectId(lotId), userId });
   if (!lot) return { error: "LOT_NOT_FOUND" };
+  if (await isLotOnSaleInShop(lotId, listing.shopId, listing.id)) {
+    return { error: "ALREADY_ON_SALE" };
+  }
 
+  // Un autre lot repart sans plafond : celui de l'ancien ne vaut plus rien.
   await listings().updateOne(
     { id: listing.id },
-    { $set: { inventoryItemId: lotId }, $unset: { lotMissing: "" } },
+    {
+      $set: { inventoryItemId: lotId },
+      $unset: { lotMissing: "", lotLimit: "" },
+    },
   );
   await recordMovement(listing, {
     delta: 0,
@@ -333,6 +356,57 @@ export async function linkLot(
   return {};
 }
 
+/**
+ * Un lot ne se vend qu'une fois par magasin : deux annonces se
+ * partageraient le même stock.
+ */
+export async function isLotOnSaleInShop(
+  lotId: string,
+  shopId: string,
+  exceptListingId?: string,
+): Promise<boolean> {
+  const count = await listings().countDocuments({
+    inventoryItemId: lotId,
+    shopId,
+    ...(exceptListingId && { id: { $ne: exceptListingId } }),
+  });
+  return count > 0;
+}
+
+/** Vrai pour un plafond acceptable : un entier d'au moins une unité. */
+export function isValidLotLimit(limit: unknown): limit is number {
+  return (
+    typeof limit === "number" &&
+    Number.isInteger(limit) &&
+    limit >= 1 &&
+    limit <= MAX_LOT_LIMIT
+  );
+}
+
+/**
+ * Change le plafond d'une annonce reliée, ou l'enlève (`null`) pour
+ * proposer tout le lot. Il ne descend pas sous ce que des commandes
+ * réservent déjà.
+ */
+export async function setLotLimit(
+  listing: ShopItemDbModel,
+  limit: number | null,
+): Promise<{ error?: StockError }> {
+  if (!listing.inventoryItemId) return { error: "NOT_LINKED" };
+  if (limit !== null && !isValidLotLimit(limit)) {
+    return { error: "INVALID_LIMIT" };
+  }
+  if (limit !== null && limit < (listing.reserved ?? 0)) {
+    return { error: "NOT_ENOUGH_STOCK" };
+  }
+  await listings().updateOne(
+    { id: listing.id },
+    limit === null ? { $unset: { lotLimit: "" } } : { $set: { lotLimit: limit } },
+  );
+  await syncLinkedListings({ id: listing.id });
+  return {};
+}
+
 /** L'annonce ne suit plus son lot : le stock reste tel quel, à corriger à la main. */
 export async function unlinkLot(
   listing: ShopItemDbModel,
@@ -341,7 +415,7 @@ export async function unlinkLot(
   if (!listing.inventoryItemId) return;
   await listings().updateOne(
     { id: listing.id },
-    { $unset: { inventoryItemId: "", lotMissing: "" } },
+    { $unset: { inventoryItemId: "", lotMissing: "", lotLimit: "" } },
   );
   await recordMovement(listing, {
     delta: 0,
@@ -367,6 +441,14 @@ export async function consumeStock(
       { returnDocument: "after" },
     );
     if (!listing) continue;
+
+    // Ce qui est remis sort aussi du plafond.
+    if (listing.lotLimit !== undefined) {
+      await listings().updateOne(
+        { id: line.listingId, lotLimit: { $exists: true } },
+        { $inc: { lotLimit: -line.quantity } },
+      );
+    }
 
     if (listing.inventoryItemId && ObjectId.isValid(listing.inventoryItemId)) {
       const lotId = new ObjectId(listing.inventoryItemId);

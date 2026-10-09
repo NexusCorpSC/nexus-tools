@@ -42,6 +42,7 @@ export type ShopItem = {
   hidden?: boolean;
   reportHidden?: boolean;
   inventoryItemId?: string;
+  lotLimit?: number;
   lotMissing?: boolean;
   shop: {
     id: string;
@@ -81,6 +82,11 @@ export type ShopItemDbModel = {
    * lieu viennent du lot (voir `lib/shop-stock.ts`).
    */
   inventoryItemId?: string;
+  /**
+   * Le plafond d'une annonce reliée : ce qu'elle peut encore vendre du lot,
+   * réservé compris. Il baisse à chaque remise ; absent, tout le lot se vend.
+   */
+  lotLimit?: number;
   /** Le lot suivi a disparu de l'inventaire : plus rien n'est disponible. */
   lotMissing?: boolean;
 };

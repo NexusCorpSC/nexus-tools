@@ -16,6 +16,7 @@ import {
   linkLot,
   type LotSummary,
   searchOwnLots,
+  setLotLimit,
   type StockError,
   unlinkLot,
 } from "@/lib/shop-stock";
@@ -150,4 +151,15 @@ export async function unlinkLotAction(itemId: string): Promise<void> {
   const { listing, byName } = await requireListingSeller(itemId);
   await unlinkLot(listing, { byName });
   revalidateListing(listing);
+}
+
+/** Le plafond du lot suivi, ou `null` pour proposer tout le lot. */
+export async function setLotLimitAction(
+  itemId: string,
+  limit: number | null,
+): Promise<{ error?: StockError }> {
+  const { listing } = await requireListingSeller(itemId);
+  const result = await setLotLimit(listing, limit);
+  if (!result.error) revalidateListing(listing);
+  return result;
 }
