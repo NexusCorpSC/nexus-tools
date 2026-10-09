@@ -3607,5 +3607,38 @@
     "profile": {
       "title": "Shop profile"
     }
+  },
+  "OAuthConsent": {
+    "title": "Authorize an application",
+    "intro": "{client} is asking for access to your Nexus Tools account.",
+    "unknownClient": "An application",
+    "signedInAs": "Signed in as {name}.",
+    "requested": "It will be able to:",
+    "scopes": {
+      "openid": "identify you",
+      "profile": "read your name",
+      "email": "read your email address",
+      "offline_access": "stay connected without asking you again",
+      "inventory:read": "read your inventory",
+      "inventory:write": "add, move and edit the lots of your inventory",
+      "marketplace:read": "read your cart, your orders and your shops",
+      "marketplace:write": "fill your cart, place and follow your orders, put items on sale and handle your shops' orders",
+      "contributions:write": "submit contributions on your behalf (places, maps, items)"
+    },
+    "warning": "An authorized application acts on your behalf. You can remove this access at any time in your settings.",
+    "website": "Application website",
+    "allow": "Allow",
+    "deny": "Deny",
+    "invalid": "This authorization request is no longer valid. Start the connection again from your application.",
+    "error": "Authorization failed. Try again from your application."
+  },
+  "ConnectedApps": {
+    "title": "Connected applications",
+    "intro": "The assistants and applications you allowed to access your account, for example through the MCP server.",
+    "empty": "No connected application.",
+    "since": "Authorized on {date}",
+    "scopes": "Access: {scopes}",
+    "revoke": "Remove access",
+    "revoked": "Access removed. The application loses access when its current token expires (one hour at most)."
   }
 }

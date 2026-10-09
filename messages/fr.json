@@ -3636,5 +3636,38 @@
     "profile": {
       "title": "Profil du magasin"
     }
+  },
+  "OAuthConsent": {
+    "title": "Autoriser une application",
+    "intro": "{client} demande l'accès à votre compte Nexus Tools.",
+    "unknownClient": "Une application",
+    "signedInAs": "Connecté en tant que {name}.",
+    "requested": "Elle pourra :",
+    "scopes": {
+      "openid": "vous identifier",
+      "profile": "lire votre nom",
+      "email": "lire votre adresse e-mail",
+      "offline_access": "rester connectée sans vous redemander",
+      "inventory:read": "lire votre inventaire",
+      "inventory:write": "ajouter, déplacer et modifier les lots de votre inventaire",
+      "marketplace:read": "lire votre panier, vos commandes et vos magasins",
+      "marketplace:write": "remplir votre panier, passer et suivre vos commandes, mettre en vente et gérer les commandes de vos magasins",
+      "contributions:write": "proposer des contributions en votre nom (lieux, plans, objets)"
+    },
+    "warning": "Une application autorisée agit en votre nom. Vous pourrez retirer cet accès à tout moment dans vos paramètres.",
+    "website": "Site de l'application",
+    "allow": "Autoriser",
+    "deny": "Refuser",
+    "invalid": "Cette demande d'autorisation n'est plus valide. Relancez la connexion depuis votre application.",
+    "error": "L'autorisation a échoué. Réessayez depuis votre application."
+  },
+  "ConnectedApps": {
+    "title": "Applications connectées",
+    "intro": "Les assistants et applications que vous avez autorisés à accéder à votre compte, par exemple par le serveur MCP.",
+    "empty": "Aucune application connectée.",
+    "since": "Autorisée le {date}",
+    "scopes": "Accès : {scopes}",
+    "revoke": "Retirer l'accès",
+    "revoked": "Accès retiré. L'application perd l'accès dès l'expiration de son jeton en cours (une heure au plus)."
   }
 }

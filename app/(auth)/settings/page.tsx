@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { ObjectId } from "mongodb";
 import { isHiddenFromLeaderboard } from "@/lib/gamification";
 import { AddPasskeyForm, LeaderboardVisibilityToggle } from "./components";
+import { ConnectedApps } from "./connected-apps";
 
 export const metadata: Metadata = {
   title: "Paramètres",
@@ -57,6 +58,8 @@ export default async function ProfilePage() {
         Classement
       </h2>
       <LeaderboardVisibilityToggle initialHidden={hidden} />
+
+      <ConnectedApps />
 
     </div>
   );

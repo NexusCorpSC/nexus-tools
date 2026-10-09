@@ -1,11 +1,16 @@
 import { betterAuth } from "better-auth";
-import { emailOTP, admin } from "better-auth/plugins";
+import { createAuthMiddleware } from "better-auth/api";
+import { emailOTP, admin, jwt } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
+import { mcp } from "@better-auth/mcp";
+import { cimd } from "@better-auth/cimd";
+import { fetchClientMetadataResource } from "@better-auth/cimd/node";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 
 import { Resend } from "resend";
 import db from "@/lib/db";
 import { desktopAuth } from "@/lib/desktop-auth";
+import { MCP_SCOPES, OIDC_SCOPES, mcpResource } from "@/lib/mcp/oauth-config";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -51,6 +56,19 @@ export function generateDiscriminator(): string {
   return randomNumber.toString().padStart(4, "0");
 }
 
+/** Une redirection d'application native : boucle locale en http, ou schéma privé. */
+function isNativeRedirectUri(uri: string): boolean {
+  try {
+    const url = new URL(uri);
+    if (url.protocol === "http:") {
+      return ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    }
+    return url.protocol !== "https:";
+  } catch {
+    return false;
+  }
+}
+
 export const auth = betterAuth({
   database: mongodbAdapter(db.db(), {
     usePlural: true,
@@ -94,7 +112,53 @@ export const auth = betterAuth({
       rpName: "Nexus Services",
     }),
     desktopAuth(),
+    // Les assistants (Claude, ChatGPT, VS Code…) se connectent au compte par
+    // OAuth pour les outils MCP personnels : inventaire, commandes, ventes,
+    // contributions. `mcp()` est le fournisseur OAuth réglé pour MCP : les
+    // jetons sont des JWT liés à la ressource `/mcp`, signés par `jwt()`.
+    jwt(),
+    mcp({
+      loginPage: "/login",
+      consentPage: "/oauth/consent",
+      resource: mcpResource(),
+      // Une heure : c'est ce que l'écran « Applications connectées » promet
+      // quand on retire un accès (le JWT reste valable jusqu'à expiration).
+      accessTokenExpiresIn: 60 * 60,
+      scopes: [...OIDC_SCOPES, ...MCP_SCOPES],
+      clientRegistrationDefaultScopes: [...OIDC_SCOPES, ...MCP_SCOPES],
+      // La spec MCP 2026-07-28 préfère les CIMD (ci-dessous) ; l'inscription
+      // dynamique reste ouverte pour les clients qui ne les connaissent pas.
+      allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: true,
+    }),
+    cimd({
+      fetchClientMetadataResource,
+      metadataProfile: "mcp-2026-07-28",
+    }),
   ],
+  // Le `/token` de `jwt()` rendrait un JWT pour la session du navigateur :
+  // rien ne s'en sert, et les jetons d'accès passent par `/oauth2/token`.
+  disabledPaths: ["/token"],
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/oauth2/register") return;
+      const body = ctx.body as Record<string, unknown> | undefined;
+      if (!body || body.application_type !== undefined) return;
+      // Les clients MCP de bureau (Claude Code, VS Code, Cursor…) s'inscrivent
+      // sans `application_type`, avec une redirection http://localhost ou un
+      // schéma d'application. better-auth les prendrait pour des clients web,
+      // qui exigent https : ce sont des clients natifs (RFC 8252).
+      const uris = Array.isArray(body.redirect_uris) ? body.redirect_uris : [];
+      const native =
+        uris.length > 0 &&
+        uris.every(
+          (uri) => typeof uri === "string" && isNativeRedirectUri(uri),
+        );
+      if (native) {
+        return { context: { body: { ...body, application_type: "native" } } };
+      }
+    }),
+  },
   databaseHooks: {
     user: {
       create: {

@@ -2,6 +2,7 @@ import "server-only";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { registerNexusPrompts } from "./prompts";
 import { registerNexusResources } from "./resources";
+import { registerAccountTools } from "./tools/account";
 import { registerBlueprintTools } from "./tools/blueprints";
 import { registerItemTools } from "./tools/items";
 import { registerMarketplaceReadTools } from "./tools/marketplace";
@@ -20,6 +21,7 @@ export const MCP_SERVER_INFO = { name: "Nexus Tools", version: "2.0.0" };
 
 export function registerNexusServer(server: McpServer) {
   registerSearchTools(server);
+  registerAccountTools(server);
   registerBlueprintTools(server);
   registerItemTools(server);
   registerPlaceTools(server);

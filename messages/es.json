@@ -3598,5 +3598,38 @@
     "profile": {
       "title": "Perfil de la tienda"
     }
+  },
+  "OAuthConsent": {
+    "title": "Autorizar una aplicación",
+    "intro": "{client} solicita acceso a tu cuenta de Nexus Tools.",
+    "unknownClient": "Una aplicación",
+    "signedInAs": "Conectado como {name}.",
+    "requested": "Podrá:",
+    "scopes": {
+      "openid": "identificarte",
+      "profile": "leer tu nombre",
+      "email": "leer tu dirección de correo",
+      "offline_access": "seguir conectada sin volver a preguntarte",
+      "inventory:read": "leer tu inventario",
+      "inventory:write": "añadir, mover y modificar los lotes de tu inventario",
+      "marketplace:read": "leer tu carrito, tus pedidos y tus tiendas",
+      "marketplace:write": "llenar tu carrito, hacer y seguir tus pedidos, poner a la venta y gestionar los pedidos de tus tiendas",
+      "contributions:write": "proponer contribuciones en tu nombre (lugares, planos, objetos)"
+    },
+    "warning": "Una aplicación autorizada actúa en tu nombre. Puedes retirar este acceso en cualquier momento en tus ajustes.",
+    "website": "Sitio de la aplicación",
+    "allow": "Autorizar",
+    "deny": "Rechazar",
+    "invalid": "Esta solicitud de autorización ya no es válida. Vuelve a conectar desde tu aplicación.",
+    "error": "La autorización ha fallado. Inténtalo de nuevo desde tu aplicación."
+  },
+  "ConnectedApps": {
+    "title": "Aplicaciones conectadas",
+    "intro": "Los asistentes y aplicaciones que has autorizado a acceder a tu cuenta, por ejemplo mediante el servidor MCP.",
+    "empty": "Ninguna aplicación conectada.",
+    "since": "Autorizada el {date}",
+    "scopes": "Acceso: {scopes}",
+    "revoke": "Retirar el acceso",
+    "revoked": "Acceso retirado. La aplicación pierde el acceso cuando caduca su token actual (una hora como máximo)."
   }
 }

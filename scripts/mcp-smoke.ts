@@ -30,6 +30,7 @@ type Case = {
 };
 
 const CASES: Case[] = [
+  { tool: "whoami", args: {}, auth: true },
   { tool: "search_blueprints", args: { query: "rifle" }, atlas: true },
   { tool: "get_blueprint_by_slug", args: { slug: "smoke-blueprint" } },
   { tool: "get_blueprint_by_slug", args: { slug: "nope" }, expectError: true },
