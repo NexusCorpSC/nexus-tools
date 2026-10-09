@@ -4,30 +4,21 @@ import { ObjectId } from "bson";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import db from "@/lib/db";
 import { auth } from "@/lib/auth";
-import {
-  getShop,
-  isListingOnSale,
-  isUserSellerOfShop,
-  type ShopItemDbModel,
-} from "@/lib/shop-items";
-import { syncLinkedListings } from "@/lib/shop-stock";
+import { MAX_ORDER_MESSAGE, orderListingNow } from "@/lib/marketplace-purchase";
+import { isUserSellerOfShop } from "@/lib/shop-items";
 import {
   addOrderMessage,
   type DirectOrderError,
   getOrderById,
   type OrderAction,
-  type OrderPickup,
   type OrderRole,
   type ShopOrder,
-  placeDirectOrder,
   transitionOrder,
   type TransitionError,
 } from "@/lib/shop-orders";
 
-const MAX_MESSAGE = 2000;
-const MAX_PICKUP_NOTE = 200;
+const MAX_MESSAGE = MAX_ORDER_MESSAGE;
 
 async function requireSession() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -74,63 +65,15 @@ export async function placeDirectOrderAction(input: {
   note?: string;
 }): Promise<{ error?: DirectOrderError | "PICKUP_REQUIRED" }> {
   const session = await requireSession();
-
-  await syncLinkedListings({ id: input.listingId });
-  const listing = await db
-    .db()
-    .collection<ShopItemDbModel>("shopItems")
-    .findOne({ id: input.listingId });
-  if (!listing) return { error: "LISTING_NOT_FOUND" };
-  if (
-    listing.type !== "OBJECT" ||
-    !isListingOnSale(listing, await getShop(listing.shopId))
-  ) {
-    return { error: "NOT_FOR_SALE" };
-  }
-  if (await isUserSellerOfShop(listing.shopId, new ObjectId(session.user.id))) {
-    return { error: "OWN_SHOP" };
-  }
-
-  const quantity = input.quantity;
-  if (!Number.isInteger(quantity) || quantity < 1) {
-    return { error: "INVALID_QUANTITY" };
-  }
-  const available = listing.stock - (listing.reserved ?? 0);
-  if (quantity > available) return { error: "NOT_ENOUGH_STOCK" };
-
-  const proposed = input.proposedPickup?.trim().slice(0, MAX_PICKUP_NOTE);
-  let pickup: OrderPickup;
-  if (proposed) {
-    pickup = { name: proposed, proposed: true };
-  } else if (listing.location) {
-    pickup = {
-      name: listing.location.name,
-      locationId: listing.location.id,
-      ...(listing.location.system && { system: listing.location.system }),
-    };
-  } else {
-    return { error: "PICKUP_REQUIRED" };
-  }
-
-  const orderId = await placeDirectOrder({
-    shopId: listing.shopId,
-    lines: [
-      {
-        listingId: listing.id,
-        name: listing.name,
-        quantity,
-        unitPrice: Number(listing.price) || 0,
-      },
-    ],
-    pickup,
-    note: input.note?.trim().slice(0, MAX_MESSAGE) || undefined,
-    userId: new ObjectId(session.user.id),
-    userName: displayName(session.user),
-  });
+  const result = await orderListingNow(
+    { id: new ObjectId(session.user.id), name: displayName(session.user) },
+    input,
+  );
+  if (result.error || !result.orderId) return { error: result.error };
 
   revalidatePath("/shopping/my-orders");
-  revalidatePath(`/shops/${listing.shopId}/bo/orders`);
-  redirect(`/shopping/my-orders/${orderId}`);
+  revalidatePath(`/shops/${result.shopId}/bo/orders`);
+  redirect(`/shopping/my-orders/${result.orderId}`);
 }
 
 /** Un message dans le fil d'une commande, de l'acheteur ou du magasin. */

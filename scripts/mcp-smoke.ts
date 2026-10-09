@@ -7,6 +7,8 @@
  *   MCP_URL=https://… npm run mcp:smoke
  *   MCP_TOKEN=…   → envoyé en `Authorization: Bearer` (outils personnels)
  *   MCP_SMOKE_LOCAL=1 → saute les cas qui exigent la recherche Atlas
+ *   MCP_SMOKE_SELLER=1 → essaie aussi les outils vendeur (le compte du jeton
+ *   vend dans « Smoke Shop 2 » : `MCP_SMOKE_SELLER_EMAIL` au seed)
  *
  * Une élicitation reçue est acceptée avec la réponse prévue par le cas
  * (`answers`), ou acceptée vide s'il n'en prévoit pas.
@@ -25,6 +27,8 @@ type Case = {
   atlas?: boolean;
   /** Exige un jeton (`MCP_TOKEN`). */
   auth?: boolean;
+  /** Exige que le compte du jeton vende dans « Smoke Shop 2 ». */
+  seller?: boolean;
   /** Réponses aux élicitations, par message contenant la clé. */
   answers?: Record<string, Record<string, unknown>>;
   /**
@@ -250,6 +254,143 @@ const CASES: Case[] = [
     save: (s) => ({ copy: String(s.draftId) }),
   },
   { tool: "plan_draft_discard", args: { draftId: "$copy" }, auth: true },
+  // Marketplace, côté acheteur.
+  {
+    tool: "cart_add",
+    args: { listingId: "smoke-listing", quantity: 1 },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "cart_update",
+    args: { listingId: "smoke-listing", quantity: 2 },
+    auth: true,
+    write: true,
+  },
+  { tool: "cart_view", args: {}, auth: true },
+  {
+    tool: "cart_checkout",
+    args: { shops: [{ shopId: "smoke-shop", note: "fumée" }] },
+    auth: true,
+    write: true,
+    save: (s) => ({ order: (s.orders as { id: string }[])[0]?.id ?? "" }),
+  },
+  { tool: "cart_checkout", args: {}, auth: true, expectError: true },
+  { tool: "my_orders", args: {}, auth: true },
+  { tool: "get_order", args: { orderId: "$order" }, auth: true },
+  {
+    tool: "order_action",
+    args: { orderId: "$order", action: "deliver" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "order_action",
+    args: { orderId: "$order", action: "cancel", message: "fumée" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "order_now",
+    args: {
+      listingId: "smoke-listing",
+      quantity: 1,
+      proposedPickup: "Smoke Station",
+    },
+    auth: true,
+    write: true,
+    save: (s) => ({ order2: (s.order as { id: string }).id }),
+  },
+  {
+    tool: "order_message",
+    args: { orderId: "$order2", message: "Bonjour, fumée" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "order_now",
+    args: { listingId: "smoke-listing", quantity: 10_000 },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "request_custom_order",
+    args: { shopId: "smoke-shop", message: "Dix casques, fumée" },
+    auth: true,
+    write: true,
+  },
+  // Marketplace, côté vendeur.
+  { tool: "my_shops", args: {}, auth: true },
+  {
+    tool: "shop_listings",
+    args: { shopId: "smoke-shop-2" },
+    auth: true,
+    seller: true,
+  },
+  {
+    tool: "shop_orders",
+    args: { shopId: "smoke-shop-2" },
+    auth: true,
+    seller: true,
+  },
+  {
+    tool: "shop_orders",
+    args: { shopId: "smoke-shop" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "update_listing",
+    args: { listingId: "smoke-own-listing", stockChange: 2, price: 900 },
+    auth: true,
+    seller: true,
+    write: true,
+  },
+  {
+    tool: "order_action",
+    args: { orderId: "$sellerOrder", action: "confirm" },
+    auth: true,
+    seller: true,
+    write: true,
+  },
+  {
+    tool: "order_action",
+    args: { orderId: "$sellerOrder", action: "deliver", message: "Remis" },
+    auth: true,
+    seller: true,
+    write: true,
+  },
+  {
+    tool: "add_inventory",
+    args: {
+      location: "smoke-outpost",
+      lots: [{ name: "Smoke Ammo", quantity: 30 }],
+    },
+    auth: true,
+    seller: true,
+    write: true,
+  },
+  {
+    tool: "list_inventory",
+    args: { query: "Smoke Ammo" },
+    auth: true,
+    seller: true,
+    save: (s) => ({ ammo: (s.lots as { id: string }[])[0]?.id ?? "" }),
+  },
+  {
+    tool: "sell_lot",
+    args: { lotId: "$ammo", shopId: "smoke-shop-2", price: 10, limit: 20 },
+    auth: true,
+    seller: true,
+    write: true,
+  },
+  {
+    tool: "update_inventory_lot",
+    args: { lotId: "$ammo", remove: true },
+    auth: true,
+    seller: true,
+    write: true,
+  },
 ];
 
 /** Les modèles de ressources et prompts dont on essaie l'autocomplétion. */
@@ -274,6 +415,7 @@ const COMPLETIONS = [
 const url = new URL(process.env.MCP_URL || "http://localhost:3000/mcp");
 const token = process.env.MCP_TOKEN;
 const local = process.env.MCP_SMOKE_LOCAL === "1";
+const seller = process.env.MCP_SMOKE_SELLER === "1";
 
 function connectClient(era: "legacy" | "2026-07-28", current: { case?: Case }) {
   const client = new Client(
@@ -342,7 +484,7 @@ async function run(era: "legacy" | "2026-07-28"): Promise<number> {
   }
 
   const known = new Set(tools.tools.map((t) => t.name));
-  const vars: Record<string, string> = {};
+  const vars: Record<string, string> = { sellerOrder: `smoke-order-${era}` };
   const call = async (name: string, args: Record<string, unknown>) => {
     const result = await client.callTool({ name, arguments: args });
     const first = (result.content as { type: string; text?: string }[])?.find(
@@ -355,7 +497,9 @@ async function run(era: "legacy" | "2026-07-28"): Promise<number> {
     };
   };
   for (const c of CASES) {
-    if ((c.atlas && local) || (c.auth && !token)) continue;
+    if ((c.atlas && local) || (c.auth && !token) || (c.seller && !seller)) {
+      continue;
+    }
     if (c.modernOnly && era === "legacy") continue;
     if (!known.has(c.tool)) {
       console.log(`✗ ${c.tool} : outil absent`);

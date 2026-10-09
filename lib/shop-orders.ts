@@ -306,10 +306,18 @@ export async function countOrdersForShop(shopId: string): Promise<number> {
 
 export async function getOrdersForUser(
   userId: ObjectId,
-  { offset, limit }: { offset: number; limit: number },
+  {
+    offset,
+    limit,
+    open,
+  }: {
+    offset: number;
+    limit: number;
+    /** Seulement les commandes en cours. */ open?: boolean;
+  },
 ): Promise<ShopOrder[]> {
   const docs = await orders()
-    .find({ userId })
+    .find({ userId, ...(open && { status: { $in: OPEN_STATUSES } }) })
     .sort({ createdAt: -1 })
     .skip(offset)
     .limit(limit)
@@ -423,7 +431,9 @@ export async function getShopMonthStats(
 }
 
 /** Une annonce encore engagée dans une commande en cours ne se supprime pas. */
-export async function isListingInOpenOrder(listingId: string): Promise<boolean> {
+export async function isListingInOpenOrder(
+  listingId: string,
+): Promise<boolean> {
   return (
     (await orders().countDocuments({
       "lines.listingId": listingId,

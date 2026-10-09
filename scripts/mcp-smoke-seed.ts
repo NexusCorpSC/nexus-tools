@@ -3,6 +3,8 @@
  * locale vide. Refuse toute base qui n'est pas sur cette machine.
  *
  *   npm run mcp:smoke:seed
+ *   MCP_SMOKE_SELLER_EMAIL=… → ce compte vend dans « Smoke Shop 2 », pour
+ *   les outils vendeur de la marketplace
  */
 import { MongoClient, ObjectId } from "mongodb";
 
@@ -182,7 +184,8 @@ async function main() {
       description: "Annonce de test",
       image: "",
       price: "1500",
-      stock: 5,
+      stock: 50,
+      reserved: 0,
       shopId: "smoke-shop",
       createdAt: now,
       itemSlug: "smoke-item",
@@ -202,6 +205,86 @@ async function main() {
         system: "Smoke",
       },
     );
+  }
+  // La marketplace : les commandes et paniers des essais précédents partent.
+  await db
+    .collection("shopOrders")
+    .deleteMany({ shopId: { $regex: "^smoke-" } });
+  await db
+    .collection("carts")
+    .updateMany({}, {
+      $pull: { lines: { listingId: { $regex: "^smoke-" } } },
+    } as never);
+  const sellerEmail = process.env.MCP_SMOKE_SELLER_EMAIL;
+  const seller = sellerEmail
+    ? await db.collection("users").findOne({ email: sellerEmail })
+    : null;
+  if (sellerEmail && !seller) {
+    console.warn(`Aucun compte ${sellerEmail} : magasin vendeur non créé.`);
+  }
+  if (seller) {
+    await upsert(
+      "shops",
+      { id: "smoke-shop-2" },
+      {
+        id: "smoke-shop-2",
+        name: "Smoke Shop 2",
+        description: "Magasin de test du compte de fumée",
+        ownerId: seller._id,
+        sellers: [seller._id],
+        createdAt: now,
+      },
+    );
+    await db.collection("shopItems").deleteMany({
+      shopId: "smoke-shop-2",
+      id: { $ne: "smoke-own-listing" },
+    });
+    await upsert(
+      "shopItems",
+      { id: "smoke-own-listing" },
+      {
+        id: "smoke-own-listing",
+        name: "Smoke Helmet",
+        type: "OBJECT",
+        description: "Annonce de test du compte de fumée",
+        image: "",
+        price: 800,
+        stock: 10,
+        reserved: 0,
+        shopId: "smoke-shop-2",
+        createdAt: now,
+        location: {
+          id: "smoke-outpost",
+          name: "Smoke Outpost",
+          system: "Smoke",
+        },
+      },
+    );
+    // Une commande à traiter par époque du protocole essayée.
+    for (const era of ["legacy", "2026-07-28"]) {
+      await db.collection("shopOrders").insertOne({
+        id: `smoke-order-${era}`,
+        shopId: "smoke-shop-2",
+        userId: ownerId,
+        userName: "SmokeSeller#0001",
+        kind: "DIRECT",
+        message: "1 × Smoke Helmet",
+        status: "PENDING",
+        lines: [
+          {
+            listingId: "smoke-own-listing",
+            name: "Smoke Helmet",
+            quantity: 1,
+            unitPrice: 800,
+          },
+        ],
+        pickup: { name: "Smoke Outpost", locationId: "smoke-outpost" },
+        total: 800,
+        timeline: [],
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
   }
   // Les contributions laissées par les essais précédents : sans cela, un
   // compte de niveau 1 atteint vite sa limite de propositions en attente.

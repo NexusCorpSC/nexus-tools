@@ -1,38 +1,17 @@
 "use server";
 
 import { ObjectId } from "bson";
-import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import db from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { removeFromCart, setCartQuantity } from "@/lib/cart";
 import {
-  addToCart,
-  getCartGroups,
-  getCartLines,
-  removeFromCart,
-  setCartQuantity,
-} from "@/lib/cart";
-import {
-  getShop,
-  isListingOnSale,
-  isUserSellerOfShop,
-  type ShopItemDbModel,
-} from "@/lib/shop-items";
-import { syncLinkedListings } from "@/lib/shop-stock";
-import { placeDirectOrder, type OrderPickup } from "@/lib/shop-orders";
-
-const MAX_MESSAGE = 2000;
-const MAX_PICKUP_NOTE = 200;
-
-export type CartError =
-  | "LISTING_NOT_FOUND"
-  | "NOT_FOR_SALE"
-  | "OWN_SHOP"
-  | "INVALID_QUANTITY"
-  | "NOT_ENOUGH_STOCK"
-  | "CART_FULL";
+  addListingToCart,
+  type CartError,
+  checkoutCart,
+  type CheckoutError,
+} from "@/lib/marketplace-purchase";
 
 async function requireSession() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -51,40 +30,13 @@ export async function addToCartAction(
   quantity: number,
 ): Promise<{ error?: CartError; count?: number }> {
   const session = await requireSession();
-  const userId = new ObjectId(session.user.id);
-
-  if (!Number.isInteger(quantity) || quantity < 1) {
-    return { error: "INVALID_QUANTITY" };
-  }
-  await syncLinkedListings({ id: listingId });
-  const listing = await db
-    .db()
-    .collection<ShopItemDbModel>("shopItems")
-    .findOne({ id: listingId });
-  if (!listing) return { error: "LISTING_NOT_FOUND" };
-  if (
-    listing.type !== "OBJECT" ||
-    !isListingOnSale(listing, await getShop(listing.shopId))
-  ) {
-    return { error: "NOT_FOR_SALE" };
-  }
-  if (await isUserSellerOfShop(listing.shopId, userId)) {
-    return { error: "OWN_SHOP" };
-  }
-
-  const lines = await getCartLines(userId);
-  const inCart =
-    lines.find((line) => line.listingId === listingId)?.quantity ?? 0;
-  const available = listing.stock - (listing.reserved ?? 0);
-  if (inCart + quantity > available) return { error: "NOT_ENOUGH_STOCK" };
-
-  if (!(await addToCart(userId, listingId, quantity))) {
-    return { error: "CART_FULL" };
-  }
-
-  revalidateCart();
-  const count = lines.reduce((sum, line) => sum + line.quantity, 0) + quantity;
-  return { count };
+  const result = await addListingToCart(
+    new ObjectId(session.user.id),
+    listingId,
+    quantity,
+  );
+  if (!result.error) revalidateCart();
+  return result;
 }
 
 /** Change la quantité d'une ligne ; le panier signale un stock dépassé. */
@@ -107,8 +59,6 @@ export async function removeFromCartAction(listingId: string): Promise<void> {
   revalidateCart();
 }
 
-export type CheckoutError = "EMPTY_CART" | "CART_CHANGED" | "PICKUP_REQUIRED";
-
 /**
  * Valide le panier : une commande par magasin, toutes ou aucune. Une ligne
  * qui ne peut plus se commander bloque la validation, et le panier la
@@ -118,68 +68,19 @@ export async function checkoutCartAction(input: {
   shops: { shopId: string; proposedPickup?: string; note?: string }[];
 }): Promise<{ error?: CheckoutError; shopId?: string }> {
   const session = await requireSession();
-  const userId = new ObjectId(session.user.id);
-  const userName = session.user.name || session.user.email || "?";
-
-  const groups = await getCartGroups(userId);
-  if (groups.length === 0) return { error: "EMPTY_CART" };
-
-  // Le panier affiché doit être celui qui se valide : mêmes magasins, et
-  // aucune ligne en défaut depuis.
-  const choices = new Map(input.shops.map((shop) => [shop.shopId, shop]));
-  if (
-    groups.some(
-      (group) =>
-        !choices.has(group.shopId) || group.lines.some((line) => line.problem),
-    )
-  ) {
-    return { error: "CART_CHANGED" };
+  const result = await checkoutCart(
+    {
+      id: new ObjectId(session.user.id),
+      name: session.user.name || session.user.email || "?",
+    },
+    input.shops,
+  );
+  if (result.error || !result.checkoutId) {
+    return { error: result.error, shopId: result.shopId };
   }
-
-  const pickups = new Map<string, OrderPickup>();
-  for (const group of groups) {
-    const proposed = choices
-      .get(group.shopId)
-      ?.proposedPickup?.trim()
-      .slice(0, MAX_PICKUP_NOTE);
-    if (proposed) {
-      pickups.set(group.shopId, { name: proposed, proposed: true });
-    } else if (group.location) {
-      pickups.set(group.shopId, {
-        name: group.location.name,
-        locationId: group.location.id,
-        ...(group.location.system && { system: group.location.system }),
-      });
-    } else {
-      return { error: "PICKUP_REQUIRED", shopId: group.shopId };
-    }
-  }
-
-  const checkoutId = randomUUID();
-  for (const group of groups) {
-    await placeDirectOrder({
-      shopId: group.shopId,
-      lines: group.lines.map((line) => ({
-        listingId: line.listingId,
-        name: line.name,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-      })),
-      pickup: pickups.get(group.shopId)!,
-      note:
-        choices.get(group.shopId)?.note?.trim().slice(0, MAX_MESSAGE) ||
-        undefined,
-      userId,
-      userName,
-      checkoutId,
-    });
+  for (const group of result.groups ?? []) {
     revalidatePath(`/shops/${group.shopId}/bo/orders`);
   }
-
-  await removeFromCart(
-    userId,
-    groups.flatMap((group) => group.lines.map((line) => line.listingId)),
-  );
   revalidateCart();
-  redirect(`/shopping/cart/${checkoutId}`);
+  redirect(`/shopping/cart/${result.checkoutId}`);
 }
