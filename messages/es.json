@@ -3631,5 +3631,72 @@
     "scopes": "Acceso: {scopes}",
     "revoke": "Retirar el acceso",
     "revoked": "Acceso retirado. La aplicación pierde el acceso cuando caduca su token actual (una hora como máximo)."
+  },
+  "McpViews": {
+    "common": {
+      "openOnSite": "Abrir en Nexus Tools",
+      "loading": "Cargando…",
+      "empty": "Nada que mostrar.",
+      "error": "No se puede mostrar este resultado.",
+      "waiting": "Esperando el resultado…"
+    },
+    "marketplace": {
+      "results": "{count, plural, one {# anuncio} other {# anuncios}}",
+      "available": "{count} disponibles",
+      "soldOut": "Agotado",
+      "handover": "Entrega en {place}",
+      "shop": "Tienda {name}",
+      "addToCart": "Añadir al carrito",
+      "adding": "Añadiendo…",
+      "added": "Añadido ({count} en el carrito)",
+      "addFailed": "No se pudo añadir: {error}",
+      "delivered": "{count, plural, one {# pedido entregado} other {# pedidos entregados}}",
+      "owner": "Llevada por {name}",
+      "cart": "Carrito",
+      "cartEmpty": "El carrito está vacío.",
+      "total": "Total: {amount}",
+      "subtotal": "Subtotal: {amount}",
+      "noHandover": "Lugar de entrega por proponer",
+      "problem": "Ya no se puede pedir",
+      "quantity": "Cantidad"
+    },
+    "sheet": {
+      "obtention": "Dónde conseguirlo",
+      "statistics": "Características",
+      "children": "Lugares",
+      "shops": "Tiendas",
+      "plans": "Planos",
+      "missions": "Misiones",
+      "services": "Servicios"
+    },
+    "inventory": {
+      "lots": "{count, plural, one {# lote} other {# lotes}}",
+      "reserved": "{count} reservados",
+      "onSale": "En venta: {shops}",
+      "quality": "Calidad {quality}",
+      "shared": "Compartido",
+      "elsewhere": "Sin lugar"
+    },
+    "plan": {
+      "issues": "Por revisar",
+      "noIssue": "No se encontró ninguna anomalía.",
+      "level": "Nivel",
+      "allLevels": "Todos los niveles",
+      "draft": "Borrador"
+    },
+    "nps": {
+      "on": "En o cerca de {body}",
+      "inSpace": "En el espacio",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "altitude": "Altitud",
+      "nearest": "Lugares cercanos",
+      "to": "Hacia {name}",
+      "straight": "{distance} en línea recta",
+      "ground": "{distance} por tierra",
+      "heading": "Rumbo {degrees}° ({compass})",
+      "noRoute": "No hay coordenadas para este destino.",
+      "cardinals": "N E S O"
+    }
   }
 }

@@ -3640,5 +3640,72 @@
     "scopes": "Access: {scopes}",
     "revoke": "Remove access",
     "revoked": "Access removed. The application loses access when its current token expires (one hour at most)."
+  },
+  "McpViews": {
+    "common": {
+      "openOnSite": "Open on Nexus Tools",
+      "loading": "Loading…",
+      "empty": "Nothing to show.",
+      "error": "This result cannot be shown.",
+      "waiting": "Waiting for the result…"
+    },
+    "marketplace": {
+      "results": "{count, plural, one {# listing} other {# listings}}",
+      "available": "{count} available",
+      "soldOut": "Sold out",
+      "handover": "Handover at {place}",
+      "shop": "Shop {name}",
+      "addToCart": "Add to cart",
+      "adding": "Adding…",
+      "added": "Added ({count} in the cart)",
+      "addFailed": "Could not add: {error}",
+      "delivered": "{count, plural, one {# order delivered} other {# orders delivered}}",
+      "owner": "Run by {name}",
+      "cart": "Cart",
+      "cartEmpty": "The cart is empty.",
+      "total": "Total: {amount}",
+      "subtotal": "Subtotal: {amount}",
+      "noHandover": "Handover place to propose",
+      "problem": "Cannot be ordered anymore",
+      "quantity": "Quantity"
+    },
+    "sheet": {
+      "obtention": "Where to get it",
+      "statistics": "Statistics",
+      "children": "Places",
+      "shops": "Shops",
+      "plans": "Maps",
+      "missions": "Missions",
+      "services": "Services"
+    },
+    "inventory": {
+      "lots": "{count, plural, one {# lot} other {# lots}}",
+      "reserved": "{count} reserved",
+      "onSale": "On sale: {shops}",
+      "quality": "Quality {quality}",
+      "shared": "Shared",
+      "elsewhere": "No location"
+    },
+    "plan": {
+      "issues": "To check",
+      "noIssue": "No anomaly found.",
+      "level": "Level",
+      "allLevels": "All levels",
+      "draft": "Draft"
+    },
+    "nps": {
+      "on": "On or near {body}",
+      "inSpace": "In space",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "altitude": "Altitude",
+      "nearest": "Nearby places",
+      "to": "To {name}",
+      "straight": "{distance} in a straight line",
+      "ground": "{distance} over the ground",
+      "heading": "Heading {degrees}° ({compass})",
+      "noRoute": "No coordinates for this destination.",
+      "cardinals": "N E S W"
+    }
   }
 }

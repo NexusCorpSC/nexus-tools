@@ -46,6 +46,7 @@ import {
   type StockError,
   syncLinkedListings,
 } from "@/lib/shop-stock";
+import { viewMeta } from "../apps";
 import { currentUser, type McpUser, personalTool } from "../auth";
 import { confirmParam, confirmWrite, writeOutput } from "../confirm";
 import {
@@ -84,6 +85,7 @@ const challenges = {
   shop_orders: personalTool("shop_orders", READ),
   shop_listings: personalTool("shop_listings", READ),
   cart_add: personalTool("cart_add", WRITE_SCOPE),
+  app_cart_add: personalTool("app_cart_add", WRITE_SCOPE),
   cart_update: personalTool("cart_update", WRITE_SCOPE),
   cart_checkout: personalTool("cart_checkout", WRITE_SCOPE),
   order_now: personalTool("order_now", WRITE_SCOPE),
@@ -443,6 +445,39 @@ export function registerMarketplacePersonalTools(server: McpServer) {
           url: siteUrl(CART_PATH),
         },
         `Done: ${result.count} items in ${mdLink("the cart", CART_PATH)}.`,
+      );
+    },
+  );
+
+  // Le bouton « Ajouter au panier » de la vue marketplace : le clic du joueur
+  // vaut confirmation, et le modèle ne voit pas cet outil.
+  server.registerTool(
+    "app_cart_add",
+    {
+      title: "Add to cart (view button)",
+      description:
+        "Used by the marketplace view's Add to cart button only: adds a listing to the signed-in player's cart.",
+      inputSchema: z.object({
+        listingId: z.string(),
+        quantity: z.number().int().min(1).default(1),
+      }),
+      outputSchema: z.object({ itemsInCart: z.number(), url: z.string() }),
+      annotations: WRITE,
+      _meta: viewMeta("marketplace", ["app"]),
+      scopeChallenge: challenges.app_cart_add,
+    },
+    async ({ listingId, quantity }, ctx) => {
+      const user = await currentUser(ctx);
+      const result = await addListingToCart(
+        new ObjectId(user.id),
+        listingId,
+        quantity,
+      );
+      if (result.error) return fail(result.error);
+      refresh("/");
+      return toolResult(
+        { itemsInCart: result.count ?? 0, url: siteUrl(CART_PATH) },
+        `Added: ${result.count} items in the cart.`,
       );
     },
   );

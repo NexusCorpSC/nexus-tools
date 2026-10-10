@@ -1,0 +1,285 @@
+/* Le style de Nexus Tools : fond sombre, accent bleu clair. */
+:root {
+  --bg: #0b1018;
+  --card: #121a26;
+  --line: #233044;
+  --text: #e6edf6;
+  --muted: #8ea0b8;
+  --accent: #9ed0ff;
+  --ok: #7fd7a8;
+  --warn: #f2b56b;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    14px/1.45 system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+#root {
+  padding: 12px;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+
+h2 {
+  font-size: 14px;
+  margin: 12px 0 6px;
+  color: var(--accent);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+p {
+  margin: 4px 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.ok {
+  color: var(--ok);
+}
+
+.warn {
+  color: var(--warn);
+}
+
+.meta {
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.desc {
+  white-space: pre-line;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.group {
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.listing img,
+.listing .noimg {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  background: #0e1520;
+}
+
+.listing .body {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listing .title {
+  font-weight: 600;
+}
+
+.price {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+button {
+  font: inherit;
+  color: #08111d;
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.tabs button {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--line);
+}
+
+.tabs button.active {
+  background: var(--accent);
+  color: #08111d;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+td {
+  padding: 5px 4px;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+
+tr:first-child td {
+  border-top: 0;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.total {
+  font-weight: 600;
+  text-align: right;
+}
+
+.problem td {
+  opacity: 0.7;
+}
+
+.badges,
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.badge,
+.chip {
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--muted);
+}
+
+.badge.accent {
+  color: var(--accent);
+}
+
+.badge.warn {
+  color: var(--warn);
+}
+
+.chip {
+  color: var(--text);
+}
+
+.sheet .hero {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.open {
+  display: inline-block;
+  margin-top: 12px;
+}
+
+.plate,
+.plate svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.issues {
+  margin: 4px 0;
+  padding-left: 18px;
+  color: var(--warn);
+}
+
+.route {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.big {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.compass {
+  width: 120px;
+  height: 120px;
+  flex: none;
+}
+
+.compass .ring {
+  fill: #0e1520;
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.compass .cardinal {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.compass .needle {
+  fill: var(--accent);
+}

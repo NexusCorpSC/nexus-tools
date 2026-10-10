@@ -456,12 +456,24 @@ async function run(era: "legacy" | "2026-07-28"): Promise<number> {
       `resource templates : ${templates.resourceTemplates.map((t) => t.uriTemplate).join(", ")}`,
     );
   }
+  let failures = 0;
+  if (caps.resources) {
+    // Les vues MCP Apps : une page HTML compilée (`npm run mcp:views`).
+    const view = (
+      await client.readResource({ uri: "ui://nexus/marketplace.html" })
+    ).contents[0] as { mimeType?: string; text?: string };
+    const ok =
+      view.mimeType === "text/html;profile=mcp-app" &&
+      !!view.text?.includes('data-view="marketplace"') &&
+      !view.text.includes("npm run mcp:views");
+    console.log(`${ok ? "✓" : "✗"} vue ui://nexus/marketplace.html`);
+    if (!ok) failures++;
+  }
   if (caps.prompts) {
     const prompts = await client.listPrompts();
     console.log(`prompts : ${prompts.prompts.map((p) => p.name).join(", ")}`);
   }
 
-  let failures = 0;
   if (caps.completions) {
     for (const c of COMPLETIONS) {
       try {

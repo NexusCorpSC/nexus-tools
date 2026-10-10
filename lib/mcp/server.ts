@@ -1,5 +1,6 @@
 import "server-only";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { registerAppViews, withAppViews } from "./apps";
 import { registerNexusPrompts } from "./prompts";
 import { registerNexusResources } from "./resources";
 import { registerAccountTools } from "./tools/account";
@@ -24,7 +25,8 @@ import { registerSearchTools } from "./tools/search";
  */
 export const MCP_SERVER_INFO = { name: "Nexus Tools", version: "2.0.0" };
 
-export function registerNexusServer(server: McpServer) {
+export function registerNexusServer(mcp: McpServer) {
+  const server = withAppViews(mcp);
   registerSearchTools(server);
   registerAccountTools(server);
   registerBlueprintTools(server);
@@ -38,6 +40,7 @@ export function registerNexusServer(server: McpServer) {
   registerNexusResources(server);
   registerPlanFormatResource(server);
   registerNexusPrompts(server);
+  registerAppViews(server);
 }
 
 /**

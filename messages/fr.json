@@ -3669,5 +3669,72 @@
     "scopes": "Accès : {scopes}",
     "revoke": "Retirer l'accès",
     "revoked": "Accès retiré. L'application perd l'accès dès l'expiration de son jeton en cours (une heure au plus)."
+  },
+  "McpViews": {
+    "common": {
+      "openOnSite": "Ouvrir sur Nexus Tools",
+      "loading": "Chargement…",
+      "empty": "Rien à afficher.",
+      "error": "Impossible d'afficher ce résultat.",
+      "waiting": "En attente du résultat…"
+    },
+    "marketplace": {
+      "results": "{count, plural, one {# annonce} other {# annonces}}",
+      "available": "{count} disponibles",
+      "soldOut": "Épuisé",
+      "handover": "Remise à {place}",
+      "shop": "Magasin {name}",
+      "addToCart": "Ajouter au panier",
+      "adding": "Ajout…",
+      "added": "Ajouté ({count} au panier)",
+      "addFailed": "Ajout impossible : {error}",
+      "delivered": "{count, plural, one {# commande remise} other {# commandes remises}}",
+      "owner": "Tenu par {name}",
+      "cart": "Panier",
+      "cartEmpty": "Le panier est vide.",
+      "total": "Total : {amount}",
+      "subtotal": "Sous-total : {amount}",
+      "noHandover": "Lieu de remise à proposer",
+      "problem": "Ne peut plus être commandé",
+      "quantity": "Quantité"
+    },
+    "sheet": {
+      "obtention": "Où l'obtenir",
+      "statistics": "Caractéristiques",
+      "children": "Lieux",
+      "shops": "Magasins",
+      "plans": "Plans",
+      "missions": "Missions",
+      "services": "Services"
+    },
+    "inventory": {
+      "lots": "{count, plural, one {# lot} other {# lots}}",
+      "reserved": "{count} réservés",
+      "onSale": "En vente : {shops}",
+      "quality": "Qualité {quality}",
+      "shared": "Partagé",
+      "elsewhere": "Sans lieu"
+    },
+    "plan": {
+      "issues": "À vérifier",
+      "noIssue": "Aucune anomalie relevée.",
+      "level": "Niveau",
+      "allLevels": "Tous les niveaux",
+      "draft": "Brouillon"
+    },
+    "nps": {
+      "on": "Sur ou près de {body}",
+      "inSpace": "Dans l'espace",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "altitude": "Altitude",
+      "nearest": "Lieux proches",
+      "to": "Vers {name}",
+      "straight": "{distance} en ligne droite",
+      "ground": "{distance} au sol",
+      "heading": "Cap {degrees}° ({compass})",
+      "noRoute": "Pas de coordonnées pour cette destination.",
+      "cardinals": "N E S O"
+    }
   }
 }
