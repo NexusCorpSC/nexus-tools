@@ -3902,6 +3902,50 @@
         "invalid_model": "Unknown model.",
         "not_found": "Player not found.",
         "invalid_pricing": "Invalid pricing: amounts in dollars between 0 and 1,000, and a positive whole threshold."
+      },
+      "voice": {
+        "title": "Voice",
+        "intro": "Players dictate their questions and hear the answers (Google, Gemini API: Gemini 3.5 Transcribe for transcription, reading model of your choice). Counted in the same monthly budget as answers.",
+        "noKey": "GOOGLE_GENERATIVE_AI_API_KEY is not set on the server: voice stays closed.",
+        "enabled": "Voice open",
+        "speechModel": "Reading model",
+        "voice": "Voice",
+        "pricingIntro": "Rates in dollars per million tokens (audio counts 25 tokens per second). Google doubles the reading rates on 1 January 2027.",
+        "model": "Model",
+        "input": "Input",
+        "output": "Output",
+        "transcription": "Gemini 3.5 Transcribe",
+        "save": "Save voice",
+        "saved": "Voice saved",
+        "reset": "Restore Google prices",
+        "resetDone": "Voice rates restored"
+      }
+    },
+    "voice": {
+      "talk": "Talk",
+      "talkHint": "Talk to Nexus Chat: hold (or Ctrl+Space) and release to send, or press once to start and once to finish",
+      "recording": "Listening… Release to send, Esc to cancel.",
+      "transcribing": "Transcribing…",
+      "stopSpeaking": "Stop reading",
+      "readAloudOn": "Answers read aloud (click to mute)",
+      "readAloudOff": "Answers not read aloud (click to hear them)",
+      "errors": {
+        "mic_denied": "The microphone is blocked: allow it for this site in your browser.",
+        "mic_unsupported": "This browser cannot record the microphone.",
+        "mic_failed": "The microphone could not start.",
+        "nothing_heard": "I didn't hear anything. Try again a little louder.",
+        "too_short": "Too short: hold the button while you speak.",
+        "too_long": "Too long: one minute at most per question.",
+        "voice_disabled": "Voice is not available right now.",
+        "unauthorized": "Your session has expired. Sign in again.",
+        "disabled": "Nexus Chat is closed for now.",
+        "no_access": "Your access to Nexus Chat is not open.",
+        "budget_exhausted": "Your budget for this month is used up.",
+        "invalid_request": "The recording could not be read.",
+        "not_found": "This conversation cannot be found.",
+        "busy": "Another answer is still in progress. Try again in a moment.",
+        "unavailable": "Voice is not responding. Try again in a moment.",
+        "generic": "Voice was interrupted. Try again."
       }
     }
   }

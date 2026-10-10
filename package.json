@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.78",
+    "@ai-sdk/google": "^4.0.93",
     "@ai-sdk/mcp": "^2.0.73",
     "@ai-sdk/react": "^4.0.140",
     "@auth/mongodb-adapter": "^3.11.1",

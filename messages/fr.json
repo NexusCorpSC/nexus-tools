@@ -3931,6 +3931,50 @@
         "invalid_model": "Modèle inconnu.",
         "not_found": "Joueur introuvable.",
         "invalid_pricing": "Tarifs invalides : des montants en dollars entre 0 et 1 000, et un seuil entier positif."
+      },
+      "voice": {
+        "title": "Voix",
+        "intro": "Les joueurs dictent leurs questions et entendent les réponses (Google, API Gemini : transcription Gemini 3.5 Transcribe, lecture au choix). Comptée dans le même budget mensuel que les réponses.",
+        "noKey": "La clé GOOGLE_GENERATIVE_AI_API_KEY n'est pas configurée sur le serveur : la voix reste fermée.",
+        "enabled": "Voix ouverte",
+        "speechModel": "Modèle de lecture",
+        "voice": "Voix",
+        "pricingIntro": "Tarifs en dollars par million de jetons (l'audio compte 25 jetons par seconde). Google double ceux de la lecture au 1er janvier 2027.",
+        "model": "Modèle",
+        "input": "Entrée",
+        "output": "Sortie",
+        "transcription": "Gemini 3.5 Transcribe",
+        "save": "Enregistrer la voix",
+        "saved": "Voix enregistrée",
+        "reset": "Rétablir les prix de Google",
+        "resetDone": "Tarifs de la voix rétablis"
+      }
+    },
+    "voice": {
+      "talk": "Parler",
+      "talkHint": "Parler à Nexus Chat : maintenez (ou Ctrl+Espace) puis relâchez pour envoyer, ou appuyez une fois pour commencer et une fois pour finir",
+      "recording": "J'écoute… Relâchez pour envoyer, Échap pour annuler.",
+      "transcribing": "Transcription…",
+      "stopSpeaking": "Arrêter la lecture",
+      "readAloudOn": "Réponses lues à voix haute (cliquez pour couper)",
+      "readAloudOff": "Réponses non lues (cliquez pour les entendre)",
+      "errors": {
+        "mic_denied": "Le micro est bloqué : autorisez-le pour ce site dans le navigateur.",
+        "mic_unsupported": "Ce navigateur ne permet pas d'enregistrer le micro.",
+        "mic_failed": "Le micro n'a pas pu démarrer.",
+        "nothing_heard": "Je n'ai rien entendu. Réessayez en parlant un peu plus fort.",
+        "too_short": "Trop court : maintenez le bouton pendant que vous parlez.",
+        "too_long": "Trop long : une minute au plus par question.",
+        "voice_disabled": "La voix n'est pas ouverte pour le moment.",
+        "unauthorized": "Votre session a expiré. Reconnectez-vous.",
+        "disabled": "Nexus Chat est fermé pour le moment.",
+        "no_access": "Votre accès à Nexus Chat n'est pas ouvert.",
+        "budget_exhausted": "Votre budget du mois est épuisé.",
+        "invalid_request": "L'enregistrement n'a pas pu être lu.",
+        "not_found": "Cette conversation est introuvable.",
+        "busy": "Une autre réponse est encore en cours. Réessayez dans un instant.",
+        "unavailable": "La voix ne répond pas. Réessayez dans un instant.",
+        "generic": "La voix a été interrompue. Réessayez."
       }
     }
   }

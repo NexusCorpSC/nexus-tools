@@ -1,5 +1,10 @@
 import type { LanguageModelUsage } from "ai";
-import { isChatModelId, type ChatModelId } from "@/types/chat";
+import {
+  CHAT_SPEECH_MODEL_IDS,
+  isChatModelId,
+  type ChatModelId,
+  type ChatSpeechModelId,
+} from "@/types/chat";
 
 /**
  * Ce que coûte une réponse, à partir de l'usage en jetons que l'API rend.
@@ -228,4 +233,84 @@ export function stepCostMicros(
       ),
     0,
   );
+}
+
+/**
+ * Les tarifs de la voix (Google, API Gemini), en dollars par million de
+ * jetons : l'audio compte 25 jetons par seconde, à l'entrée de la
+ * transcription comme à la sortie de la synthèse. Relevés en octobre 2026
+ * (https://ai.google.dev/pricing) ; Google annonce le double pour la
+ * synthèse à partir du 1er janvier 2027 : à mettre à jour dans `/admin/chat`.
+ */
+export interface VoiceRates {
+  input: number;
+  output: number;
+}
+
+export interface VoicePricing {
+  /** `gemini-3.5-transcribe` : l'audio en entrée, le texte en sortie. */
+  transcription: VoiceRates;
+  /** La synthèse : le texte en entrée, l'audio en sortie, par modèle. */
+  speech: Record<ChatSpeechModelId, VoiceRates>;
+}
+
+export const DEFAULT_VOICE_PRICING: VoicePricing = {
+  transcription: { input: 2, output: 12 },
+  speech: {
+    "gemini-3.8-flash-lite-tts": { input: 0.5, output: 6 },
+    "gemini-3.8-flash-tts": { input: 0.5, output: 9 },
+  },
+};
+
+/** Jetons d'audio par seconde, chez Google. */
+export const AUDIO_TOKENS_PER_SECOND = 25;
+
+function parseVoiceRates(value: unknown): VoiceRates | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const rates = {} as VoiceRates;
+  for (const key of ["input", "output"] as const) {
+    const raw = record[key];
+    const rate = typeof raw === "string" ? Number(raw.replace(",", ".")) : raw;
+    if (
+      typeof rate !== "number" ||
+      !Number.isFinite(rate) ||
+      rate < 0 ||
+      rate > MAX_RATE_USD
+    ) {
+      return null;
+    }
+    rates[key] = rate;
+  }
+  return rates;
+}
+
+/** Les tarifs de la voix lus en base ou saisis dans l'admin, ou `null`. */
+export function parseVoicePricing(value: unknown): VoicePricing | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const transcription = parseVoiceRates(record.transcription);
+  if (!transcription) return null;
+  const speechRecord = (record.speech ?? {}) as Record<string, unknown>;
+  const speech = {} as Record<ChatSpeechModelId, VoiceRates>;
+  for (const model of CHAT_SPEECH_MODEL_IDS) {
+    const rates = parseVoiceRates(speechRecord[model]);
+    if (!rates) return null;
+    speech[model] = rates;
+  }
+  return { transcription, speech };
+}
+
+/** Une estimation des jetons d'un texte : 4 caractères par jeton, arrondi au-dessus. */
+export function estimateTextTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/** Le coût d'un usage de la voix, en microdollars (arrondi au-dessus). */
+export function voiceCostMicros(
+  rates: VoiceRates,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  return Math.ceil(inputTokens * rates.input + outputTokens * rates.output);
 }
