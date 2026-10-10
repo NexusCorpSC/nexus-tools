@@ -10,12 +10,15 @@ import {
   revokeChatAccess,
   saveChatPricing,
   saveChatSettings,
+  saveChatVoiceSettings,
   searchChatCandidates,
   setChatBudget,
 } from "@/lib/chat/access";
-import { parseChatPricing } from "@/lib/chat/pricing";
+import { parseChatPricing, parseVoicePricing } from "@/lib/chat/pricing";
 import {
   isChatModelId,
+  isChatSpeechModelId,
+  isChatVoice,
   MAX_MONTHLY_BUDGET_MICROS,
   MICROS_PER_USD,
   type ChatAccessStatus,
@@ -95,6 +98,35 @@ export async function saveChatPricingAction(
     if (!pricing) return { ok: false, error: "invalid_pricing" };
     await saveChatPricing(adminId, pricing);
   }
+  revalidate();
+  return { ok: true };
+}
+
+/**
+ * La voix : ouverte ou non, le modèle et la voix de la lecture, et ses
+ * tarifs (`pricing: null` rétablit ceux du code, `DEFAULT_VOICE_PRICING`).
+ */
+export async function saveChatVoiceAction(input: {
+  enabled: boolean;
+  speechModel: string;
+  voice: string;
+  pricing: unknown;
+}): Promise<ChatAdminResult> {
+  const adminId = await requireAdminId();
+  if (!isChatSpeechModelId(input.speechModel) || !isChatVoice(input.voice)) {
+    return { ok: false, error: "invalid_model" };
+  }
+  let pricing = null;
+  if (input.pricing !== null) {
+    pricing = parseVoicePricing(input.pricing);
+    if (!pricing) return { ok: false, error: "invalid_pricing" };
+  }
+  await saveChatVoiceSettings(adminId, {
+    enabled: input.enabled === true,
+    speechModel: input.speechModel,
+    voice: input.voice,
+    pricing,
+  });
   revalidate();
   return { ok: true };
 }

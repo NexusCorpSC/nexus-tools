@@ -3,16 +3,25 @@ import { ObjectId } from "mongodb";
 import db from "@/lib/db";
 import {
   DEFAULT_CHAT_PRICING,
+  DEFAULT_VOICE_PRICING,
   parseChatPricing,
+  parseVoicePricing,
   type ChatPricing,
+  type VoicePricing,
 } from "@/lib/chat/pricing";
 import {
   DEFAULT_CHAT_MODEL,
+  DEFAULT_CHAT_SPEECH_MODEL,
+  DEFAULT_CHAT_VOICE,
   DEFAULT_MONTHLY_BUDGET_MICROS,
   isChatModelId,
+  isChatSpeechModelId,
+  isChatVoice,
   type ChatAccessStatus,
   type ChatModelId,
+  type ChatSpeechModelId,
   type ChatStatus,
+  type ChatVoice,
 } from "@/types/chat";
 
 /**
@@ -43,11 +52,32 @@ export interface ChatSettings {
   defaultMonthlyBudgetMicros: number;
   /** Les tarifs des modèles, réglés par l'admin (`lib/chat/pricing.ts`). */
   pricing: ChatPricing;
+  voice: ChatVoiceSettings;
 }
 
-interface DbChatSettings extends Partial<Omit<ChatSettings, "pricing">> {
+/**
+ * La voix : dicter une question, entendre la réponse (Google, API Gemini).
+ * Ouverte seulement si la clé `GOOGLE_GENERATIVE_AI_API_KEY` est configurée.
+ */
+export interface ChatVoiceSettings {
+  enabled: boolean;
+  speechModel: ChatSpeechModelId;
+  voice: ChatVoice;
+  pricing: VoicePricing;
+}
+
+interface DbChatSettings extends Partial<
+  Omit<ChatSettings, "pricing" | "voice">
+> {
   /** Absent tant que l'admin n'a pas touché aux tarifs. */
   pricing?: unknown;
+  voice?: {
+    enabled?: unknown;
+    speechModel?: unknown;
+    voice?: unknown;
+    /** Absent tant que l'admin n'a pas touché aux tarifs de la voix. */
+    pricing?: unknown;
+  };
   _id: "chat";
   updatedAt?: Date;
   updatedBy?: ObjectId;
@@ -63,14 +93,33 @@ export interface DbChatUsage {
   cacheWriteTokens: number;
   costMicros: number;
   createdAt: Date;
+  /**
+   * Une ligne de la voix (`transcription` : l'audio en entrée, le texte en
+   * sortie ; `speech` : le texte en entrée, l'audio en sortie). Absent pour
+   * une étape de réponse.
+   */
+  kind?: "transcription" | "speech";
 }
+
+const DEFAULT_VOICE: ChatVoiceSettings = {
+  enabled: true,
+  speechModel: DEFAULT_CHAT_SPEECH_MODEL,
+  voice: DEFAULT_CHAT_VOICE,
+  pricing: DEFAULT_VOICE_PRICING,
+};
 
 const DEFAULT_SETTINGS: ChatSettings = {
   enabled: true,
   model: DEFAULT_CHAT_MODEL,
   defaultMonthlyBudgetMicros: DEFAULT_MONTHLY_BUDGET_MICROS,
   pricing: DEFAULT_CHAT_PRICING,
+  voice: DEFAULT_VOICE,
 };
+
+/** La clé de l'API de Google est-elle là : sans elle, pas de voix. */
+export function hasVoiceKey(): boolean {
+  return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+}
 
 function users() {
   return db.db().collection<{ _id: ObjectId; chat?: DbChatAccess }>("users");
@@ -93,12 +142,25 @@ export async function getChatSettings(): Promise<ChatSettings> {
       doc?.defaultMonthlyBudgetMicros ??
       DEFAULT_SETTINGS.defaultMonthlyBudgetMicros,
     pricing: parseChatPricing(doc?.pricing) ?? DEFAULT_SETTINGS.pricing,
+    voice: {
+      enabled:
+        typeof doc?.voice?.enabled === "boolean"
+          ? doc.voice.enabled
+          : DEFAULT_VOICE.enabled,
+      speechModel: isChatSpeechModelId(doc?.voice?.speechModel)
+        ? doc.voice.speechModel
+        : DEFAULT_VOICE.speechModel,
+      voice: isChatVoice(doc?.voice?.voice)
+        ? doc.voice.voice
+        : DEFAULT_VOICE.voice,
+      pricing: parseVoicePricing(doc?.voice?.pricing) ?? DEFAULT_VOICE.pricing,
+    },
   };
 }
 
 export async function saveChatSettings(
   adminId: ObjectId,
-  update: Omit<ChatSettings, "pricing">,
+  update: Omit<ChatSettings, "pricing" | "voice">,
 ): Promise<void> {
   await settings().updateOne(
     { _id: "chat" },
@@ -131,6 +193,41 @@ export async function saveChatPricing(
         },
     { upsert: true },
   );
+}
+
+/**
+ * Les réglages de la voix ; `pricing: null` revient aux tarifs du code
+ * (`DEFAULT_VOICE_PRICING`).
+ */
+export async function saveChatVoiceSettings(
+  adminId: ObjectId,
+  voice: Omit<ChatVoiceSettings, "pricing"> & { pricing: VoicePricing | null },
+): Promise<void> {
+  const { pricing, ...rest } = voice;
+  await settings().updateOne(
+    { _id: "chat" },
+    {
+      $set: {
+        "voice.enabled": rest.enabled,
+        "voice.speechModel": rest.speechModel,
+        "voice.voice": rest.voice,
+        ...(pricing && { "voice.pricing": pricing }),
+        updatedAt: new Date(),
+        updatedBy: adminId,
+      },
+      ...(!pricing && { $unset: { "voice.pricing": "" } }),
+    },
+    { upsert: true },
+  );
+}
+
+/** Des tarifs de la voix ont-ils été enregistrés par l'admin. */
+export async function hasCustomVoicePricing(): Promise<boolean> {
+  const doc = await settings().findOne(
+    { _id: "chat" },
+    { projection: { "voice.pricing": 1 } },
+  );
+  return parseVoicePricing(doc?.voice?.pricing) !== null;
 }
 
 /** Le 1er du mois de `now`, minuit UTC : le début de la période du budget. */
@@ -198,6 +295,7 @@ export async function getChatStatus(
     remainingMicros: Math.max(0, budget - used),
     resetsAt: nextMonthStart(now).toISOString(),
     model: config.model,
+    voice: config.voice.enabled && hasVoiceKey(),
   };
 }
 

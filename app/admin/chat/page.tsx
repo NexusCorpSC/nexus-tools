@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import {
   getChatSettings,
   hasCustomChatPricing,
+  hasCustomVoicePricing,
+  hasVoiceKey,
   listChatAccess,
 } from "@/lib/chat/access";
 import { CHAT_MODEL_IDS, CHAT_MODEL_LABELS } from "@/types/chat";
 import { ChatSettingsForm } from "./components/chat-settings-form";
 import { ChatAccessManager } from "./components/chat-access-manager";
 import { ChatPricingForm } from "./components/chat-pricing-form";
+import { ChatVoiceForm } from "./components/chat-voice-form";
 
 export const metadata: Metadata = {
   title: "Admin — Nexus Chat",
@@ -27,11 +30,14 @@ export const dynamic = "force-dynamic";
  */
 export default async function AdminChatPage() {
   const t = await getTranslations("Chat.Admin");
-  const [settings, rows, customPricing] = await Promise.all([
-    getChatSettings(),
-    listChatAccess(),
-    hasCustomChatPricing(),
-  ]);
+  const [settings, rows, customPricing, customVoicePricing] = await Promise.all(
+    [
+      getChatSettings(),
+      listChatAccess(),
+      hasCustomChatPricing(),
+      hasCustomVoicePricing(),
+    ],
+  );
 
   return (
     <div className="flex min-h-screen justify-center px-4 py-12">
@@ -54,6 +60,15 @@ export default async function AdminChatPage() {
         <ChatPricingForm
           pricing={settings.pricing}
           customized={customPricing}
+        />
+
+        <ChatVoiceForm
+          enabled={settings.voice.enabled}
+          speechModel={settings.voice.speechModel}
+          voice={settings.voice.voice}
+          pricing={settings.voice.pricing}
+          customized={customVoicePricing}
+          hasKey={hasVoiceKey()}
         />
 
         <ChatAccessManager

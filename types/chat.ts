@@ -61,6 +61,11 @@ export interface ChatStatus {
   /** Date (ISO) où le budget repart : le 1er du mois suivant, minuit UTC. */
   resetsAt: string;
   model: ChatModelId;
+  /**
+   * La voix (dicter une question, entendre la réponse) est-elle ouverte :
+   * réglée par l'admin, et la clé de l'API de Google configurée.
+   */
+  voice: boolean;
 }
 
 /** Une conversation dans la liste : `GET /api/chat/conversations`. */
@@ -84,6 +89,79 @@ export interface ChatMessageMetadata {
    */
   savedAt?: string;
 }
+
+/**
+ * La voix de Nexus Chat, servie par Google (API Gemini) : la transcription
+ * de ce que le joueur dit (`POST /api/chat/transcribe`) et la lecture des
+ * réponses (`POST /api/chat/speech`). Comptées dans le même budget que les
+ * réponses.
+ */
+export const CHAT_TRANSCRIBE_MODEL = "gemini-3.5-transcribe";
+
+/** Les modèles de synthèse que l'admin peut choisir, du moins cher au meilleur. */
+export const CHAT_SPEECH_MODEL_IDS = [
+  "gemini-3.8-flash-lite-tts",
+  "gemini-3.8-flash-tts",
+] as const;
+
+export type ChatSpeechModelId = (typeof CHAT_SPEECH_MODEL_IDS)[number];
+
+export const DEFAULT_CHAT_SPEECH_MODEL: ChatSpeechModelId =
+  "gemini-3.8-flash-lite-tts";
+
+export const CHAT_SPEECH_MODEL_LABELS: Record<ChatSpeechModelId, string> = {
+  "gemini-3.8-flash-lite-tts": "Gemini 3.8 Flash-Lite TTS",
+  "gemini-3.8-flash-tts": "Gemini 3.8 Flash TTS",
+};
+
+export function isChatSpeechModelId(
+  value: unknown,
+): value is ChatSpeechModelId {
+  return (
+    typeof value === "string" &&
+    (CHAT_SPEECH_MODEL_IDS as readonly string[]).includes(value)
+  );
+}
+
+/** Les voix de Google au choix de l'admin. */
+export const CHAT_VOICES = [
+  "Charon",
+  "Kore",
+  "Puck",
+  "Fenrir",
+  "Aoede",
+  "Leda",
+  "Orus",
+  "Zephyr",
+] as const;
+
+export type ChatVoice = (typeof CHAT_VOICES)[number];
+
+export const DEFAULT_CHAT_VOICE: ChatVoice = "Charon";
+
+export function isChatVoice(value: unknown): value is ChatVoice {
+  return (
+    typeof value === "string" &&
+    (CHAT_VOICES as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * L'enregistrement envoyé à la transcription : un WAV PCM 16 bits mono
+ * (16 kHz suffit à la voix : 32 Ko par seconde), d'une minute au plus.
+ */
+export const CHAT_VOICE_SAMPLE_RATE = 16_000;
+export const CHAT_VOICE_MAX_SECONDS = 60;
+
+/** Longueur maximale d'un morceau de réponse lu en une fois. */
+export const CHAT_SPEECH_MAX_LENGTH = 1000;
+
+/** Les erreurs de la transcription et de la lecture, en plus de celles du chat. */
+export type ChatVoiceErrorCode =
+  | ChatErrorCode
+  | "voice_disabled"
+  | "too_short"
+  | "too_long";
 
 /** Longueur maximale d'un message du joueur. */
 export const CHAT_MESSAGE_MAX_LENGTH = 8000;

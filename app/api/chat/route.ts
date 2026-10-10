@@ -57,10 +57,12 @@ import {
  * Une réponse de Nexus Chat, en flux (protocole UI de l'AI SDK, `useChat`).
  * Sert le site et l'app de bureau, qui envoient le cookie de session.
  *
- * Body: { id, message }
+ * Body: { id, message, voice? }
  * - `id` : la conversation (créée au premier message) ;
  * - `message` : le nouveau message du joueur, ou le dernier message de
- *   l'assistant avec les réponses du joueur aux confirmations.
+ *   l'assistant avec les réponses du joueur aux confirmations ;
+ * - `voice` : le joueur parle au chat (question dictée, réponse lue à voix
+ *   haute) : la réponse est faite pour l'oral.
  *
  * L'historique vient de la base, pas du client : seul le texte d'un nouveau
  * message, ou la réponse (oui / non) à une confirmation en attente, est pris
@@ -181,7 +183,7 @@ export async function POST(request: Request) {
   if (!session?.user) return error("unauthorized", 401);
   const userId = new ObjectId(session.user.id);
 
-  let body: { id?: unknown; message?: unknown };
+  let body: { id?: unknown; message?: unknown; voice?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -214,6 +216,7 @@ export async function POST(request: Request) {
       userName: session.user.name,
       id,
       message,
+      voice: body.voice === true,
       settings,
       lock,
       onStream: () => {
@@ -246,6 +249,7 @@ async function respond({
   userName,
   id,
   message,
+  voice,
   settings,
   lock,
   onStream,
@@ -254,6 +258,7 @@ async function respond({
   userName: string;
   id: string;
   message: ChatUIMessage;
+  voice: boolean;
   settings: ChatSettings;
   lock: string;
   /** Le flux part : c'est lui qui rendra le verrou, à sa fin. */
@@ -326,6 +331,7 @@ async function respond({
         serverInstructions: client.instructions,
         locale,
         playerName: userName,
+        voice,
       }),
       messages: modelMessages,
       tools,
