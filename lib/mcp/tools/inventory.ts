@@ -166,7 +166,7 @@ export function registerInventoryTools(server: McpServer) {
       }
       const all = (
         await listInventory(user.id, {
-          query: query?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          query,
           locationId,
           minQuality,
         })

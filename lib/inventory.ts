@@ -37,7 +37,7 @@ export async function listInventory(
 ) {
   const matchStage: Record<string, unknown> = { userId };
   if (filters.query) {
-    matchStage.name = { $regex: filters.query, $options: "i" };
+    matchStage.name = { $regex: escapeRegex(filters.query), $options: "i" };
   }
   if (filters.locationId) matchStage.locationId = filters.locationId;
   if (filters.minQuality !== undefined && !Number.isNaN(filters.minQuality)) {
