@@ -121,6 +121,10 @@
         "missing": {
           "label": "Ce qui manque",
           "description": "Les fiches à compléter les plus visitées"
+        },
+        "chat": {
+          "label": "Nexus Chat",
+          "description": "Un assistant qui agit sur votre compte"
         }
       }
     },
@@ -3792,6 +3796,74 @@
     "cgu": "Conditions générales d'utilisation"
   },
   "Chat": {
+    "title": "Nexus Chat",
+    "connectToUse": "Connectez-vous pour discuter avec l'assistant de Nexus Tools.",
+    "signIn": "Se connecter",
+    "newConversation": "Nouvelle conversation",
+    "conversations": "Conversations",
+    "noConversation": "Aucune conversation pour l'instant.",
+    "rename": "Renommer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "emptyTitle": "Que puis-je faire pour vous ?",
+    "emptyHint": "Cherchez un objet, un lieu ou une annonce, ou demandez-moi de ranger votre inventaire. Je vous demande votre accord avant tout changement.",
+    "placeholder": "Votre message…",
+    "placeholderApproval": "Confirmez ou refusez ci-dessus, ou écrivez un message…",
+    "send": "Envoyer",
+    "stop": "Arrêter",
+    "retry": "Réessayer",
+    "thinking": "Réflexion…",
+    "stoppedBudget": "La réponse s'est arrêtée : le budget du mois est épuisé.",
+    "openInApp": "Ouvrir dans la fenêtre principale",
+    "budget": {
+      "label": "Budget du mois",
+      "spent": "{spent} / {budget}",
+      "resets": "Repart le {date}",
+      "exhausted": "Votre budget du mois est épuisé. Il repart le {date}."
+    },
+    "access": {
+      "request": "Demander l'accès",
+      "failed": "La demande n'a pas pu être envoyée. Réessayez.",
+      "none": {
+        "title": "Nexus Chat est sur invitation",
+        "body": "L'assistant cherche dans Nexus Tools et agit sur votre compte (inventaire, commandes, contributions). Demandez l'accès : un administrateur l'ouvre et fixe votre budget mensuel."
+      },
+      "requested": {
+        "title": "Demande envoyée",
+        "body": "Un administrateur doit encore ouvrir votre accès. Revenez un peu plus tard."
+      },
+      "revoked": {
+        "title": "Accès non ouvert",
+        "body": "Votre accès à Nexus Chat n'est pas ouvert. Contactez un administrateur si vous pensez que c'est une erreur."
+      },
+      "disabled": {
+        "title": "Nexus Chat est fermé",
+        "body": "L'assistant est fermé pour le moment. Revenez plus tard."
+      }
+    },
+    "tool": {
+      "approvalTitle": "Confirmer cette action ?",
+      "confirm": "Confirmer",
+      "decline": "Refuser",
+      "running": "Outil « {name} » en cours…",
+      "done": "Outil « {name} » utilisé",
+      "confirmed": "Confirmé : « {name} » en cours…",
+      "confirmedDone": "Confirmé et fait : « {name} »",
+      "declined": "Refusé : « {name} »",
+      "refused": "« {name} » n'a pas pu être fait",
+      "failed": "Outil « {name} » en erreur"
+    },
+    "errors": {
+      "unauthorized": "Votre session a expiré. Reconnectez-vous.",
+      "disabled": "Nexus Chat est fermé pour le moment.",
+      "no_access": "Votre accès à Nexus Chat n'est pas ouvert.",
+      "budget_exhausted": "Votre budget du mois est épuisé.",
+      "invalid_request": "Ce message n'a pas pu être envoyé (trop long, ou la conversation a changé). Rechargez la page.",
+      "not_found": "Cette conversation est introuvable.",
+      "unavailable": "Les outils de Nexus Tools ne répondent pas. Réessayez dans un instant.",
+      "generic": "La réponse a été interrompue. Réessayez."
+    },
     "Admin": {
       "title": "Nexus Chat",
       "intro": "L'assistant IA qui répond aux joueurs et agit sur leur compte avec les outils MCP. Fermé par défaut : ouvrez l'accès joueur par joueur, avec un budget mensuel en dollars qui repart le 1er de chaque mois.",

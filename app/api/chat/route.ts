@@ -163,11 +163,13 @@ export async function POST(request: Request) {
   let title = conversation?.title ?? "";
   const text = userText(message);
   if (text !== null) {
-    // Un nouvel essai du même message (après une erreur) le remplace.
-    const retry =
-      history.at(-1)?.role === "user" && history.at(-1)?.id === message.id;
+    // Un nouvel essai d'un message déjà envoyé (après une erreur, ou
+    // « Réessayer ») reprend la conversation à ce message.
+    const retryAt = history.findIndex(
+      (entry) => entry.role === "user" && entry.id === message.id,
+    );
     messages = [
-      ...(retry ? history.slice(0, -1) : history),
+      ...(retryAt >= 0 ? history.slice(0, retryAt) : history),
       {
         id: typeof message.id === "string" ? message.id : generateMessageId(),
         role: "user",

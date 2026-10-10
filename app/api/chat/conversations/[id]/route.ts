@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
 import { auth } from "@/lib/auth";
 import {
+  cleanMessages,
   deleteConversation,
   getConversation,
   getLatestConversation,
@@ -44,7 +45,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     id: conversation._id,
     title: conversation.title,
     updatedAt: conversation.updatedAt.toISOString(),
-    messages: conversation.messages,
+    messages: cleanMessages(conversation.messages),
   });
 }
 
