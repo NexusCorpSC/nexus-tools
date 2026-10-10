@@ -176,6 +176,11 @@ function BlueprintCard({
           }
           name={blueprint.name}
           fallback
+          // Une vignette de la grille : la taille des cartes d'objets, et pas
+          // de préchargement pour toute la page.
+          width={400}
+          height={400}
+          priority={false}
         />
         {blueprint.tier !== undefined && blueprint.tier > 0 && (
           <span className="absolute top-2 left-2 px-2 py-0.5 text-xs font-bold bg-black/60 text-white rounded-full backdrop-blur-sm">

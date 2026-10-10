@@ -704,10 +704,16 @@ export function BlueprintImageCover({
   imageUrl,
   name,
   fallback,
+  width = 896,
+  height = 400,
+  priority = true,
 }: {
   imageUrl: string;
   name: string;
   fallback?: boolean;
+  width?: number;
+  height?: number;
+  priority?: boolean;
 }) {
   const [hidden, setHidden] = useState(false);
 
@@ -723,10 +729,10 @@ export function BlueprintImageCover({
         <Image
           src={imageUrl}
           alt={name}
-          width={896}
-          height={400}
+          width={width}
+          height={height}
           className={cn(hidden && "hidden", "w-full object-contain max-h-80")}
-          priority
+          priority={priority}
           onError={() => {
             setHidden(true);
           }}
