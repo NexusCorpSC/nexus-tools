@@ -10,7 +10,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { ArrowUp, Loader2, RotateCcw, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/chat/chat-message";
-import { chatErrorCode, type ChatUIMessage } from "@/lib/chat/client";
+import {
+  chatErrorCode,
+  hasConfirmedWrite,
+  requestChatStop,
+  type ChatUIMessage,
+} from "@/lib/chat/client";
 import { CHAT_MESSAGE_MAX_LENGTH, type ChatStatus } from "@/types/chat";
 
 /**
@@ -99,11 +104,16 @@ export function ChatView({
   const busy = chatStatus === "submitted" || chatStatus === "streaming";
   const exhausted = status.remainingMicros <= 0;
   const errorCode = error ? chatErrorCode(error) : null;
-  const pendingApproval = messages
-    .at(-1)
-    ?.parts.some(
-      (part) => "state" in part && part.state === "approval-requested",
-    );
+  const last = messages.at(-1);
+  // Réessayer rejouerait le tour : pas après une écriture déjà faite.
+  const canRetry =
+    (errorCode === "generic" ||
+      errorCode === "unavailable" ||
+      errorCode === "busy") &&
+    !(last?.role === "assistant" && hasConfirmedWrite(last));
+  const pendingApproval = last?.parts.some(
+    (part) => "state" in part && part.state === "approval-requested",
+  );
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -150,13 +160,13 @@ export function ChatView({
             {t("thinking")}
           </p>
         )}
-        {messages.at(-1)?.metadata?.budgetExhausted && (
+        {last?.metadata?.budgetExhausted && (
           <p className="text-xs text-[#F7D2AE]">{t("stoppedBudget")}</p>
         )}
         {errorCode && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#F7A8A8]/30 bg-[#3A1515]/40 px-3 py-2 text-sm text-[#F7D2D2]">
             <span>{t(`errors.${errorCode}`)}</span>
-            {(errorCode === "generic" || errorCode === "unavailable") && (
+            {canRetry && (
               <Button
                 size="sm"
                 variant="outline"
@@ -216,7 +226,10 @@ export function ChatView({
                 type="button"
                 size="icon"
                 variant="outline"
-                onClick={() => stop()}
+                onClick={() => {
+                  void stop();
+                  requestChatStop();
+                }}
                 aria-label={t("stop")}
                 title={t("stop")}
               >

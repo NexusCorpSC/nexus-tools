@@ -3823,6 +3823,7 @@
       "budget_exhausted": "Tu presupuesto del mes se ha agotado.",
       "invalid_request": "No se pudo enviar este mensaje (demasiado largo, o la conversación cambió). Recarga la página.",
       "not_found": "No se encuentra esta conversación.",
+      "busy": "Otra respuesta sigue en curso (en el sitio, la app o el overlay). Inténtalo de nuevo en un momento.",
       "unavailable": "Las herramientas de Nexus Tools no responden. Inténtalo de nuevo en un momento.",
       "generic": "La respuesta se interrumpió. Inténtalo de nuevo."
     },

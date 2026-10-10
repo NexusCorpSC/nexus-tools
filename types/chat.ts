@@ -78,6 +78,11 @@ export interface ChatMessageMetadata {
   remainingMicros?: number;
   /** La réponse s'est arrêtée parce que le budget est épuisé. */
   budgetExhausted?: boolean;
+  /**
+   * La date (ISO) d'enregistrement de la conversation avec cette réponse :
+   * son `updatedAt`, pour que l'app sache ce qu'elle affiche déjà.
+   */
+  savedAt?: string;
 }
 
 /** Longueur maximale d'un message du joueur. */
@@ -97,4 +102,5 @@ export type ChatErrorCode =
   | "budget_exhausted"
   | "invalid_request"
   | "not_found"
+  | "busy"
   | "unavailable";

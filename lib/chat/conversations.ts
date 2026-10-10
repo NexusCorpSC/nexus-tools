@@ -1,5 +1,5 @@
 import "server-only";
-import type { UIMessage } from "ai";
+import { isToolUIPart, type UIMessage } from "ai";
 import { ObjectId } from "mongodb";
 import db from "@/lib/db";
 import {
@@ -30,6 +30,43 @@ export interface DbChatConversation {
 
 /** Au-delà, les plus anciens messages ne sont plus envoyés au modèle. */
 export const MAX_HISTORY_MESSAGES = 60;
+
+/**
+ * La fenêtre envoyée au modèle avance par pas de tant de messages : son
+ * début reste le même d'un tour à l'autre, et le cache de prompt sert.
+ */
+const HISTORY_STEP = 20;
+
+/**
+ * Au-delà, les plus anciens messages ne sont plus gardés : un document Mongo
+ * ne dépasse pas 16 Mo, et les sorties des outils sont parfois longues.
+ */
+export const MAX_STORED_MESSAGES = 200;
+
+/**
+ * Les derniers messages, `max` au plus, à partir d'un message du joueur :
+ * une conversation envoyée au modèle commence par le joueur. Le début
+ * avance par pas de `step` messages.
+ */
+export function recentMessages(
+  messages: ChatUIMessage[],
+  max: number,
+  step = 1,
+): ChatUIMessage[] {
+  const excess = Math.max(0, messages.length - max);
+  let start = Math.ceil(excess / step) * step;
+  while (start < messages.length && messages[start].role !== "user") start++;
+  // Aucun message du joueur dans la fenêtre : on garde le dernier.
+  if (start >= messages.length) {
+    start = messages.findLastIndex((message) => message.role === "user");
+  }
+  return start > 0 ? messages.slice(start) : messages;
+}
+
+/** Ce que voit le modèle de la conversation. */
+export function modelWindow(messages: ChatUIMessage[]): ChatUIMessage[] {
+  return recentMessages(messages, MAX_HISTORY_MESSAGES, HISTORY_STEP);
+}
 
 /** Le nombre de conversations listées. */
 const LIST_LIMIT = 100;
@@ -66,6 +103,21 @@ export async function getLatestConversation(
   userId: ObjectId,
 ): Promise<DbChatConversation | null> {
   return conversations().findOne({ userId }, { sort: { updatedAt: -1 } });
+}
+
+/**
+ * Le message contient-il une écriture confirmée par le joueur (une commande,
+ * une contribution…) ? Elle a été faite : la rejouer la referait.
+ */
+export function hasConfirmedWrite(message: ChatUIMessage | undefined): boolean {
+  return (
+    message?.parts.some(
+      (part) =>
+        isToolUIPart(part) &&
+        "approval" in part &&
+        part.approval?.approved === true,
+    ) ?? false
+  );
 }
 
 /** Un titre tiré du premier message du joueur. */
@@ -108,13 +160,14 @@ export async function saveConversation(
   id: string,
   messages: ChatUIMessage[],
   title: string,
+  now = new Date(),
 ): Promise<boolean> {
-  const now = new Date();
+  const kept = recentMessages(cleanMessages(messages), MAX_STORED_MESSAGES);
   try {
     const result = await conversations().updateOne(
       { _id: id, userId },
       {
-        $set: { messages: cleanMessages(messages), updatedAt: now },
+        $set: { messages: kept, updatedAt: now },
         $setOnInsert: { userId, title, createdAt: now },
       },
       { upsert: true },

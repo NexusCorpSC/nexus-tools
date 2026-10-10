@@ -173,11 +173,17 @@ export async function getChatAccess(
   return user?.chat ?? null;
 }
 
-/** Ce que le joueur voit de son accès et de son budget. */
-export async function getChatStatus(userId: ObjectId): Promise<ChatStatus> {
+/**
+ * Ce que le joueur voit de son accès et de son budget. `settings` évite de
+ * relire les réglages quand l'appelant les a déjà.
+ */
+export async function getChatStatus(
+  userId: ObjectId,
+  settings?: ChatSettings,
+): Promise<ChatStatus> {
   const now = new Date();
   const [config, access, spent] = await Promise.all([
-    getChatSettings(),
+    settings ?? getChatSettings(),
     getChatAccess(userId),
     spentThisMonth([userId], now),
   ]);

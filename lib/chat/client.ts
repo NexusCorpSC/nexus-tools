@@ -1,4 +1,4 @@
-import type { UIMessage } from "ai";
+import { isToolUIPart, type UIMessage } from "ai";
 import type { ChatErrorCode, ChatMessageMetadata } from "@/types/chat";
 
 /** Les messages tels que `useChat` les tient, côté navigateur. */
@@ -16,6 +16,7 @@ const KNOWN_ERRORS: ChatErrorCode[] = [
   "budget_exhausted",
   "invalid_request",
   "not_found",
+  "busy",
   "unavailable",
 ];
 
@@ -41,4 +42,24 @@ export function chatErrorCode(
 /** Un nom d'outil MCP lisible : `search_items` → `search items`. */
 export function toolLabel(name: string): string {
   return name.replaceAll("_", " ");
+}
+
+/**
+ * Le message contient-il une écriture confirmée par le joueur ? Elle a été
+ * faite : « Réessayer » la referait, il n'est donc pas proposé.
+ */
+export function hasConfirmedWrite(message: ChatUIMessage | undefined): boolean {
+  return (
+    message?.parts.some(
+      (part) =>
+        isToolUIPart(part) &&
+        "approval" in part &&
+        part.approval?.approved === true,
+    ) ?? false
+  );
+}
+
+/** « Arrêter » : le serveur arrête la réponse en cours après son étape. */
+export function requestChatStop(): void {
+  void fetch("/api/chat/stop", { method: "POST" }).catch(() => {});
 }

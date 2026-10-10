@@ -3832,6 +3832,7 @@
       "budget_exhausted": "Your budget for this month is used up.",
       "invalid_request": "This message could not be sent (too long, or the conversation changed). Reload the page.",
       "not_found": "This conversation could not be found.",
+      "busy": "Another answer is still in progress (on the site, the app or the overlay). Try again in a moment.",
       "unavailable": "The Nexus Tools tools are not responding. Try again in a moment.",
       "generic": "The answer was interrupted. Try again."
     },

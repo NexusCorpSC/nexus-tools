@@ -3861,6 +3861,7 @@
       "budget_exhausted": "Votre budget du mois est épuisé.",
       "invalid_request": "Ce message n'a pas pu être envoyé (trop long, ou la conversation a changé). Rechargez la page.",
       "not_found": "Cette conversation est introuvable.",
+      "busy": "Une autre réponse est encore en cours (sur le site, l'app ou l'overlay). Réessayez dans un instant.",
       "unavailable": "Les outils de Nexus Tools ne répondent pas. Réessayez dans un instant.",
       "generic": "La réponse a été interrompue. Réessayez."
     },
