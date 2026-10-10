@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
@@ -48,6 +49,9 @@ const transport = new DefaultChatTransport<ChatUIMessage>({
  * est faite pour l'oral et lue à voix haute (confirmations comprises).
  */
 const voiceTurns = new Set<string>();
+
+/** Les exemples de demandes de l'accueil (`Chat.suggestions`). */
+const SUGGESTIONS = ["find", "buy", "inventory"] as const;
 
 /**
  * Une conversation de Nexus Chat : les messages, la saisie, les
@@ -227,16 +231,20 @@ export function ChatView({
     };
   }, [voiceReady, canTalk, press, release, cancel]);
 
-  function submit(event?: React.FormEvent) {
-    event?.preventDefault();
-    const text = input.trim();
+  /** Envoie une question écrite (ou un exemple de l'accueil). */
+  function send(text: string): boolean {
     // Pendant une dictée, la question dictée passe d'abord.
-    if (!text || busy || exhausted || voice.state !== "idle") return;
+    if (!text || busy || exhausted || voice.state !== "idle") return false;
     clearError();
     voiceTurns.delete(id);
     voice.stopSpeaking();
     sendMessage({ text });
-    setInput("");
+    return true;
+  }
+
+  function submit(event?: React.FormEvent) {
+    event?.preventDefault();
+    if (send(input.trim())) setInput("");
   }
 
   return (
@@ -246,9 +254,36 @@ export function ChatView({
         aria-live="polite"
       >
         {messages.length === 0 && (
-          <div className="mx-auto max-w-md space-y-2 py-8 text-center text-sm text-[#F2F7FC]/60">
-            <p className="font-semibold text-[#CCE7FF]">{t("emptyTitle")}</p>
+          <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-8 text-center text-sm text-[#8FB1D6]">
+            <Image
+              alt=""
+              src="/nexus_logo_square.png"
+              width={48}
+              height={48}
+              className="size-12 drop-shadow-[0_0_18px_rgb(58_160_220/0.45)]"
+            />
+            <p className="text-base font-semibold text-[#EAF3FF]">
+              {t("emptyTitle")}
+            </p>
             <p>{t("emptyHint")}</p>
+            {!exhausted && (
+              <ul
+                aria-label={t("suggestionsLabel")}
+                className="mt-2 flex flex-wrap justify-center gap-2"
+              >
+                {SUGGESTIONS.map((key) => (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      onClick={() => send(t(`suggestions.${key}`))}
+                      className="rounded-lg bg-[#1E6AA8] px-3 py-1.5 text-left text-sm text-white transition hover:bg-[#2386C8] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#CFE9FF]"
+                    >
+                      {t(`suggestions.${key}`)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         {messages.map((message) => (
@@ -262,7 +297,7 @@ export function ChatView({
           />
         ))}
         {chatStatus === "submitted" && (
-          <p className="flex items-center gap-2 text-xs text-[#F2F7FC]/60">
+          <p className="flex items-center gap-2 text-xs text-[#8FB1D6]">
             <Loader2 className="size-3.5 animate-spin" aria-hidden />
             {t("thinking")}
           </p>
@@ -298,7 +333,7 @@ export function ChatView({
 
       <form
         onSubmit={submit}
-        className={`border-t border-[#9ED0FF]/12 ${compact ? "p-2" : "p-3"}`}
+        className={compact ? "px-3 pt-1 pb-3" : "px-4 pt-1 pb-4"}
       >
         {exhausted ? (
           <p className="px-1 py-2 text-sm text-[#F7D2AE]">
@@ -313,11 +348,11 @@ export function ChatView({
           <div className="space-y-2">
             {status.voice && voice.state !== "idle" && (
               <p
-                className="flex items-center gap-2 px-1 text-xs text-[#CCE7FF]"
+                className="flex items-center gap-2 px-1 text-xs text-[#8FD0FF]"
                 role="status"
               >
                 {voice.state === "recording" ? (
-                  <span className="size-2 animate-pulse rounded-full bg-[#F7A8A8]" />
+                  <span className="size-2 animate-pulse rounded-full bg-[#8FD0FF] shadow-[0_0_8px_#8FD0FF]" />
                 ) : (
                   <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 )}
@@ -329,6 +364,7 @@ export function ChatView({
                 <Button
                   type="button"
                   size="icon"
+                  className="rounded-full"
                   variant="ghost"
                   onClick={() => voice.setReadAloud(!voice.readAloud)}
                   aria-pressed={voice.readAloud}
@@ -370,13 +406,14 @@ export function ChatView({
                   pendingApproval ? t("placeholderApproval") : t("placeholder")
                 }
                 aria-label={t("placeholder")}
-                className="field-sizing-content max-h-40 min-h-10 flex-1 resize-none rounded-xl border border-[#9ED0FF]/20 bg-[#061E30]/70 px-3 py-2 text-sm text-[#F2F7FC] outline-none placeholder:text-[#F2F7FC]/40 focus-visible:border-[#9ED0FF]/50"
+                className="field-sizing-content max-h-40 min-h-10 flex-1 resize-none rounded-2xl border border-[#8FD0FF]/35 bg-transparent px-4 py-2 text-sm text-[#EAF3FF] outline-none placeholder:text-[#5F84AD] focus-visible:border-[#8FD0FF]/70"
               />
               {status.voice &&
                 (voice.speaking ? (
                   <Button
                     type="button"
                     size="icon"
+                    className="rounded-full"
                     variant="outline"
                     onClick={voice.stopSpeaking}
                     aria-label={t("voice.stopSpeaking")}
@@ -388,8 +425,11 @@ export function ChatView({
                   <Button
                     type="button"
                     size="icon"
-                    variant={
-                      voice.state === "recording" ? "destructive" : "outline"
+                    variant="outline"
+                    className={
+                      voice.state === "recording"
+                        ? "chat-orb rounded-full border-transparent text-white ring-4 ring-[#3AA0DC]/25 hover:text-white"
+                        : "rounded-full"
                     }
                     disabled={!canTalk || voice.state === "transcribing"}
                     onPointerDown={(event) => {
@@ -423,6 +463,7 @@ export function ChatView({
                 <Button
                   type="button"
                   size="icon"
+                  className="rounded-full"
                   variant="outline"
                   onClick={() => {
                     void stop();
@@ -437,6 +478,7 @@ export function ChatView({
                 <Button
                   type="submit"
                   size="icon"
+                  className="rounded-full"
                   disabled={!input.trim() || voice.state !== "idle"}
                   aria-label={t("send")}
                   title={t("send")}

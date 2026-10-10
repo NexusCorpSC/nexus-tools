@@ -146,9 +146,9 @@ export function ChatPanel() {
           aria-label={t("open")}
           title={t("open")}
           data-chat-launcher
-          className="fixed right-4 bottom-4 z-40 flex size-12 items-center justify-center rounded-full border border-[#9ED0FF]/30 bg-[#0B3A5A] text-[#CCE7FF] shadow-xl shadow-black/40 hover:border-[#9ED0FF]/60 hover:bg-[#124A70] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#9ED0FF]/60 sm:right-6 sm:bottom-6"
+          className="chat-orb fixed right-4 bottom-4 z-40 flex size-13 items-center justify-center rounded-full text-white transition hover:brightness-110 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#CFE9FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#061427] sm:right-6 sm:bottom-6"
         >
-          <Bot aria-hidden="true" className="size-6" />
+          <Bot aria-hidden="true" className="size-6 drop-shadow" />
         </button>
       )}
       {panelState !== "never" &&
@@ -168,7 +168,7 @@ export function ChatPanel() {
                 close();
               }
             }}
-            className={`fixed top-0 right-0 bottom-0 z-50 w-full flex-col md:z-30 border-l border-[#9ED0FF]/15 bg-[#0B3A5A] shadow-2xl shadow-black/40 md:w-[400px] ${shown ? "flex" : "hidden"}`}
+            className={`fixed top-0 right-0 bottom-0 z-50 w-full flex-col md:z-30 border-l border-[#8CBEFF]/18 bg-[#0A2340] shadow-2xl shadow-black/50 md:w-[400px] ${shown ? "flex" : "hidden"}`}
           >
             <ChatPanelBody onClose={close} />
           </aside>,

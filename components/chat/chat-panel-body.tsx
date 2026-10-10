@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Loader2, Maximize2, MessageSquarePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatAccessPanel } from "@/components/chat/chat-access-panel";
+import { ChatBrand } from "@/components/chat/chat-brand";
 import { ChatBudget } from "@/components/chat/chat-budget";
 import { ChatView } from "@/components/chat/chat-view";
 import { newChatId, type ChatUIMessage } from "@/lib/chat/client";
@@ -68,10 +69,8 @@ export default function ChatPanelBody({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <header className="flex items-center gap-1 border-b border-[#9ED0FF]/12 px-3 py-2">
-        <h2 className="flex-1 truncate text-base font-bold text-[#CCE7FF]">
-          {t("title")}
-        </h2>
+      <header className="flex items-center gap-1 border-b border-[#8CBEFF]/18 px-3 py-2.5">
+        <ChatBrand online={Boolean(granted)} />
         {granted && (
           <Button
             size="icon"
@@ -124,7 +123,7 @@ export default function ChatPanelBody({ onClose }: { onClose: () => void }) {
         </div>
       ) : (
         <>
-          <div className="border-b border-[#9ED0FF]/12 px-3 py-2">
+          <div className="border-b border-[#8CBEFF]/18 px-3 py-2">
             <ChatBudget status={status} />
           </div>
           <ChatView
