@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import LegalPage, { type LegalSection } from "@/components/legal-page";
 
-const UPDATED_AT = "2 août 2026";
+const UPDATED_AT = "10 octobre 2026";
 const CONTACT_EMAIL = "tools@services.nexus";
 
 export const metadata: Metadata = {
@@ -72,7 +72,7 @@ const sections: LegalSection[] = [
     content: (
       <>
         <p>
-          <strong>Données de compte</strong>{" "}— renseignées à l&apos;inscription
+          <strong>Données de compte</strong> — renseignées à l&apos;inscription
           ou générées par le Service&nbsp;:
         </p>
         <ul>
@@ -89,14 +89,22 @@ const sections: LegalSection[] = [
           </li>
         </ul>
         <p>
-          <strong>Contenus que vous créez</strong>{" "}— uniquement ceux que vous
+          <strong>Contenus que vous créez</strong> — uniquement ceux que vous
           saisissez&nbsp;: inventaire et lieux de stockage, réputations par
           faction, plans possédés, travaux de raffinage, notes du bloc-notes,
           appartenance à des organisations et escouades, boutiques, articles mis
           en vente, commandes et devis échangés.
         </p>
         <p>
-          <strong>Données techniques</strong>{" "}— un cookie de session, un cookie
+          <strong>Applications connectées</strong> — si vous autorisez un
+          assistant IA ou une application à accéder à votre compte (serveur
+          MCP)&nbsp;: son nom, les accès accordés, la date de votre accord et
+          les jetons qui lui permettent d&apos;agir en votre nom. Les journaux
+          du serveur MCP retiennent l&apos;outil appelé, la durée et le résultat
+          de l&apos;appel, jamais son contenu.
+        </p>
+        <p>
+          <strong>Données techniques</strong> — un cookie de session, un cookie
           de langue, et les journaux serveur générés par l&apos;hébergeur
           (adresse IP, date, page appelée, agent utilisateur) nécessaires au
           fonctionnement et à la sécurité du Service.
@@ -110,22 +118,22 @@ const sections: LegalSection[] = [
     content: (
       <ul>
         <li>
-          <strong>Fournir le Service</strong>{" "}(compte, outils, marketplace, API,
+          <strong>Fournir le Service</strong> (compte, outils, marketplace, API,
           application de bureau) — exécution des conditions d&apos;utilisation
           acceptées lors de votre inscription.
         </li>
         <li>
-          <strong>Sécuriser le Service</strong>{" "}(prévention des abus,
+          <strong>Sécuriser le Service</strong> (prévention des abus,
           journalisation technique, limitation des requêtes) — intérêt légitime
           de l&apos;éditeur à maintenir un service disponible et sûr.
         </li>
         <li>
-          <strong>Vous authentifier</strong>{" "}(envoi de codes à usage unique par
+          <strong>Vous authentifier</strong> (envoi de codes à usage unique par
           courriel, clés d&apos;accès, connexion Discord) — exécution du Service
           à votre demande.
         </li>
         <li>
-          <strong>Répondre à vos demandes</strong>{" "}adressées par courriel —
+          <strong>Répondre à vos demandes</strong> adressées par courriel —
           intérêt légitime à traiter les sollicitations reçues.
         </li>
       </ul>
@@ -142,17 +150,17 @@ const sections: LegalSection[] = [
         </p>
         <ul>
           <li>
-            la <strong>feuille de cargo</strong>{" "}est enregistrée dans le
+            la <strong>feuille de cargo</strong> est enregistrée dans le
             stockage de votre navigateur (ou de l&apos;application de bureau) et
             n&apos;est jamais envoyée au serveur&nbsp;;
           </li>
           <li>
-            la <strong>lecture des captures d&apos;écran</strong>{" "}du journal de
+            la <strong>lecture des captures d&apos;écran</strong> du journal de
             mission est effectuée sur votre machine&nbsp;: l&apos;image et le
             texte reconnu ne sont pas transmis&nbsp;;
           </li>
           <li>
-            dans Nexus App, le <strong>bloc-notes hors connexion</strong>{" "}reste
+            dans Nexus App, le <strong>bloc-notes hors connexion</strong> reste
             stocké localement tant que vous n&apos;êtes pas connecté.
           </li>
         </ul>
@@ -172,21 +180,21 @@ const sections: LegalSection[] = [
         </p>
         <ul>
           <li>
-            votre <strong>pseudonyme et votre avatar</strong>{" "}apparaissent sur
+            votre <strong>pseudonyme et votre avatar</strong> apparaissent sur
             vos annonces, vos commandes et dans les organisations dont vous êtes
             membre&nbsp;;
           </li>
           <li>
             les membres de votre organisation voient les{" "}
-            <strong>réputations, plans et objets d&apos;inventaire</strong>{" "}que
+            <strong>réputations, plans et objets d&apos;inventaire</strong> que
             vous avez choisi de partager&nbsp;;
           </li>
           <li>
-            une boutique voit le contenu des <strong>commandes</strong>{" "}que vous
+            une boutique voit le contenu des <strong>commandes</strong> que vous
             lui adressez&nbsp;;
           </li>
           <li>
-            vos <strong>notes</strong>{" "}et votre inventaire non partagé ne sont
+            vos <strong>notes</strong> et votre inventaire non partagé ne sont
             visibles que par vous.
           </li>
         </ul>
@@ -204,21 +212,21 @@ const sections: LegalSection[] = [
         </p>
         <ul>
           <li>
-            <strong>Vercel</strong>{" "}— hébergement du site et stockage des images
+            <strong>Vercel</strong> — hébergement du site et stockage des images
             téléversées&nbsp;;
           </li>
           <li>
-            <strong>MongoDB</strong>{" "}— base de données du Service&nbsp;;
+            <strong>MongoDB</strong> — base de données du Service&nbsp;;
           </li>
           <li>
-            <strong>Resend</strong>{" "}— envoi des courriels de connexion&nbsp;;
+            <strong>Resend</strong> — envoi des courriels de connexion&nbsp;;
           </li>
           <li>
-            <strong>Discord</strong>{" "}— uniquement si vous utilisez la connexion
+            <strong>Discord</strong> — uniquement si vous utilisez la connexion
             Discord ou les intégrations Discord&nbsp;;
           </li>
           <li>
-            <strong>GitHub</strong>{" "}— distribution des mises à jour de Nexus
+            <strong>GitHub</strong> — distribution des mises à jour de Nexus
             App.
           </li>
         </ul>
@@ -242,7 +250,7 @@ const sections: LegalSection[] = [
       <>
         <p>
           Le Service utilise uniquement des cookies{" "}
-          <strong>strictement nécessaires</strong>{" "}à son fonctionnement&nbsp;:
+          <strong>strictement nécessaires</strong> à son fonctionnement&nbsp;:
         </p>
         <ul>
           <li>
@@ -280,12 +288,21 @@ const sections: LegalSection[] = [
           immédiatement en cas de déconnexion.
         </li>
         <li>
+          <strong>Accès des applications connectées</strong>&nbsp;: les jetons
+          d&apos;accès expirent au bout d&apos;une heure et les jetons de
+          renouvellement au bout de trente jours&nbsp;; votre accord est
+          conservé jusqu&apos;à ce que vous retiriez l&apos;accès dans vos
+          paramètres, ce qui invalide aussi les jetons. Les brouillons de plans
+          créés par un assistant sont effacés après sept jours sans
+          modification.
+        </li>
+        <li>
           <strong>Journaux techniques</strong>&nbsp;: conservés par
           l&apos;hébergeur pour une durée courte, à des fins de sécurité et de
           diagnostic.
         </li>
         <li>
-          <strong>Contenus publiés</strong>{" "}(annonces, commandes)&nbsp;:
+          <strong>Contenus publiés</strong> (annonces, commandes)&nbsp;:
           conservés tant qu&apos;ils sont utiles au suivi des échanges, ou
           jusqu&apos;à leur suppression.
         </li>
@@ -317,8 +334,8 @@ const sections: LegalSection[] = [
           (RGPD), vous disposez d&apos;un droit d&apos;
           <strong>accès</strong>, de <strong>rectification</strong>, d&apos;
           <strong>effacement</strong>, de <strong>portabilité</strong>, de{" "}
-          <strong>limitation</strong>{" "}et d&apos;
-          <strong>opposition</strong>{" "}au traitement de vos données.
+          <strong>limitation</strong> et d&apos;
+          <strong>opposition</strong> au traitement de vos données.
         </p>
         <p>
           Une partie de ces droits s&apos;exerce directement depuis le
@@ -328,7 +345,7 @@ const sections: LegalSection[] = [
         </p>
         <p>
           Pour toute autre demande, écrivez à{" "}
-          <Link href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</Link>{" "}depuis
+          <Link href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</Link> depuis
           l&apos;adresse associée à votre compte. Vous disposez également du
           droit d&apos;introduire une réclamation auprès de la{" "}
           <Link href="https://www.cnil.fr">CNIL</Link>.

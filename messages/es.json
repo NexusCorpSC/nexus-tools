@@ -3698,5 +3698,59 @@
       "noRoute": "No hay coordenadas para este destino.",
       "cardinals": "N E S O"
     }
+  },
+  "Developers": {
+    "metaTitle": "Desarrolladores",
+    "metaDescription": "Conecta tu asistente de IA a Nexus Tools con el servidor MCP: catálogo, lugares, NPS, marketplace, inventario, contribuciones y planos de lugares.",
+    "title": "Desarrolladores",
+    "intro": "Nexus Tools abre sus datos a los asistentes de IA mediante un servidor MCP (Model Context Protocol). Un asistente conectado puede buscar en el catálogo, guiar a un jugador con el NPS, consultar el marketplace y, si lo autorizas, gestionar tu inventario, tus pedidos y tus contribuciones.",
+    "server": {
+      "title": "El servidor MCP",
+      "url": "Dirección del servidor:",
+      "transport": "Transporte «Streamable HTTP», sin sesión. El servidor sigue la especificación MCP 2026-07-28 y también responde a los clientes de 2025.",
+      "copy": "Copiar",
+      "copied": "Copiado"
+    },
+    "connect": {
+      "title": "Añadir Nexus Tools a tu asistente",
+      "claude": "Claude (web, escritorio, móvil): Ajustes → Conectores → Añadir conector personalizado, y pega la dirección del servidor.",
+      "chatgpt": "ChatGPT: Ajustes → Aplicaciones y conectores → modo desarrollador, y crea un conector con la dirección del servidor.",
+      "vscode": "VS Code (GitHub Copilot): añade el servidor en .vscode/mcp.json.",
+      "cursor": "Cursor: añade el servidor en ~/.cursor/mcp.json.",
+      "stdio": "Un cliente que solo habla stdio pasa por mcp-remote:",
+      "signIn": "La primera vez que se llama a una herramienta personal, el asistente abre el inicio de sesión en tu cuenta de Nexus Tools."
+    },
+    "account": {
+      "title": "Acceso a tu cuenta",
+      "intro": "Las herramientas públicas (catálogo, lugares, NPS, consulta del marketplace) responden sin iniciar sesión. Las herramientas personales piden tu consentimiento, mediante el inicio de sesión OAuth del sitio, para estos accesos:",
+      "confirm": "Cada cambio (inventario, carrito, pedido, puesta en venta, contribución) se te muestra antes de hacerse, y solo se hace si lo confirmas.",
+      "revoke": "Puedes retirar el acceso de un asistente en cualquier momento en tus ajustes, apartado «Aplicaciones conectadas».",
+      "settings": "Abrir mis ajustes"
+    },
+    "apps": {
+      "title": "Vistas en la conversación",
+      "body": "Los asistentes compatibles con MCP Apps muestran algunos resultados como vistas: anuncios del marketplace con un botón «Añadir al carrito», fichas de objetos y lugares, inventario, planos, la brújula del NPS. Los demás reciben el mismo contenido en texto."
+    },
+    "tools": {
+      "title": "Las herramientas",
+      "intro": "{count} herramientas, descritas aquí tal como las lee el asistente (en inglés).",
+      "public": "Herramientas públicas",
+      "personal": "Herramientas personales",
+      "scope": "Acceso: {scope}",
+      "writes": "modifica",
+      "view": "vista"
+    },
+    "limits": {
+      "title": "Límites",
+      "items": "Las búsquedas devuelven como máximo 50 resultados por página. Un carrito admite como máximo 50 líneas. Un jugador conserva como máximo 10 borradores de planos, borrados tras 7 días sin cambios. Las contribuciones siguen las mismas reglas que en el sitio (propuestas pendientes, revisión por la comunidad).",
+      "fair": "El uso debe ser razonable, como prevén las condiciones generales de uso."
+    },
+    "api": {
+      "title": "API REST",
+      "body": "El sitio también expone una API REST en /api, la que usa Nexus App. Aún no está documentada y puede cambiar sin previo aviso: cuéntanos qué necesitas antes de apoyarte en ella.",
+      "contact": "¿Una idea, una necesidad, un problema? Escríbenos en Discord.",
+      "discord": "Unirse al Discord"
+    },
+    "cgu": "Condiciones generales de uso"
   }
 }
