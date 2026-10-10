@@ -153,7 +153,10 @@ export function ChatPanel() {
       )}
       {panelState !== "never" &&
         // Dans `body`, hors de la barre du haut : son `z-40` limiterait
-        // celui du panneau.
+        // celui du panneau. Plein écran sur téléphone, le panneau passe
+        // devant tout ; à partir de `md`, il est sous la barre du haut, qui
+        // doit rester devant lui pour que ses menus (avatar, navigation)
+        // s'ouvrent par-dessus, et sous les fenêtres (`z-50`).
         createPortal(
           <aside
             ref={panel}
@@ -165,7 +168,7 @@ export function ChatPanel() {
                 close();
               }
             }}
-            className={`fixed top-0 right-0 bottom-0 z-50 w-full flex-col border-l border-[#9ED0FF]/15 bg-[#0B3A5A] shadow-2xl shadow-black/40 md:w-[400px] ${shown ? "flex" : "hidden"}`}
+            className={`fixed top-0 right-0 bottom-0 z-50 w-full flex-col md:z-30 border-l border-[#9ED0FF]/15 bg-[#0B3A5A] shadow-2xl shadow-black/40 md:w-[400px] ${shown ? "flex" : "hidden"}`}
           >
             <ChatPanelBody onClose={close} />
           </aside>,
