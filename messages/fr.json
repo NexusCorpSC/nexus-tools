@@ -121,6 +121,10 @@
         "missing": {
           "label": "Ce qui manque",
           "description": "Les fiches à compléter les plus visitées"
+        },
+        "chat": {
+          "label": "Nexus Chat",
+          "description": "Un assistant qui agit sur votre compte"
         }
       }
     },
@@ -3790,5 +3794,137 @@
       "discord": "Rejoindre le Discord"
     },
     "cgu": "Conditions générales d'utilisation"
+  },
+  "Chat": {
+    "title": "Nexus Chat",
+    "connectToUse": "Connectez-vous pour discuter avec l'assistant de Nexus Tools.",
+    "signIn": "Se connecter",
+    "newConversation": "Nouvelle conversation",
+    "conversations": "Conversations",
+    "noConversation": "Aucune conversation pour l'instant.",
+    "rename": "Renommer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "emptyTitle": "Que puis-je faire pour vous ?",
+    "emptyHint": "Cherchez un objet, un lieu ou une annonce, ou demandez-moi de ranger votre inventaire. Je vous demande votre accord avant tout changement.",
+    "placeholder": "Votre message…",
+    "placeholderApproval": "Confirmez ou refusez ci-dessus, ou écrivez un message…",
+    "send": "Envoyer",
+    "stop": "Arrêter",
+    "retry": "Réessayer",
+    "thinking": "Réflexion…",
+    "stoppedBudget": "La réponse s'est arrêtée : le budget du mois est épuisé.",
+    "openInApp": "Ouvrir dans la fenêtre principale",
+    "budget": {
+      "label": "Budget du mois",
+      "spent": "{spent} / {budget}",
+      "resets": "Repart le {date}",
+      "exhausted": "Votre budget du mois est épuisé. Il repart le {date}."
+    },
+    "access": {
+      "request": "Demander l'accès",
+      "failed": "La demande n'a pas pu être envoyée. Réessayez.",
+      "none": {
+        "title": "Nexus Chat est sur invitation",
+        "body": "L'assistant cherche dans Nexus Tools et agit sur votre compte (inventaire, commandes, contributions). Demandez l'accès : un administrateur l'ouvre et fixe votre budget mensuel."
+      },
+      "requested": {
+        "title": "Demande envoyée",
+        "body": "Un administrateur doit encore ouvrir votre accès. Revenez un peu plus tard."
+      },
+      "revoked": {
+        "title": "Accès non ouvert",
+        "body": "Votre accès à Nexus Chat n'est pas ouvert. Contactez un administrateur si vous pensez que c'est une erreur."
+      },
+      "disabled": {
+        "title": "Nexus Chat est fermé",
+        "body": "L'assistant est fermé pour le moment. Revenez plus tard."
+      }
+    },
+    "tool": {
+      "approvalTitle": "Confirmer cette action ?",
+      "confirm": "Confirmer",
+      "decline": "Refuser",
+      "running": "Outil « {name} » en cours…",
+      "done": "Outil « {name} » utilisé",
+      "confirmed": "Confirmé : « {name} » en cours…",
+      "confirmedDone": "Confirmé et fait : « {name} »",
+      "declined": "Refusé : « {name} »",
+      "refused": "« {name} » n'a pas pu être fait",
+      "failed": "Outil « {name} » en erreur"
+    },
+    "errors": {
+      "unauthorized": "Votre session a expiré. Reconnectez-vous.",
+      "disabled": "Nexus Chat est fermé pour le moment.",
+      "no_access": "Votre accès à Nexus Chat n'est pas ouvert.",
+      "budget_exhausted": "Votre budget du mois est épuisé.",
+      "invalid_request": "Ce message n'a pas pu être envoyé (trop long, ou la conversation a changé). Rechargez la page.",
+      "not_found": "Cette conversation est introuvable.",
+      "busy": "Une autre réponse est encore en cours (sur le site, l'app ou l'overlay). Réessayez dans un instant.",
+      "unavailable": "Les outils de Nexus Tools ne répondent pas. Réessayez dans un instant.",
+      "generic": "La réponse a été interrompue. Réessayez."
+    },
+    "Admin": {
+      "title": "Nexus Chat",
+      "intro": "L'assistant IA qui répond aux joueurs et agit sur leur compte avec les outils MCP. Fermé par défaut : ouvrez l'accès joueur par joueur, avec un budget mensuel en dollars qui repart le 1er de chaque mois.",
+      "settingsTitle": "Réglages",
+      "enabled": "Chat ouvert (décoché, il ne répond plus à personne)",
+      "model": "Modèle",
+      "defaultBudget": "Budget mensuel proposé ($)",
+      "save": "Enregistrer",
+      "saved": "Réglages enregistrés",
+      "modelHint": "Le coût de chaque réponse est calculé sur les jetons consommés, aux tarifs ci-dessous.",
+      "pricing": {
+        "title": "Tarifs des modèles",
+        "intro": "En dollars par million de jetons, pour calculer le coût de chaque réponse. Pré-remplis avec les prix publics d'Anthropic ; un changement vaut pour les réponses suivantes, pas pour ce qui est déjà compté.",
+        "model": "Modèle",
+        "input": "Entrée",
+        "output": "Sortie",
+        "cacheRead": "Lecture du cache",
+        "cacheWrite": "Écriture du cache",
+        "longContext": "Au-delà de",
+        "threshold": "Seuil du contexte long (jetons d'entrée)",
+        "save": "Enregistrer les tarifs",
+        "saved": "Tarifs enregistrés",
+        "reset": "Rétablir les prix d'Anthropic",
+        "resetDone": "Tarifs rétablis"
+      },
+      "addTitle": "Ouvrir l'accès à un joueur",
+      "searchPlaceholder": "Pseudo ou e-mail",
+      "search": "Chercher",
+      "noCandidate": "Aucun joueur trouvé.",
+      "requestsTitle": "Demandes en attente ({count})",
+      "noRequest": "Aucune demande en attente.",
+      "requestedOn": "demandé le {date, date, short}",
+      "grantedTitle": "Joueurs avec l'accès ({count})",
+      "noGranted": "Personne n'a encore l'accès.",
+      "revokedTitle": "Accès refusés ou retirés ({count})",
+      "colName": "Joueur",
+      "colSpent": "Consommé ce mois",
+      "colBudget": "Budget mensuel ($)",
+      "budget": "Budget mensuel en dollars",
+      "grant": "Ouvrir l'accès",
+      "decline": "Refuser",
+      "revoke": "Retirer l'accès",
+      "saveBudget": "Enregistrer",
+      "grantedToast": "Accès ouvert",
+      "declinedToast": "Demande refusée",
+      "revokedToast": "Accès retiré",
+      "budgetToast": "Budget enregistré",
+      "backToAdmin": "Retour à l'admin",
+      "status": {
+        "none": "pas d'accès",
+        "requested": "a demandé l'accès",
+        "granted": "a l'accès",
+        "revoked": "accès retiré"
+      },
+      "errors": {
+        "invalid_budget": "Budget invalide : un montant en dollars entre 0 et 1 000.",
+        "invalid_model": "Modèle inconnu.",
+        "not_found": "Joueur introuvable.",
+        "invalid_pricing": "Tarifs invalides : des montants en dollars entre 0 et 1 000, et un seuil entier positif."
+      }
+    }
   }
 }

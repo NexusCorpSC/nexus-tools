@@ -4,6 +4,7 @@ import Link from "next/link";
 import { countPendingContributions } from "@/lib/contributions";
 import { countOpenReports } from "@/lib/reports";
 import { isAdmin } from "@/lib/permissions";
+import { countChatAccessRequests } from "@/lib/chat/access";
 
 export const metadata: Metadata = {
   title: "Administration",
@@ -15,10 +16,11 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   // Un modérateur arrive ici aussi : il ne voit que la modération.
-  const [pending, reports, admin] = await Promise.all([
+  const [pending, reports, admin, chatRequests] = await Promise.all([
     countPendingContributions(),
     countOpenReports(),
     isAdmin(),
+    countChatAccessRequests(),
   ]);
 
   return (
@@ -78,6 +80,17 @@ export default async function AdminPage() {
               <Button asChild>
                 <Link href="/admin/cargo-ships" className="w-full">
                   Gérer les vaisseaux cargo
+                </Link>
+              </Button>
+
+              <Button asChild>
+                <Link href="/admin/chat" className="w-full">
+                  Gérer Nexus Chat
+                  {chatRequests > 0 && (
+                    <span className="rounded-full bg-amber-300 px-2 font-mono text-xs font-bold text-amber-950">
+                      {chatRequests}
+                    </span>
+                  )}
                 </Link>
               </Button>
             </>

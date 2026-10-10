@@ -521,6 +521,26 @@ async function ensurePlanDrafts(database: Db) {
   await drafts.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 }
 
+/**
+ * Nexus Chat : les conversations d'un joueur, de la plus récente ; l'usage
+ * d'un joueur depuis le début du mois (le budget) ; les verrous expirés
+ * (une réponse à la fois) ; les demandes d'accès.
+ */
+async function ensureChat(database: Db) {
+  await database
+    .collection("chatConversations")
+    .createIndex({ userId: 1, updatedAt: -1 });
+  await database
+    .collection("chatUsage")
+    .createIndex({ userId: 1, createdAt: -1 });
+  await database
+    .collection("chatLocks")
+    .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  await database
+    .collection("users")
+    .createIndex({ "chat.status": 1 }, { sparse: true });
+}
+
 const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
@@ -541,6 +561,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["community", ensureCommunity],
   ["oauth", ensureOAuth],
   ["planDrafts", ensurePlanDrafts],
+  ["chat", ensureChat],
 ];
 
 async function main() {
