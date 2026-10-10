@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
     "/mcp": ["./app/fonts/*.woff", "./lib/mcp/views/dist/*.html"],
   },
   images: {
+    // Chaque variante (source × largeur × format) transformée est facturée par
+    // Vercel, et refaite à chaque expiration de son cache : le plus long de ce
+    // délai et du Cache-Control de la source. Le blob storage annonce déjà un
+    // mois ; on aligne les autres sources dessus au lieu des 4 h par défaut.
+    minimumCacheTTL: 2_678_400,
+    // Moins de largeurs possibles, ce sont moins de variantes par image et plus
+    // de requêtes qui retombent sur une variante déjà en cache. Les 2048 et
+    // 3840 px par défaut ne servaient qu'aux écrans 4K, au prix fort.
+    deviceSizes: [640, 828, 1080, 1920],
+    imageSizes: [32, 64, 128, 256, 384],
     remotePatterns: [
       {
         protocol: "https",
