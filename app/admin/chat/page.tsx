@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { getChatSettings, listChatAccess } from "@/lib/chat/access";
+import {
+  getChatSettings,
+  hasCustomChatPricing,
+  listChatAccess,
+} from "@/lib/chat/access";
 import { CHAT_MODEL_IDS, CHAT_MODEL_LABELS } from "@/types/chat";
 import { ChatSettingsForm } from "./components/chat-settings-form";
 import { ChatAccessManager } from "./components/chat-access-manager";
+import { ChatPricingForm } from "./components/chat-pricing-form";
 
 export const metadata: Metadata = {
   title: "Admin — Nexus Chat",
@@ -22,9 +27,10 @@ export const dynamic = "force-dynamic";
  */
 export default async function AdminChatPage() {
   const t = await getTranslations("Chat.Admin");
-  const [settings, rows] = await Promise.all([
+  const [settings, rows, customPricing] = await Promise.all([
     getChatSettings(),
     listChatAccess(),
+    hasCustomChatPricing(),
   ]);
 
   return (
@@ -43,6 +49,11 @@ export default async function AdminChatPage() {
             id,
             label: CHAT_MODEL_LABELS[id],
           }))}
+        />
+
+        <ChatPricingForm
+          pricing={settings.pricing}
+          customized={customPricing}
         />
 
         <ChatAccessManager

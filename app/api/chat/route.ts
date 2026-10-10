@@ -233,7 +233,12 @@ export async function POST(request: Request) {
           | { iterations?: UsageIteration[] | null }
           | undefined
       )?.iterations;
-      const cost = stepCostMicros(model, step.usage, iterations);
+      const cost = stepCostMicros(
+        model,
+        step.usage,
+        iterations,
+        settings.pricing,
+      );
       spent += cost;
       await recordChatUsage({
         userId,

@@ -3873,7 +3873,22 @@
       "defaultBudget": "Budget mensuel proposé ($)",
       "save": "Enregistrer",
       "saved": "Réglages enregistrés",
-      "modelHint": "Prix par million de jetons (entrée / sortie) : Haiku 5.5 0,10 $ / 0,50 $ · Sonnet 5.5 2 $ / 10 $ · Opus 5.5 4 $ / 20 $. Le coût de chaque réponse est calculé sur les jetons consommés.",
+      "modelHint": "Le coût de chaque réponse est calculé sur les jetons consommés, aux tarifs ci-dessous.",
+      "pricing": {
+        "title": "Tarifs des modèles",
+        "intro": "En dollars par million de jetons, pour calculer le coût de chaque réponse. Pré-remplis avec les prix publics d'Anthropic ; un changement vaut pour les réponses suivantes, pas pour ce qui est déjà compté.",
+        "model": "Modèle",
+        "input": "Entrée",
+        "output": "Sortie",
+        "cacheRead": "Lecture du cache",
+        "cacheWrite": "Écriture du cache",
+        "longContext": "Au-delà de",
+        "threshold": "Seuil du contexte long (jetons d'entrée)",
+        "save": "Enregistrer les tarifs",
+        "saved": "Tarifs enregistrés",
+        "reset": "Rétablir les prix d'Anthropic",
+        "resetDone": "Tarifs rétablis"
+      },
       "addTitle": "Ouvrir l'accès à un joueur",
       "searchPlaceholder": "Pseudo ou e-mail",
       "search": "Chercher",
@@ -3906,7 +3921,8 @@
       "errors": {
         "invalid_budget": "Budget invalide : un montant en dollars entre 0 et 1 000.",
         "invalid_model": "Modèle inconnu.",
-        "not_found": "Joueur introuvable."
+        "not_found": "Joueur introuvable.",
+        "invalid_pricing": "Tarifs invalides : des montants en dollars entre 0 et 1 000, et un seuil entier positif."
       }
     }
   }

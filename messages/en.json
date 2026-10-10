@@ -3844,7 +3844,22 @@
       "defaultBudget": "Suggested monthly budget ($)",
       "save": "Save",
       "saved": "Settings saved",
-      "modelHint": "Price per million tokens (input / output): Haiku 5.5 $0.10 / $0.50 · Sonnet 5.5 $2 / $10 · Opus 5.5 $4 / $20. Each answer's cost is computed from the tokens it used.",
+      "modelHint": "Each answer's cost is computed from the tokens used, at the prices below.",
+      "pricing": {
+        "title": "Model pricing",
+        "intro": "In dollars per million tokens, used to compute what each answer costs. Prefilled with Anthropic's public prices; a change applies to the next answers, not to what has already been counted.",
+        "model": "Model",
+        "input": "Input",
+        "output": "Output",
+        "cacheRead": "Cache read",
+        "cacheWrite": "Cache write",
+        "longContext": "Above",
+        "threshold": "Long context threshold (input tokens)",
+        "save": "Save pricing",
+        "saved": "Pricing saved",
+        "reset": "Restore Anthropic's prices",
+        "resetDone": "Pricing restored"
+      },
       "addTitle": "Give a player access",
       "searchPlaceholder": "Name or email",
       "search": "Search",
@@ -3877,7 +3892,8 @@
       "errors": {
         "invalid_budget": "Invalid budget: an amount in dollars between 0 and 1,000.",
         "invalid_model": "Unknown model.",
-        "not_found": "Player not found."
+        "not_found": "Player not found.",
+        "invalid_pricing": "Invalid pricing: amounts in dollars between 0 and 1,000, and a positive whole threshold."
       }
     }
   }

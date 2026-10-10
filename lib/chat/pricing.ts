@@ -4,25 +4,30 @@ import { isChatModelId, type ChatModelId } from "@/types/chat";
 /**
  * Ce que coûte une réponse, à partir de l'usage en jetons que l'API rend.
  *
- * Les tarifs sont ceux qu'Anthropic publie (https://claude.com/pricing), en
- * dollars par million de jetons, relevés en octobre 2026 : à tenir à jour
- * quand ils changent. L'écriture du cache (TTL de 5 minutes, le seul que le
- * chat utilise) coûte 1,25 fois l'entrée ; la lecture, la part propre à
- * chaque modèle.
+ * Les tarifs sont en dollars par million de jetons. Ceux des modèles au choix
+ * de l'admin se règlent dans `/admin/chat` (gardés dans le document `chat` de
+ * `settings`) ; les valeurs ci-dessous sont celles qu'Anthropic publie
+ * (https://claude.com/pricing), relevées en octobre 2026, et servent tant que
+ * l'admin n'a rien enregistré. L'écriture du cache (TTL de 5 minutes, le seul
+ * que le chat utilise) coûte 1,25 fois l'entrée ; la lecture, la part propre
+ * à chaque modèle.
  */
-interface Rates {
+export interface Rates {
   input: number;
   output: number;
   cacheRead: number;
   cacheWrite: number;
 }
 
-interface ModelPricing extends Rates {
+export interface ModelPricing extends Rates {
   /** Haiku 5.5 : au-delà de ce nombre de jetons d'entrée, l'autre grille. */
   longContext?: { threshold: number } & Rates;
 }
 
-export const CHAT_PRICING: Record<ChatModelId, ModelPricing> = {
+/** Les tarifs des modèles au choix de l'admin. */
+export type ChatPricing = Record<ChatModelId, ModelPricing>;
+
+export const DEFAULT_CHAT_PRICING: ChatPricing = {
   "claude-haiku-5-5": {
     input: 0.1,
     output: 0.5,
@@ -49,6 +54,59 @@ export const CHAT_PRICING: Record<ChatModelId, ModelPricing> = {
     cacheWrite: 5,
   },
 };
+
+/** Plafond d'un tarif saisi dans l'admin : 1 000 $ par million de jetons. */
+export const MAX_RATE_USD = 1000;
+
+const RATE_KEYS = ["input", "output", "cacheRead", "cacheWrite"] as const;
+
+function parseRates(value: unknown): Rates | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const rates = {} as Rates;
+  for (const key of RATE_KEYS) {
+    const raw = record[key];
+    const rate = typeof raw === "string" ? Number(raw.replace(",", ".")) : raw;
+    if (
+      typeof rate !== "number" ||
+      !Number.isFinite(rate) ||
+      rate < 0 ||
+      rate > MAX_RATE_USD
+    ) {
+      return null;
+    }
+    rates[key] = rate;
+  }
+  return rates;
+}
+
+/**
+ * Une grille de tarifs lue en base ou saisie dans l'admin, ou `null` si une
+ * valeur ne tient pas (absente, négative, au-delà de `MAX_RATE_USD`, ou un
+ * seuil de contexte long qui n'est pas un entier positif).
+ */
+export function parseChatPricing(value: unknown): ChatPricing | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const pricing = {} as ChatPricing;
+  for (const model of Object.keys(DEFAULT_CHAT_PRICING) as ChatModelId[]) {
+    const entry = record[model] as Record<string, unknown> | undefined;
+    const rates = parseRates(entry);
+    if (!rates) return null;
+    const pricingOfModel: ModelPricing = { ...rates };
+    if (entry?.longContext) {
+      const long = entry.longContext as Record<string, unknown>;
+      const longRates = parseRates(long);
+      const threshold = Number(long.threshold);
+      if (!longRates || !Number.isInteger(threshold) || threshold <= 0) {
+        return null;
+      }
+      pricingOfModel.longContext = { threshold, ...longRates };
+    }
+    pricing[model] = pricingOfModel;
+  }
+  return pricing;
+}
 
 export interface TokenCounts {
   /** Entrée hors cache. */
@@ -92,15 +150,22 @@ const OTHER_MODEL_PRICING: Record<string, ModelPricing> = {
 
 const HIGHEST_PRICING = OTHER_MODEL_PRICING["claude-fable-5-1"];
 
-function pricingOf(model: string): ModelPricing {
+function pricingOf(model: string, table: ChatPricing): ModelPricing {
   return isChatModelId(model)
-    ? CHAT_PRICING[model]
+    ? table[model]
     : (OTHER_MODEL_PRICING[model] ?? HIGHEST_PRICING);
 }
 
-/** Le coût de `counts` au tarif de `model`, en microdollars (arrondi au-dessus). */
-export function costMicros(model: string, counts: TokenCounts): number {
-  const pricing = pricingOf(model);
+/**
+ * Le coût de `counts` au tarif de `model` dans `table` (les tarifs de
+ * l'admin), en microdollars (arrondi au-dessus).
+ */
+export function costMicros(
+  model: string,
+  counts: TokenCounts,
+  table: ChatPricing = DEFAULT_CHAT_PRICING,
+): number {
+  const pricing = pricingOf(model, table);
   const prompt =
     counts.inputTokens + counts.cacheReadTokens + counts.cacheWriteTokens;
   const rates =
@@ -136,6 +201,7 @@ export function stepCostMicros(
   model: ChatModelId,
   usage: LanguageModelUsage,
   iterations?: UsageIteration[] | null,
+  table: ChatPricing = DEFAULT_CHAT_PRICING,
 ): number {
   const attributed = iterations?.filter(
     (iteration) => iteration.type !== "compaction",
@@ -145,17 +211,21 @@ export function stepCostMicros(
     attributed.length === 0 ||
     !attributed.some((iteration) => iteration.model)
   ) {
-    return costMicros(model, tokenCounts(usage));
+    return costMicros(model, tokenCounts(usage), table);
   }
   return attributed.reduce(
     (total, iteration) =>
       total +
-      costMicros(iteration.model ?? model, {
-        inputTokens: iteration.inputTokens,
-        outputTokens: iteration.outputTokens,
-        cacheReadTokens: iteration.cacheReadInputTokens ?? 0,
-        cacheWriteTokens: iteration.cacheCreationInputTokens ?? 0,
-      }),
+      costMicros(
+        iteration.model ?? model,
+        {
+          inputTokens: iteration.inputTokens,
+          outputTokens: iteration.outputTokens,
+          cacheReadTokens: iteration.cacheReadInputTokens ?? 0,
+          cacheWriteTokens: iteration.cacheCreationInputTokens ?? 0,
+        },
+        table,
+      ),
     0,
   );
 }

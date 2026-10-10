@@ -2,6 +2,11 @@ import "server-only";
 import { ObjectId } from "mongodb";
 import db from "@/lib/db";
 import {
+  DEFAULT_CHAT_PRICING,
+  parseChatPricing,
+  type ChatPricing,
+} from "@/lib/chat/pricing";
+import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_MONTHLY_BUDGET_MICROS,
   isChatModelId,
@@ -36,9 +41,13 @@ export interface ChatSettings {
   model: ChatModelId;
   /** Budget proposé quand l'admin ouvre un accès. */
   defaultMonthlyBudgetMicros: number;
+  /** Les tarifs des modèles, réglés par l'admin (`lib/chat/pricing.ts`). */
+  pricing: ChatPricing;
 }
 
-interface DbChatSettings extends Partial<ChatSettings> {
+interface DbChatSettings extends Partial<Omit<ChatSettings, "pricing">> {
+  /** Absent tant que l'admin n'a pas touché aux tarifs. */
+  pricing?: unknown;
   _id: "chat";
   updatedAt?: Date;
   updatedBy?: ObjectId;
@@ -60,6 +69,7 @@ const DEFAULT_SETTINGS: ChatSettings = {
   enabled: true,
   model: DEFAULT_CHAT_MODEL,
   defaultMonthlyBudgetMicros: DEFAULT_MONTHLY_BUDGET_MICROS,
+  pricing: DEFAULT_CHAT_PRICING,
 };
 
 function users() {
@@ -82,16 +92,43 @@ export async function getChatSettings(): Promise<ChatSettings> {
     defaultMonthlyBudgetMicros:
       doc?.defaultMonthlyBudgetMicros ??
       DEFAULT_SETTINGS.defaultMonthlyBudgetMicros,
+    pricing: parseChatPricing(doc?.pricing) ?? DEFAULT_SETTINGS.pricing,
   };
 }
 
 export async function saveChatSettings(
   adminId: ObjectId,
-  update: ChatSettings,
+  update: Omit<ChatSettings, "pricing">,
 ): Promise<void> {
   await settings().updateOne(
     { _id: "chat" },
     { $set: { ...update, updatedAt: new Date(), updatedBy: adminId } },
+    { upsert: true },
+  );
+}
+
+/** Des tarifs ont-ils été enregistrés par l'admin (sinon, ceux du code). */
+export async function hasCustomChatPricing(): Promise<boolean> {
+  const doc = await settings().findOne(
+    { _id: "chat" },
+    { projection: { pricing: 1 } },
+  );
+  return parseChatPricing(doc?.pricing) !== null;
+}
+
+/** Enregistre les tarifs des modèles ; `null` revient à ceux du code. */
+export async function saveChatPricing(
+  adminId: ObjectId,
+  pricing: ChatPricing | null,
+): Promise<void> {
+  await settings().updateOne(
+    { _id: "chat" },
+    pricing
+      ? { $set: { pricing, updatedAt: new Date(), updatedBy: adminId } }
+      : {
+          $unset: { pricing: "" },
+          $set: { updatedAt: new Date(), updatedBy: adminId },
+        },
     { upsert: true },
   );
 }

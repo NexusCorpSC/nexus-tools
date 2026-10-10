@@ -8,10 +8,12 @@ import { isAdmin } from "@/lib/permissions";
 import {
   grantChatAccess,
   revokeChatAccess,
+  saveChatPricing,
   saveChatSettings,
   searchChatCandidates,
   setChatBudget,
 } from "@/lib/chat/access";
+import { parseChatPricing } from "@/lib/chat/pricing";
 import {
   isChatModelId,
   MAX_MONTHLY_BUDGET_MICROS,
@@ -21,7 +23,14 @@ import {
 
 export type ChatAdminResult =
   | { ok: true }
-  | { ok: false; error: "invalid_budget" | "invalid_model" | "not_found" };
+  | {
+      ok: false;
+      error:
+        | "invalid_budget"
+        | "invalid_model"
+        | "invalid_pricing"
+        | "not_found";
+    };
 
 async function requireAdminId(): Promise<ObjectId> {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -66,6 +75,26 @@ export async function saveChatSettingsAction(input: {
     model: input.model,
     defaultMonthlyBudgetMicros,
   });
+  revalidate();
+  return { ok: true };
+}
+
+/**
+ * Les tarifs des modèles, en dollars par million de jetons ; `null` rétablit
+ * ceux du code (`DEFAULT_CHAT_PRICING`). Valent pour les réponses suivantes,
+ * pas pour ce qui est déjà compté.
+ */
+export async function saveChatPricingAction(
+  input: unknown,
+): Promise<ChatAdminResult> {
+  const adminId = await requireAdminId();
+  if (input === null) {
+    await saveChatPricing(adminId, null);
+  } else {
+    const pricing = parseChatPricing(input);
+    if (!pricing) return { ok: false, error: "invalid_pricing" };
+    await saveChatPricing(adminId, pricing);
+  }
   revalidate();
   return { ok: true };
 }
