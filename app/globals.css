@@ -74,6 +74,23 @@
   }
 }
 
+/* Le panneau de Nexus Chat ouvert (`components/chat/chat-panel.tsx`) : sur
+   grand écran, la page se resserre à côté de lui au lieu d'être couverte. La
+   barre du haut garde toute la largeur, le panneau est sous elle. */
+@media (min-width: 1024px) {
+  html[data-chat-panel="open"] body > :not(header) {
+    padding-right: 400px;
+  }
+}
+
+/* Le bouton de Nexus Chat passe au-dessus d'une barre d'action fixée en bas
+   de l'écran (`data-bottom-bar`), au lieu de la couvrir. */
+@media (max-width: 1023px) {
+  body:has([data-bottom-bar]) [data-chat-launcher] {
+    bottom: 7rem;
+  }
+}
+
 @layer base {
   :root {
     --background: 205 78% 16%;

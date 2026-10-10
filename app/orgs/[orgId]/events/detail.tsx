@@ -731,7 +731,10 @@ function MobileBar({ event, ended }: { event: OrgEventView; ended: boolean }) {
   const myRole = active ? roleById(event.roles, mine.role) : null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-[#9ED0FF]/25 bg-[#0B2E4A] px-4 pb-6 pt-3 lg:hidden">
+    <div
+      data-bottom-bar
+      className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-[#9ED0FF]/25 bg-[#0B2E4A] px-4 pb-6 pt-3 lg:hidden"
+    >
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-semibold">
           {active ? (myRole?.label ?? t("registered")) : event.title}

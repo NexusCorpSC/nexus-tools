@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MarkdownContent } from "@/components/markdown-content";
+import { ChatMarkdown } from "@/components/chat/chat-markdown";
 import { toolLabel, type ChatUIMessage } from "@/lib/chat/client";
 
 type ToolPart = DynamicToolUIPart;
@@ -48,7 +48,7 @@ export function ChatMessage({
       {message.parts.map((part, index) => {
         if (part.type === "text") {
           return part.text.trim() ? (
-            <MarkdownContent key={index} content={part.text} />
+            <ChatMarkdown key={index} content={part.text} />
           ) : null;
         }
         if (isToolUIPart(part)) {
