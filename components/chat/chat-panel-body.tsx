@@ -11,7 +11,7 @@ import { ChatView } from "@/components/chat/chat-view";
 import { newChatId, type ChatUIMessage } from "@/lib/chat/client";
 import type { ChatStatus } from "@/types/chat";
 
-type Active = { id: string; messages: ChatUIMessage[]; saved: boolean };
+type Active = { id: string; messages: ChatUIMessage[] };
 
 /**
  * Le contenu du panneau latéral : la conversation la plus récente du joueur
@@ -42,8 +42,8 @@ export default function ChatPanelBody({ onClose }: { onClose: () => void }) {
         setStatus((await statusResponse.json()) as ChatStatus);
         setActive(
           latest
-            ? { id: latest.id, messages: latest.messages, saved: true }
-            : { id: newChatId(), messages: [], saved: false },
+            ? { id: latest.id, messages: latest.messages }
+            : { id: newChatId(), messages: [] },
         );
       } catch {
         if (!cancelled) setFailed(true);
@@ -55,15 +55,7 @@ export default function ChatPanelBody({ onClose }: { onClose: () => void }) {
   }, []);
 
   const startNew = useCallback(() => {
-    setActive({ id: newChatId(), messages: [], saved: false });
-  }, []);
-
-  const onSaved = useCallback((id: string) => {
-    setActive((current) =>
-      current?.id === id && !current.saved
-        ? { ...current, saved: true }
-        : current,
-    );
+    setActive({ id: newChatId(), messages: [] });
   }, []);
 
   const onStatus = useCallback(
@@ -99,7 +91,9 @@ export default function ChatPanelBody({ onClose }: { onClose: () => void }) {
             title={t("panel.openPage")}
           >
             <Link
-              href={active.saved ? `/chat?c=${active.id}` : "/chat"}
+              // Le site réserve la conversation dès son premier message ;
+              // avant, `/chat` en ouvre une nouvelle.
+              href={`/chat?c=${active.id}`}
               aria-label={t("panel.openPage")}
             >
               <Maximize2 className="size-4" aria-hidden />
@@ -139,7 +133,6 @@ export default function ChatPanelBody({ onClose }: { onClose: () => void }) {
             initialMessages={active.messages}
             status={status}
             onStatus={onStatus}
-            onSaved={onSaved}
             compact
           />
         </>

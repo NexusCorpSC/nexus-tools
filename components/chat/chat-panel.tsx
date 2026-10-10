@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -12,44 +19,52 @@ const ChatPanelBody = dynamic(
   { ssr: false },
 );
 
-/** Le panneau reste ouvert d'une page à l'autre, et d'une visite à l'autre. */
+/** Le panneau rouvre ouvert à la visite suivante s'il l'était. */
 const STORAGE_KEY = "nexus-chat-panel";
 
 /** En dessous, le panneau couvre la page : un lien suivi le referme. */
 const NARROW_QUERY = "(max-width: 767px)";
 
-/** Prévient les lecteurs de `STORAGE_KEY` dans cet onglet. */
+/** Prévient les lecteurs de l'état du panneau, dans cet onglet. */
 const CHANGE_EVENT = "nexus-chat-panel";
 
-/** Le choix du joueur, gardé en mémoire si le stockage l'est aussi. */
-let fallback = false;
+/**
+ * L'état du panneau dans cet onglet (chaque onglet a le sien) :
+ * - `never` : pas encore ouvert, rien n'est chargé ;
+ * - `open` : ouvert ;
+ * - `closed` : refermé, mais la conversation reste en vie, cachée — une
+ *   réponse en cours va au bout et s'affiche à la réouverture.
+ */
+type PanelState = "never" | "open" | "closed";
 
-function readOpen(): boolean {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === "open";
-  } catch {
-    return fallback;
+let state: PanelState | null = null;
+
+function readState(): PanelState {
+  if (state === null) {
+    try {
+      state =
+        window.localStorage.getItem(STORAGE_KEY) === "open" ? "open" : "never";
+    } catch {
+      state = "never";
+    }
   }
+  return state;
 }
 
 function writeOpen(open: boolean) {
-  fallback = open;
+  state = open ? "open" : readState() === "never" ? "never" : "closed";
   try {
     if (open) window.localStorage.setItem(STORAGE_KEY, "open");
     else window.localStorage.removeItem(STORAGE_KEY);
   } catch {
-    // Stockage indisponible (navigation privée…) : `fallback` suffit.
+    // Stockage indisponible (navigation privée…) : l'onglet s'en souvient.
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
 function subscribe(onChange: () => void) {
   window.addEventListener(CHANGE_EVENT, onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    window.removeEventListener(CHANGE_EVENT, onChange);
-    window.removeEventListener("storage", onChange);
-  };
+  return () => window.removeEventListener(CHANGE_EVENT, onChange);
 }
 
 /**
@@ -59,14 +74,14 @@ function subscribe(onChange: () => void) {
  * de la navigation. Sur grand écran la page se resserre à côté de lui
  * (`html[data-chat-panel]`, voir `globals.css`) ; en dessous il la couvre.
  *
- * Il n'apparaît pas sur `/chat`, qui montre déjà le chat en grand.
+ * Caché sur `/chat`, qui montre déjà le chat en grand.
  */
 export function ChatPanel() {
   const t = useTranslations("Chat.panel");
   const pathname = usePathname();
-  const open = useSyncExternalStore(subscribe, readOpen, () => false);
+  const panelState = useSyncExternalStore(subscribe, readState, () => "never");
   const onChatPage = pathname === "/chat";
-  const shown = open && !onChatPage;
+  const shown = panelState === "open" && !onChatPage;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -78,24 +93,31 @@ export function ChatPanel() {
   }, [shown]);
 
   // Sous la barre du haut tant qu'elle est à l'écran (elle défile avec la
-  // page), en haut de la fenêtre ensuite ; tout l'écran sur téléphone.
+  // page), en haut de la fenêtre ensuite ; tout l'écran sur téléphone. Placé
+  // avant d'être peint, pour ne pas passer une image sur la barre.
   const panel = useRef<HTMLElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const aside = panel.current;
-    const header = aside?.closest("header");
-    if (!shown || !aside || !header) return;
+    if (!shown || !aside) return;
+    const narrow = window.matchMedia(NARROW_QUERY);
+    let headerHeight = 0;
     const place = () => {
-      const below = window.matchMedia(NARROW_QUERY).matches
-        ? 0
-        : Math.max(0, header.getBoundingClientRect().bottom);
-      aside.style.top = `${below}px`;
+      const top = narrow.matches ? 0 : Math.max(0, headerHeight - scrollY);
+      aside.style.top = `${top}px`;
     };
-    place();
+    const measure = () => {
+      headerHeight = document.querySelector("header")?.offsetHeight ?? 0;
+      place();
+    };
+    measure();
+    // À la réouverture, la saisie reprend la main (à la première, la
+    // conversation se charge et la prend d'elle-même).
+    aside.querySelector("textarea")?.focus();
     window.addEventListener("scroll", place, { passive: true });
-    window.addEventListener("resize", place);
+    window.addEventListener("resize", measure);
     return () => {
       window.removeEventListener("scroll", place);
-      window.removeEventListener("resize", place);
+      window.removeEventListener("resize", measure);
     };
   }, [shown]);
 
@@ -113,11 +135,9 @@ export function ChatPanel() {
     [close],
   );
 
-  if (onChatPage) return null;
-
   return (
     <>
-      {!shown && (
+      {!shown && !onChatPage && (
         <button
           type="button"
           onClick={openPanel}
@@ -131,17 +151,26 @@ export function ChatPanel() {
           <Bot aria-hidden="true" className="size-6" />
         </button>
       )}
-      {shown && (
-        <aside
-          ref={panel}
-          id="nexus-chat-panel"
-          aria-label={t("title")}
-          onClickCapture={onClickCapture}
-          className="fixed top-0 right-0 bottom-0 z-50 flex w-full flex-col border-l border-[#9ED0FF]/15 bg-[#0B3A5A] shadow-2xl shadow-black/40 md:w-[400px]"
-        >
-          <ChatPanelBody onClose={close} />
-        </aside>
-      )}
+      {panelState !== "never" &&
+        // Dans `body`, hors de la barre du haut : son `z-40` limiterait
+        // celui du panneau.
+        createPortal(
+          <aside
+            ref={panel}
+            id="nexus-chat-panel"
+            aria-label={t("title")}
+            onClickCapture={onClickCapture}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && !event.nativeEvent.isComposing) {
+                close();
+              }
+            }}
+            className={`fixed top-0 right-0 bottom-0 z-50 w-full flex-col border-l border-[#9ED0FF]/15 bg-[#0B3A5A] shadow-2xl shadow-black/40 md:w-[400px] ${shown ? "flex" : "hidden"}`}
+          >
+            <ChatPanelBody onClose={close} />
+          </aside>,
+          document.body,
+        )}
     </>
   );
 }

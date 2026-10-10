@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/server";
+import { siteBaseUrl } from "@/lib/site-url";
 
 /**
  * Ce que tous les outils MCP partagent pour répondre.
@@ -9,11 +10,8 @@ import type { CallToolResult } from "@modelcontextprotocol/server";
  * `NEXT_PUBLIC_BASE_URL`, pour qu'une préproduction ne renvoie pas vers la prod.
  */
 
-const DEFAULT_BASE_URL = "https://tools.services.nexus";
-
 export function siteUrl(path: string): string {
-  return new URL(path, process.env.NEXT_PUBLIC_BASE_URL || DEFAULT_BASE_URL)
-    .href;
+  return new URL(path, siteBaseUrl()).href;
 }
 
 /** Un lien Markdown vers une page du site. */

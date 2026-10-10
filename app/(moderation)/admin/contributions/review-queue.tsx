@@ -530,6 +530,7 @@ export function ReviewQueue({
         <div
           role="region"
           aria-label={t("selectionLabel")}
+          data-bottom-bar
           className="fixed bottom-6 left-1/2 z-30 flex max-w-[calc(100%-2rem)] -translate-x-1/2 flex-wrap items-center gap-3 rounded-xl border border-[#9ED0FF] bg-[#0E2C45] px-4 py-3 shadow-2xl shadow-black/50"
         >
           <strong className="text-sm text-[#E3F1FF]">

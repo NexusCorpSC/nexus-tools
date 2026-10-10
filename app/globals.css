@@ -78,7 +78,7 @@
    grand écran, la page se resserre à côté de lui au lieu d'être couverte. La
    barre du haut garde toute la largeur, le panneau est sous elle. */
 @media (min-width: 1024px) {
-  html[data-chat-panel="open"] body > :not(header) {
+  html[data-chat-panel="open"] body > :not(header, #nexus-chat-panel) {
     padding-right: 400px;
   }
 }
