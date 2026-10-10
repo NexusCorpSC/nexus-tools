@@ -35,6 +35,7 @@ RESEND_API_KEY="CONSOLE" # Display signin OTP in console. Replace by Resend API 
 BLOB_READ_WRITE_TOKEN="" # Blob read/write token for vercel storage
 DISCORD_CLIENT_ID=""
 DISCORD_CLIENT_SECRET=""
+ANTHROPIC_API_KEY="" # Nexus Chat (Claude). Without it the chat answers an error; access stays managed in /admin/chat.
 ```
 
 ## Run
