@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatAccessPanel } from "@/components/chat/chat-access-panel";
+import { ChatBrand } from "@/components/chat/chat-brand";
 import { ChatBudget } from "@/components/chat/chat-budget";
 import { ChatView } from "@/components/chat/chat-view";
 import { newChatId, type ChatUIMessage } from "@/lib/chat/client";
@@ -113,9 +114,9 @@ export function ChatClient({
   const granted = status.enabled && status.status === "granted";
 
   return (
-    <div className="flex h-[calc(100dvh-8rem)] min-h-[28rem] overflow-hidden rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 shadow-xl shadow-black/20 backdrop-blur-sm">
+    <div className="flex h-[calc(100dvh-8rem)] min-h-[28rem] overflow-hidden rounded-3xl border border-[#8CBEFF]/18 bg-[#0A2340]/92 shadow-[0_40px_120px_rgb(0_0_0/0.5),0_0_80px_rgb(58_160_220/0.12)] backdrop-blur-sm">
       {granted && (
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-[#9ED0FF]/12 bg-[#092840]/50 md:flex">
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-[#8CBEFF]/18 bg-[#061427]/50 md:flex">
           <div className="p-3">
             <Button className="w-full" variant="outline" onClick={startNew}>
               <MessageSquarePlus className="size-4" aria-hidden />
@@ -145,15 +146,15 @@ export function ChatClient({
               </ul>
             )}
           </nav>
-          <div className="border-t border-[#9ED0FF]/12 p-3">
-            <ChatBudget status={status} />
+          <div className="border-t border-[#8CBEFF]/18 p-3">
+            <ChatBudget status={status} showReset />
           </div>
         </aside>
       )}
 
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-2 border-b border-[#9ED0FF]/12 px-4 py-3">
-          <h1 className="text-lg font-bold text-[#CCE7FF]">{t("title")}</h1>
+        <header className="flex items-center justify-between gap-2 border-b border-[#8CBEFF]/18 px-4 py-3">
+          <ChatBrand as="h1" online={granted} />
           {granted && (
             <Button
               size="sm"
@@ -167,7 +168,7 @@ export function ChatClient({
           )}
         </header>
         {granted && (
-          <div className="space-y-2 border-b border-[#9ED0FF]/12 px-4 py-2 md:hidden">
+          <div className="space-y-2 border-b border-[#8CBEFF]/18 px-4 py-2 md:hidden">
             {conversations.length > 0 && (
               <select
                 value={
@@ -266,7 +267,7 @@ function ConversationRow({
 
   return (
     <li
-      className={`group flex items-center gap-1 rounded-lg ${current ? "bg-[#1A5C8A]/40" : "hover:bg-[#1A5C8A]/20"}`}
+      className={`group flex items-center gap-1 rounded-lg ${current ? "bg-[#1E6AA8]/35" : "hover:bg-[#1E6AA8]/15"}`}
     >
       <button
         type="button"
