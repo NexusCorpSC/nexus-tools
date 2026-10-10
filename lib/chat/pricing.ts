@@ -65,11 +65,14 @@ export const MAX_RATE_USD = 1000;
 
 const RATE_KEYS = ["input", "output", "cacheRead", "cacheWrite"] as const;
 
-function parseRates(value: unknown): Rates | null {
+function parseRates<K extends string>(
+  value: unknown,
+  keys: readonly K[],
+): Record<K, number> | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
-  const rates = {} as Rates;
-  for (const key of RATE_KEYS) {
+  const rates = {} as Record<K, number>;
+  for (const key of keys) {
     const raw = record[key];
     const rate = typeof raw === "string" ? Number(raw.replace(",", ".")) : raw;
     if (
@@ -96,12 +99,12 @@ export function parseChatPricing(value: unknown): ChatPricing | null {
   const pricing = {} as ChatPricing;
   for (const model of Object.keys(DEFAULT_CHAT_PRICING) as ChatModelId[]) {
     const entry = record[model] as Record<string, unknown> | undefined;
-    const rates = parseRates(entry);
+    const rates = parseRates(entry, RATE_KEYS);
     if (!rates) return null;
     const pricingOfModel: ModelPricing = { ...rates };
     if (entry?.longContext) {
       const long = entry.longContext as Record<string, unknown>;
-      const longRates = parseRates(long);
+      const longRates = parseRates(long, RATE_KEYS);
       const threshold = Number(long.threshold);
       if (!longRates || !Number.isInteger(threshold) || threshold <= 0) {
         return null;
@@ -265,36 +268,18 @@ export const DEFAULT_VOICE_PRICING: VoicePricing = {
 /** Jetons d'audio par seconde, chez Google. */
 export const AUDIO_TOKENS_PER_SECOND = 25;
 
-function parseVoiceRates(value: unknown): VoiceRates | null {
-  if (!value || typeof value !== "object") return null;
-  const record = value as Record<string, unknown>;
-  const rates = {} as VoiceRates;
-  for (const key of ["input", "output"] as const) {
-    const raw = record[key];
-    const rate = typeof raw === "string" ? Number(raw.replace(",", ".")) : raw;
-    if (
-      typeof rate !== "number" ||
-      !Number.isFinite(rate) ||
-      rate < 0 ||
-      rate > MAX_RATE_USD
-    ) {
-      return null;
-    }
-    rates[key] = rate;
-  }
-  return rates;
-}
+const VOICE_RATE_KEYS = ["input", "output"] as const;
 
 /** Les tarifs de la voix lus en base ou saisis dans l'admin, ou `null`. */
 export function parseVoicePricing(value: unknown): VoicePricing | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
-  const transcription = parseVoiceRates(record.transcription);
+  const transcription = parseRates(record.transcription, VOICE_RATE_KEYS);
   if (!transcription) return null;
   const speechRecord = (record.speech ?? {}) as Record<string, unknown>;
   const speech = {} as Record<ChatSpeechModelId, VoiceRates>;
   for (const model of CHAT_SPEECH_MODEL_IDS) {
-    const rates = parseVoiceRates(speechRecord[model]);
+    const rates = parseRates(speechRecord[model], VOICE_RATE_KEYS);
     if (!rates) return null;
     speech[model] = rates;
   }

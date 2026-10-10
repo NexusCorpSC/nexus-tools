@@ -43,7 +43,8 @@ function downsample(samples: Float32Array, rate: number): Float32Array {
     const end = Math.min(samples.length, Math.floor((i + 1) * ratio));
     let sum = 0;
     for (let j = start; j < end; j++) sum += samples[j];
-    out[i] = end > start ? sum / (end - start) : 0;
+    // Sous 16 kHz, une fenêtre peut être vide : on reprend l'échantillon.
+    out[i] = end > start ? sum / (end - start) : (samples[start] ?? 0);
   }
   return out;
 }
@@ -125,6 +126,10 @@ export class VoiceRecorder {
       } finally {
         URL.revokeObjectURL(url);
       }
+      if (this.closed) return this.release();
+      // Créé après des `await`, hors du geste du joueur : Safari le laisse
+      // suspendu tant qu'on ne le relance pas.
+      if (this.context.state === "suspended") await this.context.resume();
       if (this.closed) return this.release();
       const source = this.context.createMediaStreamSource(this.stream);
       const node = new AudioWorkletNode(this.context, "nexus-chat-capture");

@@ -85,6 +85,8 @@ export function ChatView({
   // suite de la réponse est lue sans relire le début.
   const spoken = useRef(new Map<string, number>());
   const voiceRef = useRef<ReturnType<typeof useChatVoice> | null>(null);
+  // Où en est la conversation quand une transcription revient.
+  const canSendRef = useRef(true);
 
   const {
     messages,
@@ -100,9 +102,11 @@ export function ChatView({
     messages: initialMessages,
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-    onFinish: ({ message, isError }) => {
+    onFinish: ({ message, isError, isAbort, isDisconnect }) => {
       const voice = voiceRef.current;
-      if (!isError && voiceTurns.has(id) && voice?.readAloud) {
+      // Une réponse arrêtée par le joueur ou coupée n'est pas lue.
+      const complete = !isError && !isAbort && !isDisconnect;
+      if (complete && voiceTurns.has(id) && voice?.readAloud) {
         const from = spoken.current.get(message.id) ?? 0;
         spoken.current.set(message.id, textPartCount(message));
         voice.speak(speechText(message, from));
@@ -139,6 +143,11 @@ export function ChatView({
   const voice = useChatVoice({
     conversationId: id,
     onTranscript: (text) => {
+      // Une réponse partie entre-temps : la question attend dans le champ.
+      if (!canSendRef.current) {
+        setInput((current) => current || text);
+        return;
+      }
       clearError();
       voiceTurns.add(id);
       sendMessage({ text });
@@ -158,6 +167,9 @@ export function ChatView({
   const busy = chatStatus === "submitted" || chatStatus === "streaming";
   const exhausted = status.remainingMicros <= 0;
   const voiceReady = status.voice && !exhausted;
+  useEffect(() => {
+    canSendRef.current = !busy && !exhausted;
+  });
   const errorCode = error ? chatErrorCode(error) : null;
   const last = messages.at(-1);
   // Réessayer rejouerait le tour : pas après une écriture déjà faite.
@@ -218,7 +230,8 @@ export function ChatView({
   function submit(event?: React.FormEvent) {
     event?.preventDefault();
     const text = input.trim();
-    if (!text || busy || exhausted) return;
+    // Pendant une dictée, la question dictée passe d'abord.
+    if (!text || busy || exhausted || voice.state !== "idle") return;
     clearError();
     voiceTurns.delete(id);
     voice.stopSpeaking();
@@ -424,7 +437,7 @@ export function ChatView({
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || voice.state !== "idle"}
                   aria-label={t("send")}
                   title={t("send")}
                 >
