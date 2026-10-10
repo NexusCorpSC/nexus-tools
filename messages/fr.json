@@ -3636,5 +3636,159 @@
     "profile": {
       "title": "Profil du magasin"
     }
+  },
+  "OAuthConsent": {
+    "title": "Autoriser une application",
+    "intro": "{client} demande l'accès à votre compte Nexus Tools.",
+    "unknownClient": "Une application",
+    "signedInAs": "Connecté en tant que {name}.",
+    "requested": "Elle pourra :",
+    "scopes": {
+      "openid": "vous identifier",
+      "profile": "lire votre nom",
+      "email": "lire votre adresse e-mail",
+      "offline_access": "rester connectée sans vous redemander",
+      "inventory:read": "lire votre inventaire",
+      "inventory:write": "ajouter, déplacer et modifier les lots de votre inventaire",
+      "marketplace:read": "lire votre panier, vos commandes et vos magasins",
+      "marketplace:write": "remplir votre panier, passer et suivre vos commandes, mettre en vente et gérer les commandes de vos magasins",
+      "contributions:write": "proposer des contributions en votre nom (lieux, plans, objets)"
+    },
+    "warning": "Une application autorisée agit en votre nom. Vous pourrez retirer cet accès à tout moment dans vos paramètres.",
+    "website": "Site de l'application",
+    "allow": "Autoriser",
+    "deny": "Refuser",
+    "invalid": "Cette demande d'autorisation n'est plus valide. Relancez la connexion depuis votre application.",
+    "error": "L'autorisation a échoué. Réessayez depuis votre application."
+  },
+  "ConnectedApps": {
+    "title": "Applications connectées",
+    "intro": "Les assistants et applications que vous avez autorisés à accéder à votre compte, par exemple par le serveur MCP.",
+    "empty": "Aucune application connectée.",
+    "since": "Autorisée le {date}",
+    "scopes": "Accès : {scopes}",
+    "revoke": "Retirer l'accès",
+    "revoked": "Accès retiré. L'application perd l'accès dès l'expiration de son jeton en cours (une heure au plus)."
+  },
+  "McpViews": {
+    "common": {
+      "openOnSite": "Ouvrir sur Nexus Tools",
+      "loading": "Chargement…",
+      "empty": "Rien à afficher.",
+      "error": "Impossible d'afficher ce résultat.",
+      "waiting": "En attente du résultat…"
+    },
+    "marketplace": {
+      "results": "{count, plural, one {# annonce} other {# annonces}}",
+      "available": "{count} disponibles",
+      "soldOut": "Épuisé",
+      "handover": "Remise à {place}",
+      "shop": "Magasin {name}",
+      "addToCart": "Ajouter au panier",
+      "adding": "Ajout…",
+      "added": "Ajouté ({count} au panier)",
+      "addFailed": "Ajout impossible : {error}",
+      "delivered": "{count, plural, one {# commande remise} other {# commandes remises}}",
+      "owner": "Tenu par {name}",
+      "cart": "Panier",
+      "cartEmpty": "Le panier est vide.",
+      "total": "Total : {amount}",
+      "subtotal": "Sous-total : {amount}",
+      "noHandover": "Lieu de remise à proposer",
+      "problem": "Ne peut plus être commandé",
+      "quantity": "Quantité"
+    },
+    "sheet": {
+      "obtention": "Où l'obtenir",
+      "statistics": "Caractéristiques",
+      "children": "Lieux",
+      "shops": "Magasins",
+      "plans": "Plans",
+      "missions": "Missions",
+      "services": "Services"
+    },
+    "inventory": {
+      "lots": "{count, plural, one {# lot} other {# lots}}",
+      "reserved": "{count} réservés",
+      "onSale": "En vente : {shops}",
+      "quality": "Qualité {quality}",
+      "shared": "Partagé",
+      "elsewhere": "Sans lieu"
+    },
+    "plan": {
+      "issues": "À vérifier",
+      "noIssue": "Aucune anomalie relevée.",
+      "level": "Niveau",
+      "allLevels": "Tous les niveaux",
+      "draft": "Brouillon"
+    },
+    "nps": {
+      "on": "Sur ou près de {body}",
+      "inSpace": "Dans l'espace",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "altitude": "Altitude",
+      "nearest": "Lieux proches",
+      "to": "Vers {name}",
+      "straight": "{distance} en ligne droite",
+      "ground": "{distance} au sol",
+      "heading": "Cap {degrees}° ({compass})",
+      "noRoute": "Pas de coordonnées pour cette destination.",
+      "cardinals": "N E S O"
+    }
+  },
+  "Developers": {
+    "metaTitle": "Développeurs",
+    "metaDescription": "Branchez votre assistant IA sur Nexus Tools avec le serveur MCP : catalogue, lieux, NPS, marketplace, inventaire, contributions et plans de lieux.",
+    "title": "Développeurs",
+    "intro": "Nexus Tools ouvre ses données aux assistants IA par un serveur MCP (Model Context Protocol). Un assistant connecté peut chercher dans le catalogue, guider un joueur avec le NPS, consulter la marketplace et, si vous l'y autorisez, gérer votre inventaire, vos commandes et vos contributions.",
+    "server": {
+      "title": "Le serveur MCP",
+      "url": "Adresse du serveur :",
+      "transport": "Transport HTTP « Streamable HTTP », sans session. Le serveur suit la spécification MCP 2026-07-28 et répond aussi aux clients de 2025.",
+      "copy": "Copier",
+      "copied": "Copié"
+    },
+    "connect": {
+      "title": "Ajouter Nexus Tools à votre assistant",
+      "claude": "Claude (web, bureau, mobile) : Paramètres → Connecteurs → Ajouter un connecteur personnalisé, puis collez l'adresse du serveur.",
+      "chatgpt": "ChatGPT : Paramètres → Applications et connecteurs → mode développeur, puis créez un connecteur avec l'adresse du serveur.",
+      "vscode": "VS Code (GitHub Copilot) : ajoutez le serveur dans .vscode/mcp.json.",
+      "cursor": "Cursor : ajoutez le serveur dans ~/.cursor/mcp.json.",
+      "stdio": "Un client qui ne parle que stdio passe par mcp-remote :",
+      "signIn": "La première fois qu'un outil personnel est appelé, l'assistant ouvre la connexion à votre compte Nexus Tools."
+    },
+    "account": {
+      "title": "Accès à votre compte",
+      "intro": "Les outils publics (catalogue, lieux, NPS, marketplace en lecture) répondent sans connexion. Les outils personnels demandent votre accord, par la connexion OAuth du site, pour ces accès :",
+      "confirm": "Chaque modification (inventaire, panier, commande, mise en vente, contribution) vous est montrée avant d'avoir lieu, et n'a lieu que si vous la confirmez.",
+      "revoke": "Vous retirez l'accès d'un assistant à tout moment dans vos paramètres, rubrique « Applications connectées ».",
+      "settings": "Ouvrir mes paramètres"
+    },
+    "apps": {
+      "title": "Vues dans la conversation",
+      "body": "Les assistants compatibles MCP Apps affichent certains résultats sous forme de vues : annonces de la marketplace avec un bouton « Ajouter au panier », fiches d'objets et de lieux, inventaire, plans, boussole du NPS. Les autres reçoivent le même contenu en texte."
+    },
+    "tools": {
+      "title": "Les outils",
+      "intro": "{count} outils, décrits ici comme l'assistant les lit (en anglais).",
+      "public": "Outils publics",
+      "personal": "Outils personnels",
+      "scope": "Accès : {scope}",
+      "writes": "modifie",
+      "view": "vue"
+    },
+    "limits": {
+      "title": "Limites",
+      "items": "Les recherches renvoient au plus 50 résultats par page. Un panier tient au plus 50 lignes. Un joueur garde au plus 10 brouillons de plans, effacés après 7 jours sans modification. Les contributions suivent les mêmes règles que sur le site (propositions en attente, relecture par la communauté).",
+      "fair": "L'usage doit rester raisonnable, comme le prévoient les conditions générales d'utilisation."
+    },
+    "api": {
+      "title": "API REST",
+      "body": "Le site expose aussi une API REST sous /api, celle qu'utilise Nexus App. Elle n'est pas encore documentée et peut évoluer sans préavis : parlez-nous de vos besoins avant de vous appuyer dessus.",
+      "contact": "Une idée, un besoin, un souci ? Écrivez-nous sur Discord.",
+      "discord": "Rejoindre le Discord"
+    },
+    "cgu": "Conditions générales d'utilisation"
   }
 }

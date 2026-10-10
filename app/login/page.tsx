@@ -21,6 +21,24 @@ export default function Login() {
   const [emailSent, setEmailSent] = useState(false);
   const router = useRouter();
 
+  // Venue d'un assistant (connexion OAuth du serveur MCP) : la page porte la
+  // requête signée d'autorisation, que le plugin client joint à la connexion.
+  const oauthQuery = sParams.has("sig") ? sParams.toString() : null;
+
+  /**
+   * Après une connexion lancée par une autorisation OAuth, better-auth répond
+   * par la suite de l'autorisation (`{ redirect, url }`) : le consentement, ou
+   * directement l'assistant si le joueur l'a déjà autorisé.
+   */
+  function continueAfterSignIn(data: unknown) {
+    const next = data as { redirect?: boolean; url?: string } | null;
+    if (oauthQuery && next?.redirect && next.url) {
+      window.location.assign(next.url);
+    } else {
+      goBack();
+    }
+  }
+
   function goBack() {
     // La connexion de Nexus App finit par une redirection vers l'application,
     // hors du site : une navigation complète, que le routeur ne ferait pas.
@@ -41,12 +59,12 @@ export default function Login() {
           <form
             className="space-y-4"
             action={async (formData) => {
-              const { error } = await authClient.signIn.emailOtp({
+              const { data, error } = await authClient.signIn.emailOtp({
                 email,
                 otp: code,
               });
 
-              if (!error) goBack();
+              if (!error) continueAfterSignIn(data);
             }}
           >
             <div>
@@ -158,7 +176,11 @@ export default function Login() {
           onClick={async () => {
             await authClient.signIn.social({
               provider: "discord",
-              callbackURL: callbackUrl,
+              // Discord ramène sur le site sans la suite de l'autorisation :
+              // on repasse alors par l'écran de consentement, qui la reprend.
+              callbackURL: oauthQuery
+                ? `/oauth/consent?${oauthQuery}`
+                : callbackUrl,
             });
           }}
         >
@@ -170,8 +192,8 @@ export default function Login() {
           onClick={async () => {
             await authClient.signIn.passkey({
               fetchOptions: {
-                onSuccess() {
-                  goBack();
+                onSuccess(ctx) {
+                  continueAfterSignIn(ctx.data);
                 },
               },
             });

@@ -16,4 +16,9 @@ export default defineConfig([
   {
     extends: [...nextCoreWebVitals, ...nextTypescript],
   },
+  {
+    // Les vues MCP Apps ne sont pas des pages Next : pas de `next/image`.
+    files: ["mcp-views/**"],
+    rules: { "@next/next/no-img-element": "off" },
+  },
 ]);

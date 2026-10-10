@@ -3607,5 +3607,159 @@
     "profile": {
       "title": "Shop profile"
     }
+  },
+  "OAuthConsent": {
+    "title": "Authorize an application",
+    "intro": "{client} is asking for access to your Nexus Tools account.",
+    "unknownClient": "An application",
+    "signedInAs": "Signed in as {name}.",
+    "requested": "It will be able to:",
+    "scopes": {
+      "openid": "identify you",
+      "profile": "read your name",
+      "email": "read your email address",
+      "offline_access": "stay connected without asking you again",
+      "inventory:read": "read your inventory",
+      "inventory:write": "add, move and edit the lots of your inventory",
+      "marketplace:read": "read your cart, your orders and your shops",
+      "marketplace:write": "fill your cart, place and follow your orders, put items on sale and handle your shops' orders",
+      "contributions:write": "submit contributions on your behalf (places, maps, items)"
+    },
+    "warning": "An authorized application acts on your behalf. You can remove this access at any time in your settings.",
+    "website": "Application website",
+    "allow": "Allow",
+    "deny": "Deny",
+    "invalid": "This authorization request is no longer valid. Start the connection again from your application.",
+    "error": "Authorization failed. Try again from your application."
+  },
+  "ConnectedApps": {
+    "title": "Connected applications",
+    "intro": "The assistants and applications you allowed to access your account, for example through the MCP server.",
+    "empty": "No connected application.",
+    "since": "Authorized on {date}",
+    "scopes": "Access: {scopes}",
+    "revoke": "Remove access",
+    "revoked": "Access removed. The application loses access when its current token expires (one hour at most)."
+  },
+  "McpViews": {
+    "common": {
+      "openOnSite": "Open on Nexus Tools",
+      "loading": "Loading…",
+      "empty": "Nothing to show.",
+      "error": "This result cannot be shown.",
+      "waiting": "Waiting for the result…"
+    },
+    "marketplace": {
+      "results": "{count, plural, one {# listing} other {# listings}}",
+      "available": "{count} available",
+      "soldOut": "Sold out",
+      "handover": "Handover at {place}",
+      "shop": "Shop {name}",
+      "addToCart": "Add to cart",
+      "adding": "Adding…",
+      "added": "Added ({count} in the cart)",
+      "addFailed": "Could not add: {error}",
+      "delivered": "{count, plural, one {# order delivered} other {# orders delivered}}",
+      "owner": "Run by {name}",
+      "cart": "Cart",
+      "cartEmpty": "The cart is empty.",
+      "total": "Total: {amount}",
+      "subtotal": "Subtotal: {amount}",
+      "noHandover": "Handover place to propose",
+      "problem": "Cannot be ordered anymore",
+      "quantity": "Quantity"
+    },
+    "sheet": {
+      "obtention": "Where to get it",
+      "statistics": "Statistics",
+      "children": "Places",
+      "shops": "Shops",
+      "plans": "Maps",
+      "missions": "Missions",
+      "services": "Services"
+    },
+    "inventory": {
+      "lots": "{count, plural, one {# lot} other {# lots}}",
+      "reserved": "{count} reserved",
+      "onSale": "On sale: {shops}",
+      "quality": "Quality {quality}",
+      "shared": "Shared",
+      "elsewhere": "No location"
+    },
+    "plan": {
+      "issues": "To check",
+      "noIssue": "No anomaly found.",
+      "level": "Level",
+      "allLevels": "All levels",
+      "draft": "Draft"
+    },
+    "nps": {
+      "on": "On or near {body}",
+      "inSpace": "In space",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "altitude": "Altitude",
+      "nearest": "Nearby places",
+      "to": "To {name}",
+      "straight": "{distance} in a straight line",
+      "ground": "{distance} over the ground",
+      "heading": "Heading {degrees}° ({compass})",
+      "noRoute": "No coordinates for this destination.",
+      "cardinals": "N E S W"
+    }
+  },
+  "Developers": {
+    "metaTitle": "Developers",
+    "metaDescription": "Connect your AI assistant to Nexus Tools with the MCP server: catalog, places, NPS, marketplace, inventory, contributions and place maps.",
+    "title": "Developers",
+    "intro": "Nexus Tools opens its data to AI assistants through an MCP (Model Context Protocol) server. A connected assistant can search the catalog, guide a player with the NPS, browse the marketplace and, if you allow it, manage your inventory, orders and contributions.",
+    "server": {
+      "title": "The MCP server",
+      "url": "Server address:",
+      "transport": "Streamable HTTP transport, without sessions. The server follows the MCP 2026-07-28 specification and also answers 2025 clients.",
+      "copy": "Copy",
+      "copied": "Copied"
+    },
+    "connect": {
+      "title": "Add Nexus Tools to your assistant",
+      "claude": "Claude (web, desktop, mobile): Settings → Connectors → Add custom connector, then paste the server address.",
+      "chatgpt": "ChatGPT: Settings → Apps & Connectors → developer mode, then create a connector with the server address.",
+      "vscode": "VS Code (GitHub Copilot): add the server to .vscode/mcp.json.",
+      "cursor": "Cursor: add the server to ~/.cursor/mcp.json.",
+      "stdio": "A client that only speaks stdio goes through mcp-remote:",
+      "signIn": "The first time a personal tool is called, the assistant opens the sign-in to your Nexus Tools account."
+    },
+    "account": {
+      "title": "Access to your account",
+      "intro": "Public tools (catalog, places, NPS, marketplace browsing) answer without signing in. Personal tools ask for your consent, through the site's OAuth sign-in, for these accesses:",
+      "confirm": "Every change (inventory, cart, order, listing, contribution) is shown to you before it happens, and only happens if you confirm it.",
+      "revoke": "You can remove an assistant's access at any time in your settings, under “Connected apps”.",
+      "settings": "Open my settings"
+    },
+    "apps": {
+      "title": "Views in the conversation",
+      "body": "Assistants that support MCP Apps show some results as views: marketplace listings with an “Add to cart” button, item and place sheets, inventory, maps, the NPS compass. Others get the same content as text."
+    },
+    "tools": {
+      "title": "The tools",
+      "intro": "{count} tools, described here as the assistant reads them.",
+      "public": "Public tools",
+      "personal": "Personal tools",
+      "scope": "Access: {scope}",
+      "writes": "changes data",
+      "view": "view"
+    },
+    "limits": {
+      "title": "Limits",
+      "items": "Searches return at most 50 results per page. A cart holds at most 50 lines. A player keeps at most 10 map drafts, deleted after 7 days without changes. Contributions follow the same rules as on the site (pending proposals, community review).",
+      "fair": "Use must stay reasonable, as the terms of use require."
+    },
+    "api": {
+      "title": "REST API",
+      "body": "The site also exposes a REST API under /api, the one Nexus App uses. It is not documented yet and may change without notice: tell us what you need before relying on it.",
+      "contact": "An idea, a need, a problem? Write to us on Discord.",
+      "discord": "Join the Discord"
+    },
+    "cgu": "Terms of use"
   }
 }

@@ -53,3 +53,6 @@ assets/blueprints.json
 # Décodeur Draco recopié depuis three par `npm run postinstall`
 /public/draco
 /public/fonts
+
+# vues MCP Apps compilées (npm run mcp:views)
+/lib/mcp/views/dist/

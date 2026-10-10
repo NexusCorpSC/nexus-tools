@@ -496,6 +496,31 @@ async function ensureCommunity(database: Db) {
     .createIndex({ kind: 1, userId: 1, createdAt: -1 });
 }
 
+/**
+ * Le fournisseur OAuth du serveur MCP (better-auth) : il cherche les clients
+ * par `clientId`, les consentements par joueur et client, les jetons de
+ * rafraîchissement par valeur. L'adaptateur MongoDB ne crée aucun index.
+ */
+async function ensureOAuth(database: Db) {
+  await database.collection("oauthClients").createIndex({ clientId: 1 });
+  await database
+    .collection("oauthConsents")
+    .createIndex({ userId: 1, clientId: 1 });
+  const refresh = database.collection("oauthRefreshTokens");
+  await refresh.createIndex({ token: 1 });
+  await refresh.createIndex({ clientId: 1, userId: 1 });
+}
+
+/**
+ * Les brouillons de plans dessinés par des agents (serveur MCP) : ceux d'un
+ * joueur, et l'expiration sept jours après la dernière modification.
+ */
+async function ensurePlanDrafts(database: Db) {
+  const drafts = database.collection("placePlanDrafts");
+  await drafts.createIndex({ userId: 1, updatedAt: -1 });
+  await drafts.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+}
+
 const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
@@ -514,6 +539,8 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["contributions", ensureContributions],
   ["reports", ensureReports],
   ["community", ensureCommunity],
+  ["oauth", ensureOAuth],
+  ["planDrafts", ensurePlanDrafts],
 ];
 
 async function main() {

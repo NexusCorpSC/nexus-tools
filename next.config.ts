@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
+  // Le rastériseur des aperçus de plans côté serveur (`lib/plan-preview.ts`)
+  // est un module natif : il se charge tel quel, sans passer par le bundler.
+  serverExternalPackages: ["@resvg/resvg-js"],
+  // Et il lit la police de l'interface sur le disque : la route MCP l'emporte,
+  // avec la page compilée des vues MCP Apps (`npm run mcp:views`).
+  outputFileTracingIncludes: {
+    "/mcp": ["./app/fonts/*.woff", "./lib/mcp/views/dist/*.html"],
+  },
   images: {
     remotePatterns: [
       {

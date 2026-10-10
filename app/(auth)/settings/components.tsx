@@ -5,7 +5,11 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { setLeaderboardHiddenAction } from "./actions";
+import { useTranslations } from "next-intl";
+import {
+  revokeConnectedAppAction,
+  setLeaderboardHiddenAction,
+} from "./actions";
 
 export function AddPasskeyForm() {
   const [name, setName] = useState("");
@@ -86,5 +90,24 @@ export function LeaderboardVisibilityToggle({
         </small>
       </span>
     </label>
+  );
+}
+
+export function RevokeConnectedAppButton({ consentId }: { consentId: string }) {
+  const t = useTranslations("ConnectedApps");
+  const [pending, startTransition] = useTransition();
+  return (
+    <Button
+      variant="outline"
+      disabled={pending}
+      onClick={() =>
+        startTransition(async () => {
+          await revokeConnectedAppAction(consentId);
+          toast.success(t("revoked"));
+        })
+      }
+    >
+      {t("revoke")}
+    </Button>
   );
 }

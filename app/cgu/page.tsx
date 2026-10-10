@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import LegalPage, { type LegalSection } from "@/components/legal-page";
 
-const UPDATED_AT = "2 août 2026";
+const UPDATED_AT = "10 octobre 2026";
 const CONTACT_EMAIL = "tools@services.nexus";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ const sections: LegalSection[] = [
           «&nbsp;CGU&nbsp;») encadrent l&apos;accès et l&apos;utilisation du
           site <strong>Nexus Tools</strong>, accessible à l&apos;adresse{" "}
           <em>tools.services.nexus</em>, de son API publique et de
-          l&apos;application de bureau <strong>Nexus App</strong>{" "}(ensemble, le
+          l&apos;application de bureau <strong>Nexus App</strong> (ensemble, le
           «&nbsp;Service&nbsp;»).
         </p>
         <p>
@@ -69,12 +69,12 @@ const sections: LegalSection[] = [
         </p>
         <ul>
           <li>
-            une <strong>marketplace</strong>{" "}permettant de proposer des biens et
+            une <strong>marketplace</strong> permettant de proposer des biens et
             services en jeu, ainsi qu&apos;un suivi des commandes et des devis
             entre joueurs&nbsp;;
           </li>
           <li>
-            des outils d&apos;<strong>artisanat</strong>{" "}(plans, recettes,
+            des outils d&apos;<strong>artisanat</strong> (plans, recettes,
             possession au sein d&apos;une organisation)&nbsp;;
           </li>
           <li>
@@ -236,7 +236,7 @@ const sections: LegalSection[] = [
             aucun n&apos;est autorisé.
           </li>
           <li>
-            La Nexus Corporation <strong>n&apos;est pas partie</strong>{" "}aux
+            La Nexus Corporation <strong>n&apos;est pas partie</strong> aux
             transactions conclues entre joueurs&nbsp;: elle n&apos;intervient ni
             dans la livraison, ni dans le paiement, ni dans le règlement des
             litiges entre acheteur et vendeur.
@@ -269,7 +269,7 @@ const sections: LegalSection[] = [
         </p>
         <p>
           Le code source du Service et de Nexus App est publié sur{" "}
-          <Link href="https://github.com/NexusCorpSC">GitHub</Link>{" "}et régi par
+          <Link href="https://github.com/NexusCorpSC">GitHub</Link> et régi par
           les licences qui y figurent.
         </p>
       </>
@@ -301,6 +301,22 @@ const sections: LegalSection[] = [
             pas se présenter comme étant éditée par la Nexus Corporation.
           </li>
         </ul>
+        <p>
+          <strong>Assistants connectés à votre compte.</strong> Vous pouvez
+          autoriser un assistant IA ou une application à utiliser votre compte
+          par le serveur MCP. L&apos;autorisation passe par la connexion au
+          Service et un écran de consentement qui liste les accès demandés
+          (lecture de l&apos;inventaire, commandes, contributions…). Chaque
+          modification demandée par un assistant vous est présentée avant
+          d&apos;avoir lieu et n&apos;a lieu qu&apos;avec votre confirmation.
+          Les actions confirmées sont faites en votre nom et engagent votre
+          compte comme si vous les aviez faites sur le site, y compris les
+          règles de la marketplace et des contributions. Vous retirez
+          l&apos;accès d&apos;une application à tout moment dans vos{" "}
+          <Link href="/settings#applications">paramètres</Link>. Le mode
+          d&apos;emploi figure sur la page{" "}
+          <Link href="/developers">Développeurs</Link>.
+        </p>
         <p>
           Les routes de l&apos;API peuvent évoluer sans préavis tant que le
           Service est en développement. Nexus App n&apos;installe aucune mise à

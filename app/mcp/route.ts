@@ -1,89 +1,78 @@
-import { getBlueprintBySlug, searchBlueprints } from "@/lib/crafting";
-import { TextContent } from "@modelcontextprotocol/sdk/types.js";
-import { createMcpHandler } from "mcp-handler";
-import { z } from "zod/v3";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import {
+  MCP_CACHE_HINTS,
+  MCP_INSTRUCTIONS,
+  MCP_SERVER_INFO,
+  registerNexusServer,
+} from "@/lib/mcp/server";
+import {
+  PERSONAL_TOOLS,
+  personalToolsCalled,
+  verifyMcpToken,
+} from "@/lib/mcp/auth";
+import {
+  describeMcpRequest,
+  logMcpEvent,
+  logMcpRequest,
+} from "@/lib/mcp/logging";
+import { mcpResource } from "@/lib/mcp/oauth-config";
 
-async function handleSearchBlueprints(input: {
-  query: string;
-}): Promise<{ content: TextContent[]; isError?: boolean }> {
-  const blueprints = await searchBlueprints(input.query, { fuzzy: true });
+/**
+ * Le serveur MCP (https://modelcontextprotocol.io), en Streamable HTTP.
+ *
+ * `mcp-handler` 2 sert la spec 2026-07-28 (sans état) et, depuis la même route,
+ * les clients 2025 en mode sans session. Le contenu du serveur vit dans
+ * `lib/mcp/`.
+ *
+ * L'authentification est facultative : sans jeton, les outils publics
+ * répondent ; un outil personnel appelé sans jeton reçoit un 401 dont
+ * l'en-tête `WWW-Authenticate` mène le client à la connexion OAuth du site.
+ */
+export const maxDuration = 60;
 
-  return {
-    content: [
-      {
-        type: "text",
-        text:
-          `You searched for: ${input.query}\n\nFound ${blueprints.length} blueprints:\n` +
-          blueprints
-            .map(
-              (bp) =>
-                `- ${bp.name} (slug: ${bp.slug}) (link: [${bp.name}](https://tools.services.nexus/crafting/blueprints/${bp.slug}))`,
-            )
-            .join("\n"),
-      },
-    ],
-  };
+const mcpHandler = createMcpHandler(registerNexusServer, {
+  serverInfo: MCP_SERVER_INFO,
+  instructions: MCP_INSTRUCTIONS,
+  cacheHints: MCP_CACHE_HINTS,
+  verboseLogs: process.env.NODE_ENV === "development",
+  onEvent: logMcpEvent,
+});
+
+const resourceMetadataPath = "/.well-known/oauth-protected-resource/mcp";
+
+const authenticated = withMcpAuth(mcpHandler, verifyMcpToken, {
+  required: false,
+  resourceMetadataPath,
+  resourceUrl: new URL(mcpResource()).origin,
+});
+
+async function serve(request: Request): Promise<Response> {
+  if (!request.headers.get("authorization")) {
+    const personal = await personalToolsCalled(request);
+    if (personal.length > 0) {
+      // Le 401 de connexion, qui annonce les portées des outils demandés.
+      return withMcpAuth(mcpHandler, verifyMcpToken, {
+        required: true,
+        requiredScopes: [
+          ...new Set(personal.map((name) => PERSONAL_TOOLS[name])),
+        ],
+        resourceMetadataPath,
+        resourceUrl: new URL(mcpResource()).origin,
+      })(request);
+    }
+  }
+  return authenticated(request);
 }
 
-const handler = createMcpHandler(
-  (server) => {
-    server.registerTool(
-      "search_blueprints",
-      {
-        title: "Search for a blueprint",
-        description:
-          "Search for 3 blueprints with a generic query and return their slugs and full names to use with other tools.",
-        inputSchema: {
-          query: z.string(),
-        },
-      },
-      handleSearchBlueprints,
-    );
-    server.registerTool(
-      "get_blueprint_by_slug",
-      {
-        title: "Get blueprint details by slug",
-        description:
-          "Retrieve detailed information about a blueprint, recipe, obtention, statistics, ... using its slug.",
-        inputSchema: {
-          slug: z.string(),
-        },
-      },
-      async (input: { slug: string }) => {
-        const blueprint = await getBlueprintBySlug(input.slug);
-        if (!blueprint) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No blueprint found with slug: ${input.slug}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Blueprint Details:\nName: ${blueprint.name}\nCategory: ${blueprint.category}\nSubcategory: ${blueprint.subcategory}\nObtained from: ${blueprint.obtention || "No information about how to get this blueprint."}\nDescription: ${blueprint.description}\nLink with details: [${blueprint.name}](https://tools.services.nexus/crafting/blueprints/${blueprint.slug})\n${blueprint.imageUrl ? `Image: ![${blueprint.name}](${blueprint.imageUrl})` : ""}`,
-            },
-          ],
-        };
-      },
-    );
-  },
-  {
-    serverInfo: {
-      name: "Nexus Tools",
-      version: "1.0.0",
-    },
-  },
-  {
-    basePath: "",
-    verboseLogs: true,
-    maxDuration: 60,
-  },
-);
+async function handler(request: Request): Promise<Response> {
+  const startedAt = Date.now();
+  const calls = await describeMcpRequest(request);
+  const response = await serve(request);
+  logMcpRequest(calls, response, {
+    startedAt,
+    signedIn: !!request.headers.get("authorization"),
+  });
+  return response;
+}
 
 export { handler as GET, handler as POST, handler as DELETE };
