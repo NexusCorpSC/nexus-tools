@@ -208,7 +208,9 @@ function ToolChips({ parts }: { parts: ToolPart[] }) {
             className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs ${chip.tone}`}
           >
             {chip.icon}
-            <span className="truncate">{chip.label}</span>
+            <span className="truncate" title={chip.label}>
+              {chip.label}
+            </span>
           </li>
         ))}
       </ul>

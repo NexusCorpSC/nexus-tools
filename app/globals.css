@@ -230,5 +230,7 @@
     #2386c8 60%,
     #0d3a66
   );
-  box-shadow: 0 0 24px rgb(58 160 220 / 0.45);
+  /* Le halo en `filter` : un `ring-*` ou un `shadow-*` sur le même élément
+     (le micro pendant l'écoute) ne l'efface pas. */
+  filter: drop-shadow(0 0 12px rgb(58 160 220 / 0.55));
 }

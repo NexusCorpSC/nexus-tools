@@ -6,9 +6,16 @@ import type { ChatStatus } from "@/types/chat";
 
 /**
  * Ce que le joueur a consommé de son budget du mois, sur une ligne avec une
- * barre fine ; la date où il repart est dans l'infobulle.
+ * barre fine ; la date où il repart n'est en clair que si on le demande.
  */
-export function ChatBudget({ status }: { status: ChatStatus }) {
+export function ChatBudget({
+  status,
+  showReset = false,
+}: {
+  status: ChatStatus;
+  /** La date où le budget repart, en clair (la barre latérale de `/chat`). */
+  showReset?: boolean;
+}) {
   const t = useTranslations("Chat.budget");
   const locale = useLocale();
   const ratio =
@@ -21,7 +28,7 @@ export function ChatBudget({ status }: { status: ChatStatus }) {
   });
 
   return (
-    <div className="space-y-1.5" title={t("resets", { date: resets })}>
+    <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2 text-xs text-[#8FB1D6]">
         <span>{t("label")}</span>
         <span className="whitespace-nowrap font-mono text-[#CFE2F7]">
@@ -44,7 +51,9 @@ export function ChatBudget({ status }: { status: ChatStatus }) {
           style={{ width: `${ratio * 100}%` }}
         />
       </div>
-      <p className="sr-only">{t("resets", { date: resets })}</p>
+      <p className={showReset ? "text-[11px] text-[#8FB1D6]" : "sr-only"}>
+        {t("resets", { date: resets })}
+      </p>
     </div>
   );
 }

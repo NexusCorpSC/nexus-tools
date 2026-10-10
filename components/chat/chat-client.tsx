@@ -147,7 +147,7 @@ export function ChatClient({
             )}
           </nav>
           <div className="border-t border-[#8CBEFF]/18 p-3">
-            <ChatBudget status={status} />
+            <ChatBudget status={status} showReset />
           </div>
         </aside>
       )}
