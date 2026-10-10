@@ -3761,5 +3761,52 @@
       "discord": "Join the Discord"
     },
     "cgu": "Terms of use"
+  },
+  "Chat": {
+    "Admin": {
+      "title": "Nexus Chat",
+      "intro": "The AI assistant that answers players and acts on their account with the MCP tools. Closed by default: open access player by player, with a monthly budget in dollars that resets on the 1st of each month.",
+      "settingsTitle": "Settings",
+      "enabled": "Chat open (unchecked, it answers no one)",
+      "model": "Model",
+      "defaultBudget": "Suggested monthly budget ($)",
+      "save": "Save",
+      "saved": "Settings saved",
+      "modelHint": "Price per million tokens (input / output): Haiku 5.5 $0.10 / $0.50 · Sonnet 5.5 $2 / $10 · Opus 5.5 $4 / $20. Each answer's cost is computed from the tokens it used.",
+      "addTitle": "Give a player access",
+      "searchPlaceholder": "Name or email",
+      "search": "Search",
+      "noCandidate": "No player found.",
+      "requestsTitle": "Pending requests ({count})",
+      "noRequest": "No pending request.",
+      "requestedOn": "requested on {date, date, short}",
+      "grantedTitle": "Players with access ({count})",
+      "noGranted": "Nobody has access yet.",
+      "revokedTitle": "Declined or revoked ({count})",
+      "colName": "Player",
+      "colSpent": "Used this month",
+      "colBudget": "Monthly budget ($)",
+      "budget": "Monthly budget in dollars",
+      "grant": "Give access",
+      "decline": "Decline",
+      "revoke": "Revoke access",
+      "saveBudget": "Save",
+      "grantedToast": "Access granted",
+      "declinedToast": "Request declined",
+      "revokedToast": "Access revoked",
+      "budgetToast": "Budget saved",
+      "backToAdmin": "Back to admin",
+      "status": {
+        "none": "no access",
+        "requested": "requested access",
+        "granted": "has access",
+        "revoked": "access revoked"
+      },
+      "errors": {
+        "invalid_budget": "Invalid budget: an amount in dollars between 0 and 1,000.",
+        "invalid_model": "Unknown model.",
+        "not_found": "Player not found."
+      }
+    }
   }
 }

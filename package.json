@@ -23,6 +23,9 @@
     "mcp:views": "vite build --config mcp-views/vite.config.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.78",
+    "@ai-sdk/mcp": "^2.0.73",
+    "@ai-sdk/react": "^4.0.140",
     "@auth/mongodb-adapter": "^3.11.1",
     "@base-ui/react": "^1.2.0",
     "@better-auth/cimd": "^1.7.7",
@@ -48,6 +51,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.3.1",
+    "ai": "^7.0.137",
     "ajv": "^8.18.0",
     "better-auth": "^1.7.7",
     "chart.js": "^4.5.1",

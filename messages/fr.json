@@ -3790,5 +3790,52 @@
       "discord": "Rejoindre le Discord"
     },
     "cgu": "Conditions générales d'utilisation"
+  },
+  "Chat": {
+    "Admin": {
+      "title": "Nexus Chat",
+      "intro": "L'assistant IA qui répond aux joueurs et agit sur leur compte avec les outils MCP. Fermé par défaut : ouvrez l'accès joueur par joueur, avec un budget mensuel en dollars qui repart le 1er de chaque mois.",
+      "settingsTitle": "Réglages",
+      "enabled": "Chat ouvert (décoché, il ne répond plus à personne)",
+      "model": "Modèle",
+      "defaultBudget": "Budget mensuel proposé ($)",
+      "save": "Enregistrer",
+      "saved": "Réglages enregistrés",
+      "modelHint": "Prix par million de jetons (entrée / sortie) : Haiku 5.5 0,10 $ / 0,50 $ · Sonnet 5.5 2 $ / 10 $ · Opus 5.5 4 $ / 20 $. Le coût de chaque réponse est calculé sur les jetons consommés.",
+      "addTitle": "Ouvrir l'accès à un joueur",
+      "searchPlaceholder": "Pseudo ou e-mail",
+      "search": "Chercher",
+      "noCandidate": "Aucun joueur trouvé.",
+      "requestsTitle": "Demandes en attente ({count})",
+      "noRequest": "Aucune demande en attente.",
+      "requestedOn": "demandé le {date, date, short}",
+      "grantedTitle": "Joueurs avec l'accès ({count})",
+      "noGranted": "Personne n'a encore l'accès.",
+      "revokedTitle": "Accès refusés ou retirés ({count})",
+      "colName": "Joueur",
+      "colSpent": "Consommé ce mois",
+      "colBudget": "Budget mensuel ($)",
+      "budget": "Budget mensuel en dollars",
+      "grant": "Ouvrir l'accès",
+      "decline": "Refuser",
+      "revoke": "Retirer l'accès",
+      "saveBudget": "Enregistrer",
+      "grantedToast": "Accès ouvert",
+      "declinedToast": "Demande refusée",
+      "revokedToast": "Accès retiré",
+      "budgetToast": "Budget enregistré",
+      "backToAdmin": "Retour à l'admin",
+      "status": {
+        "none": "pas d'accès",
+        "requested": "a demandé l'accès",
+        "granted": "a l'accès",
+        "revoked": "accès retiré"
+      },
+      "errors": {
+        "invalid_budget": "Budget invalide : un montant en dollars entre 0 et 1 000.",
+        "invalid_model": "Modèle inconnu.",
+        "not_found": "Joueur introuvable."
+      }
+    }
   }
 }

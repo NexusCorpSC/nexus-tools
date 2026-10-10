@@ -3752,5 +3752,52 @@
       "discord": "Unirse al Discord"
     },
     "cgu": "Condiciones generales de uso"
+  },
+  "Chat": {
+    "Admin": {
+      "title": "Nexus Chat",
+      "intro": "El asistente de IA que responde a los jugadores y actúa en su cuenta con las herramientas MCP. Cerrado por defecto: abre el acceso jugador por jugador, con un presupuesto mensual en dólares que se reinicia el día 1 de cada mes.",
+      "settingsTitle": "Ajustes",
+      "enabled": "Chat abierto (desmarcado, no responde a nadie)",
+      "model": "Modelo",
+      "defaultBudget": "Presupuesto mensual sugerido ($)",
+      "save": "Guardar",
+      "saved": "Ajustes guardados",
+      "modelHint": "Precio por millón de tokens (entrada / salida): Haiku 5.5 0,10 $ / 0,50 $ · Sonnet 5.5 2 $ / 10 $ · Opus 5.5 4 $ / 20 $. El coste de cada respuesta se calcula con los tokens consumidos.",
+      "addTitle": "Dar acceso a un jugador",
+      "searchPlaceholder": "Nombre o correo",
+      "search": "Buscar",
+      "noCandidate": "Ningún jugador encontrado.",
+      "requestsTitle": "Solicitudes pendientes ({count})",
+      "noRequest": "Ninguna solicitud pendiente.",
+      "requestedOn": "solicitado el {date, date, short}",
+      "grantedTitle": "Jugadores con acceso ({count})",
+      "noGranted": "Nadie tiene acceso todavía.",
+      "revokedTitle": "Rechazados o retirados ({count})",
+      "colName": "Jugador",
+      "colSpent": "Consumido este mes",
+      "colBudget": "Presupuesto mensual ($)",
+      "budget": "Presupuesto mensual en dólares",
+      "grant": "Dar acceso",
+      "decline": "Rechazar",
+      "revoke": "Retirar el acceso",
+      "saveBudget": "Guardar",
+      "grantedToast": "Acceso concedido",
+      "declinedToast": "Solicitud rechazada",
+      "revokedToast": "Acceso retirado",
+      "budgetToast": "Presupuesto guardado",
+      "backToAdmin": "Volver a la administración",
+      "status": {
+        "none": "sin acceso",
+        "requested": "ha solicitado acceso",
+        "granted": "tiene acceso",
+        "revoked": "acceso retirado"
+      },
+      "errors": {
+        "invalid_budget": "Presupuesto no válido: una cantidad en dólares entre 0 y 1.000.",
+        "invalid_model": "Modelo desconocido.",
+        "not_found": "Jugador no encontrado."
+      }
+    }
   }
 }
