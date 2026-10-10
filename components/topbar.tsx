@@ -7,6 +7,7 @@ import { ObjectId } from "bson";
 import Image from "next/image";
 import Link from "next/link";
 import { ScratchPadPanel } from "@/components/scratch-pad-panel";
+import { ChatPanel } from "@/components/chat/chat-panel";
 import { CategoryNav, MobileNav } from "@/components/nav/main-nav";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth";
@@ -145,6 +146,9 @@ export default async function Topbar() {
                 </span>
               )}
             </Link>
+
+            {/* Nexus Chat, in a side panel that stays open across pages */}
+            <ChatPanel />
 
             {/* Scratch pad, opens a side panel from the right */}
             <ScratchPadPanel />

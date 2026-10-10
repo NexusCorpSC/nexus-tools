@@ -3787,6 +3787,13 @@
     "thinking": "Thinking…",
     "stoppedBudget": "The answer stopped: this month's budget is used up.",
     "openInApp": "Open in the main window",
+    "panel": {
+      "title": "Nexus Chat",
+      "open": "Open Nexus Chat",
+      "close": "Close Nexus Chat",
+      "openPage": "Open full page",
+      "loading": "Loading…"
+    },
     "budget": {
       "label": "This month's budget",
       "spent": "{spent} / {budget}",

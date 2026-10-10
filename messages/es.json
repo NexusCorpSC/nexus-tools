@@ -3778,6 +3778,13 @@
     "thinking": "Pensando…",
     "stoppedBudget": "La respuesta se detuvo: el presupuesto del mes se ha agotado.",
     "openInApp": "Abrir en la ventana principal",
+    "panel": {
+      "title": "Nexus Chat",
+      "open": "Abrir Nexus Chat",
+      "close": "Cerrar Nexus Chat",
+      "openPage": "Abrir a pantalla completa",
+      "loading": "Cargando…"
+    },
     "budget": {
       "label": "Presupuesto del mes",
       "spent": "{spent} / {budget}",
