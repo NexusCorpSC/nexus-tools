@@ -855,9 +855,11 @@ export async function revertConflicts(
       if (plans > 0) {
         added.push({ field: "plan", before: undefined, after: String(plans) });
       }
+      // Son image principale vient d'elle : ce n'est pas l'ajout d'un autre.
       const images = await placeMedia().countDocuments({
         placeSlug: place.slug,
         status: "published",
+        contributionId: { $ne: contribution._id },
       });
       if (images > 0) {
         added.push({

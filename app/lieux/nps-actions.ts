@@ -1,6 +1,6 @@
 "use server";
 
-import { getNpsData } from "@/lib/places";
+import { getNpsBodies } from "@/lib/places";
 import type { NpsBody } from "@/types/places";
 
 /**
@@ -8,6 +8,5 @@ import type { NpsBody } from "@/types/places";
  * lieu dans le repère de son corps. Publiques, comme `GET /api/lieux/nps`.
  */
 export async function listNpsBodiesAction(): Promise<NpsBody[]> {
-  const { bodies } = await getNpsData();
-  return bodies;
+  return getNpsBodies();
 }

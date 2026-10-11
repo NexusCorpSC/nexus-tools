@@ -52,12 +52,13 @@ export function PlacePositionField({
   onChange,
 }: {
   initial?: PlacePosition;
-  /** Le système du lieu, si on le sait : ses corps viennent en premier. */
+  /** Le système du lieu, si on le sait : seuls ses corps sont proposés. */
   systemSlug?: string;
   onChange: (value: PositionValue) => void;
 }) {
   const t = useTranslations("Places.Position");
   const [bodies, setBodies] = useState<NpsBody[] | null>(null);
+  const [bodiesFailed, setBodiesFailed] = useState(false);
   const [mode, setMode] = useState<Mode>(
     initial ? (initial.body ? "body" : "space") : "none",
   );
@@ -72,30 +73,48 @@ export function PlacePositionField({
   useEffect(() => {
     listNpsBodiesAction()
       .then(setBodies)
-      .catch(() => setBodies([]));
+      .catch(() => {
+        setBodies([]);
+        setBodiesFailed(true);
+      });
   }, []);
 
+  // Chaque système a son repère : un corps d'un autre système n'a rien à
+  // voir avec ce lieu, et une ligne collée tomberait peut-être dans sa zone.
   const sorted = useMemo(
     () =>
-      [...(bodies ?? [])].sort(
-        (a, b) =>
-          Number(b.systemSlug === systemSlug) -
-            Number(a.systemSlug === systemSlug) ||
-          (a.systemName ?? "").localeCompare(b.systemName ?? "") ||
-          a.name.localeCompare(b.name),
-      ),
+      (bodies ?? [])
+        .filter((body) => !systemSlug || body.systemSlug === systemSlug)
+        .sort(
+          (a, b) =>
+            (a.systemName ?? "").localeCompare(b.systemName ?? "") ||
+            a.name.localeCompare(b.name),
+        ),
     [bodies, systemSlug],
   );
+
+  // Un autre parent, un autre système : le corps choisi n'en est plus.
+  const chosen =
+    bodies === null || sorted.some((body) => body.slug === bodySlug)
+      ? bodySlug
+      : "";
+
+  /** Change d'unité en gardant la même distance. */
+  function switchUnit(next: Unit) {
+    const point = read(fields, unit);
+    setUnit(next);
+    if (point) setFields(toFields(point, next));
+  }
 
   // Ce que le formulaire enverra, recalculé à chaque saisie.
   useEffect(() => {
     if (mode === "none") return onChange(null);
     const point = read(fields, unit);
-    if (!point || (mode === "body" && !bodySlug)) return onChange("invalid");
-    onChange(mode === "body" ? { body: bodySlug, ...point } : point);
+    if (!point || (mode === "body" && !chosen)) return onChange("invalid");
+    onChange(mode === "body" ? { body: chosen, ...point } : point);
     // `onChange` change à chaque rendu du parent : seule la saisie compte.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, bodySlug, unit, fields]);
+  }, [mode, chosen, unit, fields]);
 
   function applyPaste(text: string) {
     setPaste(text);
@@ -103,7 +122,7 @@ export function PlacePositionField({
     const reading = parseShowLocation(text);
     if (!reading) return setPasteError(true);
     setPasteError(false);
-    const position = positionOf({ ...reading, at: Date.now() }, bodies ?? []);
+    const position = positionOf({ ...reading, at: Date.now() }, sorted);
     const nextUnit: Unit = position.body ? "km" : "m";
     setMode(position.body ? "body" : "space");
     setBodySlug(position.body ?? "");
@@ -128,14 +147,18 @@ export function PlacePositionField({
           value={paste}
           // Sans les corps, une ligne prise sur une planète passerait pour
           // une position dans l'espace.
-          disabled={bodies === null}
+          disabled={bodies === null || bodiesFailed}
           placeholder="Coordinates: x:… y:… z:…"
           onChange={(event) => applyPaste(event.target.value)}
         />
         <p
-          className={`text-xs ${pasteError ? "text-red-400" : "text-muted-foreground"}`}
+          className={`text-xs ${pasteError || bodiesFailed ? "text-red-400" : "text-muted-foreground"}`}
         >
-          {pasteError ? t("pasteInvalid") : t("pasteHint")}
+          {bodiesFailed
+            ? t("bodiesFailed")
+            : pasteError
+              ? t("pasteInvalid")
+              : t("pasteHint")}
         </p>
       </div>
 
@@ -148,8 +171,8 @@ export function PlacePositionField({
             aria-checked={mode === choice.key}
             onClick={() => {
               setMode(choice.key);
-              if (choice.key === "space") setUnit("m");
-              if (choice.key === "body") setUnit("km");
+              if (choice.key === "space") switchUnit("m");
+              if (choice.key === "body") switchUnit("km");
             }}
             className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
               mode === choice.key
@@ -169,14 +192,14 @@ export function PlacePositionField({
               <Label htmlFor="place-body">{t("body")}</Label>
               <select
                 id="place-body"
-                value={bodySlug}
+                value={chosen}
                 onChange={(event) => setBodySlug(event.target.value)}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">{t("bodyPick")}</option>
                 {sorted.map((body) => (
                   <option key={body.slug} value={body.slug}>
-                    {body.systemName
+                    {body.systemName && !systemSlug
                       ? `${body.name} (${body.systemName})`
                       : body.name}
                   </option>
@@ -205,12 +228,7 @@ export function PlacePositionField({
             <select
               aria-label={t("unit")}
               value={unit}
-              onChange={(event) => {
-                const next = event.target.value as Unit;
-                const point = read(fields, unit);
-                setUnit(next);
-                if (point) setFields(toFields(point, next));
-              }}
+              onChange={(event) => switchUnit(event.target.value as Unit)}
               className="h-9 rounded-md border border-input bg-background px-2 text-sm"
             >
               <option value="km">km</option>

@@ -64,6 +64,7 @@ import {
   type PlaceSourceName,
   type PlaceSummary,
   type PlacePosition,
+  type NpsBody,
   type NpsResponse,
   type PlaceTreeNode,
   type PlaceTreeResponse,
@@ -1500,6 +1501,28 @@ export async function removeBorrowedPlan(
   return savePlacePlans(slug, plans);
 }
 
+/** Les planètes et lunes que le NPS connaît, sans les lieux relevés. */
+export async function getNpsBodies(): Promise<NpsBody[]> {
+  const bodies = await collection()
+    .find(
+      { celestial: { $exists: true } },
+      {
+        projection: {
+          _id: 0,
+          slug: 1,
+          name: 1,
+          systemSlug: 1,
+          systemName: 1,
+          celestial: 1,
+        },
+      },
+    )
+    .toArray();
+  return bodies.map(({ slug, name, systemSlug, systemName, celestial }) =>
+    withoutUndefined({ slug, name, systemSlug, systemName, ...celestial! }),
+  );
+}
+
 /**
  * Tout ce dont le NPS a besoin pour se repérer : les corps célestes et les
  * lieux relevés. D'un bloc, parce que l'app calcule de son côté — la distance
@@ -1508,21 +1531,7 @@ export async function removeBorrowedPlan(
  */
 export async function getNpsData(): Promise<NpsResponse> {
   const [bodies, places] = await Promise.all([
-    collection()
-      .find(
-        { celestial: { $exists: true } },
-        {
-          projection: {
-            _id: 0,
-            slug: 1,
-            name: 1,
-            systemSlug: 1,
-            systemName: 1,
-            celestial: 1,
-          },
-        },
-      )
-      .toArray(),
+    getNpsBodies(),
     collection()
       .find(
         { position: { $exists: true } },
@@ -1545,9 +1554,7 @@ export async function getNpsData(): Promise<NpsResponse> {
   ]);
 
   return {
-    bodies: bodies.map(({ slug, name, systemSlug, systemName, celestial }) =>
-      withoutUndefined({ slug, name, systemSlug, systemName, ...celestial! }),
-    ),
+    bodies,
     places: places.map(
       ({
         slug,

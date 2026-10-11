@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,8 @@ export type PlaceContribution =
       pickParent?: boolean;
       /** L'image principale d'une proposition reprise. */
       image?: { url: string; width: number; height: number };
+      /** Le système du parent imposé : seuls ses corps sont proposés. */
+      parentSystemSlug?: string;
     } & ResumedContribution)
   | ({ mode: "edit"; canRename: boolean } & ResumedContribution);
 
@@ -110,6 +112,15 @@ export function PlaceForm({
       ? contribution.parentName
       : (parentName ?? place?.parentName),
   );
+  // Le système où se lit la position : celui du parent, une étoile étant le
+  // sien propre.
+  const [systemSlug, setSystemSlug] = useState(
+    contribution?.mode === "create"
+      ? contribution.parentSystemSlug
+      : place?.type === "star"
+        ? place.slug
+        : place?.systemSlug,
+  );
   const [description, setDescription] = useState(place?.description ?? "");
   const [shopCategory, setShopCategory] = useState(place?.shopCategory ?? "");
   const [soldItems, setSoldItems] = useState<PickedItem[]>(
@@ -128,6 +139,12 @@ export function PlaceForm({
   );
   const [image, setImage] = useState<ProposedImage | null>(
     contribution?.mode === "create" ? (contribution.image ?? null) : null,
+  );
+  // Le dernier téléversement de l'image choisie : renvoyer le formulaire ne
+  // la téléverse pas une seconde fois, sauf si le parent a changé (elle
+  // attend dans sa galerie).
+  const uploaded = useRef<{ file: File; parentSlug: string; url: string }>(
+    null,
   );
 
   const toggleService = (service: PlaceService) =>
@@ -167,23 +184,31 @@ export function PlaceForm({
           | undefined;
         if (contribution.mode === "create" && image) {
           if ("file" in image) {
-            try {
-              const blob = await upload(
-                `lieux/${parentSlug}/media/${blobName(image.file)}`,
-                image.file,
-                { access: "public", handleUploadUrl: "/api/lieux/upload" },
-              );
-              proposedImage = {
-                url: blob.url,
-                width: image.width,
-                height: image.height,
-              };
-              // Renvoyer le formulaire ne téléverse pas une seconde fois.
-              setImage(proposedImage);
-            } catch {
-              setError(tForm("newPlaceImageFailed"));
-              return;
+            const previous = uploaded.current;
+            let url =
+              previous?.file === image.file &&
+              previous.parentSlug === parentSlug
+                ? previous.url
+                : null;
+            if (!url) {
+              try {
+                const blob = await upload(
+                  `lieux/${parentSlug}/media/${blobName(image.file)}`,
+                  image.file,
+                  { access: "public", handleUploadUrl: "/api/lieux/upload" },
+                );
+                url = blob.url;
+                uploaded.current = {
+                  file: image.file,
+                  parentSlug: parentSlug ?? "",
+                  url,
+                };
+              } catch {
+                setError(tForm("newPlaceImageFailed"));
+                return;
+              }
             }
+            proposedImage = { url, width: image.width, height: image.height };
           } else {
             proposedImage = image;
           }
@@ -322,6 +347,9 @@ export function PlaceForm({
             onChange={(next) => {
               setParentSlug(next?.slug);
               setParentLabel(next?.name);
+              setSystemSlug(
+                next?.type === "star" ? next.slug : next?.systemSlug,
+              );
             }}
             placeholder={
               contribution?.mode === "create"
@@ -417,7 +445,7 @@ export function PlaceForm({
 
       <PlacePositionField
         initial={place?.position}
-        systemSlug={place?.systemSlug}
+        systemSlug={systemSlug}
         onChange={setPosition}
       />
 

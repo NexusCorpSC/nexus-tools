@@ -657,6 +657,15 @@ export async function submitCatalogContribution(
     );
     if (!updated) throw new ContributionError("notPending", 409);
     contribution = updated;
+    // L'image d'un lieu proposé, remplacée ou retirée, ne sert plus à rien.
+    const replaced = resumed.preview?.url;
+    if (
+      draft.kind === "placeCreate" &&
+      replaced &&
+      replaced !== draft.preview?.url
+    ) {
+      await deleteBlobs([replaced]);
+    }
   } else {
     contribution = {
       _id: new ObjectId(),
