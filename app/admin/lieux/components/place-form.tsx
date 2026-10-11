@@ -23,7 +23,11 @@ import {
   toPlaceSlug,
 } from "@/types/places";
 import type { Place, PlaceService, PlaceType } from "@/types/places";
+import { upload } from "@vercel/blob/client";
 import { PlaceImageUpload } from "./place-image-upload";
+import { PlacePositionField, type PositionValue } from "./place-position-field";
+import { ProposedPlaceImage, type ProposedImage } from "./proposed-place-image";
+import { blobName } from "@/app/lieux/[slug]/gallery";
 import { PlacePicker } from "@/app/lieux/place-picker";
 import {
   ItemMultiPicker,
@@ -57,6 +61,8 @@ export type PlaceContribution =
       parentName?: string;
       /** Le parent se choisit dans le formulaire plutôt que d'être imposé. */
       pickParent?: boolean;
+      /** L'image principale d'une proposition reprise. */
+      image?: { url: string; width: number; height: number };
     } & ResumedContribution)
   | ({ mode: "edit"; canRename: boolean } & ResumedContribution);
 
@@ -117,6 +123,12 @@ export function PlaceForm({
   const [services, setServices] = useState<PlaceService[]>(
     place?.services ?? [],
   );
+  const [position, setPosition] = useState<PositionValue>(
+    place?.position ?? null,
+  );
+  const [image, setImage] = useState<ProposedImage | null>(
+    contribution?.mode === "create" ? (contribution.image ?? null) : null,
+  );
 
   const toggleService = (service: PlaceService) =>
     setServices((current) =>
@@ -128,6 +140,10 @@ export function PlaceForm({
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    if (position === "invalid") {
+      setError(t("Position.invalid"));
+      return;
+    }
 
     startTransition(async () => {
       if (contribution) {
@@ -144,11 +160,42 @@ export function PlaceForm({
           soldItems: soldItems.map((item) => item.slug),
           tip,
           services,
+          position,
         };
+        let proposedImage:
+          | { url: string; width: number; height: number }
+          | undefined;
+        if (contribution.mode === "create" && image) {
+          if ("file" in image) {
+            try {
+              const blob = await upload(
+                `lieux/${parentSlug}/media/${blobName(image.file)}`,
+                image.file,
+                { access: "public", handleUploadUrl: "/api/lieux/upload" },
+              );
+              proposedImage = {
+                url: blob.url,
+                width: image.width,
+                height: image.height,
+              };
+              // Renvoyer le formulaire ne téléverse pas une seconde fois.
+              setImage(proposedImage);
+            } catch {
+              setError(tForm("newPlaceImageFailed"));
+              return;
+            }
+          } else {
+            proposedImage = image;
+          }
+        }
         const result =
           contribution.mode === "create"
             ? await contribute(
-                { kind: "placeCreate", parentSlug: parentSlug ?? "", input },
+                {
+                  kind: "placeCreate",
+                  parentSlug: parentSlug ?? "",
+                  input: { ...input, image: proposedImage },
+                },
                 { ...meta, contributionId: contribution.contributionId },
               )
             : await contribute(
@@ -181,6 +228,7 @@ export function PlaceForm({
         tip,
         imageUrl,
         services,
+        position,
       };
 
       const result = published
@@ -366,6 +414,16 @@ export function PlaceForm({
           ))}
         </div>
       </fieldset>
+
+      <PlacePositionField
+        initial={place?.position}
+        systemSlug={place?.systemSlug}
+        onChange={setPosition}
+      />
+
+      {contribution?.mode === "create" && (
+        <ProposedPlaceImage value={image} onChange={setImage} />
+      )}
 
       {contribution ? (
         <ContributionMetaFields value={meta} onChange={setMeta} />

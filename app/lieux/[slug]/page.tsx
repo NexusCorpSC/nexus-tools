@@ -31,6 +31,7 @@ import {
   PlaceBreadcrumb,
   PlaceEmpty,
   PlaceRow,
+  PlacePositionSection,
   SectionTitle,
   ServiceChips,
 } from "./sections";
@@ -289,6 +290,16 @@ export default async function PlacePage({
               </p>
             </div>
           )}
+
+          <PlacePositionSection
+            slug={place.slug}
+            position={place.position}
+            editHref={
+              canEdit
+                ? `/admin/lieux/${place.slug}/edit#coordonnees`
+                : `/lieux/${place.slug}/contribuer#coordonnees`
+            }
+          />
 
           {soldItems.length > 0 && (
             <div>

@@ -80,6 +80,7 @@ export default async function ProposePlacePage({
           parentName: parent.name,
           contributionId: resumed?.id,
           initial: resumed?.proposal as Partial<Place> | undefined,
+          image: resumed?.preview,
           source: resumed?.source,
           gameVersion: resumed?.gameVersion,
         }}
