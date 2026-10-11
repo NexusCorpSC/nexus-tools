@@ -1310,7 +1310,8 @@
     "tipTitle": "Player tip",
     "soldTitle": "What's sold here",
     "soldCount": "{count, plural, one {# item} other {# items}}",
-    "missionsTitle": "Missions played here"
+    "missionsTitle": "Missions played here",
+    "proposePlace": "Suggest a location"
   },
   "Shopping": {
     "home": "Home",
@@ -2819,6 +2820,9 @@
       "newPlaceCrumb": "Suggest a location",
       "newPlaceTitle": "Add a location inside {name}",
       "newPlaceExisting": "Already listed: {names}.",
+      "newPlaceHint": "Pick the location that contains it (system, planet, moon, station…). Check first that it isn't listed under another name.",
+      "newPlaceParentRequired": "Pick the location that contains this one.",
+      "newPlaceParentPlaceholder": "Pick the location that contains it…",
       "planCrumb": "Suggest a plan",
       "planEditTitle": "Improve the plan “{name}”",
       "planNewTitle": "Send a plan of {name}",
