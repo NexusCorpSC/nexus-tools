@@ -1,10 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import {
-  getUserRefiningJobs,
-  RefiningJobWithTimeRemaining,
-} from "@/lib/refining-jobs";
-import { ObjectId } from "mongodb";
+import { listRefiningJobs, type RefiningJob } from "@/lib/refining-jobs";
 import { getTranslations } from "next-intl/server";
 import {
   Breadcrumb,
@@ -14,9 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import NewJobForm from "./components/new-job-form";
-import JobsList from "./components/jobs-list";
-import WorkOrderImport from "./components/work-order-import";
+import RefiningBoard from "./components/refining-board";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -32,15 +26,20 @@ export const metadata: Metadata = {
   },
 };
 
+/** L'heure du rendu, que le tableau reprend pour son premier affichage. */
+function renderedAt() {
+  return Date.now();
+}
+
 export default async function RefinePage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   const t = await getTranslations("Refining");
 
-  let jobs: RefiningJobWithTimeRemaining[] = [];
+  let jobs: RefiningJob[] = [];
   if (session?.user?.id) {
-    jobs = await getUserRefiningJobs(new ObjectId(session.user.id));
+    jobs = await listRefiningJobs(session.user.id);
   }
 
   return (
@@ -61,35 +60,21 @@ export default async function RefinePage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="text-nexus">
-        {t("description")}
-      </p>
+      <div>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="mt-1 max-w-3xl text-sm text-[#A9BFD0]">
+          {t("description")}
+        </p>
+      </div>
 
       {session ? (
-        <div className="mt-6 space-y-8">
-          <div className="bg-nexus p-4 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">{t("addNewJob")}</h2>
-            <NewJobForm />
-          </div>
-
-          <div className="bg-nexus p-4 rounded-lg">
-            <h2 className="text-xl font-semibold mb-1">{t("workOrderImport")}</h2>
-            <p className="mb-4 text-sm">{t("workOrderSectionDescription")}</p>
-            <WorkOrderImport />
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold mb-4">{t("yourRefiningJobs")}</h2>
-            <JobsList jobs={jobs} />
-          </div>
-        </div>
+        <RefiningBoard jobs={jobs} now={renderedAt()} />
       ) : (
-        <div className="mt-6 p-4 text-center bg-nexus rounded-lg">
-          <p className="mb-4">{t("pleaseLogIn")}</p>
+        <div className="mt-6 rounded-xl border border-dashed border-[#9ED0FF]/25 p-6 text-center">
+          <p className="mb-4 text-[#C9E4FF]">{t("pleaseLogIn")}</p>
           <Link
             href="/login"
-            className="text-blue-600 hover:text-blue-800 font-medium"
+            className="font-medium text-[#9ED0FF] hover:text-[#CCE7FF]"
           >
             {t("logIn")}
           </Link>

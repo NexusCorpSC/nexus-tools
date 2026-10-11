@@ -1,134 +1,105 @@
 "use server";
 
-import db from "@/lib/db";
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { ObjectId } from "mongodb";
-import { DbRefiningJob, RefiningJob } from "@/lib/refining-jobs";
-import Ajv from "ajv";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { checkCollectInput, checkJobInput } from "@/lib/refining";
+import {
+  collectRefiningJob,
+  createRefiningJob,
+  deleteRefiningJob,
+  RefiningError,
+  updateRefiningJob,
+} from "@/lib/refining-jobs";
 
-const ajv = new Ajv({ coerceTypes: true });
+/**
+ * Les actions de la page Raffinage. Elles répondent par un résultat plutôt
+ * que par une exception : un message d'erreur levé dans une action serveur
+ * n'arrive pas jusqu'au navigateur en production.
+ */
+export type RefiningActionResult<T = object> =
+  | ({ ok: true } & T)
+  | { ok: false; error: string };
 
-// Validation schema for refining jobs
-const validateRefiningJob = ajv.compile({
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    location: { type: "string", maxLength: 500 },
-    content: { type: "string", maxLength: 2000 },
-    duration: { type: "integer", minimum: 1 },
-  },
-  required: ["location", "content", "duration"],
-});
-
-// Create a new refining job
-export async function addRefiningJob(formData: FormData) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  if (!session || !session.user) {
-    throw new Error("User not authenticated");
-  }
-
-  const jobData = {
-    location: formData.get("location"),
-    content: formData.get("content"),
-    duration: parseInt(formData.get("duration") as string),
-  };
-
-  if (!validateRefiningJob(jobData)) {
-    console.warn({
-      errors: validateRefiningJob.errors,
-      message: "Invalid refining job data",
-    });
-    throw new Error("Invalid refining job data");
-  }
-
-  const job: DbRefiningJob = {
-    id: randomUUID(),
-    userId: new ObjectId(session.user.id),
-    location: jobData.location as string,
-    content: jobData.content as string,
-    duration: jobData.duration,
-    startTime: new Date().toISOString(),
-    status: "active",
-  };
-
-  await db.db().collection("refiningJobs").insertOne(job);
-  revalidatePath("/industry/refine");
-  return { success: true, jobId: job.id };
+async function currentUserId() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session?.user?.id;
 }
 
-// Update an existing refining job
-export async function updateRefiningJob(formData: FormData) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  if (!session || !session.user) {
-    throw new Error("User not authenticated");
-  }
-
-  const jobId = formData.get("jobId") as string;
-  if (!jobId) {
-    throw new Error("Missing job ID");
-  }
-
-  const updateData: Partial<RefiningJob> = {};
-
-  const content = formData.get("content");
-  if (content) {
-    updateData.content = content as string;
-  }
-
-  const durationStr = formData.get("duration");
-  if (durationStr) {
-    const duration = parseInt(durationStr as string);
-    if (isNaN(duration) || duration <= 0) {
-      throw new Error("Invalid duration");
-    }
-    updateData.duration = duration;
-  }
-
-  if (Object.keys(updateData).length === 0) {
-    throw new Error("No fields to update");
-  }
-
-  const result = await db
-    .db()
-    .collection("refiningJobs")
-    .updateOne(
-      { id: jobId, userId: new ObjectId(session.user.id) },
-      { $set: updateData },
-    );
-
-  if (result.matchedCount === 0) {
-    throw new Error("Job not found or not owned by user");
-  }
-
-  revalidatePath("/industry/refine");
-  return { success: true };
+function failure(error: unknown): { ok: false; error: string } {
+  if (error instanceof RefiningError) return { ok: false, error: error.code };
+  console.error(error);
+  return { ok: false, error: "unexpected" };
 }
 
-// Delete a refining job
-export async function deleteRefiningJob(jobId: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  if (!session || !session.user) {
-    throw new Error("User not authenticated");
+export async function addRefiningJob(
+  input: unknown,
+): Promise<RefiningActionResult<{ jobId: string }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  const checked = checkJobInput(input);
+  if (!checked.ok) return { ok: false, error: "invalid" };
+
+  try {
+    const job = await createRefiningJob(userId, checked.value);
+    revalidatePath("/industry/refine");
+    return { ok: true, jobId: job.id };
+  } catch (error) {
+    return failure(error);
   }
+}
 
-  const result = await db
-    .db()
-    .collection("refiningJobs")
-    .deleteOne({ id: jobId, userId: new ObjectId(session.user.id) });
+export async function editRefiningJob(
+  jobId: string,
+  input: unknown,
+): Promise<RefiningActionResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
 
-  if (result.deletedCount === 0) {
-    throw new Error("Job not found or not owned by user");
+  const checked = checkJobInput(input);
+  if (!checked.ok) return { ok: false, error: "invalid" };
+
+  try {
+    await updateRefiningJob(userId, jobId, checked.value);
+    revalidatePath("/industry/refine");
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
   }
+}
 
-  revalidatePath("/industry/refine");
-  return { success: true };
+export async function removeRefiningJob(
+  jobId: string,
+): Promise<RefiningActionResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  try {
+    await deleteRefiningJob(userId, jobId);
+    revalidatePath("/industry/refine");
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function collectJob(
+  jobId: string,
+  input: unknown,
+): Promise<RefiningActionResult<{ created: number; merged: number }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  const checked = checkCollectInput(input);
+  if (!checked.ok) return { ok: false, error: "invalid" };
+
+  try {
+    const result = await collectRefiningJob(userId, jobId, checked.value);
+    revalidatePath("/industry/refine");
+    revalidatePath("/inventory");
+    return { ok: true, ...result };
+  } catch (error) {
+    return failure(error);
+  }
 }

@@ -438,6 +438,18 @@ async function ensureContributions(database: Db) {
   await database.collection("users").createIndex({ "contrib.points": -1 });
 }
 
+// ─── Raffinage ────────────────────────────────────────────────────────────────
+
+/**
+ * Les ordres de raffinage d'un joueur, lus en entier par sa page et par
+ * l'app, puis un par un (`lib/refining-jobs.ts`).
+ */
+async function ensureRefiningJobs(database: Db) {
+  await database
+    .collection("refiningJobs")
+    .createIndex({ userId: 1, id: 1 }, { name: "refiningJobs_user_id" });
+}
+
 // ─── Signalements ─────────────────────────────────────────────────────────────
 
 /**
@@ -555,6 +567,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["gameLocations", ensureGameLocations],
   ["cargoShips", ensureCargoShips],
   ["parcels", ensureParcels],
+  ["refiningJobs", ensureRefiningJobs],
   ["friends", ensureFriends],
   ["contributions", ensureContributions],
   ["reports", ensureReports],
