@@ -40,6 +40,11 @@ export function toDraft(line: Partial<RefiningLine>, take = true): LineDraft {
   };
 }
 
+/** Une ligne laissée vide : ni comptée, ni signalée. */
+export function isBlank(row: LineDraft) {
+  return !row.name.trim() && !row.quality.trim() && !row.quantity.trim();
+}
+
 /** Le contrôle d'une ligne : le même que le serveur (`checkLines`). */
 export function checkDraft(row: LineDraft): Checked {
   const name = row.name.trim();
@@ -133,14 +138,14 @@ export function LinesTable({
         <tbody>
           {rows.map((row, index) => {
             const result = checked[index];
-            const field = result.ok ? undefined : result.field;
+            const field = result.ok || isBlank(row) ? undefined : result.field;
             const inactive = selectable && !row.take;
             return (
               <tr
                 key={row.key}
                 className={cn(
                   "border-b border-[#9ED0FF]/10 [&>td+td]:border-l [&>td+td]:border-[#9ED0FF]/10",
-                  !result.ok && !inactive && "bg-red-400/5",
+                  field && !inactive && "bg-red-400/5",
                   inactive && "opacity-55",
                 )}
               >

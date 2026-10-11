@@ -24,7 +24,13 @@ import {
 } from "@/lib/refining";
 import { cn } from "@/lib/utils";
 import { addRefiningJob, editRefiningJob } from "../actions";
-import { checkDraft, LineDraft, LinesTable, toDraft } from "./lines-table";
+import {
+  checkDraft,
+  isBlank,
+  LineDraft,
+  LinesTable,
+  toDraft,
+} from "./lines-table";
 import { formatMinutes } from "./format";
 
 const LABEL = "text-xs font-semibold tracking-wider text-[#7E9FB7] uppercase";
@@ -74,7 +80,7 @@ export default function JobDialog({
   const [error, setError] = useState<string | null>(null);
 
   const minutes = parseDuration(duration);
-  const checked = rows.map(checkDraft);
+  const checked = rows.filter((row) => !isBlank(row)).map(checkDraft);
   const lines = checked.flatMap((result) => (result.ok ? [result.line] : []));
   const invalid = checked.length - lines.length;
   const costValue = cost.trim() === "" ? undefined : Number(cost);

@@ -21,7 +21,14 @@ import type { RefiningJob } from "@/lib/refining";
 import { readWorkOrderCapture } from "@/lib/work-order-ocr";
 import { cn, roundQty } from "@/lib/utils";
 import { collectJob } from "../actions";
-import { checkDraft, draftKey, LineDraft, LinesTable, toDraft } from "./lines-table";
+import {
+  checkDraft,
+  draftKey,
+  isBlank,
+  LineDraft,
+  LinesTable,
+  toDraft,
+} from "./lines-table";
 
 type Unit = "cSCU" | "SCU";
 
@@ -179,7 +186,7 @@ export default function CollectDialog({
   }, [readImage]);
 
   const taken = rows.filter((row) => row.take);
-  const checked = taken.map(checkDraft);
+  const checked = taken.filter((row) => !isBlank(row)).map(checkDraft);
   const lines = checked.flatMap((result) => (result.ok ? [result.line] : []));
   const invalid = checked.length - lines.length;
   const total = lines.reduce((sum, line) => sum + line.quantity, 0);
