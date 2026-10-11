@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { ListLink } from "@/components/list-link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ChevronRightIcon, MapIcon } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { PLACE_SERVICE_ICON, PLACE_TYPE_ICON } from "@/lib/place-icons";
 import { SectionTitle } from "@/app/items/[slug]/sections";
-import type { PlaceAncestor, PlaceSummary, PlaceService } from "@/types/places";
+import { geoOf } from "@/lib/nps-geometry";
+import { getPlaceBySlug } from "@/lib/places";
+import type {
+  PlaceAncestor,
+  PlacePosition,
+  PlaceSummary,
+  PlaceService,
+} from "@/types/places";
 
 /**
  * Le fil d'Ariane porte toute la chaîne des lieux qui contiennent celui-ci :
@@ -141,3 +148,100 @@ export async function PlaceEmpty({ children }: { children: React.ReactNode }) {
 }
 
 export { SectionTitle };
+
+/** Un nombre lisible : `12 345,678`. */
+function formatNumber(value: number, digits: number, locale: string): string {
+  return value.toLocaleString(locale, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+/**
+ * Où se trouve le lieu en jeu, au format du NPS : sur un corps, dans son
+ * repère (en kilomètres, comme `r_displayInfo`) avec latitude, longitude et
+ * altitude ; dans l'espace, dans le repère du système. Et de quoi les ajouter
+ * ou les corriger.
+ */
+export async function PlacePositionSection({
+  slug,
+  position,
+  editHref,
+}: {
+  slug: string;
+  position?: PlacePosition;
+  editHref: string;
+}) {
+  const t = await getTranslations("Places.Position");
+  const locale = await getLocale();
+  const body = position?.body ? await getPlaceBySlug(position.body) : null;
+  const geo =
+    position && body?.celestial
+      ? geoOf(position, {
+          ...body.celestial,
+          slug: body.slug,
+          name: body.name,
+        })
+      : null;
+
+  return (
+    <div id={`coordonnees-${slug}`}>
+      <SectionTitle
+        aside={
+          <Link href={editHref} className="text-primary hover:underline">
+            {position ? t("sectionEdit") : t("sectionAdd")}
+          </Link>
+        }
+      >
+        {t("sectionTitle")}
+      </SectionTitle>
+      {position ? (
+        <div className="space-y-2 rounded-xl border border-[#9ED0FF]/15 bg-[#092F49]/35 p-4 text-sm">
+          <p className="text-muted-foreground">
+            {position.body
+              ? t("onBodyOf", { body: body?.name ?? position.body })
+              : t("inSpaceOf")}
+          </p>
+          <dl className="grid grid-cols-3 gap-2 font-mono">
+            {(["x", "y", "z"] as const).map((axis) => (
+              <div key={axis}>
+                <dt className="text-xs text-muted-foreground">
+                  {axis.toUpperCase()}
+                </dt>
+                <dd>
+                  {position.body
+                    ? `${formatNumber(position[axis] / 1000, 3, locale)} km`
+                    : `${formatNumber(position[axis], 0, locale)} m`}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {geo && (
+            <dl className="grid grid-cols-3 gap-2 font-mono">
+              <div>
+                <dt className="text-xs text-muted-foreground">
+                  {t("latitude")}
+                </dt>
+                <dd>{formatNumber(geo.latitude, 4, locale)}°</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">
+                  {t("longitude")}
+                </dt>
+                <dd>{formatNumber(geo.longitude, 4, locale)}°</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">
+                  {t("altitude")}
+                </dt>
+                <dd>{formatNumber(geo.altitude, 0, locale)} m</dd>
+              </div>
+            </dl>
+          )}
+        </div>
+      ) : (
+        <PlaceEmpty>{t("sectionEmpty")}</PlaceEmpty>
+      )}
+    </div>
+  );
+}

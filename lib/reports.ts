@@ -964,6 +964,8 @@ async function removeMedia(mediaId: ObjectId, moderator: Contributor) {
     const debited = await contributions().findOneAndUpdate(
       {
         _id: media.contributionId,
+        // L'image d'un lieu proposé n'a rien rapporté à elle seule.
+        kind: "media",
         status: "published",
         points: { $gte: POINTS.media },
       },

@@ -510,8 +510,26 @@ async function buildDraft(
   level: number,
 ): Promise<CatalogDraft> {
   switch (submission.kind) {
-    case "placeCreate":
-      return buildPlaceCreate(submission.parentSlug, submission.input);
+    case "placeCreate": {
+      const draft = await buildPlaceCreate(
+        submission.parentSlug,
+        submission.input,
+      );
+      // Son image principale : téléversée dans la galerie du parent, faute de
+      // fiche à son nom. Elle devient sa première image à la publication.
+      const image = (submission.input as { image?: unknown } | null)?.image;
+      if (image) {
+        const { url, width, height } = normalizeMediaInput(
+          submission.parentSlug,
+          image,
+        );
+        if (await placeMedia().countDocuments({ url })) {
+          throw new ContributionError("invalidMedia", 400);
+        }
+        draft.preview = { url, width, height };
+      }
+      return draft;
+    }
     case "placeEdit":
       return buildPlaceEdit(submission.slug, submission.input, level);
     case "plan":
@@ -639,6 +657,15 @@ export async function submitCatalogContribution(
     );
     if (!updated) throw new ContributionError("notPending", 409);
     contribution = updated;
+    // L'image d'un lieu proposé, remplacée ou retirée, ne sert plus à rien.
+    const replaced = resumed.preview?.url;
+    if (
+      draft.kind === "placeCreate" &&
+      replaced &&
+      replaced !== draft.preview?.url
+    ) {
+      await deleteBlobs([replaced]);
+    }
   } else {
     contribution = {
       _id: new ObjectId(),
@@ -753,6 +780,30 @@ export async function ensurePlaceCover(slug: string): Promise<void> {
     { sort: { createdAt: 1, _id: 1 }, projection: { url: 1 } },
   );
   if (first) await setPlaceImageIfMissing(slug, first.url);
+}
+
+/**
+ * L'image principale d'un lieu proposé, ajoutée à sa galerie à la
+ * publication. Elle ne rapporte rien de plus que le lieu : c'est le lieu qui
+ * vaut ses points. Annuler la proposition l'emporte avec la fiche.
+ */
+async function addProposedPlaceImage(
+  contribution: DbContribution,
+): Promise<void> {
+  const { preview } = contribution;
+  if (!preview) return;
+  await placeMedia().insertOne({
+    _id: new ObjectId(),
+    placeSlug: contribution.target.slug,
+    url: preview.url,
+    width: preview.width,
+    height: preview.height,
+    userId: contribution.userId,
+    userName: contribution.userName,
+    contributionId: contribution._id,
+    status: "published",
+    createdAt: new Date(),
+  });
 }
 
 /** Les points d'une publication, bonus réservés compris. */
@@ -890,7 +941,15 @@ async function publish(
 
   // La première image publiée d'un lieu en devient la bannière, relue ou
   // publiée d'emblée ; jamais à la place d'une bannière déjà posée.
-  if (contribution.kind === "media") {
+  // La fiche est écrite : son image ne doit plus la remettre en attente.
+  if (contribution.kind === "placeCreate" && contribution.preview) {
+    try {
+      await addProposedPlaceImage(contribution);
+    } catch (error) {
+      console.error("Image du lieu proposé non ajoutée", error);
+    }
+  }
+  if (contribution.kind === "media" || contribution.kind === "placeCreate") {
     await ensurePlaceCover(contribution.target.slug);
   }
 
@@ -1065,6 +1124,10 @@ export async function rejectContribution(
       { $set: { status: "rejected" } },
     );
     await deleteBlobs(media.map((image) => image.url));
+  }
+  // L'image d'un lieu refusé n'a nulle part où aller.
+  if (contribution.kind === "placeCreate" && contribution.preview) {
+    await deleteBlobs([contribution.preview.url]);
   }
   // Une organisation refusée reste à ses membres, privée : ses éditeurs lisent
   // pourquoi sur sa page.

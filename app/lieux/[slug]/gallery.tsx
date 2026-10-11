@@ -43,7 +43,7 @@ type Draft = {
   caption: string;
 };
 
-async function readSize(
+export async function readSize(
   url: string,
 ): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
@@ -56,7 +56,7 @@ async function readSize(
 }
 
 /** `Hall des départs (2).PNG` → `Hall-des-d-parts-2-.png` : ce que le blob accepte. */
-function blobName(file: File): string {
+export function blobName(file: File): string {
   const dot = file.name.lastIndexOf(".");
   const base = (dot > 0 ? file.name.slice(0, dot) : file.name)
     .replace(/[^A-Za-z0-9_-]+/g, "-")

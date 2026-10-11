@@ -78,8 +78,11 @@ export default async function ProposePlacePage({
           mode: "create",
           parentSlug: parent.slug,
           parentName: parent.name,
+          parentSystemSlug:
+            parent.type === "star" ? parent.slug : parent.systemSlug,
           contributionId: resumed?.id,
           initial: resumed?.proposal as Partial<Place> | undefined,
+          image: resumed?.preview,
           source: resumed?.source,
           gameVersion: resumed?.gameVersion,
         }}

@@ -55,6 +55,8 @@ export default async function ProposeAnyPlacePage({
           pickParent: true,
           parentSlug: parent?.slug,
           parentName: parent?.name,
+          parentSystemSlug:
+            parent?.type === "star" ? parent.slug : parent?.systemSlug,
         }}
       />
     </div>
