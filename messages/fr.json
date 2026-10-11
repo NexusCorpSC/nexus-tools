@@ -2851,6 +2851,7 @@
       "newPlaceExisting": "Déjà au catalogue : {names}.",
       "newPlaceHint": "Choisissez le lieu qui le contient (système, planète, lune, station…). Vérifiez d'abord qu'il n'existe pas sous un autre nom.",
       "newPlaceParentRequired": "Choisissez le lieu qui contient celui-ci.",
+      "newPlaceParentPlaceholder": "Choisissez le lieu qui le contient…",
       "planCrumb": "Proposer un plan",
       "planEditTitle": "Améliorer le plan « {name} »",
       "planNewTitle": "Envoyer un plan de {name}",

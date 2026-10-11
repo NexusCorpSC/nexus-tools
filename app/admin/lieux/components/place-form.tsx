@@ -271,11 +271,18 @@ export function PlaceForm({
               setParentSlug(next?.slug);
               setParentLabel(next?.name);
             }}
-            placeholder={t("Admin.fieldParentNone")}
+            placeholder={
+              contribution?.mode === "create"
+                ? tForm("newPlaceParentPlaceholder")
+                : t("Admin.fieldParentNone")
+            }
           />
-          <p className="text-xs text-muted-foreground">
-            {t("Admin.fieldParentHint")}
-          </p>
+          {/* Un lieu proposé a toujours un parent : pas de système à créer. */}
+          {contribution?.mode !== "create" && (
+            <p className="text-xs text-muted-foreground">
+              {t("Admin.fieldParentHint")}
+            </p>
+          )}
         </div>
       </div>
 

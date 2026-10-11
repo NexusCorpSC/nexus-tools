@@ -2822,6 +2822,7 @@
       "newPlaceExisting": "Already listed: {names}.",
       "newPlaceHint": "Pick the location that contains it (system, planet, moon, station…). Check first that it isn't listed under another name.",
       "newPlaceParentRequired": "Pick the location that contains this one.",
+      "newPlaceParentPlaceholder": "Pick the location that contains it…",
       "planCrumb": "Suggest a plan",
       "planEditTitle": "Improve the plan “{name}”",
       "planNewTitle": "Send a plan of {name}",
