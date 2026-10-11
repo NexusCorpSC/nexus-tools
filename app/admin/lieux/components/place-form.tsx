@@ -52,8 +52,11 @@ type ResumedContribution = {
 export type PlaceContribution =
   | ({
       mode: "create";
-      parentSlug: string;
-      parentName: string;
+      /** Le lieu qui contiendra celui-ci ; à choisir quand il manque. */
+      parentSlug?: string;
+      parentName?: string;
+      /** Le parent se choisit dans le formulaire plutôt que d'être imposé. */
+      pickParent?: boolean;
     } & ResumedContribution)
   | ({ mode: "edit"; canRename: boolean } & ResumedContribution);
 
@@ -128,6 +131,10 @@ export function PlaceForm({
 
     startTransition(async () => {
       if (contribution) {
+        if (contribution.mode === "create" && !parentSlug) {
+          setError(tForm("newPlaceParentRequired"));
+          return;
+        }
         const input = {
           name,
           type,
@@ -141,11 +148,7 @@ export function PlaceForm({
         const result =
           contribution.mode === "create"
             ? await contribute(
-                {
-                  kind: "placeCreate",
-                  parentSlug: contribution.parentSlug,
-                  input,
-                },
+                { kind: "placeCreate", parentSlug: parentSlug ?? "", input },
                 { ...meta, contributionId: contribution.contributionId },
               )
             : await contribute(
@@ -259,7 +262,10 @@ export function PlaceForm({
           <PlacePicker
             value={parentSlug}
             valueLabel={parentLabel}
-            disabled={locked || contribution?.mode === "create"}
+            disabled={
+              locked ||
+              (contribution?.mode === "create" && !contribution.pickParent)
+            }
             exclude={place?.slug}
             onChange={(next) => {
               setParentSlug(next?.slug);

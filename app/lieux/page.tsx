@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { hasPermission } from "@/lib/permissions";
+import { POINTS } from "@/types/contributions";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import { PlacesBrowser } from "./components";
 
@@ -51,11 +52,21 @@ export default async function PlacesPage() {
           <h1 className="mb-1 text-2xl font-bold">{t("title")}</h1>
           <p className="text-nexus">{t("header")}</p>
         </div>
-        {canEdit && (
+        {canEdit ? (
           <Button asChild size="sm">
             <Link href="/admin/lieux/new">
               <PlusIcon className="mr-1.5 size-4" />
               {t("Admin.newPlaceButton")}
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild size="sm" variant="outline">
+            <Link href="/lieux/proposer">
+              <PlusIcon className="mr-1.5 size-4" />
+              {t("proposePlace")}
+              <span className="ml-1.5 font-mono text-[11px] font-bold text-amber-200">
+                +{POINTS.placeCreate}
+              </span>
             </Link>
           </Button>
         )}

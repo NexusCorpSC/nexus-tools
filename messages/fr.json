@@ -1305,7 +1305,8 @@
     "tipTitle": "Astuce de joueur",
     "soldTitle": "Ce qu'on y vend",
     "soldCount": "{count, plural, one {# objet} other {# objets}}",
-    "missionsTitle": "Missions qui s'y jouent"
+    "missionsTitle": "Missions qui s'y jouent",
+    "proposePlace": "Proposer un lieu"
   },
   "Industry": {
     "home": "Accueil",
@@ -2848,6 +2849,8 @@
       "newPlaceCrumb": "Proposer un lieu",
       "newPlaceTitle": "Ajouter un lieu dans {name}",
       "newPlaceExisting": "Déjà au catalogue : {names}.",
+      "newPlaceHint": "Choisissez le lieu qui le contient (système, planète, lune, station…). Vérifiez d'abord qu'il n'existe pas sous un autre nom.",
+      "newPlaceParentRequired": "Choisissez le lieu qui contient celui-ci.",
       "planCrumb": "Proposer un plan",
       "planEditTitle": "Améliorer le plan « {name} »",
       "planNewTitle": "Envoyer un plan de {name}",

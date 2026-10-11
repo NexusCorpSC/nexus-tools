@@ -1305,7 +1305,8 @@
     "tipTitle": "Consejo de jugador",
     "soldTitle": "Lo que se vende aquí",
     "soldCount": "{count, plural, one {# objeto} other {# objetos}}",
-    "missionsTitle": "Misiones que se juegan aquí"
+    "missionsTitle": "Misiones que se juegan aquí",
+    "proposePlace": "Proponer un lugar"
   },
   "Industry": {
     "home": "Inicio",
@@ -2810,6 +2811,8 @@
       "newPlaceCrumb": "Proponer un lugar",
       "newPlaceTitle": "Añadir un lugar en {name}",
       "newPlaceExisting": "Ya en el catálogo: {names}.",
+      "newPlaceHint": "Elige el lugar que lo contiene (sistema, planeta, luna, estación…). Comprueba primero que no exista con otro nombre.",
+      "newPlaceParentRequired": "Elige el lugar que contiene este.",
       "planCrumb": "Proponer un plano",
       "planEditTitle": "Mejorar el plano «{name}»",
       "planNewTitle": "Enviar un plano de {name}",
