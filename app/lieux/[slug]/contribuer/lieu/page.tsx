@@ -38,7 +38,8 @@ export default async function ProposePlacePage({
   );
 
   const parent = await getPlaceDetails(slug);
-  if (!parent) notFound();
+  // Un magasin ne contient pas d'autre lieu.
+  if (!parent || parent.type === "shop") notFound();
 
   const resumed = await resumableContribution(c, userId, "placeCreate", slug);
 
