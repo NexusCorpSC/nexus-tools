@@ -22,7 +22,7 @@ export type InventoryLocation = {
 const items = () => db.db().collection("inventoryItems");
 const locations = () => db.db().collection("locations");
 
-function escapeRegex(text: string): string {
+export function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 

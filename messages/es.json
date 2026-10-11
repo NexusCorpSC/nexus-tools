@@ -2130,7 +2130,10 @@
     "readySince": "desde hace {duration}",
     "readyAt": "lista {date}",
     "collect": "Recoger en el inventario",
-    "collectLater": "Se podrá recoger al terminar"
+    "collectLater": "Se podrá recoger al terminar",
+    "durationTooLong": "Treinta días como máximo: ningún orden dura más.",
+    "linesTooMany": "Como máximo {max} líneas por orden.",
+    "collectDiscardConfirm": "Confirmar: retirar sin añadir"
   },
   "Cargo": {
     "home": "Inicio",

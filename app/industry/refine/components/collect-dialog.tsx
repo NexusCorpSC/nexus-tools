@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { LocationCombobox } from "@/app/inventory/components";
 import type { Location } from "@/types/inventory";
-import type { RefiningJob } from "@/lib/refining";
+import { MAX_REFINING_LINES, type RefiningJob } from "@/lib/refining";
 import { readWorkOrderCapture } from "@/lib/work-order-ocr";
 import { cn, roundQty } from "@/lib/utils";
 import { collectJob } from "../actions";
@@ -88,6 +88,8 @@ export default function CollectDialog({
   const [reading, setReading] = useState<number | null>(null);
   const [readError, setReadError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // « Retirer sans ajouter » efface l'ordre pour de bon : un second clic le confirme.
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // Bumped on every read and when the dialog closes: a read that ends after
@@ -193,7 +195,8 @@ export default function CollectDialog({
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
 
   const outcome = (row: LineDraft) => {
-    if (!row.take) return <span className="text-[#7E9FB7]">{t("collectLeft")}</span>;
+    if (!row.take)
+      return <span className="text-[#7E9FB7]">{t("collectLeft")}</span>;
     const result = checkDraft(row);
     if (!result.ok || !held) return null;
     const match = held.find(
@@ -253,8 +256,9 @@ export default function CollectDialog({
     }
   }
 
+  const tooMany = lines.length > MAX_REFINING_LINES;
   const canCollect =
-    !!location && lines.length > 0 && invalid === 0 && !submitting;
+    !!location && lines.length > 0 && !tooMany && invalid === 0 && !submitting;
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
@@ -332,7 +336,9 @@ export default function CollectDialog({
                 aria-label={t("collectLocation")}
                 inputClassName="h-9 bg-[#092F49]"
               />
-              <p className="text-xs text-[#7E9FB7]">{t("collectLocationHint")}</p>
+              <p className="text-xs text-[#7E9FB7]">
+                {t("collectLocationHint")}
+              </p>
             </div>
             <div className="space-y-1">
               <span className={LABEL}>{t("collectUnit")}</span>
@@ -379,13 +385,15 @@ export default function CollectDialog({
               ? t("collectPickLocation")
               : invalid > 0
                 ? t("linesInvalid", { count: invalid })
-                : t("collectSum", {
-                    count: lines.length,
-                    total: number.format(
-                      unit === "SCU" ? roundQty(total / 100) : total,
-                    ),
-                    unit,
-                  })}
+                : tooMany
+                  ? t("linesTooMany", { max: MAX_REFINING_LINES })
+                  : t("collectSum", {
+                      count: lines.length,
+                      total: number.format(
+                        unit === "SCU" ? roundQty(total / 100) : total,
+                      ),
+                      unit,
+                    })}
           </p>
           <div className="flex flex-wrap gap-2">
             <DialogClose asChild>
@@ -395,11 +403,16 @@ export default function CollectDialog({
             </DialogClose>
             <Button
               type="button"
-              variant="ghost"
+              variant={confirmDiscard ? "destructive" : "ghost"}
               disabled={submitting}
-              onClick={() => void send(false)}
+              onClick={() =>
+                confirmDiscard ? void send(false) : setConfirmDiscard(true)
+              }
+              onBlur={() => setConfirmDiscard(false)}
             >
-              {t("collectDiscard")}
+              {confirmDiscard
+                ? t("collectDiscardConfirm")
+                : t("collectDiscard")}
             </Button>
             <Button
               type="button"

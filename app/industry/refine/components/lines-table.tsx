@@ -59,7 +59,8 @@ export function checkDraft(row: LineDraft): Checked {
   }
 
   const rawQuantity = row.quantity.trim().replace(",", ".");
-  if (!/^\d+(\.\d+)?$/.test(rawQuantity)) return { ok: false, field: "quantity" };
+  if (!/^\d+(\.\d+)?$/.test(rawQuantity))
+    return { ok: false, field: "quantity" };
   const quantity = Number(rawQuantity);
   if (quantity <= 0) return { ok: false, field: "quantity" };
 
@@ -108,7 +109,10 @@ export function LinesTable({
                   checked={allTaken}
                   onChange={(event) =>
                     onChange(
-                      rows.map((row) => ({ ...row, take: event.target.checked })),
+                      rows.map((row) => ({
+                        ...row,
+                        take: event.target.checked,
+                      })),
                     )
                   }
                   aria-label={t("collectTakeAll")}

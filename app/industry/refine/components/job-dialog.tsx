@@ -18,6 +18,8 @@ import { LocationCombobox } from "@/app/inventory/components";
 import type { Location } from "@/types/inventory";
 import {
   formatDurationInput,
+  MAX_REFINING_DURATION,
+  MAX_REFINING_LINES,
   parseDuration,
   REFINING_METHODS,
   type RefiningJob,
@@ -79,14 +81,16 @@ export default function JobDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const minutes = parseDuration(duration);
+  const parsed = parseDuration(duration);
+  // Au-delà de ce que le serveur accepte : signalé ici plutôt qu'au retour.
+  const tooLong = parsed !== null && parsed > MAX_REFINING_DURATION;
+  const minutes = tooLong ? null : parsed;
   const checked = rows.filter((row) => !isBlank(row)).map(checkDraft);
   const lines = checked.flatMap((result) => (result.ok ? [result.line] : []));
   const invalid = checked.length - lines.length;
   const costValue = cost.trim() === "" ? undefined : Number(cost);
   const costInvalid =
-    costValue !== undefined &&
-    (!Number.isInteger(costValue) || costValue < 0);
+    costValue !== undefined && (!Number.isInteger(costValue) || costValue < 0);
   const total = lines.reduce((sum, line) => sum + line.quantity, 0);
   const number = new Intl.NumberFormat(locale);
 
@@ -106,6 +110,7 @@ export default function JobDialog({
     !!location &&
     minutes !== null &&
     lines.length > 0 &&
+    lines.length <= MAX_REFINING_LINES &&
     invalid === 0 &&
     !costInvalid &&
     !submitting;
@@ -161,7 +166,9 @@ export default function JobDialog({
                 value={location}
                 onChange={setLocation}
                 placeholder={
-                  job && !job.locationId ? job.location : t("refineryPlaceholder")
+                  job && !job.locationId
+                    ? job.location
+                    : t("refineryPlaceholder")
                 }
                 aria-label={t("refinery")}
                 inputClassName="h-9 bg-[#092F49]"
@@ -195,12 +202,16 @@ export default function JobDialog({
                 value={duration}
                 onChange={(event) => setDuration(event.target.value)}
                 placeholder={t("durationPlaceholder")}
-                aria-invalid={(duration !== "" && minutes === null) || undefined}
+                aria-invalid={
+                  (duration !== "" && minutes === null) || undefined
+                }
                 className="h-9 bg-[#092F49] font-mono"
               />
               {duration !== "" &&
                 (minutes === null ? (
-                  <p className="text-xs text-red-300">{t("durationInvalid")}</p>
+                  <p className="text-xs text-red-300">
+                    {tooLong ? t("durationTooLong") : t("durationInvalid")}
+                  </p>
                 ) : (
                   <p className="text-xs text-emerald-300">
                     {t("durationEquivalent", {
@@ -268,10 +279,12 @@ export default function JobDialog({
             <p className="text-xs text-[#7E9FB7]">
               {invalid > 0
                 ? t("linesInvalid", { count: invalid })
-                : t("linesSum", {
-                    count: lines.length,
-                    total: number.format(total),
-                  })}
+                : lines.length > MAX_REFINING_LINES
+                  ? t("linesTooMany", { max: MAX_REFINING_LINES })
+                  : t("linesSum", {
+                      count: lines.length,
+                      total: number.format(total),
+                    })}
             </p>
             <div className="flex gap-2">
               <DialogClose asChild>

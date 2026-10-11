@@ -230,7 +230,10 @@ function JobCard({
   const finished = isFinished(job, now);
   const left = minutesLeft(job, now);
   const since = Math.floor((now - Date.parse(job.endTime)) / 60_000);
-  const progress = Math.min(100, Math.max(0, 100 - (left * 100) / job.duration));
+  const progress = Math.min(
+    100,
+    Math.max(0, 100 - (left * 100) / job.duration),
+  );
   const started = new Date(job.startTime).toLocaleString(locale, {
     day: "2-digit",
     month: "2-digit",
@@ -288,7 +291,9 @@ function JobCard({
           </span>
           <span className="text-xs text-[#7E9FB7]">
             {finished
-              ? t("readySince", { duration: formatMinutes(Math.max(1, since), t) })
+              ? t("readySince", {
+                  duration: formatMinutes(Math.max(1, since), t),
+                })
               : t("readyAt", { date: end })}
           </span>
         </div>

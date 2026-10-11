@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
+import { escapeRegex } from "@/lib/inventory";
 
 /**
  * GET /api/inventory/locations
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
   };
 
   if (query) {
-    matchStage.name = { $regex: query, $options: "i" };
+    matchStage.name = { $regex: escapeRegex(query), $options: "i" };
   }
 
   const locations = await db

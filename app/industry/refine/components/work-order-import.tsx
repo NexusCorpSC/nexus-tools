@@ -27,6 +27,7 @@ import { Location } from "@/types/inventory";
 import type { QuickAddRow } from "@/lib/inventory-quick-add";
 import { REFINED_MATERIALS } from "@/lib/refinery-work-order";
 import { readWorkOrderCapture } from "@/lib/work-order-ocr";
+import { checkDraft } from "./lines-table";
 import { LocationCombobox } from "@/app/inventory/components";
 import { quickAddItems } from "@/app/inventory/actions";
 
@@ -203,24 +204,10 @@ export default function WorkOrderImport({
     return () => window.removeEventListener("paste", onPaste);
   }, [open, readImage]);
 
+  // The same rules as the order dialog and the server.
   const check = (row: Row): Checked => {
-    const name = row.name.trim();
-    if (!name) return { ok: false, field: "name" };
-
-    let quality: number | undefined;
-    if (row.quality.trim()) {
-      if (!/^\d+$/.test(row.quality.trim()))
-        return { ok: false, field: "quality" };
-      quality = parseInt(row.quality.trim(), 10);
-      if (quality > 1000) return { ok: false, field: "quality" };
-    }
-
-    if (!/^\d+$/.test(row.quantity.trim()))
-      return { ok: false, field: "quantity" };
-    const quantity = parseInt(row.quantity.trim(), 10);
-    if (quantity <= 0) return { ok: false, field: "quantity" };
-
-    return { ok: true, row: { name, quality, quantity } };
+    const result = checkDraft(row);
+    return result.ok ? { ok: true, row: result.line } : result;
   };
 
   const checked = rows.map(check);

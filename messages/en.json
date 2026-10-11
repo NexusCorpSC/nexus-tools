@@ -2169,7 +2169,10 @@
     "edit": "Edit",
     "delete": "Delete",
     "duration": "Duration",
-    "durationPlaceholder": "e.g. 120 (minutes), 2h or 1d12h30m"
+    "durationPlaceholder": "e.g. 120 (minutes), 2h or 1d12h30m",
+    "durationTooLong": "Thirty days at most: no order runs longer.",
+    "linesTooMany": "At most {max} lines per order.",
+    "collectDiscardConfirm": "Confirm: remove without adding"
   },
   "Cargo": {
     "home": "Home",

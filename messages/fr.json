@@ -2168,7 +2168,10 @@
     "readySince": "depuis {duration}",
     "readyAt": "prêt {date}",
     "collect": "Collecter vers l'inventaire",
-    "collectLater": "Collecte possible à la fin du job"
+    "collectLater": "Collecte possible à la fin du job",
+    "durationTooLong": "Trente jours au plus : aucun ordre ne dure davantage.",
+    "linesTooMany": "{max} lignes au plus par ordre.",
+    "collectDiscardConfirm": "Confirmer : retirer sans ajouter"
   },
   "Cargo": {
     "home": "Accueil",

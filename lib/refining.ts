@@ -74,7 +74,7 @@ export const MAX_REFINING_LINES = 40;
 const MAX_NAME = 100;
 const MAX_NOTE = 500;
 /** Trente jours : aucun ordre du jeu ne dure plus. */
-const MAX_DURATION = 30 * 24 * 60;
+export const MAX_REFINING_DURATION = 30 * 24 * 60;
 
 /**
  * Une durée en minutes, depuis « 1d12h30m15s », « 3h35m » ou un nombre de
@@ -128,7 +128,9 @@ export function totalQuantity(lines: RefiningLine[]) {
 export function sortJobs<T extends Pick<RefiningJob, "endTime">>(
   jobs: T[],
 ): T[] {
-  return [...jobs].sort((a, b) => Date.parse(a.endTime) - Date.parse(b.endTime));
+  return [...jobs].sort(
+    (a, b) => Date.parse(a.endTime) - Date.parse(b.endTime),
+  );
 }
 
 type Checked<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -136,7 +138,10 @@ type Checked<T> = { ok: true; value: T } | { ok: false; error: string };
 function optionalText(value: unknown, max: number, field: string) {
   if (value === undefined || value === null) return { ok: true as const };
   if (typeof value !== "string" || value.length > max) {
-    return { ok: false as const, error: `${field} must be at most ${max} characters` };
+    return {
+      ok: false as const,
+      error: `${field} must be at most ${max} characters`,
+    };
   }
   return { ok: true as const, value: value.trim() || undefined };
 }
@@ -149,7 +154,8 @@ export function checkLines(
   raw: unknown,
   { allowEmpty }: { allowEmpty: boolean },
 ): Checked<RefiningLine[]> {
-  if (!Array.isArray(raw)) return { ok: false, error: "lines must be an array" };
+  if (!Array.isArray(raw))
+    return { ok: false, error: "lines must be an array" };
   if (!allowEmpty && raw.length === 0) {
     return { ok: false, error: "at least one line is required" };
   }
@@ -215,7 +221,7 @@ export function checkJobInput(raw: unknown): Checked<RefiningJobInput> {
     typeof duration !== "number" ||
     !Number.isInteger(duration) ||
     duration < 1 ||
-    duration > MAX_DURATION
+    duration > MAX_REFINING_DURATION
   ) {
     return { ok: false, error: "duration must be a whole number of minutes" };
   }
@@ -267,7 +273,8 @@ export function checkCollectInput(raw: unknown): Checked<RefiningCollectInput> {
     ok: true,
     value: {
       lines: lines.value,
-      locationId: typeof body.locationId === "string" ? body.locationId.trim() : "",
+      locationId:
+        typeof body.locationId === "string" ? body.locationId.trim() : "",
       unit: body.unit,
       orgVisible: body.orgVisible === true,
     },
