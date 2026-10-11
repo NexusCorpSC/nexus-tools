@@ -18,6 +18,7 @@ export function PlacePicker({
   valueLabel,
   onChange,
   exclude,
+  excludeTypes,
   placeholder,
   disabled,
 }: {
@@ -25,6 +26,8 @@ export function PlacePicker({
   valueLabel?: string;
   onChange: (place: PlaceSummary | undefined) => void;
   exclude?: string;
+  /** Les natures de lieu qu'on ne propose pas, un magasin comme parent par exemple. */
+  excludeTypes?: readonly PlaceSummary["type"][];
   placeholder?: string;
   /** Le choix se lit mais ne se change pas. */
   disabled?: boolean;
@@ -33,11 +36,14 @@ export function PlacePicker({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { results, isLoading } = usePlaceSearch({
+  const { results: found, isLoading } = usePlaceSearch({
     query,
     enabled: open,
     exclude,
   });
+  const results = excludeTypes?.length
+    ? found.filter((place) => !excludeTypes.includes(place.type))
+    : found;
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {

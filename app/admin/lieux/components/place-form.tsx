@@ -267,6 +267,10 @@ export function PlaceForm({
               (contribution?.mode === "create" && !contribution.pickParent)
             }
             exclude={place?.slug}
+            // Un magasin ne contient pas d'autre lieu.
+            excludeTypes={
+              contribution?.mode === "create" ? ["shop"] : undefined
+            }
             onChange={(next) => {
               setParentSlug(next?.slug);
               setParentLabel(next?.name);

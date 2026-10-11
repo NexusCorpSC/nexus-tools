@@ -293,6 +293,8 @@ export async function buildPlaceCreate(
 ): Promise<CatalogDraft> {
   const parent = await getPlaceBySlug(parentSlug);
   if (!parent) throw new ContributionError("placeNotFound", 404);
+  // Un magasin ne contient pas d'autre lieu.
+  if (parent.type === "shop") throw new ContributionError("invalidInput", 400);
 
   const proposal = {
     ...placeProposal(input),

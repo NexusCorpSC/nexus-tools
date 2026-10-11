@@ -180,7 +180,10 @@ export default async function PlacePage({
           {canEdit ? (
             <PlaceAdminMenu slug={place.slug} />
           ) : (
-            <PlaceContributeMenu slug={place.slug} />
+            <PlaceContributeMenu
+              slug={place.slug}
+              canHaveChildren={place.type !== "shop"}
+            />
           )}
           <ReportMenu
             type="place"

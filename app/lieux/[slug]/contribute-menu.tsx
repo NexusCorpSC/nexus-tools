@@ -16,7 +16,14 @@ import { POINTS } from "@/types/contributions";
  * Ce qu'un joueur peut apporter à une fiche de lieu, avec ce que ça rapporte.
  * Un visiteur passe par la connexion et revient ici.
  */
-export function PlaceContributeMenu({ slug }: { slug: string }) {
+export function PlaceContributeMenu({
+  slug,
+  canHaveChildren = true,
+}: {
+  slug: string;
+  /** Un magasin ne contient pas d'autre lieu : pas de « Il manque un lieu ici ? ». */
+  canHaveChildren?: boolean;
+}) {
   const t = useTranslations("Contributions.Place");
   const [open, setOpen] = useState(false);
 
@@ -27,12 +34,16 @@ export function PlaceContributeMenu({ slug }: { slug: string }) {
       points: POINTS.edit,
       icon: PencilIcon,
     },
-    {
-      href: `/lieux/${slug}/contribuer/lieu`,
-      label: t("addChild"),
-      points: POINTS.placeCreate,
-      icon: PlusIcon,
-    },
+    ...(canHaveChildren
+      ? [
+          {
+            href: `/lieux/${slug}/contribuer/lieu`,
+            label: t("addChild"),
+            points: POINTS.placeCreate,
+            icon: PlusIcon,
+          },
+        ]
+      : []),
     {
       href: `/lieux/${slug}/contribuer/plan`,
       label: t("planImage"),

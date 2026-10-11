@@ -30,7 +30,9 @@ export default async function ProposeAnyPlacePage({
     `/lieux/proposer${parentSlug ? `?parent=${encodeURIComponent(parentSlug)}` : ""}`,
   );
 
-  const parent = parentSlug ? await getPlaceBySlug(parentSlug) : null;
+  const found = parentSlug ? await getPlaceBySlug(parentSlug) : null;
+  // Un magasin ne contient pas d'autre lieu : on laisse alors choisir.
+  const parent = found?.type === "shop" ? null : found;
   const t = await getTranslations("Contributions.Form");
 
   return (
