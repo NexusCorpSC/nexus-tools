@@ -17,7 +17,11 @@ import {
 } from "@/components/ui/dialog";
 import { LocationCombobox } from "@/app/inventory/components";
 import type { Location } from "@/types/inventory";
-import { MAX_REFINING_LINES, type RefiningJob } from "@/lib/refining";
+import {
+  isInertMaterial,
+  MAX_REFINING_LINES,
+  type RefiningJob,
+} from "@/lib/refining";
 import { readWorkOrderCapture } from "@/lib/work-order-ocr";
 import { cn, roundQty } from "@/lib/utils";
 import { collectJob } from "../actions";
@@ -41,11 +45,6 @@ type HeldLot = {
 };
 
 const LABEL = "text-xs font-semibold tracking-wider text-[#7E9FB7] uppercase";
-
-/** Ce que le terminal rend sans valeur : décoché par défaut. */
-function isInert(name: string) {
-  return /inert/i.test(name);
-}
 
 function same(a: string | undefined, b: string | undefined) {
   return (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
@@ -74,7 +73,7 @@ export default function CollectDialog({
   // matières inertes décochées.
   const [rows, setRows] = useState<LineDraft[]>(() =>
     job.lines.length > 0
-      ? job.lines.map((line) => toDraft(line, !isInert(line.name)))
+      ? job.lines.map((line) => toDraft(line, !isInertMaterial(line.name)))
       : [toDraft({})],
   );
   const [location, setLocation] = useState<Location | null>(() =>
@@ -158,7 +157,7 @@ export default function CollectDialog({
             name: line.name,
             quality: line.quality?.toString() ?? "",
             quantity: line.quantity?.toString() ?? "",
-            take: !isInert(line.name),
+            take: !isInertMaterial(line.name),
             raw: line.raw,
           })),
         );

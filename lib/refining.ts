@@ -119,6 +119,11 @@ export function isFinished(job: Pick<RefiningJob, "endTime">, now: number) {
   return Date.parse(job.endTime) <= now;
 }
 
+/** Ce que le terminal rend sans valeur : laissé de côté à la collecte par défaut. */
+export function isInertMaterial(name: string) {
+  return /inert/i.test(name);
+}
+
 /** Les cSCU que rendent les lignes d'un ordre. */
 export function totalQuantity(lines: RefiningLine[]) {
   return lines.reduce((sum, line) => sum + line.quantity, 0);
