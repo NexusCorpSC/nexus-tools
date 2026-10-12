@@ -88,3 +88,6 @@ export type StarmapEntry = {
 };
 
 export const LORE_SEARCH_LIMIT = { default: 8, max: 25 } as const;
+
+/** Les articles d'une page de la Galactapedia, sur le site et dans l'app. */
+export const LORE_PAGE_SIZE = 24;

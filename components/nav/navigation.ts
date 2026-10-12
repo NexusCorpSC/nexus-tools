@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Archive,
+  BookOpen,
   Bot,
   Building2,
   CalendarDays,
@@ -61,6 +62,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { id: "places", href: "/lieux", icon: MapPin },
       { id: "missions", href: "/missions", icon: Rocket },
       { id: "factions", href: "/missions/factions", icon: Flag },
+      { id: "lore", href: "/lore", icon: BookOpen },
       {
         id: "blueprints",
         href: "/crafting/blueprints",

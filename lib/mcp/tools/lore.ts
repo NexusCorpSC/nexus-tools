@@ -25,6 +25,7 @@ const articleSummary = z.object({
   categories: z.array(z.string()),
   excerpt: z.string(),
   rsiUrl: z.string(),
+  thumbnailUrl: z.string().optional(),
 });
 
 const SOURCE_NOTE =

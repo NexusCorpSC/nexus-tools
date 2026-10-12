@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getPlaceLore } from "@/lib/lore";
 import { getPlaceDetails } from "@/lib/places";
 
 export async function GET(
@@ -12,5 +13,8 @@ export async function GET(
     return NextResponse.json({ error: "Place not found" }, { status: 404 });
   }
 
-  return NextResponse.json(place);
+  // Le lore du lieu (starmap et Galactapedia, en anglais) : l'app l'affiche
+  // sur la fiche comme le site.
+  const lore = await getPlaceLore(place);
+  return NextResponse.json({ ...place, lore: lore ?? undefined });
 }

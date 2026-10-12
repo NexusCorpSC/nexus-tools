@@ -2,6 +2,7 @@ import "server-only";
 import type { Filter } from "mongodb";
 import db from "@/lib/db";
 import {
+  LORE_PAGE_SIZE,
   LORE_SEARCH_LIMIT,
   type LoreArticle,
   type StarmapEntry,
@@ -30,6 +31,7 @@ export type LoreArticleSummary = {
   categories: string[];
   excerpt: string;
   rsiUrl: string;
+  thumbnailUrl?: string;
 };
 
 const EXCERPT_LENGTH = 280;
@@ -59,11 +61,18 @@ const SUMMARY_PROJECTION = {
   categories: 1,
   body: 1,
   rsiUrl: 1,
+  thumbnailUrl: 1,
 } as const;
 
 type SummaryDoc = Pick<
   LoreArticle,
-  "wikiId" | "title" | "type" | "categories" | "body" | "rsiUrl"
+  | "wikiId"
+  | "title"
+  | "type"
+  | "categories"
+  | "body"
+  | "rsiUrl"
+  | "thumbnailUrl"
 >;
 
 function toSummary(doc: SummaryDoc): LoreArticleSummary {
@@ -74,6 +83,7 @@ function toSummary(doc: SummaryDoc): LoreArticleSummary {
     categories: doc.categories ?? [],
     excerpt: excerpt(doc.body ?? ""),
     rsiUrl: doc.rsiUrl,
+    thumbnailUrl: doc.thumbnailUrl,
   };
 }
 
@@ -118,6 +128,77 @@ export async function searchLore({
     .limit(size)
     .toArray();
   return byTitle.map(toSummary);
+}
+
+export type LoreBrowse = {
+  query?: string;
+  category?: string;
+  /** À partir de 1. */
+  page?: number;
+};
+
+/**
+ * Une page de la Galactapedia, pour le site et l'app : les articles qui
+ * parlent de `query` par pertinence, ou ceux d'une catégorie (ou tous) par
+ * titre.
+ */
+export async function browseLore({
+  query,
+  category,
+  page = 1,
+}: LoreBrowse): Promise<{
+  results: LoreArticleSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+}> {
+  const pageSize = LORE_PAGE_SIZE;
+  const current = Math.max(1, Math.floor(page) || 1);
+  const skip = (current - 1) * pageSize;
+  const scope: Filter<LoreArticle> = {
+    ...LIVE,
+    ...(category ? { categories: category } : {}),
+  };
+  const words = query?.trim();
+  const done = async (filter: Filter<LoreArticle>, byScore: boolean) => {
+    const [docs, total] = await Promise.all([
+      articles()
+        .find(filter, {
+          projection: byScore
+            ? { ...SUMMARY_PROJECTION, score: { $meta: "textScore" } }
+            : SUMMARY_PROJECTION,
+        })
+        .sort(byScore ? { score: { $meta: "textScore" } } : { title: 1 })
+        .skip(skip)
+        .limit(pageSize)
+        .toArray(),
+      articles().countDocuments(filter),
+    ]);
+    return { results: docs.map(toSummary), total, page: current, pageSize };
+  };
+  if (!words) return done(scope, false);
+  const byText = await done({ ...scope, $text: { $search: words } }, true);
+  if (byText.total > 0) return byText;
+  return done(
+    { ...scope, title: { $regex: escapeRegex(words), $options: "i" } },
+    false,
+  );
+}
+
+/**
+ * Le texte d'un article avec ses liens vers d'autres articles de la
+ * Galactapedia pointés vers nos fiches, quand l'article cité est en base.
+ */
+export function rewriteLoreLinks(
+  body: string,
+  known: Iterable<string>,
+  path: (id: string) => string,
+): string {
+  const ids = new Set(known);
+  return body.replace(
+    /\]\((https?:\/\/robertsspaceindustries\.com)?\/galactapedia\/article\/([A-Za-z0-9]{10})[^)\s]*\)/g,
+    (match, _host, id: string) => (ids.has(id) ? `](${path(id)})` : match),
+  );
 }
 
 /** Les catégories de la Galactapedia, avec leur nombre d'articles. */
