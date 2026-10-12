@@ -588,6 +588,11 @@ export type PlacePosition = {
   x: number;
   y: number;
   z: number;
+  /**
+   * Posée par `import:star-map` plutôt que relevée en jeu. Une correction la
+   * remplace par un relevé, sans cette marque, que l'import ne touche plus.
+   */
+  source?: "starmap.space";
 };
 
 /** Ce que le NPS doit savoir d'une planète ou d'une lune. */
@@ -607,25 +612,6 @@ export type CelestialBody = {
   rotationHours: number;
   /** Son angle de rotation au 1er janvier 2020 à 0 h UTC, en degrés. */
   rotationAdjust: number;
-};
-
-/**
- * Où la Star Map dessine un lieu, posé par `npm run import:star-map` depuis
- * starmap.space. Même repère que `PlacePosition` : dans celui d'un corps
- * (`body`) pour ce qui est posé dessus ou en orbite basse, dans celui du
- * système sinon. `radius`, en mètres, n'existe que pour un corps.
- *
- * Distinct de `position` à dessein : celle-ci est relevée en jeu par les
- * joueurs et guide le NPS ; celle-là ne sert qu'à dessiner, et une position
- * relevée l'emporte toujours sur elle.
- */
-export type MapPosition = PlacePosition & {
-  radius?: number;
-  /**
-   * Le système, pour un lieu que le catalogue ne rattache à rien (les stations
-   * des points de Lagrange) : la carte le range sous ce système.
-   */
-  system?: string;
 };
 
 /** Un corps céleste tel que `GET /api/lieux/nps` le donne. */
@@ -708,8 +694,6 @@ export type Place = {
   position?: PlacePosition;
   /** Pour une planète ou une lune : de quoi s'y repérer. Posé par import. */
   celestial?: CelestialBody;
-  /** Où la Star Map le dessine. Posé par `import:star-map`. */
-  mapPosition?: MapPosition;
   createdAt?: string;
   updatedAt?: string;
 };

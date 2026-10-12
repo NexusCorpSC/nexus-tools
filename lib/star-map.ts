@@ -3,12 +3,7 @@ import "server-only";
 import { ObjectId } from "bson";
 import db from "@/lib/db";
 import { STAR_MAP_SYSTEMS, type StarMapPlace } from "@/lib/star-map-layout";
-import type {
-  CelestialBody,
-  MapPosition,
-  Place,
-  PlacePosition,
-} from "@/types/places";
+import type { CelestialBody, Place, PlacePosition } from "@/types/places";
 
 /** Un lot de l'inventaire, tel que la carte le montre à son propriétaire. */
 export type StarMapLot = {
@@ -28,7 +23,6 @@ export type StarMapInventory = {
 
 type PlaceDoc = Pick<Place, "slug" | "name" | "type" | "parentSlug"> & {
   position?: PlacePosition;
-  mapPosition?: MapPosition;
   celestial?: CelestialBody;
 };
 
@@ -44,11 +38,7 @@ export async function getStarMapPlaces(): Promise<StarMapPlace[]> {
     .collection<Place>("gameLocations")
     .find(
       {
-        $or: [
-          { slug: { $in: systems } },
-          { systemSlug: { $in: systems } },
-          { "mapPosition.system": { $in: systems } },
-        ],
+        $or: [{ slug: { $in: systems } }, { systemSlug: { $in: systems } }],
       },
       {
         projection: {
@@ -58,7 +48,6 @@ export async function getStarMapPlaces(): Promise<StarMapPlace[]> {
           type: 1,
           parentSlug: 1,
           position: 1,
-          mapPosition: 1,
           celestial: 1,
         },
       },
@@ -71,16 +60,14 @@ export async function getStarMapPlaces(): Promise<StarMapPlace[]> {
       name: doc.name,
       type: doc.type,
     };
-    // Sans parent au catalogue, l'import a dit dans quel système il se trouve.
-    const parentSlug = doc.parentSlug ?? doc.mapPosition?.system;
-    if (parentSlug) place.parentSlug = parentSlug;
-    // Ce que les joueurs ont relevé d'abord, puis starmap.space.
-    const at = doc.position ?? doc.mapPosition ?? doc.celestial;
+    if (doc.parentSlug) place.parentSlug = doc.parentSlug;
+    // Relevée en jeu ou importée de starmap.space ; un corps, par le NPS.
+    const at = doc.position ?? doc.celestial;
     if (at) {
       place.at = { x: at.x, y: at.y, z: at.z };
       if ("body" in at && at.body) place.at.body = at.body;
     }
-    const radius = doc.celestial?.radius ?? doc.mapPosition?.radius;
+    const radius = doc.celestial?.radius;
     if (radius) place.radius = radius;
     return place;
   });

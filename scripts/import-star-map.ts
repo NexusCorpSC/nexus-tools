@@ -1,12 +1,13 @@
 /**
- * Pose sur les lieux du catalogue où la Star Map (`/starmap`) les dessine.
+ * Donne une position aux lieux du catalogue qui n'en ont pas encore, depuis
+ * starmap.space : le NPS s'en sert, et la Star Map (`/starmap`) les dessine.
  *
  *   npm run import:star-map -- [--dry-run] [--oc <oc.json>] [--pois <pois.json>]
  *
- * Les positions viennent de starmap.space (`lib/starmap-space.ts`) :
- *   - planètes et lunes : leur centre et leur rayon, dans le repère du
- *     système — y compris celles dont la rotation est encore provisoire, que
- *     `import:celestial-bodies` laisse au NPS faute de pouvoir s'y repérer ;
+ * Les positions viennent de starmap.space (`lib/starmap-space.ts`), dans le
+ * repère de `PlacePosition` :
+ *   - planètes et lunes que `import:celestial-bodies` laisse de côté faute
+ *     de rotation connue : leur centre, dans le repère du système ;
  *   - lieux posés sur un corps (villes, avant-postes, stations en orbite) :
  *     leur position dans le repère de ce corps, en mètres ;
  *   - stations des points de Lagrange et des points de saut : la position de
@@ -16,17 +17,16 @@
  * Un lieu se retrouve par son nom, dans son système : la même clé que pour les
  * corps (`bodyKey`), « Pyro V » et « Pyro5 » se valent. Un nom porté par deux
  * lieux du catalogue, ou par deux lieux de starmap.space (« Remote Outpost »),
- * est laissé : mieux vaut un lieu absent de la carte qu'un lieu à la place
- * d'un autre.
+ * est laissé : mieux vaut un lieu sans position qu'à la place d'un autre.
  *
- * Un lieu que le catalogue ne rattache à aucun système (les stations des
- * points de Lagrange de Stanton) se cherche dans tous ; `mapPosition.system`
- * dit alors à la carte sous quel système le ranger. Le catalogue, lui, garde
- * son arbre tel quel.
+ * Un lieu que le catalogue ne rattache à rien (les stations des points de
+ * Lagrange de Stanton) se cherche dans tous les systèmes, et se range sous
+ * celui où la source le trouve.
  *
- * Seul `mapPosition` est écrit, et retiré d'un lieu que la source ne place
- * plus. `position`, relevée par les joueurs, n'est pas touchée et l'emporte
- * à l'affichage. Idempotent : à relancer après un patch.
+ * Une position importée porte `source: "starmap.space"` : l'import la met à
+ * jour, ou la retire quand la source ne place plus le lieu. Une position
+ * relevée par un joueur n'a pas cette marque — la corriger l'efface — et
+ * l'import n'y touche jamais. Idempotent : à relancer après un patch.
  */
 
 import db from "@/lib/db";
@@ -40,7 +40,8 @@ import {
   type Poi,
 } from "@/lib/starmap-space";
 import { STAR_MAP_SYSTEMS } from "@/lib/star-map-layout";
-import type { MapPosition, Place } from "@/types/places";
+import { recomputeSubtree } from "@/lib/places";
+import type { Place, PlacePosition } from "@/types/places";
 
 type Options = { dryRun: boolean; oc?: string; pois?: string };
 
@@ -59,7 +60,19 @@ function parseArgs(argv: string[]): Options {
   return options;
 }
 
-type Candidate = Pick<Place, "slug" | "name" | "type" | "systemSlug">;
+type Candidate = Pick<
+  Place,
+  | "slug"
+  | "name"
+  | "type"
+  | "systemSlug"
+  | "parentSlug"
+  | "position"
+  | "celestial"
+>;
+
+/** Ce que l'import pose : une position marquée comme venant de lui. */
+type Imported = Omit<PlacePosition, "source">;
 
 const BODY_TYPES = new Set(["planet", "moon"]);
 
@@ -123,7 +136,18 @@ async function main() {
           { systemSlug: { $exists: false } },
         ],
       },
-      { projection: { _id: 0, slug: 1, name: 1, type: 1, systemSlug: 1 } },
+      {
+        projection: {
+          _id: 0,
+          slug: 1,
+          name: 1,
+          type: 1,
+          systemSlug: 1,
+          parentSlug: 1,
+          position: 1,
+          celestial: 1,
+        },
+      },
     )
     .toArray()) as Candidate[];
 
@@ -146,14 +170,17 @@ async function main() {
     return found.length > 0 || short === name ? found : lookup(system, short);
   };
 
-  const writes = new Map<string, { label: string; position: MapPosition }>();
+  const writes = new Map<
+    string,
+    { label: string; position: Imported; system: string }
+  >();
   const ambiguous = new Set<string>();
   const missing: string[] = [];
 
   function propose(
     system: string,
     name: string,
-    position: MapPosition,
+    position: Imported,
     accept: (place: Candidate) => boolean,
   ) {
     const label = `${name} (${system})`;
@@ -167,14 +194,13 @@ async function main() {
       return;
     }
     const slug = found[0].slug;
-    if (!found[0].systemSlug) position = { ...position, system };
     // Deux lieux de la source pour un seul du catalogue : on ne choisit pas.
     if (writes.has(slug)) {
       ambiguous.add(label);
       writes.delete(slug);
       return;
     }
-    writes.set(slug, { label, position });
+    writes.set(slug, { label, position, system });
   }
 
   // Corps célestes, et l'index des conteneurs par nom pour les lieux.
@@ -198,10 +224,15 @@ async function main() {
         BODY_TYPES.has(place.type),
       );
       if (found.length === 1 && radius && radius > 0) {
-        writes.set(found[0].slug, {
-          label: `${container.ObjectContainer} (${system})`,
-          position: { ...center, radius },
-        });
+        // Le NPS place déjà un corps par `celestial` ; sinon (rotation encore
+        // provisoire), son centre suffit à la carte.
+        if (!found[0].celestial) {
+          writes.set(found[0].slug, {
+            label: `${container.ObjectContainer} (${system})`,
+            position: center,
+            system,
+          });
+        }
         names.forEach((name) => bodies.set(name, found[0].slug));
       } else if (found.length === 0) {
         missing.push(`${container.ObjectContainer} (${system})`);
@@ -216,7 +247,7 @@ async function main() {
   type Located = {
     system: string;
     name: string;
-    position: MapPosition;
+    position: Imported;
     accept: (place: Candidate) => boolean;
   };
   const located: Located[] = [];
@@ -277,28 +308,64 @@ async function main() {
     propose(system, name, position, accept);
   }
 
-  for (const [slug, { label, position }] of writes) {
-    console.log(`${label} → ${slug}`);
-    if (!options.dryRun) {
-      await places.updateOne({ slug }, { $set: { mapPosition: position } });
+  const bySlug = new Map(candidates.map((place) => [place.slug, place]));
+  const kept: string[] = [];
+  const attached = new Set<string>();
+  let written = 0;
+  for (const [slug, { label, position, system }] of writes) {
+    const place = bySlug.get(slug)!;
+    const $set: Partial<Place> = {};
+    // Un lieu que le catalogue ne rattache à rien (les stations des points
+    // de Lagrange) : la source dit dans quel système il se trouve.
+    if (!place.parentSlug) {
+      $set.parentSlug = system;
+      attached.add(system);
+    }
+    // Une position relevée par un joueur ne se remplace pas.
+    if (place.position && place.position.source !== "starmap.space") {
+      kept.push(label);
+    } else {
+      console.log(`${label} → ${slug}`);
+      written++;
+      $set.position = {
+        ...(position.body ? { body: position.body } : {}),
+        x: Math.round(position.x),
+        y: Math.round(position.y),
+        z: Math.round(position.z),
+        source: "starmap.space",
+      };
+    }
+    if (!options.dryRun && Object.keys($set).length > 0) {
+      await places.updateOne({ slug }, { $set });
     }
   }
-  // Ce que la source ne place plus (renommé, ou devenu ambigu) quitte la carte.
+  // Ce que la source ne place plus (renommé, ou devenu ambigu) perd la
+  // position qu'elle lui avait donnée.
   const stale = candidates
-    .map((place) => place.slug)
-    .filter((slug) => !writes.has(slug));
+    .filter(
+      (place) =>
+        place.position?.source === "starmap.space" && !writes.has(place.slug),
+    )
+    .map((place) => place.slug);
   if (!options.dryRun) {
     await places.updateMany(
-      { slug: { $in: stale }, mapPosition: { $exists: true } },
-      { $unset: { mapPosition: "" } },
+      { slug: { $in: stale } },
+      { $unset: { position: "" } },
     );
+    for (const system of attached) await recomputeSubtree(system);
   }
 
   console.log(
     options.dryRun
-      ? `\nRien écrit : --dry-run. ${writes.size} lieu(x) à poser.`
-      : `\nTerminé : ${writes.size} lieu(x) posé(s) sur la carte.`,
+      ? `\nRien écrit : --dry-run. ${written} lieu(x) à placer.`
+      : `\nTerminé : ${written} lieu(x) placé(s), ${stale.length} retiré(s).`,
   );
+  if (attached.size > 0) {
+    console.log(`Rangés sous leur système : ${[...attached].join(", ")}`);
+  }
+  if (kept.length > 0) {
+    console.log(`Position relevée par les joueurs, gardée : ${kept.length}`);
+  }
   if (ambiguous.size > 0) {
     console.log(`Noms ambigus, laissés : ${[...ambiguous].join(", ")}`);
   }

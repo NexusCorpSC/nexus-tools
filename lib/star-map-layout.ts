@@ -88,8 +88,8 @@ export type StarMapPlace = {
   type: PlaceType;
   parentSlug?: string;
   /**
-   * Où il se trouve, en mètres : la position relevée par les joueurs, sinon
-   * celle de starmap.space, sinon le centre d'un corps pour le NPS.
+   * Où il se trouve, en mètres : sa position (relevée en jeu ou importée de
+   * starmap.space), sinon le centre d'un corps pour le NPS.
    */
   at?: { body?: string; x: number; y: number; z: number };
   /** Le rayon d'un corps, en mètres. */
