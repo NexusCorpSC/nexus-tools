@@ -267,8 +267,9 @@ export function PlacesBrowser() {
   );
 
   // Ses lieux privés, aux mêmes filtres : une liste courte, d'un bloc.
+  // Chargés même sous « Publics » : la réponse dit aussi qu'il est connecté,
+  // et donc si le sélecteur de visibilité s'affiche.
   useEffect(() => {
-    if (visibility === "publics") return;
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       if (query.trim()) params.set("query", query.trim());
@@ -283,7 +284,7 @@ export function PlacesBrowser() {
         .catch(() => setPrivatePlaces(null));
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, type, system, body, visibility]);
+  }, [query, type, system, body]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
