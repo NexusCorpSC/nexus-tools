@@ -283,6 +283,45 @@ async function ensureGameData(database: Db) {
   );
 }
 
+// ─── Lore ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Les articles de la Galactapedia et la starmap, importés par
+ * `npm run import:game-data -- lore`. L'index texte classe la recherche du
+ * lore (`lib/lore.ts`) : le titre pèse plus que les tags, qui pèsent plus que
+ * le texte. Le texte est anglais, comme la source.
+ */
+async function ensureLore(database: Db) {
+  const articles = database.collection("loreArticles");
+  await articles.createIndex(
+    { wikiId: 1 },
+    { unique: true, name: "loreArticles_wikiId_unique" },
+  );
+  await articles.createIndex({ slug: 1 }, { name: "loreArticles_slug" });
+  await articles.createIndex(
+    { title: "text", tags: "text", categories: "text", body: "text" },
+    {
+      name: "loreArticles_text",
+      weights: { title: 10, tags: 5, categories: 3, body: 1 },
+      default_language: "english",
+    },
+  );
+
+  const starmap = database.collection("starmap");
+  await starmap.createIndex(
+    { code: 1 },
+    { unique: true, name: "starmap_code_unique" },
+  );
+  await starmap.createIndex(
+    { systemCode: 1, kind: 1, name: 1 },
+    { name: "starmap_system" },
+  );
+  await starmap.createIndex(
+    { placeSlug: 1 },
+    { name: "starmap_place", sparse: true },
+  );
+}
+
 // ─── Lieux du 'verse ──────────────────────────────────────────────────────────
 
 /**
@@ -565,6 +604,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["gameItems", ensureGameItems],
   ["gameData", ensureGameData],
   ["gameLocations", ensureGameLocations],
+  ["lore", ensureLore],
   ["cargoShips", ensureCargoShips],
   ["parcels", ensureParcels],
   ["refiningJobs", ensureRefiningJobs],

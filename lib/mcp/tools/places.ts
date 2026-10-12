@@ -8,6 +8,7 @@ import {
   getPlaceFacets,
   getPlacePlans,
 } from "@/lib/places";
+import { getPlaceLore } from "@/lib/lore";
 import { listMissionsAt } from "@/lib/missions";
 import {
   bodyAt,
@@ -164,7 +165,7 @@ export function registerPlaceTools(server: McpServer) {
     {
       title: "Get a place",
       description:
-        "Full sheet of a place by slug: description, tip, services, parent chain, child places, shops below it, missions given there, NPS coordinates when known, and the list of its maps (use get_place_plan for a map's content).",
+        "Full sheet of a place by slug: description, tip, services, parent chain, child places, shops below it, missions given there, NPS coordinates when known, its lore (starmap description and Galactapedia article, in English) and the list of its maps (use get_place_plan for a map's content).",
       inputSchema: z.object({
         slug: z
           .string()
@@ -181,7 +182,10 @@ export function registerPlaceTools(server: McpServer) {
     async ({ slug }) => {
       const place = await getPlaceDetails(slug);
       if (!place) return toolError(`No place found with slug: ${slug}`);
-      const missions = await listMissionsAt(place.slug);
+      const [missions, lore] = await Promise.all([
+        listMissionsAt(place.slug),
+        getPlaceLore(place),
+      ]);
       const data = {
         ...withoutInternals(place, [
           "id",
@@ -208,6 +212,7 @@ export function registerPlaceTools(server: McpServer) {
           title: m.title,
           url: siteUrl(`/missions/${m.id}`),
         })),
+        lore: lore ?? undefined,
       };
       return toolResult(
         data,

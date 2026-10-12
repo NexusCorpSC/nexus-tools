@@ -179,7 +179,7 @@ const MAX_REMOVED_RATIO = 0.2;
 
 export class MassRemovalError extends Error {}
 
-function guardRemovals(label: string, removed: number, active: number) {
+export function guardRemovals(label: string, removed: number, active: number) {
   if (active > 20 && removed / active > MAX_REMOVED_RATIO) {
     throw new MassRemovalError(
       `${label} : ${removed} fiche(s) sur ${active} disparaîtraient du jeu d'un coup. La source est probablement incomplète ; rien n'a été écrit (forcer avec --allow-mass-removal).`,

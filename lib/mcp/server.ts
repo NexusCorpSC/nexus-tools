@@ -10,6 +10,7 @@ import { registerInventoryTools } from "./tools/inventory";
 import { registerPlanDraftTools } from "./tools/plan-drafts";
 import { registerPlanFormatResource } from "./plan-format";
 import { registerItemTools } from "./tools/items";
+import { registerLoreTools } from "./tools/lore";
 import { registerMarketplaceReadTools } from "./tools/marketplace";
 import { registerMarketplacePersonalTools } from "./tools/marketplace-personal";
 import { registerPlaceTools } from "./tools/places";
@@ -33,6 +34,7 @@ export function registerNexusServer(mcp: McpServer) {
   registerBlueprintTools(server);
   registerItemTools(server);
   registerPlaceTools(server);
+  registerLoreTools(server);
   registerMarketplaceReadTools(server);
   registerMarketplacePersonalTools(server);
   registerInventoryTools(server);
@@ -60,5 +62,7 @@ export const MCP_INSTRUCTIONS =
   "Nexus Tools is a community toolbox for Star Citizen. Use search first when the kind of thing is unclear, " +
   "then the dedicated get_* tools. Links point to tools.services.nexus pages: give them to the user. " +
   "Prices are in aUEC. NPS coordinates come from the in-game /showlocation command. " +
+  "For the lore of the 'Verse (history, people, companies, species, systems), use search_lore, get_lore_article and get_star_system: " +
+  "they hold RSI's Galactapedia and starmap, in English. " +
   "Personal tools (inventory, refining orders, contributions, marketplace orders…) need the user to sign in to their Nexus account; " +
   "every change they make is shown to the user for confirmation first, and contributions go to community review unless the user is a trusted contributor.";
