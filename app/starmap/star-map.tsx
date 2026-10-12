@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { useUrlFilters } from "@/lib/list-url";
@@ -35,8 +36,22 @@ const GROUP_ORDER = [
 /** Au-delà, un groupe se replie derrière « Afficher les N autres ». */
 const GROUP_PREVIEW = 8;
 
-/** Lignes par page dans « Vos objets ici ». */
+/** Objets par page dans « Vos objets ici ». */
 const LOTS_PER_PAGE = 20;
+
+/** Les lots d'un même objet (même nom, même unité) sous le lieu regardé. */
+type LotGroup = {
+  key: string;
+  name: string;
+  unit?: string;
+  total: number;
+  /** La meilleure qualité ; absente pour l'équipement. */
+  best?: number;
+  lots: { lot: StarMapLot; place: LaidOutPlace }[];
+};
+
+/** Ce que l'infobulle d'un trait dit du lot, et où la poser à l'écran. */
+type LotTip = { x: number; y: number; text: string };
 
 /** Précédent, la page, suivant. Rien quand tout tient sur une page. */
 function Pager({
@@ -280,15 +295,59 @@ export function StarMap({
     return found;
   }, [current, inventory, places]);
   const lotCount = lots.reduce((sum, [, list]) => sum + list.length, 0);
-  const compact =
-    lots.length > 2 ||
-    (lots.length === 2 && !(current && BODY_TYPES.has(current.type)));
-  // En liste de lieux, une ligne par lieu ; sinon une par lot.
-  const rows = compact
-    ? lots.map(([place, list]) => ({ place, list, lot: null }))
-    : lots.flatMap(([place, list]) =>
-        list.map((lot) => ({ place, list, lot })),
-      );
+  // Un objet par ligne : les ressources (qui ont une qualité) d'abord, de la
+  // meilleure à la moins bonne, puis l'équipement par nom.
+  const rows = useMemo(() => {
+    const byKey = new Map<string, LotGroup>();
+    for (const [place, list] of lots) {
+      for (const lot of list) {
+        const key = `${lot.name}|${lot.unit ?? ""}`;
+        let group = byKey.get(key);
+        if (!group) {
+          group = { key, name: lot.name, unit: lot.unit, total: 0, lots: [] };
+          byKey.set(key, group);
+        }
+        group.total += lot.quantity;
+        group.lots.push({ lot, place });
+        if (lot.quality !== undefined)
+          group.best = Math.max(group.best ?? 0, lot.quality);
+      }
+    }
+    return [...byKey.values()].sort((a, b) =>
+      a.best !== undefined && b.best !== undefined
+        ? b.best - a.best
+        : a.best !== undefined
+          ? -1
+          : b.best !== undefined
+            ? 1
+            : a.name.localeCompare(b.name),
+    );
+  }, [lots]);
+  // L'épaisseur d'un trait se mesure au plus gros lot de ressource.
+  const biggestLot = Math.max(
+    1,
+    ...rows.flatMap((group) =>
+      group.best === undefined ? [] : group.lots.map(({ lot }) => lot.quantity),
+    ),
+  );
+  const [tip, setTip] = useState<LotTip | null>(null);
+  const showTip = (
+    element: HTMLElement,
+    lot: StarMapLot,
+    place: LaidOutPlace,
+  ) => {
+    const rect = element.getBoundingClientRect();
+    const parts = [
+      `${format.number(lot.quantity)}${lot.unit ? ` ${lot.unit}` : ""}`,
+      t("quality", { quality: lot.quality ?? 0 }),
+    ];
+    if (lots.length > 1) parts.push(place.name);
+    setTip({
+      x: rect.left + rect.width / 2,
+      y: rect.top,
+      text: parts.join(" · "),
+    });
+  };
   const pages = Math.ceil(rows.length / LOTS_PER_PAGE);
   const page =
     lotPage.slug === current?.slug
@@ -490,7 +549,10 @@ export function StarMap({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3"
+          onScroll={() => setTip(null)}
+        >
           <section className="px-4 pt-3">
             <h3 className="mb-2 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
               {t("yourItems")}
@@ -516,55 +578,79 @@ export function StarMap({
                   ? t("noItemsHere", { place: current.name })
                   : t("noItems")}
               </p>
-            ) : compact ? (
-              <div className="grid gap-px">
-                {pageRows.map(({ place, list }) => (
-                  <button
-                    key={place.slug}
-                    type="button"
-                    onClick={() => setFocus(place.slug)}
-                    className="-mx-2 flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13.5px] hover:bg-[#9ED0FF]/10"
-                  >
-                    <Marker place={place} />
-                    <span className="min-w-0 flex-1 truncate">
-                      {place.name}
-                    </span>
-                    <span className="truncate font-mono text-[11.5px] text-[#5c7b96]">
-                      {get(place.parentSlug)?.name}
-                    </span>
-                    <Chip count={list.length} />
-                  </button>
-                ))}
-              </div>
             ) : (
-              pageRows.map(({ place, lot }, index) => (
-                <div key={lot!.id}>
-                  {/* Le lieu, au premier de ses lots sur la page. */}
-                  {place.slug !== current?.slug &&
-                    pageRows[index - 1]?.place !== place && (
-                      <button
-                        type="button"
-                        onClick={() => setFocus(place.slug)}
-                        className="mt-2 mb-1 flex items-center gap-1.5 text-xs font-medium hover:underline"
-                      >
-                        <Marker place={place} />
-                        {place.name}
-                      </button>
-                    )}
-                  <div className="mb-1 grid grid-cols-[1fr_auto] gap-x-2.5 rounded-lg border border-[#ffc76a]/20 bg-[#ffc76a]/[0.07] px-2.5 py-1.5">
-                    <span className="min-w-0 text-[13.5px]">{lot!.name}</span>
-                    <span className="text-right font-mono text-[12.5px] tabular-nums">
-                      {format.number(lot!.quantity)}
-                      {lot!.unit ? ` ${lot!.unit}` : ""}
-                    </span>
-                    {lot!.quality !== undefined && (
-                      <span className="col-span-2 font-mono text-[11px] text-[#5c7b96]">
-                        {t("quality", { quality: lot!.quality })}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
+              <div className="grid">
+                {pageRows.map((group, index) =>
+                  group.best !== undefined ? (
+                    <div
+                      key={group.key}
+                      className="grid gap-1.5 border-b border-[#9ED0FF]/10 py-2"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="min-w-0 truncate text-[13.5px] font-medium">
+                          {group.name}
+                        </span>
+                        <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
+                          {format.number(group.total)}
+                          {group.unit ? ` ${group.unit}` : ""}
+                          <span className="text-[#5c7b96]">
+                            {" · "}
+                            {t("bestQuality", { quality: group.best })}
+                          </span>
+                        </span>
+                      </div>
+                      {/* La qualité de 0 à 1000 ; un trait par lot, plus épais quand il pèse plus. */}
+                      <div className="relative h-2.5 rounded-[3px] bg-[#9ED0FF]/[0.08]">
+                        {group.lots.map(({ lot, place }) => {
+                          const width =
+                            2 + 8 * Math.sqrt(lot.quantity / biggestLot);
+                          return (
+                            <span
+                              key={lot.id}
+                              tabIndex={0}
+                              aria-label={`${format.number(lot.quantity)}${lot.unit ? ` ${lot.unit}` : ""}, ${t("quality", { quality: lot.quality ?? 0 })}`}
+                              onPointerEnter={(event) =>
+                                showTip(event.currentTarget, lot, place)
+                              }
+                              onFocus={(event) =>
+                                showTip(event.currentTarget, lot, place)
+                              }
+                              onPointerLeave={() => setTip(null)}
+                              onBlur={() => setTip(null)}
+                              className="absolute inset-y-0 cursor-default rounded-[2px] bg-[#ffc76a]/85 outline-none hover:bg-white focus-visible:bg-white"
+                              style={{
+                                left: `calc(${(lot.quality ?? 0) / 10}% - ${width / 2}px)`,
+                                width,
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={group.key}>
+                      {/* L'équipement n'a pas de qualité : une liste simple. */}
+                      {pageRows[index - 1]?.best !== undefined && (
+                        <h4 className="mt-3 mb-1 text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
+                          {t("equipment")}
+                        </h4>
+                      )}
+                      <div className="flex items-baseline justify-between gap-2 py-1 text-[13.5px]">
+                        <span className="min-w-0 truncate">{group.name}</span>
+                        <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
+                          × {format.number(group.total)}
+                          {group.unit ? ` ${group.unit}` : ""}
+                        </span>
+                      </div>
+                    </div>
+                  ),
+                )}
+                {pageRows.some((group) => group.best !== undefined) && (
+                  <p className="mt-1.5 font-mono text-[10.5px] text-[#5c7b96]">
+                    {t("qualityLegend")}
+                  </p>
+                )}
+              </div>
             )}
             {inventory && lotCount > 0 && (
               <Pager page={page} pages={pages} onPage={setPage} />
@@ -696,6 +782,23 @@ export function StarMap({
         </div>
         <p className="text-[11.5px] text-[#5c7b96]">{t("legend.hint")}</p>
       </div>
+      {tip &&
+        createPortal(
+          <div
+            role="tooltip"
+            className="pointer-events-none fixed z-50 -translate-y-full rounded-md border border-[#ffc76a]/40 bg-[#061a2b] px-2 py-1 font-mono text-[11.5px] whitespace-nowrap text-[#c9e4ff] shadow-lg"
+            // Près du bord droit de l'écran, l'infobulle s'aligne à droite du
+            // trait plutôt que de déborder.
+            style={
+              tip.x > window.innerWidth - 180
+                ? { right: window.innerWidth - tip.x - 8, top: tip.y - 6 }
+                : { left: tip.x, top: tip.y - 6, translate: "-50% -100%" }
+            }
+          >
+            {tip.text}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

@@ -4188,6 +4188,9 @@
     "seeSystem": "Voir le système sur la starmap"
   },
   "StarMap": {
+    "bestQuality": "max {quality}",
+    "equipment": "Équipement",
+    "qualityLegend": "Un trait par lot · position : sa qualité (0 – 1000) · épaisseur : sa quantité",
     "pager": {
       "label": "Pages de vos objets",
       "previous": "Précédent",

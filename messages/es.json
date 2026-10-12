@@ -4150,6 +4150,9 @@
     "seeSystem": "Ver el sistema en el mapa estelar"
   },
   "StarMap": {
+    "bestQuality": "máx. {quality}",
+    "equipment": "Equipo",
+    "qualityLegend": "Una marca por lote · posición: su calidad (0 – 1000) · grosor: su cantidad",
     "pager": {
       "label": "Páginas de tus objetos",
       "previous": "Anterior",
