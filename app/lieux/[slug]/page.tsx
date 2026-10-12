@@ -29,6 +29,8 @@ import { getPlaceLore } from "@/lib/lore";
 import { PlaceLoreSection } from "@/app/lore/place-lore";
 import { recordView } from "@/lib/page-views";
 import { ConfirmBlock } from "@/components/confirm-block";
+import { getPrivatePlace } from "@/lib/private-places";
+import { PrivatePlaceView } from "../prives/private-place-view";
 import {
   PlaceBreadcrumb,
   PlaceEmpty,
@@ -49,7 +51,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const place = await getPlaceDetails(slug);
 
-  if (!place) return { title: "Lieu introuvable" };
+  // Un lieu privé n'a rien à dire aux moteurs ni aux aperçus de lien.
+  if (!place) {
+    return { title: "Lieu introuvable", robots: { index: false } };
+  }
 
   const description =
     place.description?.slice(0, 160) ??
@@ -81,6 +86,12 @@ export default async function PlacePage({
   const place = await getPlaceDetails(slug);
 
   if (!place) {
+    // Un lieu privé a sa fiche à la même adresse, pour qui le voit seulement.
+    const session = await auth.api.getSession({ headers: await headers() });
+    const own = session?.user
+      ? await getPrivatePlace(session.user.id, slug)
+      : null;
+    if (own) return <PrivatePlaceView place={own} userId={session!.user.id} />;
     return (
       <div className="m-2 mx-auto max-w-5xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
         <h1 className="text-2xl font-bold">{t("notFound")}</h1>

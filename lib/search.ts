@@ -522,6 +522,8 @@ async function searchPlaces({
         { systemName: matcher },
         { bodyName: matcher },
       ],
+      // Les lieux privés ne se cherchent que dans « Lieux » et l'inventaire.
+      privacy: { $exists: false },
     })
     .project({
       name: 1,

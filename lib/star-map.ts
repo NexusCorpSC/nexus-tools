@@ -2,6 +2,7 @@ import "server-only";
 
 import { ObjectId } from "bson";
 import db from "@/lib/db";
+import { listPrivatePlaces } from "@/lib/private-places";
 import { STAR_MAP_SYSTEMS, type StarMapPlace } from "@/lib/star-map-layout";
 import type { CelestialBody, Place, PlacePosition } from "@/types/places";
 
@@ -39,6 +40,7 @@ export async function getStarMapPlaces(): Promise<StarMapPlace[]> {
     .find(
       {
         $or: [{ slug: { $in: systems } }, { systemSlug: { $in: systems } }],
+        privacy: { $exists: false },
       },
       {
         projection: {
@@ -74,6 +76,35 @@ export async function getStarMapPlaces(): Promise<StarMapPlace[]> {
 }
 
 /**
+ * Les lieux privés qu'un joueur voit dans les trois systèmes : les siens et
+ * ceux de ses organisations. Comme les autres, un lieu sans position se liste
+ * sous son parent sans se dessiner.
+ */
+export async function getStarMapPrivatePlaces(
+  userId: string,
+): Promise<StarMapPlace[]> {
+  const systems = new Set<string>(STAR_MAP_SYSTEMS);
+  const found = await listPrivatePlaces(userId);
+  return found
+    .filter((place) => place.systemSlug && systems.has(place.systemSlug))
+    .map((place) => {
+      const result: StarMapPlace = {
+        slug: place.slug,
+        name: place.name,
+        type: place.type,
+        parentSlug: place.parentSlug,
+        private: place.org ? { org: place.org.name } : {},
+      };
+      if (place.position) {
+        const { body, x, y, z } = place.position;
+        result.at = { x, y, z };
+        if (body) result.at.body = body;
+      }
+      return result;
+    });
+}
+
+/**
  * L'inventaire d'un joueur, rangé par lieu du catalogue. Un lot dans un lieu
  * qu'il a nommé lui-même (« mon hangar ») n'a pas de place sur la carte : il
  * est seulement compté.
@@ -106,14 +137,21 @@ export async function getStarMapInventory(
     .db()
     .collection("locations")
     .find(
-      { _id: { $in: locationIds }, placeSlug: { $exists: true } },
-      { projection: { placeSlug: 1 } },
+      {
+        _id: { $in: locationIds },
+        $or: [
+          { placeSlug: { $exists: true } },
+          { privatePlaceSlug: { $exists: true } },
+        ],
+      },
+      { projection: { placeSlug: 1, privatePlaceSlug: 1 } },
     )
     .toArray();
+  // Un lieu privé se range sous son slug, comme un lieu du catalogue.
   const placeOf = new Map(
     locations.map((location) => [
       String(location._id),
-      location.placeSlug as string,
+      (location.placeSlug ?? location.privatePlaceSlug) as string,
     ]),
   );
 

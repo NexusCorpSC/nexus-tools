@@ -52,7 +52,9 @@ export const completeItemSlug = (value: string) =>
   completeField("gameItems", "slug", value);
 
 export const completePlaceSlug = (value: string) =>
-  completeField("gameLocations", "slug", value);
+  completeField("gameLocations", "slug", value, {
+    privacy: { $exists: false },
+  });
 
 export const completeBlueprintSlug = (value: string) =>
   completeField("blueprints", "slug", value);

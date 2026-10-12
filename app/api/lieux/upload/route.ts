@@ -46,6 +46,22 @@ const SHARED_COVER =
 const MEDIA =
   /^lieux\/([a-z0-9-]{1,120})\/media\/[A-Za-z0-9_-]{1,60}\.(?:jpe?g|png|webp)$/i;
 
+/** L'image d'un lieu privé, à part des galeries publiques (`lib/private-places.ts`). */
+const PRIVATE_IMAGE = /^prives\/[A-Za-z0-9_-]{1,60}\.(?:jpe?g|png|webp)$/i;
+
+/** Compte un envoi, refusé au-delà du plafond horaire. */
+async function grantUpload(userId: ObjectId) {
+  const now = new Date();
+  const recent = await uploadGrants().countDocuments({
+    userId,
+    at: { $gte: new Date(now.getTime() - HOUR_MS) },
+  });
+  if (recent >= UPLOADS_PER_HOUR) {
+    throw new Error("Too many uploads, try again later.");
+  }
+  await uploadGrants().insertOne({ userId, at: now });
+}
+
 /**
  * Le chemin dans le blob est une fonction du slug et de l'identifiant du plan,
  * sans suffixe aléatoire : renvoyer une image la remplace en place. Supprimer
@@ -60,6 +76,22 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
+        // L'image d'un lieu privé : tout joueur connecté, sans relecture ni
+        // galerie, au même rythme que les autres envois.
+        if (PRIVATE_IMAGE.test(pathname)) {
+          const session = await auth.api.getSession({
+            headers: await headers(),
+          });
+          if (!session?.user) throw new Error("Unauthorized");
+          await grantUpload(new ObjectId(session.user.id));
+          return {
+            allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
+            maximumSizeInBytes: 12_000_000,
+            addRandomSuffix: true,
+            allowOverwrite: false,
+          };
+        }
+
         const media = MEDIA.exec(pathname);
         const plan = PLAN.exec(pathname);
         const editor = await hasPermission(PLACES_EDIT_PERMISSION);
@@ -93,15 +125,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           ) {
             throw new Error("Too many pending contributions.");
           }
-          const now = new Date();
-          const recent = await uploadGrants().countDocuments({
-            userId,
-            at: { $gte: new Date(now.getTime() - HOUR_MS) },
-          });
-          if (recent >= UPLOADS_PER_HOUR) {
-            throw new Error("Too many uploads, try again later.");
-          }
-          await uploadGrants().insertOne({ userId, at: now });
+          await grantUpload(userId);
 
           return {
             allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],

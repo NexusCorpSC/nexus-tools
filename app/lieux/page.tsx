@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { hasPermission } from "@/lib/permissions";
-import { POINTS } from "@/types/contributions";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
 import { PlacesBrowser } from "./components";
 
@@ -31,6 +30,7 @@ export const metadata: Metadata = {
 
 export default async function PlacesPage() {
   const t = await getTranslations("Places");
+  const tPrivate = await getTranslations("PrivatePlaces");
   const canEdit = await hasPermission(PLACES_EDIT_PERMISSION);
 
   return (
@@ -52,24 +52,25 @@ export default async function PlacesPage() {
           <h1 className="mb-1 text-2xl font-bold">{t("title")}</h1>
           <p className="text-nexus">{t("header")}</p>
         </div>
-        {canEdit ? (
-          <Button asChild size="sm">
-            <Link href="/admin/lieux/new">
-              <PlusIcon className="mr-1.5 size-4" />
-              {t("Admin.newPlaceButton")}
-            </Link>
-          </Button>
-        ) : (
+        <div className="flex flex-wrap justify-end gap-2">
+          {canEdit && (
+            <Button asChild size="sm">
+              <Link href="/admin/lieux/new">
+                <PlusIcon className="mr-1.5 size-4" />
+                {t("Admin.newPlaceButton")}
+              </Link>
+            </Button>
+          )}
+          {/* Public (une contribution) ou privé : le formulaire le demande. */}
           <Button asChild size="sm" variant="outline">
-            <Link href="/lieux/proposer">
+            <Link
+              href={canEdit ? "/lieux/proposer?prive=1" : "/lieux/proposer"}
+            >
               <PlusIcon className="mr-1.5 size-4" />
-              {t("proposePlace")}
-              <span className="ml-1.5 font-mono text-[11px] font-bold text-amber-200">
-                +{POINTS.placeCreate}
-              </span>
+              {canEdit ? tPrivate("addPrivateButton") : tPrivate("addTitle")}
             </Link>
           </Button>
-        )}
+        </div>
       </div>
 
       <Suspense>

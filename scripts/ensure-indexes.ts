@@ -373,6 +373,38 @@ async function ensureGameLocations(database: Db) {
       partialFilterExpression: { "source.id": { $exists: true } },
     },
   );
+  // Les lieux privés : ceux d'un joueur (sa liste, la limite par compte) et
+  // ceux de ses organisations. Partiels, pour ne pas peser sur le catalogue.
+  await places.createIndex(
+    { "privacy.ownerId": 1, name: 1 },
+    {
+      name: "gameLocations_private_owner",
+      partialFilterExpression: { privacy: { $exists: true } },
+    },
+  );
+  await places.createIndex(
+    { "privacy.orgId": 1, name: 1 },
+    {
+      name: "gameLocations_private_org",
+      partialFilterExpression: { "privacy.orgId": { $exists: true } },
+    },
+  );
+  // Une contribution publiée retrouve le lieu privé qui l'a proposée.
+  await places.createIndex(
+    { "privacy.proposalId": 1 },
+    {
+      name: "gameLocations_private_proposal",
+      partialFilterExpression: { "privacy.proposalId": { $exists: true } },
+    },
+  );
+  // L'emplacement d'inventaire d'un lieu privé, que chaque lecture d'un
+  // inventaire visible résout.
+  await database
+    .collection("locations")
+    .createIndex(
+      { privatePlaceSlug: 1 },
+      { name: "locations_private_place", sparse: true },
+    );
 }
 
 // ─── Vaisseaux de cargo ───────────────────────────────────────────────────────

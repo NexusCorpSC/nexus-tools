@@ -243,7 +243,10 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   const report: Report = { found: 0, vector: 0, missing: 0, failed: 0 };
 
-  const filter = options.force ? {} : { imageUrl: { $exists: false } };
+  const filter = {
+    privacy: { $exists: false },
+    ...(options.force ? {} : { imageUrl: { $exists: false } }),
+  };
   let places = (await db
     .db()
     .collection<Place>("gameLocations")

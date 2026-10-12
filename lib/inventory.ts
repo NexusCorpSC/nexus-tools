@@ -3,6 +3,7 @@ import { ObjectId } from "bson";
 import { reservedQuantities } from "@/lib/parcels";
 import { getLotSales } from "@/lib/lot-sales";
 import { roundQty } from "@/lib/utils";
+import { sharedPrivatePlaceSlugs } from "@/lib/private-places";
 
 export type InventoryFilters = {
   query?: string;
@@ -17,6 +18,8 @@ export type InventoryLocation = {
   system?: string;
   userId?: string;
   placeSlug?: string;
+  /** Un lieu privé (`lib/private-places.ts`), le sien ou celui d'une de ses orgas. */
+  privatePlaceSlug?: string;
 };
 
 const items = () => db.db().collection("inventoryItems");
@@ -99,6 +102,9 @@ export async function listInventory(
           slug: item.location.slug as string | undefined,
           system: item.location.system as string | undefined,
           userId: item.location.userId as string | undefined,
+          privatePlaceSlug: item.location.privatePlaceSlug as
+            | string
+            | undefined,
         }
       : null,
   }));
@@ -114,31 +120,56 @@ function toLocation(doc: Record<string, unknown> & { _id: unknown }) {
     system: doc.system as string | undefined,
     userId: doc.userId as string | undefined,
     placeSlug: doc.placeSlug as string | undefined,
+    privatePlaceSlug: doc.privatePlaceSlug as string | undefined,
   } satisfies InventoryLocation;
 }
 
 /**
- * Les lieux où un joueur peut ranger un lot : ceux de tout le monde (le
- * catalogue d'abord) et les siens. Même ordre que le champ du site.
+ * Les lignes de `locations` qu'un joueur peut choisir : celles de tout le
+ * monde (le catalogue), les siennes (ses emplacements et ses lieux privés), et
+ * les lieux privés que ses organisations voient.
+ */
+export async function visibleLocationsFilter(
+  userId: string,
+): Promise<Record<string, unknown>> {
+  const shared = await sharedPrivatePlaceSlugs(userId);
+  return {
+    $or: [
+      { userId: { $exists: false } },
+      { userId },
+      ...(shared.length > 0 ? [{ privatePlaceSlug: { $in: shared } }] : []),
+    ],
+  };
+}
+
+/**
+ * Les lieux où un joueur peut ranger un lot : le catalogue d'abord, puis les
+ * lieux privés (les siens et ceux de ses organisations), puis les
+ * emplacements qu'il a nommés. Même ordre que le champ du site et de l'app.
  */
 export async function searchInventoryLocations(
   userId: string,
   query = "",
   limit = 50,
 ): Promise<InventoryLocation[]> {
-  const matchStage: Record<string, unknown> = {
-    $or: [{ userId: { $exists: false } }, { userId }],
-  };
+  const matchStage: Record<string, unknown> =
+    await visibleLocationsFilter(userId);
   if (query) matchStage.name = { $regex: escapeRegex(query), $options: "i" };
   const docs = await locations()
     .aggregate([
       { $match: matchStage },
       {
         $addFields: {
-          fromCatalogue: { $cond: [{ $ifNull: ["$placeSlug", false] }, 1, 0] },
+          group: {
+            $cond: [
+              { $ifNull: ["$placeSlug", false] },
+              2,
+              { $cond: [{ $ifNull: ["$privatePlaceSlug", false] }, 1, 0] },
+            ],
+          },
         },
       },
-      { $sort: { fromCatalogue: -1, name: 1 } },
+      { $sort: { group: -1, name: 1 } },
       { $limit: limit },
     ])
     .toArray();
@@ -158,7 +189,7 @@ export async function resolveInventoryLocation(
   | { location: null; candidates: InventoryLocation[] }
 > {
   const text = reference.trim();
-  const visible = { $or: [{ userId: { $exists: false } }, { userId }] };
+  const visible = await visibleLocationsFilter(userId);
   if (ObjectId.isValid(text)) {
     const doc = await locations().findOne({
       _id: new ObjectId(text),
@@ -173,6 +204,7 @@ export async function resolveInventoryLocation(
         {
           $or: [
             { placeSlug: text },
+            { privatePlaceSlug: text },
             { slug: text },
             { name: { $regex: `^${escapeRegex(text)}$`, $options: "i" } },
           ],

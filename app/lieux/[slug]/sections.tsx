@@ -170,7 +170,8 @@ export async function PlacePositionSection({
 }: {
   slug: string;
   position?: PlacePosition;
-  editHref: string;
+  /** Absent : qui lit ne peut pas la changer (le membre d'une orga, sur un lieu privé). */
+  editHref?: string;
 }) {
   const t = await getTranslations("Places.Position");
   const locale = await getLocale();
@@ -188,9 +189,11 @@ export async function PlacePositionSection({
     <div id={`coordonnees-${slug}`}>
       <SectionTitle
         aside={
-          <Link href={editHref} className="text-primary hover:underline">
-            {position ? t("sectionEdit") : t("sectionAdd")}
-          </Link>
+          editHref && (
+            <Link href={editHref} className="text-primary hover:underline">
+              {position ? t("sectionEdit") : t("sectionAdd")}
+            </Link>
+          )
         }
       >
         {t("sectionTitle")}

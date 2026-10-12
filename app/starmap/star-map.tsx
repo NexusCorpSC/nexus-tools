@@ -8,6 +8,7 @@ import { useUrlFilters } from "@/lib/list-url";
 import {
   BODY_TYPES,
   MARKER_COLOR,
+  PRIVATE_MARKER_COLOR,
   STAR_MAP_SYSTEMS,
   SYSTEM_LOOK,
   isStarMapSystem,
@@ -96,13 +97,19 @@ function Pager({
 }
 
 function Marker({ place }: { place: LaidOutPlace }) {
-  const color = isStarMapSystem(place.slug)
-    ? SYSTEM_LOOK[place.slug].color
-    : (MARKER_COLOR[place.type] ?? MARKER_COLOR.planet);
+  const color = place.private
+    ? PRIVATE_MARKER_COLOR
+    : isStarMapSystem(place.slug)
+      ? SYSTEM_LOOK[place.slug].color
+      : (MARKER_COLOR[place.type] ?? MARKER_COLOR.planet);
   return (
     <i
       aria-hidden
-      className={`star-map-marker ${markerShape(place.type)}`}
+      className={
+        place.private
+          ? "star-map-marker private"
+          : `star-map-marker ${markerShape(place.type)}`
+      }
       style={{ "--c": color } as React.CSSProperties}
     />
   );
@@ -129,7 +136,19 @@ export function StarMap({
   const t = useTranslations("StarMap");
   const tPlaces = useTranslations("Places");
   const format = useFormatter();
-  const places = useMemo(() => layoutStarMap(input), [input]);
+  // Ses lieux privés, que l'on peut masquer : la carte se refait sans eux.
+  const hasPrivate = useMemo(
+    () => input.some((place) => place.private),
+    [input],
+  );
+  const [showPrivate, setShowPrivate] = useState(true);
+  const places = useMemo(
+    () =>
+      layoutStarMap(
+        showPrivate ? input : input.filter((place) => !place.private),
+      ),
+    [input, showPrivate],
+  );
   const [focus, setFocus] = useState<string | null>(
     initialPlace && places.has(initialPlace) ? initialPlace : null,
   );
@@ -479,6 +498,20 @@ export function StarMap({
             />
             {t("showOutposts")}
           </label>
+          {hasPrivate && (
+            <label className="flex cursor-pointer items-center gap-2 text-[12.5px] text-[#c4b2ff]">
+              <input
+                type="checkbox"
+                checked={showPrivate}
+                onChange={(event) => {
+                  setShowPrivate(event.target.checked);
+                  if (!event.target.checked && current?.private) setFocus(null);
+                }}
+                className="size-3.5 accent-[#c4b2ff]"
+              />
+              {t("showPrivate")}
+            </label>
+          )}
         </div>
       </div>
 
@@ -517,6 +550,13 @@ export function StarMap({
                 </div>
               ))}
             </dl>
+          )}
+          {current?.private && (
+            <p className="w-fit rounded-full border border-[#c4b2ff]/45 px-2 py-0.5 text-[11.5px] font-semibold text-[#c4b2ff]">
+              {current.private.org
+                ? t("privateShared", { org: current.private.org })
+                : t("privateOwn")}
+            </p>
           )}
           {current?.approx && (
             <p className="text-xs text-[#86a9c8]">{t("approx")}</p>
@@ -775,6 +815,15 @@ export function StarMap({
             />
             {t("legend.outposts")}
           </span>
+          {hasPrivate && (
+            <span className="inline-flex items-center gap-1.5 text-[#c4b2ff]">
+              <i
+                className="star-map-marker private"
+                style={{ "--c": PRIVATE_MARKER_COLOR } as React.CSSProperties}
+              />
+              {t("legend.private")}
+            </span>
+          )}
           <span className="inline-flex items-center gap-1.5">
             <Chip count={3} />
             {t("legend.items")}

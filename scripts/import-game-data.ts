@@ -593,7 +593,7 @@ async function planLoreImport(options: Options, stats: WikiStats) {
   const places = await database
     .collection<PlaceRef>("gameLocations")
     .find(
-      {},
+      { privacy: { $exists: false } },
       {
         projection: {
           _id: 0,

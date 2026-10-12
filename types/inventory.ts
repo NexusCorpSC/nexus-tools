@@ -12,6 +12,12 @@ export type Location = {
      * depuis l'origine et écrits par rien.
      */
     placeSlug?: string;
+    /**
+     * Le lieu privé dont cette ligne est l'emplacement (`lib/private-places.ts`) :
+     * `userId` est alors son créateur, et la ligne se partage avec son
+     * organisation.
+     */
+    privatePlaceSlug?: string;
 };
 
 export type InventoryItem = {

@@ -106,3 +106,18 @@ export async function currentUser(ctx: ServerContext): Promise<McpUser> {
     throw new Error("This Nexus account is not available.");
   return { id: userId, name: String(user.name ?? "") };
 }
+
+/**
+ * Le joueur connecté qui a accordé `scope`, sinon `null`, sans erreur : un
+ * outil public y ajoute ce qui lui est propre (ses lieux privés) quand il le
+ * peut, et reste anonyme sinon.
+ */
+export function optionalUserId(
+  ctx: ServerContext,
+  scope: McpScope | OidcScope,
+): string | null {
+  const info = ctx.http?.authInfo;
+  const userId = info?.extra?.userId;
+  if (typeof userId !== "string" || !ObjectId.isValid(userId)) return null;
+  return info?.scopes.includes(scope) ? userId : null;
+}

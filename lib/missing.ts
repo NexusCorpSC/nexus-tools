@@ -67,6 +67,7 @@ const SOURCES: Record<MissingKind, Source> = {
         imageUrl: { $in: [null, ""] },
         slug: { $nin: pictured },
         type: { $nin: ["star"] },
+        privacy: { $exists: false },
       };
     },
     projection: { slug: 1, name: 1, parentName: 1, systemName: 1 },
@@ -86,6 +87,7 @@ const SOURCES: Record<MissingKind, Source> = {
     filter: async () => ({
       type: { $in: PLANNED_TYPES },
       planCount: { $in: [0, null] },
+      privacy: { $exists: false },
     }),
     projection: { slug: 1, name: 1, parentName: 1, systemName: 1 },
     toEntry: (doc) => ({

@@ -135,6 +135,8 @@ async function main() {
           { systemSlug: { $in: [...STAR_MAP_SYSTEMS] } },
           { systemSlug: { $exists: false } },
         ],
+        // Un lieu privé garde la position que son créateur a relevée.
+        privacy: { $exists: false },
       },
       {
         projection: {

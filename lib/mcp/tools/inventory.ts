@@ -48,6 +48,10 @@ const locationSchema = z.object({
   name: z.string(),
   system: z.string().optional(),
   placeSlug: z.string().optional(),
+  privatePlaceSlug: z
+    .string()
+    .optional()
+    .describe("Set when the location is one of the user's private places"),
   personal: z.boolean(),
 });
 
@@ -73,7 +77,9 @@ function toLocation(location: InventoryLocation) {
     name: location.name,
     system: location.system,
     placeSlug: location.placeSlug,
-    personal: !!location.userId,
+    privatePlaceSlug: location.privatePlaceSlug,
+    // Un lieu privé a un propriétaire mais n'est pas un emplacement nommé.
+    personal: !!location.userId && !location.privatePlaceSlug,
   };
 }
 
@@ -210,7 +216,7 @@ export function registerInventoryTools(server: McpServer) {
           ? locations
               .map(
                 (l) =>
-                  `- ${l.name} (id: ${l.id})${l.system ? ` — ${l.system}` : ""}${l.personal ? " — personal" : ""}`,
+                  `- ${l.name} (id: ${l.id})${l.system ? ` — ${l.system}` : ""}${l.personal ? " — personal" : ""}${l.privatePlaceSlug ? " — private place" : ""}`,
               )
               .join("\n")
           : "No location matches.",
