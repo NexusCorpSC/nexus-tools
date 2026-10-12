@@ -21,30 +21,19 @@
  * patch déplace un corps ou recale sa rotation.
  */
 
-import { readFileSync } from "node:fs";
 import db from "@/lib/db";
+import {
+  bodyKey,
+  loadStarmapSpace,
+  OC_URL,
+  type Container,
+} from "@/lib/starmap-space";
 import type { CelestialBody, Place } from "@/types/places";
-
-const OC_URL = "https://starmap.space/api/v3/oc/index.php";
 
 /** Le rayon de la zone où le repère du corps tourne avec lui. */
 const ZONE_PER_ORBITAL_MARKER = 3;
 
 type Options = { dryRun: boolean; file?: string };
-
-/** Une entrée de `api/v3/oc`, réduite à ce qui sert ici. */
-type Container = {
-  System: string;
-  ObjectContainer: string;
-  Type: string;
-  XCoord: number | string;
-  YCoord: number | string;
-  ZCoord: number | string;
-  RotationSpeedX: number | string;
-  RotationAdjustmentX: number | string;
-  BodyRadius: number | string;
-  OrbitalMarkerRadius: number | string;
-};
 
 function parseArgs(argv: string[]): Options {
   const options: Options = { dryRun: false };
@@ -60,46 +49,8 @@ function parseArgs(argv: string[]): Options {
   return options;
 }
 
-async function loadContainers(options: Options): Promise<Container[]> {
-  if (options.file) {
-    return JSON.parse(readFileSync(options.file, "utf8")) as Container[];
-  }
-  const response = await fetch(OC_URL, {
-    headers: { "User-Agent": "nexus-tools (import:celestial-bodies)" },
-  });
-  if (!response.ok) {
-    throw new Error(`${OC_URL} : HTTP ${response.status}`);
-  }
-  return (await response.json()) as Container[];
-}
-
-const ROMAN: Record<string, number> = { i: 1, v: 5, x: 10 };
-
-function fromRoman(word: string): number | null {
-  if (!/^[ivx]+$/.test(word)) return null;
-  let total = 0;
-  for (let index = 0; index < word.length; index++) {
-    const value = ROMAN[word[index]];
-    const next = ROMAN[word[index + 1]] ?? 0;
-    total += value < next ? -value : value;
-  }
-  return total;
-}
-
-/** « Pyro V », « pyro 5 » et « Pyro5 » donnent tous « pyro5 ». */
-function bodyKey(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean)
-    .map((word) => fromRoman(word)?.toString() ?? word)
-    .join("");
-}
-
 function toCelestial(container: Container): CelestialBody | null {
-  const number = (value: number | string) => Number(value);
+  const number = (value: number | string | null) => Number(value);
   const celestial = {
     x: number(container.XCoord),
     y: number(container.YCoord),
@@ -119,9 +70,9 @@ function toCelestial(container: Container): CelestialBody | null {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const containers = (await loadContainers(options)).filter(
-    (container) => container.Type === "Planet",
-  );
+  const containers = (
+    await loadStarmapSpace<Container>(OC_URL, options.file)
+  ).filter((container) => container.Type === "Planet");
 
   const places = db.db().collection<Place>("gameLocations");
   const candidates = await places

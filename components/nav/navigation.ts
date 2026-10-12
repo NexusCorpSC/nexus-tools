@@ -14,6 +14,7 @@ import {
   Hammer,
   MapPin,
   NotebookPen,
+  Orbit,
   Package,
   Receipt,
   Rocket,
@@ -60,6 +61,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     items: [
       { id: "items", href: "/items", icon: Package },
       { id: "places", href: "/lieux", icon: MapPin },
+      { id: "starmap", href: "/starmap", icon: Orbit },
       { id: "missions", href: "/missions", icon: Rocket },
       { id: "factions", href: "/missions/factions", icon: Flag },
       { id: "lore", href: "/lore", icon: BookOpen },

@@ -1,0 +1,102 @@
+/* Les étiquettes de la Star Map, que la scène crée et place elle-même. */
+
+.star-map-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 4px 2px 0;
+  border-radius: 4px;
+  white-space: nowrap;
+  will-change: transform;
+  font-size: 12.5px;
+  color: #c9e4ff;
+  text-shadow:
+    0 1px 3px #000,
+    0 0 8px #000;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity 0.25s;
+}
+.star-map-label.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.star-map-label:hover .star-map-text,
+.star-map-label:focus-visible .star-map-text {
+  color: #fff;
+}
+.star-map-label:focus-visible {
+  outline: 1px solid #9ed0ff;
+}
+.star-map-label.major {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.star-map-label.system {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.star-map-label.minor {
+  font-size: 11px;
+  color: #86a9c8;
+}
+.star-map-label.minor .star-map-text {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.star-map-label.minor:hover .star-map-text,
+.star-map-label.minor:focus-visible .star-map-text {
+  opacity: 1;
+}
+.star-map-label .star-map-marker {
+  margin-left: -4.5px;
+}
+
+.star-map-marker {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--c, #9ed0ff);
+  box-shadow: 0 0 8px var(--c, #9ed0ff);
+}
+.star-map-marker.station {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+.star-map-marker.city {
+  border-radius: 2px;
+}
+.star-map-marker.outpost {
+  width: 6px;
+  height: 6px;
+  box-shadow: none;
+}
+
+.star-map-chip {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #2a1a00;
+  background: #ffc76a;
+  border-radius: 8px;
+  padding: 0 5px;
+  text-shadow: none;
+  box-shadow: 0 0 10px rgba(255, 199, 106, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-map-label,
+  .star-map-label.minor .star-map-text {
+    transition: none;
+  }
+}
