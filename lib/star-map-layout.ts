@@ -44,6 +44,34 @@ export const SYSTEM_LOOK: Record<
   },
 };
 
+/** La couleur d'un repère, par type de lieu. */
+export const MARKER_COLOR: Record<string, string> = {
+  star: "#c9e4ff",
+  planet: "#c9e4ff",
+  moon: "#a9c0d4",
+  station: "#9ed0ff",
+  city: "#7ff0d0",
+  spaceport: "#7ff0d0",
+  outpost: "#a4b8c8",
+  district: "#7ff0d0",
+  building: "#a4b8c8",
+  shop: "#ffc76a",
+};
+
+/** La forme du repère dans les étiquettes et les listes. */
+export function markerShape(type: string): string {
+  if (type === "station") return "station";
+  if (type === "city" || type === "spaceport") return "city";
+  if (
+    type === "outpost" ||
+    type === "building" ||
+    type === "shop" ||
+    type === "district"
+  )
+    return "outpost";
+  return "";
+}
+
 /** Les couloirs de saut tracés entre les systèmes. */
 export const STAR_MAP_LANES: [StarMapSystem, StarMapSystem][] = [
   ["stanton", "pyro"],

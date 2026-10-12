@@ -6,9 +6,11 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useUrlFilters } from "@/lib/list-url";
 import {
   BODY_TYPES,
+  MARKER_COLOR,
   STAR_MAP_SYSTEMS,
   SYSTEM_LOOK,
   isStarMapSystem,
+  markerShape,
   layoutStarMap,
   type LaidOutPlace,
   type StarMapPlace,
@@ -33,34 +35,14 @@ const GROUP_ORDER = [
 /** Au-delà, un groupe se replie derrière « Afficher les N autres ». */
 const GROUP_PREVIEW = 8;
 
-const MARKER_COLOR: Record<string, string> = {
-  planet: "#c9e4ff",
-  moon: "#a9c0d4",
-  station: "#9ed0ff",
-  city: "#7ff0d0",
-  spaceport: "#7ff0d0",
-  outpost: "#a4b8c8",
-  district: "#7ff0d0",
-  building: "#a4b8c8",
-  shop: "#ffc76a",
-};
-
 function Marker({ place }: { place: LaidOutPlace }) {
-  const shape =
-    place.type === "station"
-      ? "station"
-      : place.type === "city" || place.type === "spaceport"
-        ? "city"
-        : ["outpost", "building", "shop", "district"].includes(place.type)
-          ? "outpost"
-          : "";
   const color = isStarMapSystem(place.slug)
     ? SYSTEM_LOOK[place.slug].color
-    : (MARKER_COLOR[place.type] ?? "#c9e4ff");
+    : (MARKER_COLOR[place.type] ?? MARKER_COLOR.planet);
   return (
     <i
       aria-hidden
-      className={`star-map-marker ${shape}`}
+      className={`star-map-marker ${markerShape(place.type)}`}
       style={{ "--c": color } as React.CSSProperties}
     />
   );
