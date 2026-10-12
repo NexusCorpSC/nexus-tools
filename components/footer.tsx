@@ -40,7 +40,10 @@ export default function Footer() {
   const t = useTranslations("Footer");
 
   return (
-    <footer className="border-t border-[#9ED0FF]/15 bg-gray-900 backdrop-blur-md">
+    <footer
+      data-site-footer
+      className="border-t border-[#9ED0FF]/15 bg-gray-900 backdrop-blur-md"
+    >
       <div className="mx-auto max-w-7xl overflow-hidden px-6 py-20 sm:py-24 lg:px-8">
         <nav
           aria-label="Footer"

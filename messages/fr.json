@@ -4188,6 +4188,15 @@
     "seeSystem": "Voir le système sur la starmap"
   },
   "StarMap": {
+    "bestQuality": "max {quality}",
+    "equipment": "Équipement",
+    "qualityLegend": "Un trait par lot · position : sa qualité (0 – 1000) · épaisseur : sa quantité",
+    "pager": {
+      "label": "Pages de vos objets",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "page": "{page} / {pages}"
+    },
     "title": "Star Map",
     "trail": "Chemin",
     "verse": "Le 'Verse",
@@ -4236,7 +4245,7 @@
       "stations": "Station",
       "outposts": "Avant-poste",
       "items": "Vos objets",
-      "hint": "Cliquer pour zoomer · Glisser pour tourner · Molette pour s'approcher · Échap pour remonter"
+      "hint": "Cliquer pour zoomer · Glisser pour tourner · Clic droit pour déplacer · Molette pour zoomer · Échap pour remonter"
     }
   }
 }

@@ -4189,6 +4189,15 @@
     "seeSystem": "See the system on the starmap"
   },
   "StarMap": {
+    "bestQuality": "max {quality}",
+    "equipment": "Equipment",
+    "qualityLegend": "One mark per lot · position: its quality (0 – 1000) · thickness: its quantity",
+    "pager": {
+      "label": "Pages of your items",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "{page} / {pages}"
+    },
     "title": "Star Map",
     "trail": "Path",
     "verse": "The 'Verse",
@@ -4237,7 +4246,7 @@
       "stations": "Station",
       "outposts": "Outpost",
       "items": "Your items",
-      "hint": "Click to zoom · Drag to turn · Scroll to get closer · Esc to go up"
+      "hint": "Click to zoom · Drag to turn · Right-drag to move · Scroll to zoom · Esc to go up"
     }
   }
 }
