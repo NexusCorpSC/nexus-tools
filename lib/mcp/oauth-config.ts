@@ -31,6 +31,8 @@ export function oauthIssuer(): string {
 export const MCP_SCOPES = [
   "inventory:read",
   "inventory:write",
+  "refining:read",
+  "refining:write",
   "marketplace:read",
   "marketplace:write",
   "contributions:write",

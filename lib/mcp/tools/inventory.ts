@@ -113,8 +113,11 @@ function lotLine(lot: z.infer<typeof lotSchema>): string {
   return `- ${lot.name} (lot: ${lot.id}) — ${details.join(", ")}${lot.description ? ` — “${lot.description}”` : ""}`;
 }
 
-/** Le lieu désigné, ou la réponse d'erreur qui liste les lieux possibles. */
-async function locate(userId: string, reference: string) {
+/**
+ * Le lieu désigné, ou la réponse d'erreur qui liste les lieux possibles.
+ * Partagé avec les outils de raffinage, qui rangent dans l'inventaire.
+ */
+export async function locate(userId: string, reference: string) {
   const found = await resolveInventoryLocation(userId, reference);
   if (found.location) return { location: found.location };
   const options = found.candidates.map(

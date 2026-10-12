@@ -142,6 +142,41 @@ const CASES: Case[] = [
     auth: true,
     write: true,
   },
+  {
+    tool: "start_refining_job",
+    args: {
+      location: "Smoke Outpost",
+      method: "Dinyx Solventation",
+      lines: [
+        { name: "Smoke Ore", quality: 600, quantity: 350 },
+        { name: "Inert Materials", quantity: 40 },
+      ],
+      duration: "2h15m",
+      cost: 1200,
+    },
+    auth: true,
+    write: true,
+    save: (s) => ({ refining: (s.job as { id: string }).id }),
+  },
+  { tool: "list_refining_jobs", args: { status: "running" }, auth: true },
+  {
+    tool: "update_refining_job",
+    args: { jobId: "$refining", duration: 200, note: "fumée" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "collect_refining_job",
+    args: { jobId: "$refining" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "delete_refining_job",
+    args: { jobId: "$refining" },
+    auth: true,
+    write: true,
+  },
   { tool: "my_contributor_standing", args: {}, auth: true },
   {
     tool: "contribute_place_edit",
