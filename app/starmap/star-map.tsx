@@ -35,6 +35,51 @@ const GROUP_ORDER = [
 /** Au-delà, un groupe se replie derrière « Afficher les N autres ». */
 const GROUP_PREVIEW = 8;
 
+/** Lignes par page dans « Vos objets ici ». */
+const LOTS_PER_PAGE = 20;
+
+/** Précédent, la page, suivant. Rien quand tout tient sur une page. */
+function Pager({
+  page,
+  pages,
+  onPage,
+}: {
+  page: number;
+  pages: number;
+  onPage: (page: number) => void;
+}) {
+  const t = useTranslations("StarMap");
+  if (pages <= 1) return null;
+  const button =
+    "rounded-md border border-[#9ED0FF]/30 px-2 py-0.5 hover:bg-[#9ED0FF]/15 disabled:opacity-35 disabled:hover:bg-transparent";
+  return (
+    <nav
+      aria-label={t("pager.label")}
+      className="mt-2 flex items-center justify-between gap-2 text-xs"
+    >
+      <button
+        type="button"
+        className={button}
+        disabled={page === 0}
+        onClick={() => onPage(page - 1)}
+      >
+        {t("pager.previous")}
+      </button>
+      <span className="font-mono text-[11.5px] text-[#86a9c8] tabular-nums">
+        {t("pager.page", { page: page + 1, pages })}
+      </span>
+      <button
+        type="button"
+        className={button}
+        disabled={page >= pages - 1}
+        onClick={() => onPage(page + 1)}
+      >
+        {t("pager.next")}
+      </button>
+    </nav>
+  );
+}
+
 function Marker({ place }: { place: LaidOutPlace }) {
   const color = isStarMapSystem(place.slug)
     ? SYSTEM_LOOK[place.slug].color
@@ -75,6 +120,9 @@ export function StarMap({
   );
   const [outposts, setOutposts] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // La page de « Vos objets ici », pour le lieu regardé : en changer revient
+  // à la première.
+  const [lotPage, setLotPage] = useState({ slug: initialPlace, page: 0 });
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -235,6 +283,20 @@ export function StarMap({
   const compact =
     lots.length > 2 ||
     (lots.length === 2 && !(current && BODY_TYPES.has(current.type)));
+  // En liste de lieux, une ligne par lieu ; sinon une par lot.
+  const rows = compact
+    ? lots.map(([place, list]) => ({ place, list, lot: null }))
+    : lots.flatMap(([place, list]) =>
+        list.map((lot) => ({ place, list, lot })),
+      );
+  const pages = Math.ceil(rows.length / LOTS_PER_PAGE);
+  const page =
+    lotPage.slug === current?.slug
+      ? Math.max(0, Math.min(lotPage.page, pages - 1))
+      : 0;
+  const pageRows = rows.slice(page * LOTS_PER_PAGE, (page + 1) * LOTS_PER_PAGE);
+  const setPage = (next: number) =>
+    setLotPage({ slug: current?.slug, page: next });
 
   const facts: [string, string][] = [];
   if (current && isStarMapSystem(current.slug)) {
@@ -275,7 +337,7 @@ export function StarMap({
     : "#9ed0ff";
 
   return (
-    <div className="relative h-[calc(100dvh-4rem)] min-h-[520px] overflow-hidden bg-[#030912] text-[#c9e4ff]">
+    <div className="star-map-root relative h-[calc(100dvh-4rem-1px)] min-h-[520px] overflow-hidden overscroll-none bg-[#030912] text-[#c9e4ff]">
       <canvas
         ref={canvas}
         className="absolute inset-0 block size-full touch-none"
@@ -428,7 +490,7 @@ export function StarMap({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3">
           <section className="px-4 pt-3">
             <h3 className="mb-2 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
               {t("yourItems")}
@@ -456,7 +518,7 @@ export function StarMap({
               </p>
             ) : compact ? (
               <div className="grid gap-px">
-                {lots.map(([place, list]) => (
+                {pageRows.map(({ place, list }) => (
                   <button
                     key={place.slug}
                     type="button"
@@ -475,37 +537,37 @@ export function StarMap({
                 ))}
               </div>
             ) : (
-              lots.map(([place, list]) => (
-                <div key={place.slug}>
-                  {place.slug !== current?.slug && (
-                    <button
-                      type="button"
-                      onClick={() => setFocus(place.slug)}
-                      className="mt-2 mb-1 flex items-center gap-1.5 text-xs font-medium hover:underline"
-                    >
-                      <Marker place={place} />
-                      {place.name}
-                    </button>
-                  )}
-                  {list.map((lot) => (
-                    <div
-                      key={lot.id}
-                      className="mb-1 grid grid-cols-[1fr_auto] gap-x-2.5 rounded-lg border border-[#ffc76a]/20 bg-[#ffc76a]/[0.07] px-2.5 py-1.5"
-                    >
-                      <span className="min-w-0 text-[13.5px]">{lot.name}</span>
-                      <span className="text-right font-mono text-[12.5px] tabular-nums">
-                        {format.number(lot.quantity)}
-                        {lot.unit ? ` ${lot.unit}` : ""}
+              pageRows.map(({ place, lot }, index) => (
+                <div key={lot!.id}>
+                  {/* Le lieu, au premier de ses lots sur la page. */}
+                  {place.slug !== current?.slug &&
+                    pageRows[index - 1]?.place !== place && (
+                      <button
+                        type="button"
+                        onClick={() => setFocus(place.slug)}
+                        className="mt-2 mb-1 flex items-center gap-1.5 text-xs font-medium hover:underline"
+                      >
+                        <Marker place={place} />
+                        {place.name}
+                      </button>
+                    )}
+                  <div className="mb-1 grid grid-cols-[1fr_auto] gap-x-2.5 rounded-lg border border-[#ffc76a]/20 bg-[#ffc76a]/[0.07] px-2.5 py-1.5">
+                    <span className="min-w-0 text-[13.5px]">{lot!.name}</span>
+                    <span className="text-right font-mono text-[12.5px] tabular-nums">
+                      {format.number(lot!.quantity)}
+                      {lot!.unit ? ` ${lot!.unit}` : ""}
+                    </span>
+                    {lot!.quality !== undefined && (
+                      <span className="col-span-2 font-mono text-[11px] text-[#5c7b96]">
+                        {t("quality", { quality: lot!.quality })}
                       </span>
-                      {lot.quality !== undefined && (
-                        <span className="col-span-2 font-mono text-[11px] text-[#5c7b96]">
-                          {t("quality", { quality: lot.quality })}
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
               ))
+            )}
+            {inventory && lotCount > 0 && (
+              <Pager page={page} pages={pages} onPage={setPage} />
             )}
             {inventory && !current && offMap > 0 && (
               <p className="mt-2 text-xs text-[#5c7b96]">

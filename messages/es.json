@@ -4150,6 +4150,12 @@
     "seeSystem": "Ver el sistema en el mapa estelar"
   },
   "StarMap": {
+    "pager": {
+      "label": "Páginas de tus objetos",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "page": "{page} / {pages}"
+    },
     "title": "Star Map",
     "trail": "Ruta",
     "verse": "El 'Verse",
@@ -4198,7 +4204,7 @@
       "stations": "Estación",
       "outposts": "Puesto avanzado",
       "items": "Tus objetos",
-      "hint": "Clic para acercar · Arrastra para girar · Rueda para acercarte · Esc para subir"
+      "hint": "Clic para acercar · Arrastra para girar · Clic derecho para desplazar · Rueda para hacer zoom · Esc para subir"
     }
   }
 }

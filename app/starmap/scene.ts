@@ -238,7 +238,13 @@ export function createStarMap({
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.enablePan = false;
+  // Clic gauche pour tourner, clic droit pour déplacer, molette pour zoomer.
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.PAN,
+  };
+  controls.screenSpacePanning = true;
   controls.rotateSpeed = 0.6;
   controls.minPolarAngle = 0.15;
   controls.maxPolarAngle = Math.PI - 0.15;
@@ -979,7 +985,8 @@ export function createStarMap({
   const pointer = new THREE.Vector2();
   let down: { x: number; y: number } | null = null;
   const onDown = (event: PointerEvent) => {
-    down = { x: event.clientX, y: event.clientY };
+    // Seul le clic gauche choisit : le droit déplace la vue.
+    down = event.button === 0 ? { x: event.clientX, y: event.clientY } : null;
   };
   const onUp = (event: PointerEvent) => {
     if (!down || Math.hypot(event.clientX - down.x, event.clientY - down.y) > 5)
@@ -995,6 +1002,12 @@ export function createStarMap({
   };
   canvas.addEventListener("pointerdown", onDown);
   canvas.addEventListener("pointerup", onUp);
+  // La molette sur une étiquette zoome comme sur la scène, au lieu de rien.
+  const onLabelWheel = (event: WheelEvent) => {
+    event.preventDefault();
+    canvas.dispatchEvent(new WheelEvent("wheel", event));
+  };
+  labels.addEventListener("wheel", onLabelWheel, { passive: false });
 
   let frame = 0;
   let last = performance.now();
@@ -1046,6 +1059,7 @@ export function createStarMap({
       observer.disconnect();
       canvas.removeEventListener("pointerdown", onDown);
       canvas.removeEventListener("pointerup", onUp);
+      labels.removeEventListener("wheel", onLabelWheel);
       labelList.forEach((label) => label.el.remove());
       disposables.forEach((thing) => thing.dispose());
     },

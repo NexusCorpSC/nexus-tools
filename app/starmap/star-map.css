@@ -100,3 +100,16 @@
     transition: none;
   }
 }
+
+/*
+ * La carte tient l'écran : pas de pied de page, et la molette ne fait jamais
+ * défiler la page, même au-dessus d'un panneau.
+ */
+html:has(.star-map-root),
+html:has(.star-map-root) body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+html:has(.star-map-root) [data-site-footer] {
+  display: none;
+}
