@@ -58,6 +58,10 @@
           "label": "Facciones",
           "description": "Quién da qué, y con qué rango"
         },
+        "lore": {
+          "label": "Lore",
+          "description": "Galactapedia y mapa estelar de RSI"
+        },
         "blueprints": {
           "label": "Blueprints",
           "description": "Recetas de fabricación y tiempos de producción"
@@ -4100,5 +4104,48 @@
         "generic": "La voz se interrumpió. Inténtalo de nuevo."
       }
     }
+  },
+  "Lore": {
+    "title": "Lore",
+    "header": "La Galactapedia y el mapa estelar de RSI: la historia, los pueblos, las empresas y los sistemas del 'Verse.",
+    "home": "Inicio",
+    "englishNote": "Textos oficiales de RSI, en inglés.",
+    "source": "Fuente: Galactapedia y mapa estelar de RSI, a través de la API de Star Citizen Wiki.",
+    "searchPlaceholder": "Buscar en inglés: Vanduul, Kellar, Banu…",
+    "searchButton": "Buscar",
+    "allCategories": "Todas las categorías",
+    "resultsCount": "{count, plural, =0 {Ningún artículo} one {# artículo} other {# artículos}}",
+    "noResults": "Ningún artículo coincide. Los artículos están en inglés: prueba con palabras en inglés.",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "pageOf": "Página {page} de {pages}",
+    "systemsTitle": "Sistemas del mapa estelar",
+    "systemsHeader": "Los {count} sistemas conocidos por RSI, con sus puntos de salto y sus cuerpos.",
+    "statusP": "Conocido",
+    "statusM": "Mencionado",
+    "statusN": "Inexplorado",
+    "readOnRsi": "Leer en la web de RSI",
+    "linkedTitle": "Artículos citados",
+    "starmapTitle": "En el mapa estelar",
+    "removed": "Este artículo ya no está en la Galactapedia.",
+    "articleNotFound": "Artículo no encontrado",
+    "systemTitle": "Sistema {name}",
+    "jumpPointsTitle": "Puntos de salto",
+    "bodiesTitle": "Estrellas, planetas, lunas y estaciones",
+    "noBodies": "El mapa estelar no describe ningún cuerpo en este sistema.",
+    "population": "Población",
+    "economy": "Economía",
+    "danger": "Peligro",
+    "rating": "{value}/10",
+    "affiliation": "Afiliación",
+    "habitable": "Habitable",
+    "placeLink": "Ficha del lugar",
+    "articleLink": "Artículo",
+    "systemNotFound": "Sistema no encontrado",
+    "galactapedia": "Galactapedia",
+    "starmap": "Mapa estelar",
+    "placeLoreTitle": "Lore",
+    "readArticle": "Leer el artículo",
+    "seeSystem": "Ver el sistema en el mapa estelar"
   }
 }

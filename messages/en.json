@@ -58,6 +58,10 @@
           "label": "Factions",
           "description": "Who gives what, and at which rank"
         },
+        "lore": {
+          "label": "Lore",
+          "description": "RSI's Galactapedia and starmap"
+        },
         "blueprints": {
           "label": "Blueprints",
           "description": "Crafting recipes and times"
@@ -4139,5 +4143,48 @@
         "generic": "Voice was interrupted. Try again."
       }
     }
+  },
+  "Lore": {
+    "title": "Lore",
+    "header": "RSI's Galactapedia and starmap: the history, peoples, companies and systems of the 'Verse.",
+    "home": "Home",
+    "englishNote": "Official RSI texts, in English.",
+    "source": "Source: RSI's Galactapedia and starmap, via the Star Citizen Wiki API.",
+    "searchPlaceholder": "Search: Vanduul, Kellar, Banu…",
+    "searchButton": "Search",
+    "allCategories": "All categories",
+    "resultsCount": "{count, plural, =0 {No article} one {# article} other {# articles}}",
+    "noResults": "No article matches.",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {pages}",
+    "systemsTitle": "Starmap systems",
+    "systemsHeader": "The {count} systems known to RSI, with their jump points and bodies.",
+    "statusP": "Known",
+    "statusM": "Mentioned",
+    "statusN": "Unexplored",
+    "readOnRsi": "Read on the RSI website",
+    "linkedTitle": "Linked articles",
+    "starmapTitle": "On the starmap",
+    "removed": "This article is no longer in the Galactapedia.",
+    "articleNotFound": "Article not found",
+    "systemTitle": "{name} system",
+    "jumpPointsTitle": "Jump points",
+    "bodiesTitle": "Stars, planets, moons and stations",
+    "noBodies": "The starmap describes no body in this system.",
+    "population": "Population",
+    "economy": "Economy",
+    "danger": "Danger",
+    "rating": "{value}/10",
+    "affiliation": "Affiliation",
+    "habitable": "Habitable",
+    "placeLink": "Place sheet",
+    "articleLink": "Article",
+    "systemNotFound": "System not found",
+    "galactapedia": "Galactapedia",
+    "starmap": "Starmap",
+    "placeLoreTitle": "Lore",
+    "readArticle": "Read the article",
+    "seeSystem": "See the system on the starmap"
   }
 }

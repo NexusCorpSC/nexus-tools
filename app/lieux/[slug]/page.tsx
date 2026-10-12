@@ -25,6 +25,8 @@ import { FicheCredits } from "@/components/fiche-credits";
 import { getContested } from "@/lib/reports";
 import { getItemSummaries } from "@/lib/items";
 import { listMissionsAt } from "@/lib/missions";
+import { getPlaceLore } from "@/lib/lore";
+import { PlaceLoreSection } from "@/app/lore/place-lore";
 import { recordView } from "@/lib/page-views";
 import { ConfirmBlock } from "@/components/confirm-block";
 import {
@@ -98,7 +100,7 @@ export default async function PlacePage({
   const session = await auth.api.getSession({ headers: await headers() });
   const tab: Tab = TABS.includes(onglet as Tab) ? (onglet as Tab) : "apercu";
 
-  const [media, myPending, soldItems, missions] =
+  const [media, myPending, soldItems, missions, lore] =
     tab === "apercu"
       ? await Promise.all([
           listPlaceMedia(place.slug),
@@ -107,8 +109,9 @@ export default async function PlacePage({
             : 0,
           getItemSummaries(place.soldItems),
           listMissionsAt(place.slug),
+          getPlaceLore(place),
         ])
-      : [[], 0, [], []];
+      : [[], 0, [], [], null];
 
   /*
     Le plan regardé vit dans l'adresse. On ne descend que dans l'arborescence
@@ -281,6 +284,8 @@ export default async function PlacePage({
               <PlaceEmpty>{t("noDescription")}</PlaceEmpty>
             )}
           </div>
+
+          {lore && <PlaceLoreSection lore={lore} />}
 
           {place.tip && (
             <div>

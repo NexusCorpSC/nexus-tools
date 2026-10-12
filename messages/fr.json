@@ -58,6 +58,10 @@
           "label": "Factions",
           "description": "Qui donne quoi, et à quel rang"
         },
+        "lore": {
+          "label": "Lore",
+          "description": "Galactapedia et starmap de RSI"
+        },
         "blueprints": {
           "label": "Blueprints",
           "description": "Recettes d'artisanat et temps de fabrication"
@@ -4138,5 +4142,48 @@
         "generic": "La voix a été interrompue. Réessayez."
       }
     }
+  },
+  "Lore": {
+    "title": "Lore",
+    "header": "La Galactapedia et la starmap de RSI : l'histoire, les peuples, les sociétés et les systèmes du 'Verse.",
+    "home": "Accueil",
+    "englishNote": "Textes officiels de RSI, en anglais.",
+    "source": "Source : Galactapedia et starmap de RSI, via l'API du Star Citizen Wiki.",
+    "searchPlaceholder": "Chercher en anglais : Vanduul, Kellar, Banu…",
+    "searchButton": "Chercher",
+    "allCategories": "Toutes les catégories",
+    "resultsCount": "{count, plural, =0 {Aucun article} one {# article} other {# articles}}",
+    "noResults": "Aucun article ne correspond. Les articles sont en anglais : essayez des mots anglais.",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "pageOf": "Page {page} sur {pages}",
+    "systemsTitle": "Systèmes de la starmap",
+    "systemsHeader": "Les {count} systèmes connus de RSI, avec leurs points de saut et leurs corps.",
+    "statusP": "Connu",
+    "statusM": "Mentionné",
+    "statusN": "Inexploré",
+    "readOnRsi": "Lire sur le site de RSI",
+    "linkedTitle": "Articles cités",
+    "starmapTitle": "Sur la starmap",
+    "removed": "Cet article n'est plus dans la Galactapedia.",
+    "articleNotFound": "Article introuvable",
+    "systemTitle": "Système {name}",
+    "jumpPointsTitle": "Points de saut",
+    "bodiesTitle": "Étoiles, planètes, lunes et stations",
+    "noBodies": "La starmap ne décrit aucun corps dans ce système.",
+    "population": "Population",
+    "economy": "Économie",
+    "danger": "Danger",
+    "rating": "{value}/10",
+    "affiliation": "Affiliation",
+    "habitable": "Habitable",
+    "placeLink": "Fiche du lieu",
+    "articleLink": "Article",
+    "systemNotFound": "Système introuvable",
+    "galactapedia": "Galactapedia",
+    "starmap": "Starmap",
+    "placeLoreTitle": "Lore",
+    "readArticle": "Lire l'article",
+    "seeSystem": "Voir le système sur la starmap"
   }
 }
