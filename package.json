@@ -18,6 +18,7 @@
     "clean:blobs": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/clean-orphan-blobs.ts",
     "backfill:banners": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/backfill-place-banners.ts",
     "import:celestial-bodies": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-celestial-bodies.ts",
+    "import:star-map": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-star-map.ts",
     "mcp:smoke": "tsx scripts/mcp-smoke.ts",
     "mcp:smoke:seed": "tsx --env-file-if-exists=.env.local scripts/mcp-smoke-seed.ts",
     "mcp:views": "vite build --config mcp-views/vite.config.ts"

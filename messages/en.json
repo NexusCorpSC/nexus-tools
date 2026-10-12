@@ -50,6 +50,10 @@
           "label": "Locations",
           "description": "Stations, cities and maps"
         },
+        "starmap": {
+          "label": "Star Map",
+          "description": "Stanton, Pyro and Nyx in 3D"
+        },
         "missions": {
           "label": "Missions",
           "description": "Contracts, objectives and rewards"
@@ -4183,5 +4187,57 @@
     "placeLoreTitle": "Lore",
     "readArticle": "Read the article",
     "seeSystem": "See the system on the starmap"
+  },
+  "StarMap": {
+    "title": "Star Map",
+    "trail": "Path",
+    "verse": "The 'Verse",
+    "verseType": "Universe",
+    "systems": "Systems",
+    "showOutposts": "Outposts",
+    "canvasLabel": "3D map of Stanton, Pyro and Nyx",
+    "loading": "Loading the map…",
+    "failed": "The map could not load. Reload the page.",
+    "factPlanets": "planets",
+    "factStations": "stations",
+    "factRadius": "radius",
+    "factMoons": "moons",
+    "approx": "Approximate position: starmap.space does not give it yet.",
+    "unplaced": "No position on the map: it shows from the place that contains it.",
+    "up": "Go up",
+    "openPlace": "Place page",
+    "yourItems": "Your items here",
+    "lotsSummary": "{lots, plural, one {# lot} other {# lots}} · {places, plural, one {# place} other {# places}}",
+    "signInHint": "Sign in to see the items of your inventory stored here.",
+    "signIn": "Sign in",
+    "noItems": "No items of your inventory in these systems.",
+    "noItemsHere": "No items of your inventory at {place}.",
+    "quality": "Quality {quality}",
+    "offMap": "{count, plural, one {# lot} other {# lots}} stored off the map.",
+    "openInventory": "Open inventory",
+    "contains": "Contains",
+    "nothingInside": "No place recorded inside yet. Community contributions fill the catalogue.",
+    "placesCount": "{count, plural, one {# place} other {# places}}",
+    "showMore": "Show {count} more",
+    "groups": {
+      "planet": "Planets",
+      "moon": "Moons",
+      "city": "Cities",
+      "spaceport": "Spaceports",
+      "station": "Stations",
+      "outpost": "Outposts",
+      "district": "Districts",
+      "building": "Buildings",
+      "shop": "Shops",
+      "star": "Systems"
+    },
+    "legend": {
+      "bodies": "Planet, moon",
+      "cities": "City",
+      "stations": "Station",
+      "outposts": "Outpost",
+      "items": "Your items",
+      "hint": "Click to zoom · Drag to turn · Scroll to get closer · Esc to go up"
+    }
   }
 }

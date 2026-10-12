@@ -588,6 +588,11 @@ export type PlacePosition = {
   x: number;
   y: number;
   z: number;
+  /**
+   * Posée par `import:star-map` plutôt que relevée en jeu. Une correction la
+   * remplace par un relevé, sans cette marque, que l'import ne touche plus.
+   */
+  source?: "starmap.space";
 };
 
 /** Ce que le NPS doit savoir d'une planète ou d'une lune. */
