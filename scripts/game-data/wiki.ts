@@ -403,7 +403,7 @@ function readPage(raw: unknown, address: string): Page {
 }
 
 /** Toutes les lignes d'une liste : la première page dit combien il y en a. */
-async function list(
+export async function list(
   endpoint: string,
   params: Record<string, string>,
   stats: WikiStats,

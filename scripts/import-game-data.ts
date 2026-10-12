@@ -2,7 +2,7 @@
  * Importe les blueprints, les factions, les missions et les barèmes de
  * réputation du jeu.
  *
- *   npm run import:game-data -- <all|blueprints|missions|reputations|images> [options]
+ *   npm run import:game-data -- <all|blueprints|missions|reputations|lore|images> [options]
  *
  *   --source S         la source de tout : `wiki` (défaut, l'API du Star
  *                      Citizen Wiki) ou `scmdb` (les fichiers de scmdb.net)
@@ -58,6 +58,11 @@
  * source qui les donne, et fait suivre aux réputations des joueurs les
  * factions, carrières et rangs renommés (`scripts/game-data/reputations.ts`).
  *
+ * `lore` importe les articles de la Galactapedia et la starmap de RSI
+ * (`scripts/game-data/lore.ts`) dans `loreArticles` et `starmap`, et les
+ * rattache aux lieux du catalogue. Rien n'y dépend de la version du jeu ;
+ * `all` le fait aussi, sauf hors ligne (`--dir`).
+ *
  * `images` est à part, parce qu'il interroge un autre site : il donne une
  * illustration aux blueprints qui n'en ont pas (`scripts/game-data/images.ts`).
  */
@@ -80,12 +85,14 @@ import {
   resolveWikiVersion,
   type WikiStats,
 } from "./game-data/wiki";
+import { loadWikiLore, planLore, type PlaceRef } from "./game-data/lore";
 import {
   movePlayerReputations,
   planReputations,
   type ReputationMoves,
 } from "./game-data/reputations";
 import type { Faction, PlayerReputations } from "@/types/reputations";
+import type { LoreArticle, StarmapEntry } from "@/types/lore";
 import {
   MassRemovalError,
   planBlueprints,
@@ -111,7 +118,13 @@ import {
 /** Un arrêt voulu, avant toute écriture : son message suffit. */
 class ImportStopped extends Error {}
 
-type Target = "all" | "blueprints" | "missions" | "reputations" | "images";
+type Target =
+  | "all"
+  | "blueprints"
+  | "missions"
+  | "reputations"
+  | "lore"
+  | "images";
 
 type SourceName = GameData["source"];
 
@@ -129,14 +142,19 @@ type Options = {
 };
 
 const USAGE =
-  "Usage : npm run import:game-data -- <all|blueprints|missions|reputations|images> [--source wiki|scmdb] [--blueprints-source wiki|scmdb] [--missions-source wiki|scmdb] [--version V] [--dir DOSSIER] [--refresh-recipes] [--legacy DOSSIER | --no-legacy] [--allow-mass-removal] [--mirror-images] [--dry-run]";
+  "Usage : npm run import:game-data -- <all|blueprints|missions|reputations|lore|images> [--source wiki|scmdb] [--blueprints-source wiki|scmdb] [--missions-source wiki|scmdb] [--version V] [--dir DOSSIER] [--refresh-recipes] [--legacy DOSSIER | --no-legacy] [--allow-mass-removal] [--mirror-images] [--dry-run]";
 
 function parseArgs(argv: string[]): Options {
   const [target, ...rest] = argv;
   if (
-    !["all", "blueprints", "missions", "reputations", "images"].includes(
-      target ?? "",
-    )
+    ![
+      "all",
+      "blueprints",
+      "missions",
+      "reputations",
+      "lore",
+      "images",
+    ].includes(target ?? "")
   ) {
     console.error(USAGE);
     process.exit(1);
@@ -204,7 +222,7 @@ function parseArgs(argv: string[]): Options {
 /** Les sources que la cible demande. */
 function sourcesFor(options: Options): SourceName[] {
   const sources = new Set<SourceName>();
-  if (options.target === "reputations") return [];
+  if (options.target === "reputations" || options.target === "lore") return [];
   if (options.target !== "missions") sources.add(options.blueprintsSource);
   if (options.target !== "blueprints") sources.add(options.missionsSource);
   return [...sources];
@@ -562,6 +580,52 @@ async function writeReputations(
   }
 }
 
+// ─── Lore ─────────────────────────────────────────────────────────────────────
+
+async function planLoreImport(options: Options, stats: WikiStats) {
+  console.log("\nLore : Galactapedia et starmap de l'API du Star Citizen Wiki");
+  const lore = await loadWikiLore(stats);
+  for (const warning of lore.warnings) console.warn(`  ⚠ ${warning}`);
+  console.log(
+    `${lore.articles.length} articles, ${lore.starmap.length} entrées de la starmap`,
+  );
+  const database = db.db();
+  const places = await database
+    .collection<PlaceRef>("gameLocations")
+    .find(
+      {},
+      {
+        projection: {
+          _id: 0,
+          slug: 1,
+          name: 1,
+          type: 1,
+          parentSlug: 1,
+          systemSlug: 1,
+        },
+      },
+    )
+    .toArray();
+  const plan = planLore(
+    lore,
+    {
+      articles: await database
+        .collection<LoreArticle>("loreArticles")
+        .find()
+        .toArray(),
+      starmap: await database
+        .collection<StarmapEntry>("starmap")
+        .find()
+        .toArray(),
+    },
+    places,
+    { allowMassRemoval: options.allowMassRemoval },
+  );
+  printReport("Galactapedia", plan.reports.articles);
+  printReport("Starmap", plan.reports.starmap);
+  return plan;
+}
+
 // ─── Lancement ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -582,8 +646,8 @@ async function main() {
   for (const source of sourcesFor(options)) {
     loaded.set(source, await loadSource(source, options, stats));
   }
-  const withBlueprints = !["missions", "reputations"].includes(options.target);
-  const withMissions = !["blueprints", "reputations"].includes(options.target);
+  const withBlueprints = ["all", "blueprints"].includes(options.target);
+  const withMissions = ["all", "missions"].includes(options.target);
   const bpData = withBlueprints
     ? loaded.get(options.blueprintsSource)!
     : undefined;
@@ -734,6 +798,17 @@ async function main() {
     printReport("Réputations", reputations.report);
   }
 
+  const withLore =
+    options.target === "lore" || (options.target === "all" && !options.dir);
+  let lore: Awaited<ReturnType<typeof planLoreImport>> | undefined;
+  if (withLore) {
+    const before = stats.requests;
+    lore = await planLoreImport(options, stats);
+    console.log(
+      `Requêtes à l'API du wiki pour le lore : ${stats.requests - before}`,
+    );
+  }
+
   if (options.dryRun) {
     console.log("\nSimulation : rien n'a été écrit.");
     await db.close();
@@ -751,10 +826,26 @@ async function main() {
   }
   await write(database.collection("gameItems"), [], itemUpdates);
   if (reputations) await writeReputations(reputations);
+  if (lore) {
+    await write(
+      database.collection("loreArticles"),
+      lore.articles.inserts,
+      lore.articles.updates,
+    );
+    await write(
+      database.collection("starmap"),
+      lore.starmap.inserts,
+      lore.starmap.updates,
+    );
+  }
 
   const versions = new Set([...loaded.values()].map((data) => data.version));
   if (reputations) versions.add(reputations.version);
-  console.log(`Terminé : version ${[...versions].join(" / ")} importée.`);
+  console.log(
+    versions.size > 0
+      ? `Terminé : version ${[...versions].join(" / ")} importée.`
+      : "Terminé.",
+  );
   await db.close();
 }
 
