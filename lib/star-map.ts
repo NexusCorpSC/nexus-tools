@@ -43,7 +43,13 @@ export async function getStarMapPlaces(): Promise<StarMapPlace[]> {
     .db()
     .collection<Place>("gameLocations")
     .find(
-      { $or: [{ slug: { $in: systems } }, { systemSlug: { $in: systems } }] },
+      {
+        $or: [
+          { slug: { $in: systems } },
+          { systemSlug: { $in: systems } },
+          { "mapPosition.system": { $in: systems } },
+        ],
+      },
       {
         projection: {
           _id: 0,
@@ -65,7 +71,9 @@ export async function getStarMapPlaces(): Promise<StarMapPlace[]> {
       name: doc.name,
       type: doc.type,
     };
-    if (doc.parentSlug) place.parentSlug = doc.parentSlug;
+    // Sans parent au catalogue, l'import a dit dans quel système il se trouve.
+    const parentSlug = doc.parentSlug ?? doc.mapPosition?.system;
+    if (parentSlug) place.parentSlug = parentSlug;
     // Ce que les joueurs ont relevé d'abord, puis starmap.space.
     const at = doc.position ?? doc.mapPosition ?? doc.celestial;
     if (at) {

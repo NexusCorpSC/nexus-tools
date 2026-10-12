@@ -10,7 +10,7 @@
  *   - lieux posés sur un corps (villes, avant-postes, stations en orbite) :
  *     leur position dans le repère de ce corps, en mètres ;
  *   - stations des points de Lagrange et des points de saut : la position de
- *     ce point, dans le repère du système ;
+ *     ce point, plus leur décalage, dans le repère du système ;
  *   - lieux « dans l'espace » (Levski) : leur position dans le système.
  *
  * Un lieu se retrouve par son nom, dans son système : la même clé que pour les
@@ -18,6 +18,11 @@
  * lieux du catalogue, ou par deux lieux de starmap.space (« Remote Outpost »),
  * est laissé : mieux vaut un lieu absent de la carte qu'un lieu à la place
  * d'un autre.
+ *
+ * Un lieu que le catalogue ne rattache à aucun système (les stations des
+ * points de Lagrange de Stanton) se cherche dans tous ; `mapPosition.system`
+ * dit alors à la carte sous quel système le ranger. Le catalogue, lui, garde
+ * son arbre tel quel.
  *
  * Seul `mapPosition` est écrit, et retiré d'un lieu que la source ne place
  * plus. `position`, relevée par les joueurs, n'est pas touchée et l'emporte
@@ -111,19 +116,35 @@ async function main() {
   const places = db.db().collection<Place>("gameLocations");
   const candidates = (await places
     .find(
-      { systemSlug: { $in: [...STAR_MAP_SYSTEMS] } },
+      // Sans système : un lieu que le catalogue ne rattache à rien encore.
+      {
+        $or: [
+          { systemSlug: { $in: [...STAR_MAP_SYSTEMS] } },
+          { systemSlug: { $exists: false } },
+        ],
+      },
       { projection: { _id: 0, slug: 1, name: 1, type: 1, systemSlug: 1 } },
     )
     .toArray()) as Candidate[];
 
-  // Système, puis nom. Deux lieux du même nom dans un système : ambigu.
+  // Système, puis nom. Deux lieux du même nom dans un système : ambigu. Un
+  // lieu sans système se cherche dans chacun.
   const index = new Map<string, Candidate[]>();
   for (const place of candidates) {
-    const key = `${place.systemSlug}:${bodyKey(place.name)}`;
+    const key = `${place.systemSlug ?? "*"}:${bodyKey(place.name)}`;
     index.set(key, [...(index.get(key) ?? []), place]);
   }
-  const find = (system: string, name: string) =>
-    index.get(`${system}:${bodyKey(name)}`) ?? [];
+  const lookup = (system: string, name: string) => [
+    ...(index.get(`${system}:${bodyKey(name)}`) ?? []),
+    ...(index.get(`*:${bodyKey(name)}`) ?? []),
+  ];
+  // « ARC-L1-A Wide Forest Station » chez starmap.space, « ARC-L1 Wide Forest
+  // Station » au catalogue : la lettre du module se perd.
+  const find = (system: string, name: string) => {
+    const found = lookup(system, name);
+    const short = name.replace(/(-L\d)-[A-Z](?=\s)/i, "$1");
+    return found.length > 0 || short === name ? found : lookup(system, short);
+  };
 
   const writes = new Map<string, { label: string; position: MapPosition }>();
   const ambiguous = new Set<string>();
@@ -146,6 +167,7 @@ async function main() {
       return;
     }
     const slug = found[0].slug;
+    if (!found[0].systemSlug) position = { ...position, system };
     // Deux lieux de la source pour un seul du catalogue : on ne choisit pas.
     if (writes.has(slug)) {
       ambiguous.add(label);
@@ -218,10 +240,16 @@ async function main() {
         });
       }
     } else if (spacePoint) {
+      // Le décalage de la station depuis le point, en kilomètres.
+      const offset = xyz(poi, 1000) ?? { x: 0, y: 0, z: 0 };
       located.push({
         system,
         name,
-        position: { ...spacePoint },
+        position: {
+          x: spacePoint.x + offset.x,
+          y: spacePoint.y + offset.y,
+          z: spacePoint.z + offset.z,
+        },
         accept: (place) => SPACE_TYPES.has(place.type),
       });
     } else if (poi.Planet === "Space") {

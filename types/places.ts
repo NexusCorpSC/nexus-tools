@@ -619,7 +619,14 @@ export type CelestialBody = {
  * joueurs et guide le NPS ; celle-là ne sert qu'à dessiner, et une position
  * relevée l'emporte toujours sur elle.
  */
-export type MapPosition = PlacePosition & { radius?: number };
+export type MapPosition = PlacePosition & {
+  radius?: number;
+  /**
+   * Le système, pour un lieu que le catalogue ne rattache à rien (les stations
+   * des points de Lagrange) : la carte le range sous ce système.
+   */
+  system?: string;
+};
 
 /** Un corps céleste tel que `GET /api/lieux/nps` le donne. */
 export type NpsBody = CelestialBody & {
