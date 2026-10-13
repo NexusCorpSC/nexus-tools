@@ -9,6 +9,7 @@ import {
   type OrgInfo,
   type Viewer,
 } from "@/lib/private-places";
+import { forgetTarget, shareCounts, sharedWith } from "@/lib/shares";
 import type { Place, PlacePosition } from "@/types/places";
 import {
   DEFAULT_MARKER_COLOR,
@@ -35,8 +36,9 @@ import {
  * Les marqueurs (voir `types/markers.ts`) : `markers` garde les points,
  * `markerCollections` leurs dossiers. Un marqueur est à son créateur ; il se
  * partage par sa collection, avec la règle des lieux privés : les membres de
- * l'organisation le voient tant que le créateur en fait partie, et seul le
- * créateur le modifie. Qui voit quoi se décide à la lecture (`sharingOrg`).
+ * l'organisation le voient tant que le créateur en fait partie, ainsi que les
+ * joueurs invités sur la collection (`lib/shares.ts`, type `markerCollection`) ;
+ * seul le créateur le modifie. Qui voit quoi se décide à la lecture.
  */
 
 export class MarkerError extends Error {
@@ -117,17 +119,29 @@ async function ownerNames(ids: string[]): Promise<Map<string, string>> {
 
 // ─── Qui voit quoi ─────────────────────────────────────────────────────────
 
-type VisibleCollection = { doc: DbCollection; org: OrgInfo | null };
+type VisibleCollection = {
+  doc: DbCollection;
+  org: OrgInfo | null;
+  /** Un joueur l'a invité sur cette collection. */
+  invited: boolean;
+};
 
-/** Ses collections, et celles que ses organisations voient. */
+/** Ses collections, celles que ses organisations voient et où on l'a invité. */
 async function visibleCollections(
   viewer: Viewer,
 ): Promise<Map<string, VisibleCollection>> {
+  const invited = new Set(
+    (await sharedWith("markerCollection", viewer.userId)).map(
+      (share) => share.targetId,
+    ),
+  );
+  const invitedIds = [...invited].flatMap((id) => toObjectId(id) ?? []);
   const docs = await collections()
     .find({
       $or: [
         { ownerId: viewer.userId },
         { orgId: { $in: [...viewer.orgs.keys()] } },
+        ...(invitedIds.length ? [{ _id: { $in: invitedIds } }] : []),
       ],
     })
     .sort({ name: 1 })
@@ -135,9 +149,11 @@ async function visibleCollections(
   const cache = new Map<string, OrgInfo | null>();
   const visible = new Map<string, VisibleCollection>();
   for (const doc of docs) {
+    const id = String(doc._id);
     const org = await sharingOrg(doc, viewer, cache);
-    if (doc.ownerId === viewer.userId || org) {
-      visible.set(String(doc._id), { doc, org });
+    const isInvited = invited.has(id) && doc.ownerId !== viewer.userId;
+    if (doc.ownerId === viewer.userId || org || isInvited) {
+      visible.set(id, { doc, org, invited: isInvited });
     }
   }
   return visible;
@@ -254,6 +270,12 @@ export async function listMarkers(
     markers().countDocuments({ ownerId: userId }),
   ]);
   const countOf = new Map(counts.map((entry) => [entry._id, entry.count]));
+  const guests = await shareCounts(
+    "markerCollection",
+    [...visible.entries()]
+      .filter(([, entry]) => entry.doc.ownerId === userId)
+      .map(([id]) => id),
+  );
 
   const owners = [
     ...docs.map((doc) => doc.ownerId),
@@ -264,13 +286,15 @@ export async function listMarkers(
   return {
     markers: docs.map((doc) => toMarker(doc, viewer, visible, names)),
     collections: [...visible.entries()].map(
-      ([id, { doc, org }]) =>
+      ([id, { doc, org, invited }]) =>
         withoutUndefined({
           id,
           name: doc.name,
           color: doc.color,
           org: toOrg(org),
           isOwner: doc.ownerId === userId,
+          sharedWithMe: invited && !org ? true : undefined,
+          guestCount: guests.get(id) || undefined,
           ownerName: names.get(doc.ownerId),
           count: countOf.get(id) ?? 0,
           createdAt: doc.createdAt.toISOString(),
@@ -653,6 +677,7 @@ export async function deleteMarkerCollection(
     { $unset: { collectionId: "" }, $set: { updatedAt: new Date() } },
   );
   await collections().deleteOne({ _id: doc._id });
+  await forgetTarget("markerCollection", String(doc._id));
 }
 
 /** Les systèmes où poser un marqueur dans l'espace, par nom. */
@@ -666,4 +691,53 @@ export async function listMarkerSystems(): Promise<
     )
     .sort({ name: 1 })
     .toArray();
+}
+
+// ─── Partage avec des joueurs ──────────────────────────────────────────────
+
+/** Ce que le partage (`lib/share-targets.ts`) doit savoir d'une collection. */
+export async function markerCollectionShareTarget(
+  id: string,
+  userId: string,
+): Promise<{
+  name: string;
+  isOwner: boolean;
+  org: { name: string; memberCount: number } | null;
+} | null> {
+  const viewer = await getViewer(userId);
+  const visible = (await visibleCollections(viewer)).get(id);
+  if (!visible) return null;
+  return {
+    name: visible.doc.name,
+    isOwner: visible.doc.ownerId === userId,
+    org: visible.org
+      ? { name: visible.org.name, memberCount: visible.org.members.size }
+      : null,
+  };
+}
+
+/** Les collections de ces ids, pour décrire les invitations. */
+export async function markerCollectionsByIds(
+  ids: string[],
+): Promise<{ id: string; name: string; color: MarkerColor; count: number }[]> {
+  const valid = ids.flatMap((id) => toObjectId(id) ?? []);
+  if (valid.length === 0) return [];
+  const [docs, counts] = await Promise.all([
+    collections()
+      .find({ _id: { $in: valid } }, { projection: { name: 1, color: 1 } })
+      .toArray(),
+    markers()
+      .aggregate<{ _id: string; count: number }>([
+        { $match: { collectionId: { $in: valid.map(String) } } },
+        { $group: { _id: "$collectionId", count: { $sum: 1 } } },
+      ])
+      .toArray(),
+  ]);
+  const countOf = new Map(counts.map((entry) => [entry._id, entry.count]));
+  return docs.map((doc) => ({
+    id: String(doc._id),
+    name: doc.name,
+    color: doc.color,
+    count: countOf.get(String(doc._id)) ?? 0,
+  }));
 }

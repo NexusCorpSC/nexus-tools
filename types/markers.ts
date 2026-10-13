@@ -76,6 +76,10 @@ export type MarkerCollection = {
   org?: MarkerOrg;
   isOwner: boolean;
   ownerName?: string;
+  /** Son créateur l'a invité dessus (hors organisation). */
+  sharedWithMe?: true;
+  /** Pour son créateur : les joueurs invités dessus. */
+  guestCount?: number;
   /** Les marqueurs qu'elle contient et que celui qui lit voit. */
   count: number;
   createdAt: string;

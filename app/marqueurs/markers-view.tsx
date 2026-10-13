@@ -9,7 +9,10 @@ import {
   PencilSquareIcon,
   PlusIcon,
   UserGroupIcon,
+  UserPlusIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { SharePanel } from "@/components/share-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { listNpsBodiesAction } from "@/app/lieux/nps-actions";
@@ -39,16 +42,19 @@ type Sort = "recent" | "name";
 export function MarkersView({
   initial,
   systems,
+  initialFilter,
 }: {
   initial: MarkerListResponse;
   systems: { slug: string; name: string }[];
+  /** La collection à ouvrir, depuis une invitation. */
+  initialFilter?: string;
 }) {
   const t = useTranslations("Markers");
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const [data, setData] = useState(initial);
   const [bodies, setBodies] = useState<NpsBody[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(initialFilter ?? "all");
   const [kind, setKind] = useState("");
   const [body, setBody] = useState("");
   const [query, setQuery] = useState("");
@@ -59,6 +65,8 @@ export function MarkersView({
     MarkerCollection | "new" | null
   >(null);
   const [moveError, setMoveError] = useState(false);
+  const [sharing, setSharing] = useState<MarkerCollection | null>(null);
+  const [leaveError, setLeaveError] = useState(false);
 
   useEffect(() => {
     listNpsBodiesAction()
@@ -148,6 +156,21 @@ export function MarkersView({
     await reload();
   }
 
+  /** L'invité qui ne veut plus voir une collection retire son accès. */
+  async function leave(collection: MarkerCollection) {
+    setLeaveError(false);
+    const response = await fetch(
+      `/api/me/shares/markerCollection/${encodeURIComponent(collection.id)}`,
+      { method: "DELETE" },
+    ).catch(() => null);
+    if (!response?.ok) {
+      setLeaveError(true);
+      return;
+    }
+    if (filter === collection.id) setFilter("all");
+    await reload();
+  }
+
   const collectionItem = (
     key: Filter,
     label: string,
@@ -180,6 +203,27 @@ export function MarkersView({
           {count}
         </span>
       </button>
+      {collection?.isOwner && (
+        <button
+          type="button"
+          onClick={() => setSharing(collection)}
+          aria-label={t("shareCollection", { name: collection.name })}
+          className="rounded-md p-1.5 text-muted-foreground opacity-60 hover:bg-white/5 hover:opacity-100 focus-visible:opacity-100"
+        >
+          <UserPlusIcon className="size-4" />
+        </button>
+      )}
+      {collection?.sharedWithMe && (
+        <button
+          type="button"
+          onClick={() => void leave(collection)}
+          aria-label={t("leaveCollection", { name: collection.name })}
+          title={t("leaveCollection", { name: collection.name })}
+          className="rounded-md p-1.5 text-muted-foreground opacity-60 hover:bg-white/5 hover:opacity-100 focus-visible:opacity-100"
+        >
+          <XMarkIcon className="size-4" />
+        </button>
+      )}
       {collection?.isOwner && (
         <button
           type="button"
@@ -240,22 +284,40 @@ export function MarkersView({
                 collection.color,
                 collection.count,
                 <span
-                  className={`block truncate text-[11px] ${collection.org ? "text-[#c4b2ff]" : "text-muted-foreground"}`}
+                  className={`block truncate text-[11px] ${collection.org || collection.sharedWithMe || collection.guestCount ? "text-[#c4b2ff]" : "text-muted-foreground"}`}
                 >
-                  {collection.org
-                    ? collection.isOwner
-                      ? t("sharedWith", { org: collection.org.name })
-                      : t("sharedBy", {
-                          owner: collection.ownerName ?? "?",
-                          org: collection.org.name,
-                        })
-                    : t("onlyMe")}
+                  {[
+                    collection.org
+                      ? collection.isOwner
+                        ? t("sharedWith", { org: collection.org.name })
+                        : t("sharedBy", {
+                            owner: collection.ownerName ?? "?",
+                            org: collection.org.name,
+                          })
+                      : collection.sharedWithMe
+                        ? t("sharedByPlayer", {
+                            owner: collection.ownerName ?? "?",
+                          })
+                        : collection.guestCount
+                          ? null
+                          : t("onlyMe"),
+                    collection.guestCount
+                      ? t("guests", { count: collection.guestCount })
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>,
                 collection,
               ),
             )}
             {collectionItem("none", t("none"), MARKER_TINT, noneCount)}
           </ul>
+          {leaveError && (
+            <p role="alert" className="px-2.5 pt-1 text-xs text-red-300">
+              {t("leaveError")}
+            </p>
+          )}
           <button
             type="button"
             onClick={() => setEditingCollection("new")}
@@ -415,6 +477,9 @@ export function MarkersView({
                       </span>
                     </span>
                     <time
+                      // L'heure du serveur et celle du navigateur diffèrent de
+                      // quelques secondes : « il y a 17 s » contre « 23 s ».
+                      suppressHydrationWarning
                       dateTime={marker.createdAt}
                       title={format.dateTime(new Date(marker.createdAt), {
                         dateStyle: "medium",
@@ -465,6 +530,19 @@ export function MarkersView({
           systems={systems}
           onClose={() => setEditing(null)}
           onSaved={reload}
+        />
+      )}
+      {sharing && (
+        <SharePanel
+          kind="markerCollection"
+          id={sharing.id}
+          open
+          onOpenChange={(open) => {
+            if (open) return;
+            setSharing(null);
+            // Le nombre d'invités de la colonne suit.
+            void reload();
+          }}
         />
       )}
       {editingCollection && (

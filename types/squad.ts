@@ -142,7 +142,16 @@ export const SQUAD_ROLE_ICON_GROUPS = [
   },
   {
     id: "trade",
-    icons: ["wrench", "hammer", "cog", "box", "truck", "hard-hat", "coins", "key"],
+    icons: [
+      "wrench",
+      "hammer",
+      "cog",
+      "box",
+      "truck",
+      "hard-hat",
+      "coins",
+      "key",
+    ],
   },
   {
     id: "marks",

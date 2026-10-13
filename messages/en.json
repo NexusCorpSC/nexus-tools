@@ -4427,7 +4427,8 @@
       "forbidden": "Only those who manage this can share it.",
       "notFound": "Not found.",
       "noLink": "This cannot be shared by link."
-    }
+    },
+    "introMarkerCollection": "Invited players see the markers in this collection, on the Star Map and in the NPS, and can navigate to them. Only you can edit them."
   },
   "Invitations": {
     "bell": "Invitations",
@@ -4440,7 +4441,10 @@
     "placeInvite": "<b>{name}</b> shares the private place <b>{title}</b> with you",
     "openEvent": "View event",
     "openPlace": "View place",
-    "decline": "Decline"
+    "decline": "Decline",
+    "markerCount": "{count, plural, =0 {Marker collection} one {# marker} other {# markers}}",
+    "markerCollectionInvite": "<b>{name}</b> shared the marker collection <b>{title}</b> with you",
+    "openMarkerCollection": "View the markers"
   },
   "Markers": {
     "title": "My markers",
@@ -4516,6 +4520,11 @@
       "forbidden": "Only its creator can change it.",
       "notMember": "You are not a member of this organization.",
       "tooMany": "You reached the limit: 1,000 markers and 50 collections per account."
-    }
+    },
+    "sharedByPlayer": "Shared by {owner}",
+    "guests": "{count, plural, one {# guest} other {# guests}}",
+    "shareCollection": "Invite players to the {name} collection",
+    "leaveCollection": "Stop seeing the {name} collection",
+    "leaveError": "The collection couldn't be removed. Try again."
   }
 }

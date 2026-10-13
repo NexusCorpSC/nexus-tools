@@ -7,6 +7,7 @@ import {
   BellIcon,
   CalendarDaysIcon,
   LockClosedIcon,
+  MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,7 +58,8 @@ export function InvitationsBell({
     }).catch(() => null);
     if (response?.ok) {
       setInvitations(
-        (current) => current?.filter((entry) => entry.id !== invitation.id) ?? null,
+        (current) =>
+          current?.filter((entry) => entry.id !== invitation.id) ?? null,
       );
     }
   }
@@ -78,6 +80,9 @@ export function InvitationsBell({
       ]
         .filter(Boolean)
         .join(" · ");
+    }
+    if (invitation.kind === "markerCollection") {
+      return t("markerCount", { count: invitation.markerCount ?? 0 });
     }
     return [
       invitation.placeType && tPlaces.has(`types.${invitation.placeType}`)
@@ -129,11 +134,15 @@ export function InvitationsBell({
                     "grid size-8 shrink-0 place-items-center rounded-lg",
                     invitation.kind === "event"
                       ? "bg-[#9ED0FF]/10 text-[#CCE7FF]"
-                      : "bg-[#c4b2ff]/10 text-[#c4b2ff]",
+                      : invitation.kind === "markerCollection"
+                        ? "bg-[#7ff0d0]/10 text-[#7ff0d0]"
+                        : "bg-[#c4b2ff]/10 text-[#c4b2ff]",
                   )}
                 >
                   {invitation.kind === "event" ? (
                     <CalendarDaysIcon className="size-4" />
+                  ) : invitation.kind === "markerCollection" ? (
+                    <MapPinIcon className="size-4" />
                   ) : (
                     <LockClosedIcon className="size-4" />
                   )}
@@ -141,11 +150,17 @@ export function InvitationsBell({
                 <div className="min-w-0 flex-1 space-y-1.5">
                   <p>
                     {t.rich(
-                      invitation.kind === "event" ? "eventInvite" : "placeInvite",
+                      invitation.kind === "event"
+                        ? "eventInvite"
+                        : invitation.kind === "markerCollection"
+                          ? "markerCollectionInvite"
+                          : "placeInvite",
                       {
                         name: invitation.invitedByName,
                         title: invitation.title,
-                        b: (chunks) => <b className="font-semibold">{chunks}</b>,
+                        b: (chunks) => (
+                          <b className="font-semibold">{chunks}</b>
+                        ),
                       },
                     )}
                   </p>
@@ -153,7 +168,11 @@ export function InvitationsBell({
                   <div className="flex flex-wrap gap-1.5">
                     <Button asChild size="sm" className="h-7">
                       <Link href={invitation.href}>
-                        {invitation.kind === "event" ? t("openEvent") : t("openPlace")}
+                        {invitation.kind === "event"
+                          ? t("openEvent")
+                          : invitation.kind === "markerCollection"
+                            ? t("openMarkerCollection")
+                            : t("openPlace")}
                       </Link>
                     </Button>
                     <Button

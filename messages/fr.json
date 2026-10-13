@@ -4426,7 +4426,8 @@
       "forbidden": "Seuls ceux qui gèrent ceci peuvent le partager.",
       "notFound": "Introuvable.",
       "noLink": "Ceci ne se partage pas par lien."
-    }
+    },
+    "introMarkerCollection": "Les joueurs invités voient les marqueurs de cette collection, sur la Star Map et dans le NPS, et s'y guident. Vous seul les modifiez."
   },
   "Invitations": {
     "bell": "Invitations",
@@ -4439,7 +4440,10 @@
     "placeInvite": "<b>{name}</b> partage le lieu privé <b>{title}</b> avec vous",
     "openEvent": "Voir l'évènement",
     "openPlace": "Voir le lieu",
-    "decline": "Refuser"
+    "decline": "Refuser",
+    "markerCount": "{count, plural, =0 {Collection de marqueurs} one {# marqueur} other {# marqueurs}}",
+    "markerCollectionInvite": "<b>{name}</b> partage la collection de marqueurs <b>{title}</b> avec vous",
+    "openMarkerCollection": "Voir les marqueurs"
   },
   "Markers": {
     "title": "Mes marqueurs",
@@ -4515,6 +4519,11 @@
       "forbidden": "Seul le créateur peut le modifier.",
       "notMember": "Vous n'êtes pas membre de cette organisation.",
       "tooMany": "Vous avez atteint la limite : 1 000 marqueurs et 50 collections par compte."
-    }
+    },
+    "sharedByPlayer": "Partagée par {owner}",
+    "guests": "{count, plural, one {# invité} other {# invités}}",
+    "shareCollection": "Inviter des joueurs sur la collection {name}",
+    "leaveCollection": "Ne plus voir la collection {name}",
+    "leaveError": "La collection n'a pas pu être retirée. Réessayez."
   }
 }

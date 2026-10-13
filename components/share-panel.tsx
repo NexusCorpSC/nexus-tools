@@ -28,7 +28,7 @@ import type {
 } from "@/types/shares";
 
 /**
- * Le panneau « Partager » d'un évènement ou d'un lieu privé : inviter un
+ * Le panneau « Partager » d'un évènement, d'un lieu privé ou d'une collection de marqueurs : inviter un
  * joueur (ses amis d'abord), voir qui a accès et le retirer, et pour un
  * évènement gérer le lien de partage. Le même pour tout ce qui se partage.
  */
@@ -140,7 +140,11 @@ export function SharePanel({
             {data ? t("title", { name: data.title }) : t("loading")}
           </DialogTitle>
           <DialogDescription>
-            {kind === "event" ? t("introEvent") : t("introPlace")}
+            {kind === "event"
+              ? t("introEvent")
+              : kind === "markerCollection"
+                ? t("introMarkerCollection")
+                : t("introPlace")}
           </DialogDescription>
         </DialogHeader>
 
@@ -374,7 +378,11 @@ function Guest({
               : "text-white/60",
         )}
       >
-        {share.via === "link" ? t("byLink") : share.seen ? t("seen") : t("unseen")}
+        {share.via === "link"
+          ? t("byLink")
+          : share.seen
+            ? t("seen")
+            : t("unseen")}
       </span>
       <button
         type="button"
