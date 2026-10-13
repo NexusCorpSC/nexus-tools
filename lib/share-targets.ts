@@ -18,12 +18,14 @@ import {
   myInvitations,
   removeShare,
   revokeLink,
+  searchShareCandidates,
   shares,
   userCards,
 } from "@/lib/shares";
 import type {
   Invitation,
   InvitationsResponse,
+  ShareCandidate,
   ShareKind,
   SharePanelData,
 } from "@/types/shares";
@@ -83,6 +85,19 @@ async function managed(
 
 function linkUrl(token: string): string {
   return `${siteBaseUrl()}/e/${token}`;
+}
+
+/**
+ * Qui inviter sur un objet : seul qui le gère voit qui y a déjà accès.
+ */
+export async function shareCandidates(
+  kind: ShareKind,
+  id: string,
+  userId: string,
+  query: string,
+): Promise<ShareCandidate[]> {
+  await managed(kind, id, userId);
+  return searchShareCandidates(userId, query, { kind, targetId: id });
 }
 
 /** Le panneau de partage : ses invités, son lien. */

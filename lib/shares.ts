@@ -201,7 +201,9 @@ export async function inviteToShare(
 
   if (!current) {
     const [count, today] = await Promise.all([
-      shares().countDocuments({ kind, targetId }),
+      // Ceux venus par le lien ont leur propre plafond : un lien qui circule
+      // n'empêche pas d'inviter.
+      shares().countDocuments({ kind, targetId, via: "invite" }),
       shares().countDocuments({
         invitedBy: inviterId,
         createdAt: { $gt: new Date(Date.now() - 86_400_000) },
@@ -357,13 +359,21 @@ export async function createLink(
 
 /**
  * Un joueur connecté ouvre le lien : il garde l'objet dans ses listes. Rien ne
- * change s'il y avait déjà accès par le partage.
+ * change s'il y avait déjà accès par le partage. `false` quand le lien a
+ * déjà son plein de joueurs : il n'est pas retenu.
  */
 export async function recordLinkVisit(
   kind: ShareKind,
   targetId: string,
   userId: string,
-): Promise<void> {
+): Promise<boolean> {
+  const current = await shares().findOne(
+    { kind, targetId, userId },
+    { projection: { _id: 1 } },
+  );
+  if (current) return true;
+  const count = await shares().countDocuments({ kind, targetId, via: "link" });
+  if (count >= MAX_SHARES_PER_TARGET) return false;
   try {
     await shares().updateOne(
       { kind, targetId, userId },
@@ -380,6 +390,7 @@ export async function recordLinkVisit(
   } catch (error) {
     if (duplicateOf(error) === null) throw error;
   }
+  return true;
 }
 
 // ─── Qui inviter ───────────────────────────────────────────────────────────

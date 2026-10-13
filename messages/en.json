@@ -4405,7 +4405,7 @@
       "copy": "Copying failed: select the link and copy it.",
       "self": "You already have access.",
       "userNotFound": "This player does not exist.",
-      "tooManyShares": "No more than 100 players per share.",
+      "tooManyShares": "No more than 100 guests per share.",
       "tooManyInvites": "You sent 50 invitations today. Try again tomorrow.",
       "forbidden": "Only those who manage this can share it.",
       "notFound": "Not found.",

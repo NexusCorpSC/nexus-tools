@@ -14,7 +14,10 @@ export function isShareKind(value: unknown): value is ShareKind {
 /** Invité par quelqu'un, ou venu par le lien de partage en étant connecté. */
 export type ShareVia = "invite" | "link";
 
-/** Joueurs qui ont un même objet par le partage, lien compris. */
+/**
+ * Joueurs invités sur un même objet ; autant au plus venus par son lien (au-delà,
+ * le lien se lit encore, sans garder l'objet dans ses listes).
+ */
 export const MAX_SHARES_PER_TARGET = 100;
 
 /** Invitations qu'un joueur envoie en 24 heures, tous objets confondus. */

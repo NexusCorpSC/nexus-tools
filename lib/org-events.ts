@@ -1251,10 +1251,13 @@ export async function openEventLink(
   if (!access) return { refusal: "not-found" };
   const href = `/orgs/${doc.orgId}/events/${link.targetId}`;
 
-  if (readerId) {
-    if (!access.isMember) {
-      await recordLinkVisit("event", link.targetId, readerId);
-    }
+  // Connecté, il garde l'évènement ; le lien plein, il le lit comme un
+  // visiteur anonyme.
+  if (
+    readerId &&
+    (access.isMember ||
+      (await recordLinkVisit("event", link.targetId, readerId)))
+  ) {
     return { redirect: href };
   }
 
