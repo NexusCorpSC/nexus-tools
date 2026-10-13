@@ -3782,7 +3782,8 @@
       "marketplace:write": "fill your cart, place and follow your orders, put items on sale and handle your shops' orders",
       "contributions:write": "submit contributions on your behalf (places, maps, items)",
       "markers:read": "read your position markers",
-      "markers:write": "create, edit and delete your position markers"
+      "markers:write": "create, edit and delete your position markers",
+      "players:read": "see where your friends and organization members in game are"
     },
     "warning": "An authorized application acts on your behalf. You can remove this access at any time in your settings.",
     "website": "Application website",
@@ -4056,7 +4057,8 @@
         "list_markers": "Reading your markers",
         "add_marker": "Creating the marker",
         "update_marker": "Editing the marker",
-        "delete_marker": "Deleting the marker"
+        "delete_marker": "Deleting the marker",
+        "list_players_in_game": "Looking for your friends in game"
       }
     },
     "errors": {
@@ -4277,7 +4279,8 @@
       "items": "Your items",
       "hint": "Click to zoom · Drag to turn · Right-drag to move · Scroll to zoom · Esc to go up",
       "private": "Private place",
-      "marker": "Marker"
+      "marker": "Marker",
+      "player": "Player in game"
     },
     "showPrivate": "Private places",
     "privateShared": "Private place · {org}",
@@ -4286,7 +4289,52 @@
     "markerType": "Marker · {kind}",
     "markerBy": "From {owner}, saved {when}",
     "markerSince": "Saved {when}",
-    "openMarkers": "My markers"
+    "openMarkers": "My markers",
+    "players": {
+      "toggle": "Players in game",
+      "friends": "Friends",
+      "you": "You",
+      "title": "In game",
+      "inSpace": "{system}, in space",
+      "me": "you",
+      "friend": "friend",
+      "kindMe": "Your position",
+      "kindFriend": "Player in game · friend",
+      "kindOrg": "Player in game · organization",
+      "activity": "Activity",
+      "playingSince": "{activity}, in game {since}",
+      "noActivity": "In game",
+      "where": "Where",
+      "reading": "Reading",
+      "sources": {
+        "screen": "screen tracking",
+        "showlocation": "/showlocation",
+        "paste": "typed in"
+      },
+      "fromYou": "From you",
+      "close": "Close",
+      "copy": "Copy coordinates",
+      "copied": "Copied",
+      "mySharing": "My position · shared",
+      "myPosition": "My position"
+    },
+    "myPosition": {
+      "title": "My position",
+      "hint": "Paste a /showlocation line or type X, Y, Z. Only your friends and the members of the organizations you tick see it, while you are in game. It is the same setting as in the Nexus App NPS.",
+      "system": "System",
+      "audience": "Who sees me",
+      "friends": "My friends",
+      "members": "{count, plural, one {# member} other {# members}}",
+      "playing": "You are in game. A typed position disappears after 30 min without a new one.",
+      "notPlaying": "You are not in game: sharing declares you in game until you stop.",
+      "stop": "Stop sharing",
+      "cancel": "Cancel",
+      "share": "Share this position",
+      "save": "Save",
+      "positionInvalid": "This position is incomplete.",
+      "positionRequired": "Enter your position to share it.",
+      "failed": "Saving failed. Try again."
+    }
   },
   "PrivatePlaces": {
     "addTitle": "Add a place",

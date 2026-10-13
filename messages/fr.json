@@ -3781,7 +3781,8 @@
       "marketplace:write": "remplir votre panier, passer et suivre vos commandes, mettre en vente et gérer les commandes de vos magasins",
       "contributions:write": "proposer des contributions en votre nom (lieux, plans, objets)",
       "markers:read": "lire vos marqueurs de position",
-      "markers:write": "créer, modifier et supprimer vos marqueurs de position"
+      "markers:write": "créer, modifier et supprimer vos marqueurs de position",
+      "players:read": "voir la position des amis et membres d'organisation en jeu"
     },
     "warning": "Une application autorisée agit en votre nom. Vous pourrez retirer cet accès à tout moment dans vos paramètres.",
     "website": "Site de l'application",
@@ -4055,7 +4056,8 @@
         "list_markers": "Lecture de vos marqueurs",
         "add_marker": "Création du marqueur",
         "update_marker": "Modification du marqueur",
-        "delete_marker": "Suppression du marqueur"
+        "delete_marker": "Suppression du marqueur",
+        "list_players_in_game": "Recherche de vos amis en jeu"
       }
     },
     "errors": {
@@ -4276,7 +4278,8 @@
       "items": "Vos objets",
       "hint": "Cliquer pour zoomer · Glisser pour tourner · Clic droit pour déplacer · Molette pour zoomer · Échap pour remonter",
       "private": "Lieu privé",
-      "marker": "Marqueur"
+      "marker": "Marqueur",
+      "player": "Joueur en jeu"
     },
     "showPrivate": "Lieux privés",
     "privateShared": "Lieu privé · {org}",
@@ -4285,7 +4288,52 @@
     "markerType": "Marqueur · {kind}",
     "markerBy": "De {owner}, relevé {when}",
     "markerSince": "Relevé {when}",
-    "openMarkers": "Mes marqueurs"
+    "openMarkers": "Mes marqueurs",
+    "players": {
+      "toggle": "Joueurs en jeu",
+      "friends": "Amis",
+      "you": "Vous",
+      "title": "En jeu",
+      "inSpace": "{system}, dans l'espace",
+      "me": "vous",
+      "friend": "ami",
+      "kindMe": "Votre position",
+      "kindFriend": "Joueur en jeu · ami",
+      "kindOrg": "Joueur en jeu · organisation",
+      "activity": "Activité",
+      "playingSince": "{activity}, en jeu {since}",
+      "noActivity": "En jeu",
+      "where": "Où",
+      "reading": "Relevé",
+      "sources": {
+        "screen": "suivi à l'écran",
+        "showlocation": "/showlocation",
+        "paste": "saisi à la main"
+      },
+      "fromYou": "De vous",
+      "close": "Fermer",
+      "copy": "Copier les coordonnées",
+      "copied": "Copié",
+      "mySharing": "Ma position · partagée",
+      "myPosition": "Ma position"
+    },
+    "myPosition": {
+      "title": "Ma position",
+      "hint": "Collez une ligne /showlocation ou saisissez X, Y, Z. Seuls vos amis et les membres des organisations cochées la voient, pendant que vous êtes en jeu. C'est le même réglage que dans le NPS de Nexus App.",
+      "system": "Système",
+      "audience": "Qui me voit",
+      "friends": "Mes amis",
+      "members": "{count, plural, one {# membre} other {# membres}}",
+      "playing": "Vous êtes en jeu. Une position saisie à la main disparaît après 30 min sans nouvelle saisie.",
+      "notPlaying": "Vous n'êtes pas en jeu : partager vous déclare en jeu jusqu'à ce que vous arrêtiez.",
+      "stop": "Ne plus partager",
+      "cancel": "Annuler",
+      "share": "Partager cette position",
+      "save": "Enregistrer",
+      "positionInvalid": "Cette position est incomplète.",
+      "positionRequired": "Indiquez votre position pour la partager.",
+      "failed": "L'enregistrement a échoué. Réessayez."
+    }
   },
   "PrivatePlaces": {
     "addTitle": "Ajouter un lieu",

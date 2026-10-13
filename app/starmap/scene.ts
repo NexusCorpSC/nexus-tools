@@ -16,6 +16,7 @@ import {
   SYSTEM_LOOK,
   markerShape,
   type LaidOutPlace,
+  type StarMapPlayer,
   type StarMapSystem,
 } from "@/lib/star-map-layout";
 
@@ -25,6 +26,8 @@ export type StarMapScene = {
   /** Le nombre de lots sous chaque lieu, pour les pastilles. */
   setCounts(counts: Map<string, number>): void;
   setOutposts(visible: boolean): void;
+  /** Les joueurs en jeu, à leur dernière position ; remplace les précédents. */
+  setPlayers(players: StarMapPlayer[], selected: string | null): void;
   /** La place que le panneau prend à droite et en bas, en pixels. */
   setInset(right: number, bottom: number): void;
   dispose(): void;
@@ -36,6 +39,8 @@ type Options = {
   places: Map<string, LaidOutPlace>;
   typeLabel: (place: LaidOutPlace) => string;
   onSelect: (slug: string | null) => void;
+  /** Un clic sur un joueur, par son id. */
+  onPlayer: (id: string) => void;
 };
 
 /** Une couleur prise telle quelle, sans conversion : les shaders écrivent en sRGB. */
@@ -211,6 +216,7 @@ export function createStarMap({
   places,
   typeLabel,
   onSelect,
+  onPlayer,
 }: Options): StarMapScene {
   const V = THREE.Vector3;
   const world = (place: LaidOutPlace) => new V(...place.world!);
@@ -664,6 +670,58 @@ export function createStarMap({
     labelList.push(label);
     labelBySlug.set(place.slug, label);
   }
+  // ── Joueurs : leurs étiquettes vivent à part, remplacées à chaque relevé ──
+  type PlayerLabel = {
+    el: HTMLElement;
+    player: StarMapPlayer;
+    shown: boolean;
+    x: number;
+    y: number;
+  };
+  let playerLabels: PlayerLabel[] = [];
+  function setPlayers(players: StarMapPlayer[], selected: string | null) {
+    const previous = new Map(
+      playerLabels.map((label) => [label.player.id, label]),
+    );
+    playerLabels = players.map((player) => {
+      let label = previous.get(player.id);
+      previous.delete(player.id);
+      if (!label) {
+        const element = document.createElement("button");
+        element.type = "button";
+        const avatar = document.createElement("i");
+        avatar.className = "star-map-player";
+        const text = document.createElement("span");
+        text.className = "star-map-text";
+        element.append(avatar, text);
+        element.addEventListener("click", (event) => {
+          event.stopPropagation();
+          onPlayer(label!.player.id);
+        });
+        labels.appendChild(element);
+        label = { el: element, player, shown: false, x: 0, y: 0 };
+      }
+      label.player = player;
+      const element = label.el;
+      element.className =
+        `star-map-label player ${player.kind}` +
+        (player.stale ? " stale" : "") +
+        (player.id === selected ? " selected" : "") +
+        " hidden";
+      element.setAttribute("aria-label", player.label);
+      const avatar = element.firstElementChild as HTMLElement;
+      avatar.textContent = player.avatar
+        ? ""
+        : (player.name.trim()[0] ?? "?").toUpperCase();
+      avatar.style.backgroundImage = player.avatar
+        ? `url("${player.avatar.replace(/"/g, "%22")}")`
+        : "";
+      (element.lastElementChild as HTMLElement).textContent = player.name;
+      return label;
+    });
+    previous.forEach((label) => label.el.remove());
+  }
+
   /** Une station posée dans le vide du système, loin de tout corps. */
   function isSpacePoint(place: LaidOutPlace) {
     const body = drawnBody(place);
@@ -970,6 +1028,63 @@ export function createStarMap({
       if (label.shown)
         label.el.style.transform = `translate(${label.x.toFixed(1)}px, ${(label.y - 10).toFixed(1)}px)`;
     }
+    for (const label of playerLabels) {
+      const player = label.player;
+      let show =
+        focusSlug === null ||
+        visible.has(player.anchor) ||
+        player.anchor === focusSlug ||
+        player.anchor === get(focusSlug)?.system;
+      if (show && player.normal) {
+        toCamera.copy(camera.position).sub(new V(...player.world));
+        const normal = new V(...player.normal);
+        if (toCamera.dot(normal) < 0.02 * toCamera.length()) show = false;
+      }
+      let x = 0;
+      let y = 0;
+      if (show) {
+        projected.set(...player.world).project(camera);
+        x = (projected.x * 0.5 + 0.5) * width;
+        y = (-projected.y * 0.5 + 0.5) * height;
+        if (
+          projected.z > 1 ||
+          x < -50 ||
+          x > width + 50 ||
+          y < -20 ||
+          y > height + 20
+        )
+          show = false;
+      }
+      label.shown = show;
+      label.x = x;
+      label.y = y;
+    }
+    // Deux joueurs côte à côte (une sortie minage) : le second se décale vers
+    // le bas, pour que chaque nom se lise.
+    const shownPlayers = playerLabels
+      .filter((label) => label.shown)
+      .sort((a, b) => a.y - b.y || a.x - b.x);
+    const taken: { x: number; y: number }[] = [];
+    for (const label of shownPlayers) {
+      let y = label.y;
+      for (let tries = 0; tries < 6; tries++) {
+        const hit = taken.find(
+          (other) =>
+            Math.abs(other.y - y) < 24 && Math.abs(other.x - label.x) < 90,
+        );
+        if (!hit) break;
+        y = hit.y + 26;
+      }
+      label.y = y;
+      taken.push({ x: label.x, y });
+    }
+    for (const label of playerLabels) {
+      label.el.classList.toggle("hidden", !label.shown);
+      label.el.classList.toggle("compact", focusSlug === null);
+      label.el.tabIndex = label.shown ? 0 : -1;
+      if (label.shown)
+        label.el.style.transform = `translate(${(label.x - 11).toFixed(1)}px, ${(label.y - 11).toFixed(1)}px)`;
+    }
     for (const cloud of surfaceClouds) {
       cloud.visible = showOutposts || cloud.userData.body === focusSlug;
     }
@@ -1072,6 +1187,7 @@ export function createStarMap({
     setOutposts(visible) {
       showOutposts = visible;
     },
+    setPlayers,
     setInset(right, bottom) {
       inset = { right, bottom };
       resize();
@@ -1083,6 +1199,7 @@ export function createStarMap({
       canvas.removeEventListener("pointerup", onUp);
       labels.removeEventListener("wheel", onLabelWheel);
       labelList.forEach((label) => label.el.remove());
+      playerLabels.forEach((label) => label.el.remove());
       disposables.forEach((thing) => thing.dispose());
     },
   };

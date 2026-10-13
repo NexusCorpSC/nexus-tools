@@ -128,7 +128,7 @@ async function ensureMarketplace(database: Db) {
 /**
  * Une déclaration et une session prévue par utilisateur, tenues par la base ;
  * et leur échéance, que chaque lecture d'une organisation filtre avec ses
- * membres.
+ * membres. Et la position que chacun partage pendant sa session.
  */
 async function ensurePresences(database: Db) {
   const presences = database.collection("presences");
@@ -138,6 +138,21 @@ async function ensurePresences(database: Db) {
   const planned = database.collection("plannedSessions");
   await planned.createIndex({ userId: 1 }, { unique: true });
   await planned.createIndex({ expiresAt: 1 });
+
+  // Le suivi de position : un réglage et une position par joueur. La position
+  // s'efface d'elle-même trente minutes après son relevé.
+  const sharing = database.collection("positionSharing");
+  await sharing.createIndex({ userId: 1 }, { unique: true });
+  await sharing.createIndex(
+    { orgIds: 1 },
+    {
+      name: "positionSharing_orgs",
+      partialFilterExpression: { enabled: true },
+    },
+  );
+  const positions = database.collection("playerPositions");
+  await positions.createIndex({ userId: 1 }, { unique: true });
+  await positions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 }
 
 // ─── Évènements d'organisation ───────────────────────────────────────────────
