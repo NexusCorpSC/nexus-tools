@@ -1920,7 +1920,8 @@
       "signIn": "Connectez-vous pour vous inscrire.",
       "showAsPlanned": "L'afficher comme ma prochaine session",
       "shownAsPlanned": "Ajouté à votre statut comme session prévue. Vos amis et l'orga le voient.",
-      "squadReady": "L'escouade de l'évènement est prête : l'ouvrir"
+      "squadReady": "L'escouade de l'évènement est prête : l'ouvrir",
+      "signInButton": "Se connecter"
     },
     "Summary": {
       "title": "Résumé de l'organisateur",
@@ -1986,8 +1987,23 @@
       "noMatchText": "Réaffichez une organisation ou décochez « Seulement mes inscriptions ».",
       "planFor": "Pour quelle organisation ?",
       "month": "Le mois",
-      "monthAndFilters": "Le mois et les filtres"
-    }
+      "monthAndFilters": "Le mois et les filtres",
+      "invited": "Invitations"
+    },
+    "share": "Partager",
+    "guestLinkTitle": "Lien de partage",
+    "guestInviteTitle": "Invitation",
+    "guestLinkBy": "{name} vous a partagé cet évènement de {org}.",
+    "guestLink": "vous voyez cet évènement de {org} grâce à un lien de partage.",
+    "guestInvite": "vous êtes invité à cet évènement de {org}.",
+    "listSignIn": "Connectez-vous pour voir qui vient.",
+    "linkRevokedTitle": "Ce lien n'est plus actif",
+    "linkUnknownTitle": "Ce lien n'existe pas",
+    "linkDeadHint": "L'organisateur l'a peut-être désactivé ou remplacé. Demandez-lui un nouveau lien ou une invitation.",
+    "communityEvents": "Évènements de la communauté",
+    "invitedBy": "Invité par {name}",
+    "viaLink": "Par un lien",
+    "invited": "Invité"
   },
   "NewOrganization": {
     "title": "Nouvelle organisation",
@@ -4342,6 +4358,70 @@
     "cardOwn": "Moi seul",
     "cardInReview": "En relecture",
     "cardMine": "Le vôtre",
-    "cardBy": "Par {name}"
+    "cardBy": "Par {name}",
+    "cardShared": "Partagé avec moi",
+    "cardGuests": "{count, plural, one {# invité} other {# invités}}",
+    "sharedWithYou": "partagé avec vous par {name}",
+    "visibleOwnGuests": "Visible de vous et {count, plural, one {d'un joueur invité} other {de # joueurs invités}}",
+    "plusGuests": ", et {count, plural, one {d'un joueur invité} other {de # joueurs invités}}",
+    "leave": "Ne plus voir"
+  },
+  "Share": {
+    "title": "Partager « {name} »",
+    "loading": "Partage",
+    "introEvent": "Invitez des joueurs hors de l'organisation, ou partagez un lien : ceux qui l'ont voient l'évènement et peuvent s'inscrire.",
+    "introPlace": "Les joueurs invités voient ce lieu, s'y guident et y rangent leurs objets. Vous seul le modifiez.",
+    "invite": "Inviter un joueur",
+    "searchPlaceholder": "Pseudo d'un joueur ou d'un ami",
+    "friend": "Ami",
+    "hasAccess": "A accès",
+    "inviteButton": "Inviter",
+    "noMatch": "Aucun joueur de ce nom.",
+    "haveAccess": "Ont accès",
+    "orgMembers": "Les membres de {org}",
+    "memberCount": "{count, plural, one {# membre} other {# membres}}",
+    "changeOrg": "Changer",
+    "noOrg": "Aucune organisation",
+    "pickOrg": "Choisir une organisation",
+    "nobody": "Personne d'autre pour l'instant.",
+    "link": "Lien de partage",
+    "copy": "Copier",
+    "copied": "Copié",
+    "linkHint": "Toute personne qui a ce lien voit l'évènement. Connectée, elle peut s'inscrire et le retrouve dans ses évènements.",
+    "newLink": "Nouveau lien",
+    "disableLink": "Désactiver le lien",
+    "disableHint": "Désactiver le lien retire l'accès à ceux venus par lui qui ne sont pas inscrits. Un nouveau lien fait de même et donne une autre adresse.",
+    "noLink": "Aucun lien actif.",
+    "createLink": "Créer un lien de partage",
+    "cameByLink": "ouvert le {date, date, short}",
+    "invitedBy": "invité par {name}",
+    "byLink": "par le lien",
+    "seen": "vu",
+    "unseen": "pas encore vu",
+    "remove": "Retirer {name}",
+    "errors": {
+      "unknown": "Une erreur est survenue. Réessayez.",
+      "copy": "La copie a échoué : sélectionnez le lien et copiez-le.",
+      "self": "Vous avez déjà accès.",
+      "userNotFound": "Ce joueur n'existe pas.",
+      "tooManyShares": "Pas plus de 100 joueurs par partage.",
+      "tooManyInvites": "Vous avez envoyé 50 invitations aujourd'hui. Réessayez demain.",
+      "forbidden": "Seuls ceux qui gèrent ceci peuvent le partager.",
+      "notFound": "Introuvable.",
+      "noLink": "Ceci ne se partage pas par lien."
+    }
+  },
+  "Invitations": {
+    "bell": "Invitations",
+    "bellUnseen": "{count, plural, one {# nouvelle invitation} other {# nouvelles invitations}}",
+    "title": "Invitations",
+    "loading": "Chargement…",
+    "empty": "Aucune invitation pour l'instant.",
+    "error": "Les invitations n'ont pas pu être chargées.",
+    "eventInvite": "<b>{name}</b> vous invite à <b>{title}</b>",
+    "placeInvite": "<b>{name}</b> partage le lieu privé <b>{title}</b> avec vous",
+    "openEvent": "Voir l'évènement",
+    "openPlace": "Voir le lieu",
+    "decline": "Refuser"
   }
 }

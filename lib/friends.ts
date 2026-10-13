@@ -302,6 +302,13 @@ async function friendEntries(readerId: ObjectId) {
   }));
 }
 
+/** Les ids de ses amis, sans rien d'autre : proposer qui inviter. */
+export async function friendIdsOf(readerId: ObjectId): Promise<string[]> {
+  return (await friendEntries(readerId)).map((entry) =>
+    entry.userId.toHexString(),
+  );
+}
+
 export async function listFriends(readerId: ObjectId): Promise<Friend[]> {
   const friends = await describe(readerId, await friendEntries(readerId));
   return friends.sort(byPresenceThenName);

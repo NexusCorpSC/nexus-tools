@@ -9,6 +9,7 @@ import {
   recomputeSubtree,
 } from "@/lib/places";
 import { BLOB_HOST } from "@/lib/contribution-store";
+import { forgetTarget, shareCounts, sharedWith } from "@/lib/shares";
 import {
   MAX_PLACE_NAME_LENGTH,
   type Place,
@@ -37,6 +38,10 @@ import {
  * partagé avec une organisation n'est visible de ses membres que tant que son
  * créateur en fait partie. Le créateur qui la quitte retrouve un lieu « à lui
  * seul » sans que rien ne soit effacé.
+ *
+ * Son créateur peut aussi l'ouvrir à des joueurs précis, invités par le
+ * partage commun (`lib/shares.ts`, `kind: "place"`, le slug pour id) : ils le
+ * voient et y rangent leurs objets comme les membres de l'organisation.
  *
  * Chaque lieu privé a sa ligne dans `locations`, la collection où l'inventaire
  * range ses lots : `privatePlaceSlug` la relie à lui. C'est elle que les
@@ -89,6 +94,8 @@ type OrgInfo = {
 type Viewer = {
   userId: string;
   orgs: Map<string, OrgInfo>;
+  /** Les lieux où un joueur l'a invité, par slug. */
+  invited: Set<string>;
 };
 
 function toOrgInfo(org: {
@@ -108,6 +115,7 @@ function toOrgInfo(org: {
 }
 
 async function getViewer(userId: string): Promise<Viewer> {
+  const invited = sharedWith("place", userId);
   const found = ObjectId.isValid(userId)
     ? await organizations()
         .find(
@@ -120,6 +128,7 @@ async function getViewer(userId: string): Promise<Viewer> {
   return {
     userId,
     orgs: new Map(found.map((org) => [String(org._id), toOrgInfo(org)])),
+    invited: new Set((await invited).map((share) => share.targetId)),
   };
 }
 
@@ -156,11 +165,12 @@ function candidateFilter(viewer: Viewer): Filter<Place> {
     $or: [
       { "privacy.ownerId": viewer.userId },
       { "privacy.orgId": { $in: [...viewer.orgs.keys()] } },
+      { slug: { $in: [...viewer.invited] } },
     ],
   };
 }
 
-type Visible = { doc: DbPrivatePlace; org: OrgInfo | null };
+type Visible = { doc: DbPrivatePlace; org: OrgInfo | null; invited: boolean };
 
 async function visibleDocs(
   viewer: Viewer,
@@ -177,8 +187,9 @@ async function visibleDocs(
   const visible: Visible[] = [];
   for (const doc of docs) {
     const org = await effectiveOrg(doc, viewer, cache);
-    if (doc.privacy.ownerId === viewer.userId || org) {
-      visible.push({ doc, org });
+    const invited = viewer.invited.has(doc.slug);
+    if (doc.privacy.ownerId === viewer.userId || org || invited) {
+      visible.push({ doc, org, invited });
     }
   }
   return visible;
@@ -186,13 +197,13 @@ async function visibleDocs(
 
 /**
  * Les lieux privés qu'un joueur voit sans en être le créateur : ceux de ses
- * organisations. Par slug, pour l'inventaire.
+ * organisations et ceux où on l'a invité. Par slug, pour l'inventaire.
  */
 export async function sharedPrivatePlaceSlugs(
   userId: string,
 ): Promise<string[]> {
   const viewer = await getViewer(userId);
-  if (viewer.orgs.size === 0) return [];
+  if (viewer.orgs.size === 0 && viewer.invited.size === 0) return [];
   const docs = await visibleDocs(viewer, {
     "privacy.ownerId": { $ne: userId },
   });
@@ -254,15 +265,21 @@ async function summarize(
   viewer: Viewer,
 ): Promise<PrivatePlaceSummary[]> {
   const docs = entries.map((entry) => entry.doc);
-  const [statuses, names] = await Promise.all([
+  const [statuses, names, guests] = await Promise.all([
     proposalsOf(docs),
     ownerNames(
       docs
         .filter((doc) => doc.privacy.ownerId !== viewer.userId)
         .map((doc) => doc.privacy.ownerId),
     ),
+    shareCounts(
+      "place",
+      docs
+        .filter((doc) => doc.privacy.ownerId === viewer.userId)
+        .map((doc) => doc.slug),
+    ),
   ]);
-  return entries.map(({ doc, org }) => {
+  return entries.map(({ doc, org, invited }) => {
     const { proposalId, ownerId, locationId } = doc.privacy;
     const status = proposalId ? statuses.get(proposalId) : undefined;
     return withoutUndefined({
@@ -280,6 +297,9 @@ async function summarize(
       org: toOrg(org),
       isOwner: ownerId === viewer.userId,
       ownerName: names.get(ownerId),
+      sharedWithMe: ownerId !== viewer.userId && invited ? true : undefined,
+      guestCount:
+        ownerId === viewer.userId ? (guests.get(doc.slug) ?? 0) : undefined,
       locationId,
       proposal:
         proposalId && status
@@ -362,9 +382,10 @@ export async function getPrivatePlace(
   if (!doc) return null;
   const viewer = await getViewer(userId);
   const org = await effectiveOrg(doc, viewer);
-  if (doc.privacy.ownerId !== userId && !org) return null;
+  const invited = viewer.invited.has(doc.slug);
+  if (doc.privacy.ownerId !== userId && !org && !invited) return null;
 
-  const [summary] = await summarize([{ doc, org }], viewer);
+  const [summary] = await summarize([{ doc, org, invited }], viewer);
   const ancestors = await places()
     .find(
       { slug: { $in: doc.ancestorSlugs ?? [] } },
@@ -623,9 +644,10 @@ async function ownedDoc(userId: string, slug: string): Promise<DbPrivatePlace> {
   const doc = await findPrivate(slug);
   if (!doc) throw new PrivatePlaceError("notFound", 404);
   if (doc.privacy.ownerId !== userId) {
-    // Un membre qui le voit sait qu'il existe ; les autres non.
-    const org = await effectiveOrg(doc, await getViewer(userId));
-    throw org
+    // Un membre ou un invité qui le voit sait qu'il existe ; les autres non.
+    const viewer = await getViewer(userId);
+    const org = await effectiveOrg(doc, viewer);
+    throw org || viewer.invited.has(slug)
       ? new PrivatePlaceError("forbidden", 403)
       : new PrivatePlaceError("notFound", 404);
   }
@@ -709,6 +731,7 @@ export async function deletePrivatePlace(
     },
   );
   await places().deleteOne({ slug, ...PRIVATE });
+  await forgetTarget("place", slug);
 }
 
 // ─── Passage au public ─────────────────────────────────────────────────────
@@ -766,6 +789,8 @@ export async function adoptPublishedPlace(
     );
   }
   await places().deleteOne({ slug: doc.slug, ...PRIVATE });
+  // Public, il n'a plus d'invités : tout le monde le voit.
+  await forgetTarget("place", doc.slug);
 }
 
 /** Pour la proposition : le lieu brut, à son créateur seul. */
@@ -774,4 +799,40 @@ export async function getOwnedPrivatePlace(
   slug: string,
 ): Promise<DbPrivatePlace> {
   return ownedDoc(userId, slug);
+}
+
+/** Pour le partage : le lieu, s'il le voit, et s'il en est le créateur. */
+export async function placeShareTarget(
+  slug: string,
+  userId: string,
+): Promise<{
+  name: string;
+  isOwner: boolean;
+  org: PrivatePlaceOrg | null;
+  /** Une ligne de contexte pour l'invitation : le type et le parent. */
+  type: PrivatePlaceType;
+  parentName?: string;
+} | null> {
+  const place = await getPrivatePlace(userId, slug);
+  if (!place) return null;
+  return {
+    name: place.name,
+    isOwner: place.isOwner,
+    org: place.org ?? null,
+    type: place.type,
+    parentName: place.parentName,
+  };
+}
+
+/** Des lieux privés par slug, sans contrôle : décrire des invitations reçues. */
+export async function privatePlacesBySlugs(
+  slugs: string[],
+): Promise<DbPrivatePlace[]> {
+  if (slugs.length === 0) return [];
+  return (await places()
+    .find(
+      { slug: { $in: slugs }, ...PRIVATE },
+      { projection: { _id: 0, slug: 1, name: 1, type: 1, parentName: 1, privacy: 1 } },
+    )
+    .toArray()) as DbPrivatePlace[];
 }

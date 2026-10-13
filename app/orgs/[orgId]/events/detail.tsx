@@ -11,13 +11,16 @@ import {
   ClipboardList,
   MapPin,
   MoreHorizontal,
+  Link2,
   Pencil,
+  Share2,
   Trash2,
   User,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { SharePanel } from "@/components/share-panel";
 import {
   Popover,
   PopoverContent,
@@ -58,14 +61,21 @@ export function EventDetail({
   initial,
   signedIn,
   orgName,
+  sharedByName,
+  signInHref,
 }: {
   initial: OrgEventView;
   signedIn: boolean;
   orgName: string;
+  /** Ouvert par un lien de partage sans compte : qui l'a partagé. */
+  sharedByName?: string | null;
+  /** Où se connecter pour revenir ici ; la page de connexion par défaut. */
+  signInHref?: string;
 }) {
   const t = useTranslations("OrgEvents");
   const router = useRouter();
   const [event, setEvent] = useState(initial);
+  const [sharing, setSharing] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
   const now = useNow();
   const countdown = useCountdown();
@@ -112,7 +122,15 @@ export function EventDetail({
           </h1>
         </div>
         {event.canManage ? (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              className="border-[#7fe3f0]/45 bg-[#7fe3f0]/10 text-[#7fe3f0] hover:bg-[#7fe3f0]/20"
+              onClick={() => setSharing(true)}
+            >
+              <Share2 className="size-4" />
+              {t("share")}
+            </Button>
             <Button variant="outline" asChild>
               <Link href={`/orgs/${event.orgId}/events/${event.id}/summary`}>
                 <ClipboardList className="size-4" />
@@ -155,6 +173,36 @@ export function EventDetail({
         <p className="text-sm text-red-300">{t("deleteError")}</p>
       ) : null}
 
+      {event.guest ? (
+        <div className="flex items-center gap-3 rounded-xl border border-[#7fe3f0]/40 bg-[#7fe3f0]/10 px-4 py-3 text-sm">
+          {event.guest === "link" ? (
+            <Link2 className="size-5 shrink-0 text-[#7fe3f0]" />
+          ) : (
+            <Users className="size-5 shrink-0 text-[#7fe3f0]" />
+          )}
+          <p className="min-w-0">
+            <b className="text-[#7fe3f0]">
+              {event.guest === "link" ? t("guestLinkTitle") : t("guestInviteTitle")}
+            </b>{" "}
+            ·{" "}
+            {event.guest === "link"
+              ? sharedByName
+                ? t("guestLinkBy", { name: sharedByName, org: orgName })
+                : t("guestLink", { org: orgName })
+              : t("guestInvite", { org: orgName })}
+          </p>
+        </div>
+      ) : null}
+
+      {event.canManage ? (
+        <SharePanel
+          kind="event"
+          id={event.id}
+          open={sharing}
+          onOpenChange={setSharing}
+        />
+      ) : null}
+
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <main className="min-w-0 space-y-7">
           <Facts event={event} />
@@ -179,6 +227,7 @@ export function EventDetail({
           <RegistrationPanel
             event={event}
             signedIn={signedIn}
+            signInHref={signInHref}
             ended={status?.state === "over"}
             onChange={setEvent}
           />
@@ -356,7 +405,9 @@ function WhoComes({ event }: { event: OrgEventView }) {
       </div>
 
       {!event.canRegister && event.registrationCount > 0 ? (
-        <p className="text-sm text-white/65">{t("listMembersOnly")}</p>
+        <p className="text-sm text-white/65">
+          {event.guest ? t("listSignIn") : t("listMembersOnly")}
+        </p>
       ) : null}
 
       {event.roles.length === 0 ? (
@@ -429,11 +480,13 @@ function WhoComes({ event }: { event: OrgEventView }) {
 function RegistrationPanel({
   event,
   signedIn,
+  signInHref,
   ended,
   onChange,
 }: {
   event: OrgEventView;
   signedIn: boolean;
+  signInHref?: string;
   ended: boolean;
   onChange: (view: OrgEventView) => void;
 }) {
@@ -465,6 +518,11 @@ function RegistrationPanel({
               ? tEvents("membersOnly")
               : t("signIn")}
         </p>
+        {!ended && !signedIn ? (
+          <Button asChild className={primaryButton}>
+            <Link href={signInHref ?? "/login"}>{t("signInButton")}</Link>
+          </Button>
+        ) : null}
       </div>
     );
   }

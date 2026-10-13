@@ -1,6 +1,6 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-import { BellIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
+import { ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/react/16/solid";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
@@ -15,6 +15,8 @@ import { headers } from "next/headers";
 import { countFriendsPlaying } from "@/lib/friends";
 import { getMyBadge } from "@/lib/gamification";
 import { countCartItems } from "@/lib/cart";
+import { countUnseenInvitations } from "@/lib/shares";
+import { InvitationsBell } from "@/components/invitations-bell";
 
 const userNavigation = [
   { name: "myProfile", href: "/profile" },
@@ -59,13 +61,14 @@ export default async function Topbar() {
         .findOne({ _id: new ObjectId(session?.user?.id) })
     : null;
 
-  const [friendsPlaying, badge, cartCount] = user
+  const [friendsPlaying, badge, cartCount, unseenInvitations] = user
     ? await Promise.all([
         countFriendsPlaying(user._id),
         getMyBadge(user._id),
         countCartItems(user._id),
+        countUnseenInvitations(String(user._id)),
       ])
-    : [0, null, 0];
+    : [0, null, 0, 0];
 
   return (
     <header className="relative z-40 border-b border-[#9ED0FF]/15 bg-gray-800">
@@ -153,10 +156,10 @@ export default async function Topbar() {
             {/* Scratch pad, opens a side panel from the right */}
             <ScratchPadPanel />
 
-            <button type="button" className={`${iconButton} max-lg:hidden`}>
-              <span className="sr-only">{t("readNotifications")}</span>
-              <BellIcon aria-hidden="true" className="size-5.5" />
-            </button>
+            <InvitationsBell
+              initialUnseen={unseenInvitations}
+              className={iconButton}
+            />
 
             <Menu as="div" className="relative hidden shrink-0 md:block">
               <MenuButton className="relative flex rounded-full border border-[#9ED0FF]/20 bg-[#0B3A5A]/60 text-sm text-[#CCE7FF] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#9ED0FF]/60">

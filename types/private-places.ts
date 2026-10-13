@@ -77,6 +77,10 @@ export type PrivatePlaceSummary = {
   /** Celui qui lit en est le créateur : lui seul le modifie. */
   isOwner: boolean;
   ownerName?: string;
+  /** Son créateur a invité celui qui lit : « partagé par {ownerName} ». */
+  sharedWithMe?: true;
+  /** Pour son créateur : combien de joueurs il a invités. */
+  guestCount?: number;
   /** La ligne de l'inventaire où ranger des objets dans ce lieu. */
   locationId: string;
   proposal?: PrivatePlaceProposal;
