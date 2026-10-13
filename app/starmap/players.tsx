@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useState,
   useSyncExternalStore,
@@ -126,9 +127,13 @@ export function PlayerAvatar({
 /** Où il est, en mots : son corps, sinon l'espace de son système. */
 export function usePlaceOf() {
   const t = useTranslations("StarMap.players");
-  return (player: PlayerInGame) =>
-    player.bodyName ??
-    t("inSpace", { system: player.systemName ?? player.systemSlug });
+  // Stable : la Star Map en dépend pour ne replacer les joueurs qu'à bon escient.
+  return useCallback(
+    (player: PlayerInGame) =>
+      player.bodyName ??
+      t("inSpace", { system: player.systemName ?? player.systemSlug }),
+    [t],
+  );
 }
 
 /**
