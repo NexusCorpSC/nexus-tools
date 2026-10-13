@@ -87,6 +87,14 @@ function collection() {
   return db.db().collection<PlaceDbModel>(COLLECTION);
 }
 
+/**
+ * Les lieux du catalogue, sans les lieux privés (`privacy`, voir
+ * `lib/private-places.ts`), qui vivent dans la même collection. Toute lecture
+ * publique le porte : un lieu privé ne se montre qu'à qui le voit, et ne
+ * compte ni dans les enfants ni dans les magasins de son parent.
+ */
+export const PUBLIC_PLACES = { privacy: { $exists: false } } as const;
+
 function isDuplicateKeyError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -641,6 +649,8 @@ type TreeNode = {
   type: PlaceType;
   parentSlug?: string;
   planSize: number;
+  /** Un lieu privé : il hérite de l'arbre, mais n'y compte pas. */
+  isPrivate: boolean;
   ancestorSlugs?: string[];
   depth?: number;
   path?: string;
@@ -683,7 +693,12 @@ async function loadNodes(match: Filter<PlaceDbModel>): Promise<TreeNode[]> {
       { $match: match },
       // `plans` pèse quelques kilo-octets par lieu : on n'en ramène que la
       // taille, qui est tout ce que le recalcul a besoin de savoir.
-      { $addFields: { planSize: { $size: { $ifNull: ["$plans", []] } } } },
+      {
+        $addFields: {
+          planSize: { $size: { $ifNull: ["$plans", []] } },
+          isPrivate: { $ne: [{ $type: "$privacy" }, "missing"] },
+        },
+      },
       {
         $project: {
           _id: 0,
@@ -692,6 +707,7 @@ async function loadNodes(match: Filter<PlaceDbModel>): Promise<TreeNode[]> {
           type: 1,
           parentSlug: 1,
           planSize: 1,
+          isPrivate: 1,
           ancestorSlugs: 1,
           depth: 1,
           path: 1,
@@ -814,12 +830,13 @@ async function rebuild(
         systemName: isStar ? node.name : inherited.systemName,
         bodySlug: isBody ? node.slug : inherited.bodySlug,
         bodyName: isBody ? node.name : inherited.bodyName,
-        childCount: children.length,
+        childCount: children.filter((child) => !child.isPrivate).length,
         shopCount: shopsBelow,
         planCount: node.planSize,
       },
     });
 
+    if (node.isPrivate) return 0;
     return shopsBelow + (node.type === "shop" ? 1 : 0);
   }
 
@@ -921,7 +938,7 @@ export type PlaceFilters = {
 };
 
 function buildFilter(filters: PlaceFilters): Filter<PlaceDbModel> {
-  const conditions: Filter<PlaceDbModel>[] = [];
+  const conditions: Filter<PlaceDbModel>[] = [PUBLIC_PLACES];
 
   const query = filters.query?.trim();
   if (query) {
@@ -948,7 +965,7 @@ function buildFilter(filters: PlaceFilters): Filter<PlaceDbModel> {
   if (filters.parent) conditions.push({ parentSlug: filters.parent });
   if (filters.under) conditions.push({ ancestorSlugs: filters.under });
 
-  return conditions.length > 0 ? { $and: conditions } : {};
+  return { $and: conditions };
 }
 
 function buildSort(sort?: string): Document {
@@ -1004,7 +1021,10 @@ export async function listPlaceTree(
   }
 
   const nodes = await collection()
-    .find({ slug: { $in: [...needed] } }, { projection: SUMMARY_PROJECTION })
+    .find(
+      { slug: { $in: [...needed] }, ...PUBLIC_PLACES },
+      { projection: SUMMARY_PROJECTION },
+    )
     .sort({ path: 1 })
     .toArray();
 
@@ -1020,7 +1040,7 @@ export async function listPlaceTree(
 
 export async function getPlaceBySlug(slug: string): Promise<Place | null> {
   const place = await collection().findOne(
-    { slug },
+    { slug, ...PUBLIC_PLACES },
     { projection: { _id: 0 } },
   );
   return place ?? null;
@@ -1046,7 +1066,10 @@ async function resolveMarkerTargets(
   if (slugs.length === 0) return [];
 
   const targets = await collection()
-    .find({ slug: { $in: slugs } }, { projection: SUMMARY_PROJECTION })
+    .find(
+      { slug: { $in: slugs }, ...PUBLIC_PLACES },
+      { projection: SUMMARY_PROJECTION },
+    )
     .toArray();
   return targets as PlaceSummary[];
 }
@@ -1069,7 +1092,10 @@ async function resolvePlans(
   if (refs.length === 0) return stored as PlacePlan[];
 
   const sources = await collection()
-    .find({ slug: { $in: [...new Set(refs.map((ref) => ref.sourceSlug))] } })
+    .find({
+      slug: { $in: [...new Set(refs.map((ref) => ref.sourceSlug))] },
+      ...PUBLIC_PLACES,
+    })
     .project<{ slug: string; name: string; plans?: StoredPlacePlan[] }>({
       _id: 0,
       slug: 1,
@@ -1122,14 +1148,17 @@ export async function getPlaceDetails(
       .project<PlaceAncestor>({ _id: 0, slug: 1, name: 1, type: 1 })
       .toArray(),
     collection()
-      .find({ parentSlug: slug }, { projection: SUMMARY_PROJECTION })
+      .find(
+        { parentSlug: slug, ...PUBLIC_PLACES },
+        { projection: SUMMARY_PROJECTION },
+      )
       .sort({ name: 1 })
       .toArray(),
     // Les magasins de Lorville se tiennent dans ses quartiers, pas sous elle :
     // la fiche interroge tout le sous-arbre.
     collection()
       .find(
-        { ancestorSlugs: slug, type: "shop" },
+        { ancestorSlugs: slug, type: "shop", ...PUBLIC_PLACES },
         { projection: SUMMARY_PROJECTION },
       )
       .sort({ name: 1 })
@@ -1169,7 +1198,7 @@ export async function getPlacePlan(
   planId: string,
 ): Promise<{ place: { slug: string; name: string }; plan: PlacePlan } | null> {
   const place = await collection().findOne(
-    { slug },
+    { slug, ...PUBLIC_PLACES },
     { projection: { _id: 0, slug: 1, name: 1, plans: 1 } },
   );
   if (!place) return null;
@@ -1187,7 +1216,7 @@ export async function getPlacePlans(
   slug: string,
 ): Promise<PlacePlansResponse | null> {
   const place = await collection().findOne(
-    { slug },
+    { slug, ...PUBLIC_PLACES },
     {
       projection: {
         _id: 0,
@@ -1253,7 +1282,7 @@ type PlanDigest = OwnedPlanDigest | PlacePlanRef;
  */
 export async function listPlaceGroups(): Promise<PlaceGroup[]> {
   const places = await collection()
-    .find({ type: { $nin: ["star", "planet", "moon"] } })
+    .find({ type: { $nin: ["star", "planet", "moon"] }, ...PUBLIC_PLACES })
     .project<{
       slug: string;
       name: string;
@@ -1317,7 +1346,7 @@ export async function listPlaceGroups(): Promise<PlaceGroup[]> {
   );
   if (sourceSlugs.size > 0) {
     const sources = await collection()
-      .find({ slug: { $in: [...sourceSlugs] } })
+      .find({ slug: { $in: [...sourceSlugs] }, ...PUBLIC_PLACES })
       .project<{ slug: string; name: string }>({ _id: 0, slug: 1, name: 1 })
       .toArray();
     const names = new Map(sources.map((source) => [source.slug, source.name]));
@@ -1360,7 +1389,7 @@ export type LendablePlace = {
  */
 export async function listLendablePlans(): Promise<LendablePlace[]> {
   const places = await collection()
-    .find({ "plans.0": { $exists: true } })
+    .find({ "plans.0": { $exists: true }, ...PUBLIC_PLACES })
     // On ne ramène pas les repères : douze plans à cent vingt repères par lieu
     // pèsent lourd pour une liste de choix. `plans.sourcePlanId` est projeté
     // bien qu'il ne soit jamais lu ici — sans lui `isPlacePlanRef` cesserait de
@@ -1430,7 +1459,7 @@ export async function sharePlanToPlaces(
   if (wanted.length === 0) return { linked: [], skipped: [] };
 
   const targets = await collection()
-    .find({ slug: { $in: wanted } })
+    .find({ slug: { $in: wanted }, ...PUBLIC_PLACES })
     .project<{ slug: string; name: string; plans?: StoredPlacePlan[] }>({
       _id: 0,
       slug: 1,
@@ -1505,7 +1534,7 @@ export async function removeBorrowedPlan(
 export async function getNpsBodies(): Promise<NpsBody[]> {
   const bodies = await collection()
     .find(
-      { celestial: { $exists: true } },
+      { celestial: { $exists: true }, ...PUBLIC_PLACES },
       {
         projection: {
           _id: 0,
@@ -1534,7 +1563,7 @@ export async function getNpsData(): Promise<NpsResponse> {
     getNpsBodies(),
     collection()
       .find(
-        { position: { $exists: true } },
+        { position: { $exists: true }, ...PUBLIC_PLACES },
         {
           projection: {
             _id: 0,
@@ -1588,6 +1617,7 @@ export async function getPlaceFacets(): Promise<PlaceFacets> {
       bodies: { _id: string; name?: string; systemSlug?: string }[];
       services: { _id: PlaceService; count: number }[];
     }>([
+      { $match: PUBLIC_PLACES },
       {
         $facet: {
           types: [
@@ -1654,7 +1684,7 @@ async function assertParentIsSound(
   }
 
   const parent = await collection().findOne(
-    { slug: parentSlug },
+    { slug: parentSlug, ...PUBLIC_PLACES },
     { projection: { _id: 0, slug: 1, ancestorSlugs: 1, depth: 1 } },
   );
   if (!parent) {
@@ -1725,7 +1755,10 @@ export async function createPlace(input: PlaceInput): Promise<Place> {
 
 /** Recompte les enfants d'un lieu depuis la base plutôt qu'avec un `$inc`. */
 async function refreshChildCount(slug: string): Promise<void> {
-  const childCount = await collection().countDocuments({ parentSlug: slug });
+  const childCount = await collection().countDocuments({
+    parentSlug: slug,
+    ...PUBLIC_PLACES,
+  });
   await collection().updateOne({ slug }, { $set: { childCount } });
 }
 
@@ -1746,7 +1779,7 @@ export async function getPlacesBySlugs(
   if (!slugs?.length) return [];
   const found = await collection()
     .find(
-      { slug: { $in: slugs } },
+      { slug: { $in: slugs }, ...PUBLIC_PLACES },
       {
         projection: {
           _id: 0,
@@ -1868,7 +1901,10 @@ export async function deletePlace(slug: string): Promise<boolean> {
   const place = await getPlaceBySlug(slug);
   if (!place) return false;
 
-  const childCount = await collection().countDocuments({ parentSlug: slug });
+  const childCount = await collection().countDocuments({
+    parentSlug: slug,
+    ...PUBLIC_PLACES,
+  });
   if (childCount > 0) {
     throw new Error(
       `« ${place.name} » contient ${childCount} lieu${childCount > 1 ? "x" : ""} : videz-le avant de le supprimer`,
@@ -1893,6 +1929,17 @@ export async function deletePlace(slug: string): Promise<boolean> {
     $pull: { "plans.$[].markers": { targetSlug: slug } },
   } as UpdateFilter<PlaceDbModel>);
   if (place.parentSlug) await refreshChildCount(place.parentSlug);
+  // Les lieux privés qu'il contenait — personne d'autre ne les voyait, ils ne
+  // bloquaient donc pas la suppression — remontent d'un cran.
+  const privateChildren = await collection().updateMany(
+    { parentSlug: slug, privacy: { $exists: true } },
+    place.parentSlug
+      ? { $set: { parentSlug: place.parentSlug } }
+      : { $unset: { parentSlug: "" } },
+  );
+  if (privateChildren.modifiedCount > 0 && place.parentSlug) {
+    await recomputeSubtree(place.parentSlug);
+  }
 
   return true;
 }
@@ -1945,7 +1992,7 @@ export async function setPlacesImage(
   if (wanted.length === 0) return [];
 
   const found = await collection()
-    .find({ slug: { $in: wanted } })
+    .find({ slug: { $in: wanted }, ...PUBLIC_PLACES })
     .project<{ slug: string }>({ _id: 0, slug: 1 })
     .toArray();
   const touched = found.map((place) => place.slug);
@@ -2049,7 +2096,10 @@ async function assertPlansAreSafe(
   const refs = plans.filter(isPlacePlanRef);
   if (refs.length > 0) {
     const sources = await collection()
-      .find({ slug: { $in: [...new Set(refs.map((ref) => ref.sourceSlug))] } })
+      .find({
+        slug: { $in: [...new Set(refs.map((ref) => ref.sourceSlug))] },
+        ...PUBLIC_PLACES,
+      })
       .project<{ slug: string; plans?: StoredPlacePlan[] }>({
         _id: 0,
         slug: 1,

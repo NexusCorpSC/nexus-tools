@@ -49,7 +49,11 @@ function getLandmarks(): Promise<TreeNode[]> {
   if (!landmarksCache || Date.now() - landmarksCache.at > LANDMARKS_TTL_MS) {
     const nodes = places()
       .find(
-        { type: { $in: ["star", "planet", "city", "district"] } },
+        {
+          type: { $in: ["star", "planet", "city", "district"] },
+          // Un lieu privé ne fait pas un succès.
+          privacy: { $exists: false },
+        },
         {
           projection: { _id: 0, slug: 1, name: 1, type: 1, ancestorSlugs: 1 },
         },

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import db from "./db";
 import { addInventoryRows } from "./inventory-quick-add";
 import { roundQty } from "./utils";
+import { visibleLocationsFilter } from "./inventory";
 import {
   sortJobs,
   type RefiningCollectInput,
@@ -68,7 +69,8 @@ function toJob(doc: DbRefiningJob): RefiningJob {
 
 /**
  * Le nom d'un lieu de l'inventaire que le joueur peut utiliser : un lieu de
- * tout le monde ou l'un des siens. Undefined sinon.
+ * tout le monde, l'un des siens ou un lieu privé de ses organisations.
+ * Undefined sinon.
  */
 async function locationName(
   userId: string,
@@ -81,7 +83,7 @@ async function locationName(
     .findOne(
       {
         _id: new ObjectId(locationId),
-        $or: [{ userId: { $exists: false } }, { userId }],
+        ...(await visibleLocationsFilter(userId)),
       },
       { projection: { name: 1 } },
     );

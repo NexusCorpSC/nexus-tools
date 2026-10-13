@@ -40,6 +40,12 @@ import {
   type PlaceTreeResponse,
 } from "@/types/places";
 import { PlacesTree } from "./places-tree";
+import { PrivatePlaceCard } from "./prives/private-place-card";
+import type {
+  PrivatePlaceListResponse,
+  PrivatePlaceSummary,
+} from "@/types/private-places";
+import { LockClosedIcon, PlusIcon } from "@heroicons/react/24/outline";
 
 const EMPTY_FACETS: PlaceFacets = {
   types: [],
@@ -137,6 +143,7 @@ function PlaceCardSkeleton() {
 
 export function PlacesBrowser() {
   const t = useTranslations("Places");
+  const tPrivate = useTranslations("PrivatePlaces");
   const searchParams = useSearchParams();
 
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
@@ -148,6 +155,17 @@ export function PlacesBrowser() {
   const [view, setView] = useState<"grid" | "tree">(() =>
     searchParams.get("vue") === "arbre" ? "tree" : "grid",
   );
+  // Tous les lieux, ceux du catalogue seulement, ou ses lieux privés.
+  const [visibility, setVisibility] = useState<"" | "publics" | "prives">(
+    () => {
+      const value = searchParams.get("visibilite");
+      return value === "publics" || value === "prives" ? value : "";
+    },
+  );
+  // `null` : personne n'est connecté, il n'y a pas de lieu privé à montrer.
+  const [privatePlaces, setPrivatePlaces] = useState<
+    PrivatePlaceSummary[] | null
+  >(null);
 
   const [facets, setFacets] = useState<PlaceFacets>(EMPTY_FACETS);
   const [results, setResults] = useState<PlaceSummary[]>([]);
@@ -170,6 +188,7 @@ export function PlacesBrowser() {
     body,
     service,
     sort: sort === "name" ? null : sort,
+    visibilite: visibility || null,
   });
   useScrollRestore(hasLoaded);
   const updateUrl = useCallback(
@@ -246,6 +265,26 @@ export function PlacesBrowser() {
     },
     [],
   );
+
+  // Ses lieux privés, aux mêmes filtres : une liste courte, d'un bloc.
+  // Chargés même sous « Publics » : la réponse dit aussi qu'il est connecté,
+  // et donc si le sélecteur de visibilité s'affiche.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("query", query.trim());
+      if (type) params.set("type", type);
+      if (system) params.set("system", system);
+      if (body) params.set("body", body);
+      fetch(`/api/lieux/prives?${params.toString()}`)
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data: PrivatePlaceListResponse | null) =>
+          setPrivatePlaces(data ? data.places : null),
+        )
+        .catch(() => setPrivatePlaces(null));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, type, system, body]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
@@ -440,6 +479,44 @@ export function PlacesBrowser() {
           </div>
         )}
 
+        {privatePlaces !== null && (
+          <div
+            role="group"
+            aria-label={tPrivate("visibilityLabel")}
+            className="flex h-9 items-center gap-0.5 rounded-md border border-input bg-background p-0.5"
+          >
+            {(
+              [
+                ["", tPrivate("visibilityAll")],
+                ["publics", tPrivate("visibilityPublic")],
+                ["prives", tPrivate("visibilityPrivate")],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value || "all"}
+                type="button"
+                aria-pressed={visibility === value}
+                onClick={() => setVisibility(value)}
+                className={`inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-sm transition-colors ${
+                  visibility === value
+                    ? value === "prives"
+                      ? "bg-[#c4b2ff]/15 text-[#c4b2ff]"
+                      : "bg-[#9ED0FF]/15 text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {value === "prives" && <LockClosedIcon className="size-3.5" />}
+                {label}
+                {value === "prives" && (
+                  <span className="font-mono text-[11px] opacity-70">
+                    {privatePlaces.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isFiltered && (
           <Button variant="outline" size="sm" className="h-9" onClick={reset}>
             <FunnelIcon className="size-4" />
@@ -448,124 +525,181 @@ export function PlacesBrowser() {
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          {t("resultsCount", { count: total })}
-        </p>
-
-        <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-input p-0.5 shadow-xs">
-          <button
-            type="button"
-            aria-pressed={view === "grid"}
-            onClick={() => switchView("grid")}
-            className={`inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-sm font-medium transition-colors ${
-              view === "grid"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Squares2X2Icon className="size-4" />
-            {t("viewGrid")}
-          </button>
-          <button
-            type="button"
-            aria-pressed={view === "tree"}
-            onClick={() => switchView("tree")}
-            className={`inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-sm font-medium transition-colors ${
-              view === "tree"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <ListBulletIcon className="size-4" />
-            {t("viewTree")}
-          </button>
-        </div>
-      </div>
-
-      {isLoading ? (
-        view === "grid" ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <PlaceCardSkeleton key={index} />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-12 animate-pulse rounded-lg border border-border bg-card"
-              />
-            ))}
-          </div>
-        )
-      ) : view === "tree" ? (
-        nodes.length > 0 ? (
-          <>
-            {truncated && (
-              <p className="rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/40 px-3 py-2 text-sm text-muted-foreground">
-                {t("treeTruncated")}
-              </p>
-            )}
-            <PlacesTree nodes={nodes} expanded={expanded} onToggle={toggle} />
-          </>
-        ) : (
-          hasLoaded && <EmptyState />
-        )
-      ) : results.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {results.map((place) => (
-            <PlaceCard key={place.slug} place={place} />
-          ))}
-        </div>
+      {visibility === "prives" ? (
+        <PrivateResults places={privatePlaces ?? []} />
       ) : (
-        hasLoaded && <EmptyState />
-      )}
+        <>
+          {visibility === "" &&
+            view === "grid" &&
+            page === 1 &&
+            privatePlaces &&
+            privatePlaces.length > 0 && (
+              <section className="space-y-2">
+                <h2 className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-[#c4b2ff] uppercase">
+                  <LockClosedIcon className="size-3.5" />
+                  {tPrivate("sectionTitle", { count: privatePlaces.length })}
+                </h2>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                  {privatePlaces.map((place) => (
+                    <PrivatePlaceCard key={place.slug} place={place} />
+                  ))}
+                </div>
+              </section>
+            )}
 
-      {view === "grid" && hasLoaded && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label={t("paginationFirst")}
-            disabled={page <= 1}
-            onClick={() => goToPage(1)}
-          >
-            <ChevronDoubleLeftIcon className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label={t("paginationPrev")}
-            disabled={page <= 1}
-            onClick={() => goToPage(page - 1)}
-          >
-            <ChevronLeftIcon className="size-4" />
-          </Button>
-          <span className="px-2 text-sm text-muted-foreground">
-            {t("paginationPage", { page, totalPages })}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label={t("paginationNext")}
-            disabled={page >= totalPages}
-            onClick={() => goToPage(page + 1)}
-          >
-            <ChevronRightIcon className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label={t("paginationLast")}
-            disabled={page >= totalPages}
-            onClick={() => goToPage(totalPages)}
-          >
-            <ChevronDoubleRightIcon className="size-4" />
-          </Button>
-        </div>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              {t("resultsCount", { count: total })}
+            </p>
+
+            <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-input p-0.5 shadow-xs">
+              <button
+                type="button"
+                aria-pressed={view === "grid"}
+                onClick={() => switchView("grid")}
+                className={`inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-sm font-medium transition-colors ${
+                  view === "grid"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <Squares2X2Icon className="size-4" />
+                {t("viewGrid")}
+              </button>
+              <button
+                type="button"
+                aria-pressed={view === "tree"}
+                onClick={() => switchView("tree")}
+                className={`inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-sm font-medium transition-colors ${
+                  view === "tree"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <ListBulletIcon className="size-4" />
+                {t("viewTree")}
+              </button>
+            </div>
+          </div>
+
+          {isLoading ? (
+            view === "grid" ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <PlaceCardSkeleton key={index} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-12 animate-pulse rounded-lg border border-border bg-card"
+                  />
+                ))}
+              </div>
+            )
+          ) : view === "tree" ? (
+            nodes.length > 0 ? (
+              <>
+                {truncated && (
+                  <p className="rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/40 px-3 py-2 text-sm text-muted-foreground">
+                    {t("treeTruncated")}
+                  </p>
+                )}
+                <PlacesTree
+                  nodes={nodes}
+                  expanded={expanded}
+                  onToggle={toggle}
+                />
+              </>
+            ) : (
+              hasLoaded && <EmptyState />
+            )
+          ) : results.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {results.map((place) => (
+                <PlaceCard key={place.slug} place={place} />
+              ))}
+            </div>
+          ) : (
+            hasLoaded && <EmptyState />
+          )}
+
+          {view === "grid" && hasLoaded && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={t("paginationFirst")}
+                disabled={page <= 1}
+                onClick={() => goToPage(1)}
+              >
+                <ChevronDoubleLeftIcon className="size-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={t("paginationPrev")}
+                disabled={page <= 1}
+                onClick={() => goToPage(page - 1)}
+              >
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+              <span className="px-2 text-sm text-muted-foreground">
+                {t("paginationPage", { page, totalPages })}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={t("paginationNext")}
+                disabled={page >= totalPages}
+                onClick={() => goToPage(page + 1)}
+              >
+                <ChevronRightIcon className="size-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={t("paginationLast")}
+                disabled={page >= totalPages}
+                onClick={() => goToPage(totalPages)}
+              >
+                <ChevronDoubleRightIcon className="size-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+/** « Privés » : ses lieux privés et ceux de ses organisations, sans pagination. */
+function PrivateResults({ places }: { places: PrivatePlaceSummary[] }) {
+  const t = useTranslations("PrivatePlaces");
+  if (places.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+        <LockClosedIcon className="size-10 text-[#c4b2ff]/40" />
+        <p className="text-base font-semibold">{t("emptyTitle")}</p>
+        <p className="max-w-md text-sm text-muted-foreground">
+          {t("emptyHint")}
+        </p>
+        <Button asChild size="sm" variant="outline" className="mt-2">
+          <Link href="/lieux/proposer?prive=1">
+            <PlusIcon className="size-4" />
+            {t("emptyCta")}
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {places.map((place) => (
+        <PrivatePlaceCard key={place.slug} place={place} />
+      ))}
     </div>
   );
 }

@@ -633,12 +633,32 @@ export type NpsPlace = {
   bodyName?: string;
   parentName?: string;
   position: PlacePosition;
+  /**
+   * Un lieu privé du joueur ou d'une de ses organisations (`org`) : sa fiche
+   * est à lui, il n'y a rien à y corriger.
+   */
+  private?: { org?: string };
 };
 
 /** `GET /api/lieux/nps` : de quoi se repérer, tout d'un bloc. */
 export type NpsResponse = {
   bodies: NpsBody[];
   places: NpsPlace[];
+};
+
+/** Ce qui fait d'un lieu un lieu privé, et à qui il se montre. */
+export type PlacePrivacy = {
+  /** L'identifiant du créateur, tel que la session le donne. */
+  ownerId: string;
+  /** L'organisation qui le voit aussi, tant que le créateur en est membre. */
+  orgId?: string;
+  /** Sa ligne dans `locations`, où l'inventaire range les objets. */
+  locationId: string;
+  /** La contribution qui le propose au public, la dernière envoyée. */
+  proposalId?: string;
+  /** La taille de son image : une proposition la reprend. */
+  imageWidth?: number;
+  imageHeight?: number;
 };
 
 export type Place = {
@@ -694,6 +714,11 @@ export type Place = {
   position?: PlacePosition;
   /** Pour une planète ou une lune : de quoi s'y repérer. Posé par import. */
   celestial?: CelestialBody;
+  /**
+   * Un lieu privé (`lib/private-places.ts`) : absent de tout lieu du
+   * catalogue. Les lectures publiques l'écartent (`PUBLIC_PLACES`).
+   */
+  privacy?: PlacePrivacy;
   createdAt?: string;
   updatedAt?: string;
 };

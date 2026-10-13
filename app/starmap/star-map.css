@@ -81,6 +81,26 @@
   height: 6px;
   box-shadow: none;
 }
+/* Un lieu privé : un losange en pointillé, plein au centre, et son nom de la même teinte. */
+.star-map-marker.private {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: transparent;
+  border: 1.5px dashed var(--c);
+}
+.star-map-marker.private::after {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  border-radius: 1px;
+  background: var(--c);
+}
+.star-map-label.private .star-map-text {
+  color: #c4b2ff;
+}
 
 .star-map-chip {
   font-family: var(--font-geist-mono), ui-monospace, monospace;

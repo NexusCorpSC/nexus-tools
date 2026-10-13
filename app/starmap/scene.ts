@@ -10,6 +10,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import {
   BODY_TYPES,
   MARKER_COLOR,
+  PRIVATE_MARKER_COLOR,
   STAR_MAP_LANES,
   STAR_MAP_SYSTEMS,
   SYSTEM_LOOK,
@@ -608,24 +609,33 @@ export function createStarMap({
     if (!place.world || !place.system) continue;
     const element = document.createElement("button");
     element.type = "button";
+    // Un lieu privé montre toujours son nom : c'est le sien.
     const minor =
-      place.type === "outpost" ||
-      (place.type === "station" && !!place.parentSlug && isSpacePoint(place));
+      !place.private &&
+      (place.type === "outpost" ||
+        (place.type === "station" &&
+          !!place.parentSlug &&
+          isSpacePoint(place)));
     element.className =
       "star-map-label" +
       (minor ? " minor" : "") +
       (STAR_MAP_SYSTEMS.includes(place.slug as StarMapSystem)
         ? " system"
         : "") +
-      (place.type === "planet" || place.type === "city" ? " major" : "");
+      (place.type === "planet" || place.type === "city" ? " major" : "") +
+      (place.private ? " private" : "");
     element.setAttribute("aria-label", `${typeLabel(place)} ${place.name}`);
     const marker = document.createElement("i");
-    marker.className = `star-map-marker ${markerShape(place.type)}`;
+    marker.className = place.private
+      ? "star-map-marker private"
+      : `star-map-marker ${markerShape(place.type)}`;
     marker.style.setProperty(
       "--c",
-      place.system && STAR_MAP_SYSTEMS.includes(place.slug as StarMapSystem)
-        ? SYSTEM_LOOK[place.slug as StarMapSystem].color
-        : (MARKER_COLOR[place.type] ?? MARKER_COLOR.planet),
+      place.private
+        ? PRIVATE_MARKER_COLOR
+        : place.system && STAR_MAP_SYSTEMS.includes(place.slug as StarMapSystem)
+          ? SYSTEM_LOOK[place.slug as StarMapSystem].color
+          : (MARKER_COLOR[place.type] ?? MARKER_COLOR.planet),
     );
     const text = document.createElement("span");
     text.className = "star-map-text";

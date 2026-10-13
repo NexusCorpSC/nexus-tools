@@ -58,6 +58,9 @@ export const MARKER_COLOR: Record<string, string> = {
   shop: "#ffc76a",
 };
 
+/** La couleur d'un lieu privé, quel que soit son type : la teinte des lieux privés du site. */
+export const PRIVATE_MARKER_COLOR = "#c4b2ff";
+
 /** La forme du repère dans les étiquettes et les listes. */
 export function markerShape(type: string): string {
   if (type === "station") return "station";
@@ -94,6 +97,11 @@ export type StarMapPlace = {
   at?: { body?: string; x: number; y: number; z: number };
   /** Le rayon d'un corps, en mètres. */
   radius?: number;
+  /**
+   * Un lieu privé, que seuls son créateur et son organisation voient. `org` :
+   * l'organisation qui le voit aussi.
+   */
+  private?: { org?: string };
 };
 
 /** Un lieu placé dans la scène. */

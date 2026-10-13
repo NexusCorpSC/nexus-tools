@@ -58,7 +58,8 @@ async function main() {
   const places = (await database
     .collection<Place>("gameLocations")
     .find(
-      { type: { $nin: NOT_STORAGE } },
+      // Un lieu privé a déjà sa ligne, à son créateur.
+      { type: { $nin: NOT_STORAGE }, privacy: { $exists: false } },
       { projection: { _id: 0, slug: 1, name: 1, systemName: 1 } },
     )
     .toArray()) as Pick<Place, "slug" | "name" | "systemName">[];

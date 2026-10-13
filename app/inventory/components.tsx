@@ -10,11 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import {
-  replaceQuery,
-  useScrollRestore,
-  useUrlFilters,
-} from "@/lib/list-url";
+import { replaceQuery, useScrollRestore, useUrlFilters } from "@/lib/list-url";
 import { useLocale, useTranslations } from "next-intl";
 import { InventoryItemWithLocation, Location } from "@/types/inventory";
 import {
@@ -33,14 +29,11 @@ import {
   PaperAirplaneIcon,
   ArrowDownTrayIcon,
   InboxStackIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import { packageOperate, sendParcel } from "./actions";
 import type { ParcelView } from "@/lib/parcels";
-import {
-  PARCEL_PARAM,
-  ReceiveParcelDialog,
-  SentParcelDialog,
-} from "./parcels";
+import { PARCEL_PARAM, ReceiveParcelDialog, SentParcelDialog } from "./parcels";
 import { cn, roundQty } from "@/lib/utils";
 import { ItemNameCombobox } from "./item-name-combobox";
 import { LotSaleBadge, SellLotButton } from "./sell-lot";
@@ -181,9 +174,10 @@ export function LocationCombobox({
       {open && (inputValue.length > 0 || suggestions.length > 0) && (
         <div className="absolute z-50 mt-1 w-full min-w-64 max-h-60 overflow-auto rounded-lg border border-[#9ED0FF]/25 bg-popover text-popover-foreground shadow-xl shadow-black/40">
           {/*
-            Deux groupes : les lieux du catalogue d'abord — ceux qui portent un
-            `placeSlug` —, puis ceux que le joueur a nommés lui-même. « Hangar
-            de Karim » reste à sa place, il n'est pas au catalogue.
+            Trois groupes : les lieux du catalogue d'abord — ceux qui portent un
+            `placeSlug` —, puis les lieux privés qu'il voit, puis ceux que le
+            joueur a nommés lui-même. « Hangar de Karim » reste à sa place, il
+            n'est pas au catalogue.
           */}
           {[
             {
@@ -192,9 +186,16 @@ export function LocationCombobox({
               rows: suggestions.filter((loc) => loc.placeSlug),
             },
             {
+              key: "private",
+              label: t("locationPrivate"),
+              rows: suggestions.filter((loc) => loc.privatePlaceSlug),
+            },
+            {
               key: "mine",
               label: t("locationMine"),
-              rows: suggestions.filter((loc) => !loc.placeSlug),
+              rows: suggestions.filter(
+                (loc) => !loc.placeSlug && !loc.privatePlaceSlug,
+              ),
             },
           ]
             .filter((group) => group.rows.length > 0)
@@ -215,14 +216,18 @@ export function LocationCombobox({
                       setOpen(false);
                     }}
                   >
-                    <MapPinIcon className="size-4 shrink-0 text-[#7E9FB7]" />
+                    {loc.privatePlaceSlug ? (
+                      <LockClosedIcon className="size-4 shrink-0 text-[#c4b2ff]" />
+                    ) : (
+                      <MapPinIcon className="size-4 shrink-0 text-[#7E9FB7]" />
+                    )}
                     <span>{loc.name}</span>
                     {loc.system && (
                       <span className="ml-auto text-xs opacity-70">
                         {loc.system}
                       </span>
                     )}
-                    {!loc.placeSlug && loc.userId && (
+                    {!loc.placeSlug && !loc.privatePlaceSlug && loc.userId && (
                       <span className="ml-auto text-xs text-[#7E9FB7]">
                         {t("locationPersonal")}
                       </span>
@@ -244,7 +249,9 @@ export function LocationCombobox({
             </button>
           )}
           {suggestions.length === 0 && !inputValue.trim() && (
-            <p className="px-3 py-2 text-sm text-[#7E9FB7]">{t("locationEmpty")}</p>
+            <p className="px-3 py-2 text-sm text-[#7E9FB7]">
+              {t("locationEmpty")}
+            </p>
           )}
         </div>
       )}
@@ -1575,7 +1582,11 @@ function InventoryGroupCard({
                 mode="remove"
                 onUpdated={onRefresh}
               />
-              <AdjustQuantityPopover item={lot} mode="add" onUpdated={onRefresh} />
+              <AdjustQuantityPopover
+                item={lot}
+                mode="add"
+                onUpdated={onRefresh}
+              />
             </li>
           );
         })}
@@ -1703,7 +1714,8 @@ export function InventoryGrid() {
     try {
       const params = new URLSearchParams();
       if (debouncedQuery) params.set("query", debouncedQuery);
-      if (debouncedQuality.trim()) params.set("quality", debouncedQuality.trim());
+      if (debouncedQuality.trim())
+        params.set("quality", debouncedQuality.trim());
 
       const res = await fetch(`/api/inventory/items?${params.toString()}`);
       if (!res.ok) return;
@@ -1873,10 +1885,23 @@ export function InventoryGrid() {
           <div className="space-y-7">
             {shown.map((section) => (
               <section key={section.key} className="space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <MapPinIcon className="size-4 shrink-0 text-[#7E9FB7]" />
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {section.location?.privatePlaceSlug ? (
+                    <LockClosedIcon className="size-4 shrink-0 text-[#c4b2ff]" />
+                  ) : (
+                    <MapPinIcon className="size-4 shrink-0 text-[#7E9FB7]" />
+                  )}
                   <h2 className="text-[15px] font-semibold text-[#CCE7FF]">
-                    {section.location?.name ?? t("locationUnknown")}
+                    {section.location?.privatePlaceSlug ? (
+                      <Link
+                        href={`/lieux/${section.location.privatePlaceSlug}`}
+                        className="hover:text-[#c4b2ff] hover:underline"
+                      >
+                        {section.location.name}
+                      </Link>
+                    ) : (
+                      (section.location?.name ?? t("locationUnknown"))
+                    )}
                   </h2>
                   <span className="font-mono text-xs text-[#7E9FB7]">
                     {t("sectionCount", { count: section.count })}
@@ -1884,6 +1909,18 @@ export function InventoryGrid() {
                       ` · ${number.format(roundQty(section.scu))} SCU`}
                   </span>
                   <span className="h-px flex-1 bg-[#9ED0FF]/12" />
+                  {/* Un lieu qu'il a nommé lui-même devient un lieu privé, lots compris. */}
+                  {section.location?.userId &&
+                    !section.location.placeSlug &&
+                    !section.location.privatePlaceSlug && (
+                      <Link
+                        href={`/lieux/proposer?prive=1&emplacement=${section.location.id}&nom=${encodeURIComponent(section.location.name)}`}
+                        className="inline-flex items-center gap-1 text-xs text-[#c4b2ff]/80 hover:text-[#c4b2ff] hover:underline"
+                      >
+                        <LockClosedIcon className="size-3.5" />
+                        {t("completePrivatePlace")}
+                      </Link>
+                    )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
                   {section.groups.map((group) => (

@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getStarMapInventory, getStarMapPlaces } from "@/lib/star-map";
+import {
+  getStarMapInventory,
+  getStarMapPlaces,
+  getStarMapPrivatePlaces,
+} from "@/lib/star-map";
 import { StarMap } from "./star-map";
 
 export const metadata: Metadata = {
@@ -24,10 +28,17 @@ export default async function StarMapPage({
     searchParams,
     auth.api.getSession({ headers: await headers() }),
   ]);
-  const [places, inventory] = await Promise.all([
+  const [places, privatePlaces, inventory] = await Promise.all([
     getStarMapPlaces(),
+    session ? getStarMapPrivatePlaces(session.user.id) : Promise.resolve([]),
     session ? getStarMapInventory(session.user.id) : Promise.resolve(null),
   ]);
 
-  return <StarMap places={places} inventory={inventory} initialPlace={place} />;
+  return (
+    <StarMap
+      places={[...places, ...privatePlaces]}
+      inventory={inventory}
+      initialPlace={place}
+    />
+  );
 }

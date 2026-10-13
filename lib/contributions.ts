@@ -1,6 +1,7 @@
 import "server-only";
 import { ObjectId, type Filter } from "mongodb";
 import { del } from "@vercel/blob";
+import { adoptPublishedPlace } from "@/lib/private-places";
 import {
   clearPlaceImageIf,
   getPlaceBySlug,
@@ -951,6 +952,14 @@ async function publish(
   }
   if (contribution.kind === "media" || contribution.kind === "placeCreate") {
     await ensurePlaceCover(contribution.target.slug);
+  }
+  // Un lieu privé proposé au public : le lieu publié prend sa place.
+  if (contribution.kind === "placeCreate") {
+    try {
+      await adoptPublishedPlace(contribution._id, contribution.target.slug);
+    } catch (error) {
+      console.error("Lieu privé non remplacé", error);
+    }
   }
 
   const updated = await contributions().findOne({ _id: contribution._id });

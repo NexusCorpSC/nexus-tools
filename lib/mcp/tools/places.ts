@@ -9,6 +9,7 @@ import {
   getPlacePlans,
 } from "@/lib/places";
 import { getPlaceLore } from "@/lib/lore";
+import { getPrivatePlace, listPrivatePlaces } from "@/lib/private-places";
 import { listMissionsAt } from "@/lib/missions";
 import {
   bodyAt,
@@ -26,8 +27,11 @@ import {
   planImage,
   PLACE_SERVICES,
   PLACE_TYPES,
+  type NpsPlace,
   type PlacePlan,
 } from "@/types/places";
+import type { PrivatePlaceSummary } from "@/types/private-places";
+import { optionalUserId } from "../auth";
 import {
   jsonBlock,
   mdLink,
@@ -80,13 +84,48 @@ function formatDistance(metres: number): string {
   return `${round(metres / 1_000_000, 1)} Mm`;
 }
 
+/**
+ * Les lieux privés n'apparaissent qu'au joueur qui les voit, avec un jeton
+ * qui ouvre son inventaire : c'est là qu'il les range.
+ */
+const PRIVATE_SCOPE = "inventory:read";
+
+const privatePlaceSummary = z.object({
+  slug: z.string(),
+  name: z.string(),
+  type: z.string(),
+  parentName: z.string().optional(),
+  systemName: z.string().optional(),
+  bodyName: z.string().optional(),
+  sharedWith: z
+    .string()
+    .optional()
+    .describe("Organization that sees it; absent when only its creator does"),
+  url: z.string(),
+});
+
+function toPrivateSummary(
+  place: PrivatePlaceSummary,
+): z.infer<typeof privatePlaceSummary> {
+  return {
+    slug: place.slug,
+    name: place.name,
+    type: place.type,
+    parentName: place.parentName,
+    systemName: place.systemName,
+    bodyName: place.bodyName,
+    sharedWith: place.org?.name,
+    url: siteUrl(placePath(place.slug)),
+  };
+}
+
 export function registerPlaceTools(server: McpServer) {
   server.registerTool(
     "search_places",
     {
       title: "Search places",
       description:
-        "Search the places of the Star Citizen universe known to Nexus (systems' planets and moons, cities, stations, outposts, spaceports, districts, buildings, shops), with filters on type, system, celestial body, service or parent place.",
+        "Search the places of the Star Citizen universe known to Nexus (systems' planets and moons, cities, stations, outposts, spaceports, districts, buildings, shops), with filters on type, system, celestial body, service or parent place. When the user is signed in, the first page also lists their private places (visible only to them or their organization) that match.",
       inputSchema: z.object({
         query: z
           .string()
@@ -114,11 +153,29 @@ export function registerPlaceTools(server: McpServer) {
         total: z.number(),
         page: z.number(),
         places: z.array(placeSummary),
+        privatePlaces: z.array(privatePlaceSummary).optional(),
       }),
       annotations: READ_ONLY,
     },
-    async ({ page = 1, limit = PAGE_SIZE.default, ...filters }) => {
-      const { places, total } = await filterPlaces({ ...filters, page, limit });
+    async ({ page = 1, limit = PAGE_SIZE.default, ...filters }, ctx) => {
+      const userId = optionalUserId(ctx, PRIVATE_SCOPE);
+      const [{ places, total }, privateFound] = await Promise.all([
+        filterPlaces({ ...filters, page, limit }),
+        // Un lieu privé n'a ni services ni lieux dedans : ces filtres l'écartent.
+        userId && page === 1 && !filters.service
+          ? listPrivatePlaces(userId, filters)
+          : Promise.resolve([]),
+      ]);
+      const privatePlaces = privateFound
+        .filter(
+          (place) =>
+            (!filters.parent || place.parentSlug === filters.parent) &&
+            (!filters.under ||
+              [place.parentSlug, place.bodySlug, place.systemSlug].includes(
+                filters.under,
+              )),
+        )
+        .map(toPrivateSummary);
       const summaries = places.map((place) => ({
         slug: place.slug,
         name: place.name,
@@ -130,16 +187,35 @@ export function registerPlaceTools(server: McpServer) {
         planCount: place.planCount,
         url: siteUrl(placePath(place.slug)),
       }));
+      const line = (place: {
+        slug: string;
+        name: string;
+        type: string;
+        parentName?: string;
+        systemName?: string;
+      }) =>
+        `- ${mdLink(place.name, placePath(place.slug))} (slug: ${place.slug}, ${place.type})` +
+        ` — ${[place.parentName, place.systemName].filter(Boolean).join(", ")}`;
       return toolResult(
-        { total, page, places: summaries },
-        `${total} places match (page ${page}):\n` +
-          summaries
-            .map(
-              (place) =>
-                `- ${mdLink(place.name, placePath(place.slug))} (slug: ${place.slug}, ${place.type})` +
-                ` — ${[place.parentName, place.systemName].filter(Boolean).join(", ")}`,
-            )
-            .join("\n"),
+        {
+          total,
+          page,
+          places: summaries,
+          privatePlaces: privatePlaces.length ? privatePlaces : undefined,
+        },
+        (privatePlaces.length
+          ? `${privatePlaces.length} of the user's private places match:\n` +
+            privatePlaces
+              .map(
+                (place) =>
+                  line(place) +
+                  ` — private, ${place.sharedWith ? `shared with ${place.sharedWith}` : "only the user"}`,
+              )
+              .join("\n") +
+            "\n\n"
+          : "") +
+          `${total} places match (page ${page}):\n` +
+          summaries.map(line).join("\n"),
       );
     },
   );
@@ -165,7 +241,7 @@ export function registerPlaceTools(server: McpServer) {
     {
       title: "Get a place",
       description:
-        "Full sheet of a place by slug: description, tip, services, parent chain, child places, shops below it, missions given there, NPS coordinates when known, its lore (starmap description and Galactapedia article, in English) and the list of its maps (use get_place_plan for a map's content).",
+        "Full sheet of a place by slug: description, tip, services, parent chain, child places, shops below it, missions given there, NPS coordinates when known, its lore (starmap description and Galactapedia article, in English) and the list of its maps (use get_place_plan for a map's content). Also opens the signed-in user's private places (slug starting with prive-).",
       inputSchema: z.object({
         slug: z
           .string()
@@ -179,9 +255,26 @@ export function registerPlaceTools(server: McpServer) {
       }),
       annotations: READ_ONLY,
     },
-    async ({ slug }) => {
+    async ({ slug }, ctx) => {
       const place = await getPlaceDetails(slug);
-      if (!place) return toolError(`No place found with slug: ${slug}`);
+      if (!place) {
+        const userId = optionalUserId(ctx, PRIVATE_SCOPE);
+        const own = userId ? await getPrivatePlace(userId, slug) : null;
+        if (!own) return toolError(`No place found with slug: ${slug}`);
+        const data = {
+          ...toPrivateSummary(own),
+          private: true,
+          description: own.description,
+          ancestors: own.ancestors.map((a) => `${a.name} (${a.slug})`),
+          position: own.position,
+          createdBy: own.ownerName,
+          proposal: own.proposal?.status,
+        };
+        return toolResult(
+          data,
+          `${mdLink(own.name, placePath(own.slug))} — private place, visible to ${own.org ? `the members of ${own.org.name}` : "the user only"}.\n\n${jsonBlock(data)}`,
+        );
+      }
       const [missions, lore] = await Promise.all([
         listMissionsAt(place.slug),
         getPlaceLore(place),
@@ -276,7 +369,7 @@ export function registerPlaceTools(server: McpServer) {
     {
       title: "Locate a /showlocation reading (NPS)",
       description:
-        'Nexus Positioning System. Give the line the game copies to the clipboard after the /showlocation chat command ("Coordinates: x:… y:… z:…", in metres, star system frame). Returns the celestial body the player is on or near, latitude/longitude/altitude, the nearest places with recorded coordinates, and, when a destination slug is given, the distance and the compass heading to follow. Coordinates of different systems do not compare: pass system when the player is in deep space.',
+        'Nexus Positioning System. Give the line the game copies to the clipboard after the /showlocation chat command ("Coordinates: x:… y:… z:…", in metres, star system frame). Returns the celestial body the player is on or near, latitude/longitude/altitude, the nearest places with recorded coordinates (including the signed-in user’s private places), and, when a destination slug is given, the distance and the compass heading to follow. Coordinates of different systems do not compare: pass system when the player is in deep space.',
       inputSchema: z.object({
         location: z
           .string()
@@ -304,7 +397,7 @@ export function registerPlaceTools(server: McpServer) {
       outputSchema: z.looseObject({}),
       annotations: { ...READ_ONLY, idempotentHint: false },
     },
-    async ({ location, destination, system, nearest = 5 }) => {
+    async ({ location, destination, system, nearest = 5 }, ctx) => {
       const coordinates = parseShowLocation(location);
       if (!coordinates) {
         return toolError(
@@ -312,7 +405,26 @@ export function registerPlaceTools(server: McpServer) {
         );
       }
       const fix: Fix = { ...coordinates, at: Date.now() };
-      const { bodies, places } = await getNpsData();
+      const userId = optionalUserId(ctx, PRIVATE_SCOPE);
+      const [{ bodies, places: publicPlaces }, privateFound] =
+        await Promise.all([
+          getNpsData(),
+          userId
+            ? listPrivatePlaces(userId, { positioned: true })
+            : Promise.resolve([]),
+        ]);
+      const places: NpsPlace[] = [
+        ...publicPlaces,
+        ...privateFound.map((place) => ({
+          slug: place.slug,
+          name: place.name,
+          type: place.type,
+          position: place.position!,
+          parentName: place.parentName,
+          systemSlug: place.systemSlug,
+          private: place.org ? { org: place.org.name } : {},
+        })),
+      ];
       const body = bodyAt(fix, bodies);
       const systemSlug = system ?? body?.systemSlug;
       const local = body ? toBodyFrame(fix, body) : null;
@@ -329,6 +441,7 @@ export function registerPlaceTools(server: McpServer) {
         name: place.name,
         type: place.type,
         parentName: place.parentName,
+        private: place.private ? true : undefined,
         distanceMetres: Math.round(distance),
       }));
 

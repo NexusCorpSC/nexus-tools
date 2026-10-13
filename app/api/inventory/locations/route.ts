@@ -3,24 +3,13 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
-import { escapeRegex } from "@/lib/inventory";
+import { searchInventoryLocations } from "@/lib/inventory";
 
 /**
  * GET /api/inventory/locations
- * Returns locations available to the current user:
- * - Generic locations (no userId), which now include the catalogue mirror
- * - Locations owned by the user (userId === session.user.id)
- * Supports ?query= for autocomplete filtering.
- *
- * Les lieux du catalogue sont des lignes partagées comme les autres — sans
- * `userId`, donc déjà couvertes par le `$or` — à ceci près qu'elles portent un
- * `placeSlug`. Le tri les fait remonter en premier, et le champ les propose
- * avant les lieux qu'un joueur a nommés lui-même.
- *
- * Le tri passe par une agrégation plutôt que par `sort({ placeSlug: -1 })` :
- * trier sur le slug lui-même classerait tout le catalogue par slug décroissant
- * au lieu de l'ordre alphabétique. Le drapeau dérivé ne sert qu'à séparer les
- * deux groupes, et le nom trie à l'intérieur de chacun.
+ * Les lieux où le joueur peut ranger un lot (`searchInventoryLocations`) : le
+ * catalogue, les lieux privés qu'il voit (`privatePlaceSlug`), puis les
+ * emplacements qu'il a nommés. `?query=` filtre par nom.
  */
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -29,41 +18,8 @@ export async function GET(request: NextRequest) {
   }
 
   const query = request.nextUrl.searchParams.get("query") || "";
-
-  const matchStage: Record<string, unknown> = {
-    $or: [{ userId: { $exists: false } }, { userId: session.user.id }],
-  };
-
-  if (query) {
-    matchStage.name = { $regex: escapeRegex(query), $options: "i" };
-  }
-
-  const locations = await db
-    .db()
-    .collection("locations")
-    .aggregate([
-      { $match: matchStage },
-      {
-        $addFields: {
-          fromCatalogue: {
-            $cond: [{ $ifNull: ["$placeSlug", false] }, 1, 0],
-          },
-        },
-      },
-      { $sort: { fromCatalogue: -1, name: 1 } },
-      { $limit: 50 },
-    ])
-    .toArray();
-
   return NextResponse.json(
-    locations.map((loc) => ({
-      id: loc._id.toString(),
-      name: loc.name,
-      slug: loc.slug,
-      system: loc.system,
-      userId: loc.userId,
-      placeSlug: loc.placeSlug,
-    })),
+    await searchInventoryLocations(session.user.id, query),
   );
 }
 

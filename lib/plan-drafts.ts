@@ -794,7 +794,10 @@ export async function existingPlaceSlugs(
   const found = await db
     .db()
     .collection("gameLocations")
-    .find({ slug: { $in: slugs } }, { projection: { slug: 1 } })
+    .find(
+      { slug: { $in: slugs }, privacy: { $exists: false } },
+      { projection: { slug: 1 } },
+    )
     .toArray();
   return new Set(found.map((doc) => String(doc.slug)));
 }
