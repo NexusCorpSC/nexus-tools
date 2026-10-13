@@ -624,6 +624,36 @@ async function ensureChat(database: Db) {
     .createIndex({ "chat.status": 1 }, { sparse: true });
 }
 
+/**
+ * Le partage avec des joueurs (`lib/shares.ts`) : une ligne par joueur et par
+ * objet, ce qu'un joueur a reçu (la cloche), ce qu'il a envoyé dans la
+ * journée (le plafond) ; un jeton de lien unique, et le lien actif d'un objet.
+ */
+async function ensureShares(database: Db) {
+  const shares = database.collection("shares");
+  await shares.createIndex(
+    { kind: 1, targetId: 1, userId: 1 },
+    { unique: true, name: "shares_target_user_unique" },
+  );
+  await shares.createIndex(
+    { userId: 1, kind: 1, createdAt: -1 },
+    { name: "shares_user" },
+  );
+  await shares.createIndex(
+    { invitedBy: 1, createdAt: -1 },
+    { name: "shares_inviter", sparse: true },
+  );
+  const links = database.collection("shareLinks");
+  await links.createIndex(
+    { token: 1 },
+    { unique: true, name: "shareLinks_token_unique" },
+  );
+  await links.createIndex(
+    { kind: 1, targetId: 1, revokedAt: 1 },
+    { name: "shareLinks_target" },
+  );
+}
+
 const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
@@ -647,6 +677,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["oauth", ensureOAuth],
   ["planDrafts", ensurePlanDrafts],
   ["chat", ensureChat],
+  ["shares", ensureShares],
 ];
 
 async function main() {

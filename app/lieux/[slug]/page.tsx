@@ -30,6 +30,7 @@ import { PlaceLoreSection } from "@/app/lore/place-lore";
 import { recordView } from "@/lib/page-views";
 import { ConfirmBlock } from "@/components/confirm-block";
 import { getPrivatePlace } from "@/lib/private-places";
+import { markInvitationsSeen } from "@/lib/shares";
 import { PrivatePlaceView } from "../prives/private-place-view";
 import {
   PlaceBreadcrumb,
@@ -91,7 +92,16 @@ export default async function PlacePage({
     const own = session?.user
       ? await getPrivatePlace(session.user.id, slug)
       : null;
-    if (own) return <PrivatePlaceView place={own} userId={session!.user.id} />;
+    if (own) {
+      // Ouvert par l'invité : son invitation n'est plus nouvelle.
+      if (own.sharedWithMe) {
+        await markInvitationsSeen(session!.user.id, {
+          kind: "place",
+          targetId: own.slug,
+        });
+      }
+      return <PrivatePlaceView place={own} userId={session!.user.id} />;
+    }
     return (
       <div className="m-2 mx-auto max-w-5xl space-y-4 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
         <h1 className="text-2xl font-bold">{t("notFound")}</h1>

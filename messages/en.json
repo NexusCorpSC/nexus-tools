@@ -1921,7 +1921,8 @@
       "signIn": "Sign in to register.",
       "showAsPlanned": "Show it as my next session",
       "shownAsPlanned": "Added to your status as a planned session. Your friends and the organization see it.",
-      "squadReady": "The event's squad is ready: open it"
+      "squadReady": "The event's squad is ready: open it",
+      "signInButton": "Sign in"
     },
     "Summary": {
       "title": "Organizer summary",
@@ -1987,8 +1988,23 @@
       "noMatchText": "Show an organization again or untick “Only my registrations”.",
       "planFor": "For which organization?",
       "month": "The month",
-      "monthAndFilters": "Month and filters"
-    }
+      "monthAndFilters": "Month and filters",
+      "invited": "Invitations"
+    },
+    "share": "Share",
+    "guestLinkTitle": "Share link",
+    "guestInviteTitle": "Invitation",
+    "guestLinkBy": "{name} shared this {org} event with you.",
+    "guestLink": "you see this {org} event through a share link.",
+    "guestInvite": "you are invited to this {org} event.",
+    "listSignIn": "Sign in to see who is coming.",
+    "linkRevokedTitle": "This link is no longer active",
+    "linkUnknownTitle": "This link does not exist",
+    "linkDeadHint": "The organizer may have disabled or replaced it. Ask them for a new link or an invitation.",
+    "communityEvents": "Community events",
+    "invitedBy": "Invited by {name}",
+    "viaLink": "Via a link",
+    "invited": "Invited"
   },
   "NewOrganization": {
     "title": "New organization",
@@ -4343,6 +4359,70 @@
     "cardOwn": "Only me",
     "cardInReview": "In review",
     "cardMine": "Yours",
-    "cardBy": "By {name}"
+    "cardBy": "By {name}",
+    "cardShared": "Shared with me",
+    "cardGuests": "{count, plural, one {# guest} other {# guests}}",
+    "sharedWithYou": "shared with you by {name}",
+    "visibleOwnGuests": "Visible to you and {count, plural, one {one invited player} other {# invited players}}",
+    "plusGuests": ", and {count, plural, one {one invited player} other {# invited players}}",
+    "leave": "Stop seeing it"
+  },
+  "Share": {
+    "title": "Share “{name}”",
+    "loading": "Sharing",
+    "introEvent": "Invite players outside the organization, or share a link: whoever has it sees the event and can sign up.",
+    "introPlace": "Invited players see this place, navigate to it and store their items there. Only you can edit it.",
+    "invite": "Invite a player",
+    "searchPlaceholder": "A player's or friend's name",
+    "friend": "Friend",
+    "hasAccess": "Has access",
+    "inviteButton": "Invite",
+    "noMatch": "No player by that name.",
+    "haveAccess": "Who has access",
+    "orgMembers": "Members of {org}",
+    "memberCount": "{count, plural, one {# member} other {# members}}",
+    "changeOrg": "Change",
+    "noOrg": "No organization",
+    "pickOrg": "Pick an organization",
+    "nobody": "Nobody else yet.",
+    "link": "Share link",
+    "copy": "Copy",
+    "copied": "Copied",
+    "linkHint": "Anyone with this link sees the event. Signed in, they can sign up and find it among their events.",
+    "newLink": "New link",
+    "disableLink": "Disable link",
+    "disableHint": "Disabling the link removes access for those who came through it and did not sign up. A new link does the same and gives another address.",
+    "noLink": "No active link.",
+    "createLink": "Create a share link",
+    "cameByLink": "opened on {date, date, short}",
+    "invitedBy": "invited by {name}",
+    "byLink": "via link",
+    "seen": "seen",
+    "unseen": "not seen yet",
+    "remove": "Remove {name}",
+    "errors": {
+      "unknown": "Something went wrong. Try again.",
+      "copy": "Copying failed: select the link and copy it.",
+      "self": "You already have access.",
+      "userNotFound": "This player does not exist.",
+      "tooManyShares": "No more than 100 guests per share.",
+      "tooManyInvites": "You sent 50 invitations today. Try again tomorrow.",
+      "forbidden": "Only those who manage this can share it.",
+      "notFound": "Not found.",
+      "noLink": "This cannot be shared by link."
+    }
+  },
+  "Invitations": {
+    "bell": "Invitations",
+    "bellUnseen": "{count, plural, one {# new invitation} other {# new invitations}}",
+    "title": "Invitations",
+    "loading": "Loading…",
+    "empty": "No invitations yet.",
+    "error": "Invitations could not be loaded.",
+    "eventInvite": "<b>{name}</b> invites you to <b>{title}</b>",
+    "placeInvite": "<b>{name}</b> shares the private place <b>{title}</b> with you",
+    "openEvent": "View event",
+    "openPlace": "View place",
+    "decline": "Decline"
   }
 }

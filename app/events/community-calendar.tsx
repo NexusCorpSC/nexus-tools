@@ -34,7 +34,7 @@ import {
   useNow,
 } from "@/app/orgs/[orgId]/events/shared";
 
-type Tab = "all" | "mine" | "public";
+type Tab = "all" | "mine" | "invited" | "public";
 
 /** La case des organisations dont le lecteur n'est pas membre, dans les filtres. */
 const OTHERS = "others";
@@ -97,6 +97,7 @@ export function CommunityCalendarView({
           }));
   const visible = upcoming.filter((event) => {
     if (tab === "mine" && !event.org.isMember) return false;
+    if (tab === "invited" && !event.guest) return false;
     if (tab === "public" && event.visibility !== "public") return false;
     if (hidden.has(event.org.isMember ? event.org.id : OTHERS)) return false;
     if (onlyRegistered && !isRegistered(event)) return false;
@@ -144,6 +145,10 @@ export function CommunityCalendarView({
   const tabs: { id: Tab; label: string }[] = [
     { id: "all", label: t("all") },
     { id: "mine", label: t("mine") },
+    // Seulement quand on est invité quelque part.
+    ...(upcoming.some((event) => event.guest)
+      ? [{ id: "invited" as const, label: t("invited") }]
+      : []),
     { id: "public", label: t("public") },
   ];
 
