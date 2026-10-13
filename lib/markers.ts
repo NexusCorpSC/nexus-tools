@@ -284,7 +284,17 @@ export async function listMarkers(
 
 /** Tous les marqueurs qu'il voit, pour la Star Map et le NPS. */
 export async function visibleMarkers(userId: string): Promise<Marker[]> {
-  return (await listMarkers(userId)).markers;
+  // Sans les comptes de listMarkers : le NPS de l'app interroge souvent.
+  const viewer = await getViewer(userId);
+  const visible = await visibleCollections(viewer);
+  const docs = await markers()
+    .find(visibleFilter(viewer, visible))
+    .sort({ createdAt: -1 })
+    .toArray();
+  const names = await ownerNames(
+    docs.map((doc) => doc.ownerId).filter((id) => id !== userId),
+  );
+  return docs.map((doc) => toMarker(doc, viewer, visible, names));
 }
 
 /** Un marqueur, s'il le voit. */
