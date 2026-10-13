@@ -127,7 +127,12 @@ export interface OrgEventView extends OrgEvent {
   participants: OrgEventParticipant[];
   /** L'inscription du lecteur, désinscrite comprise ; `null` s'il n'en a pas. */
   myRegistration: OrgEventRegistration | null;
-  /** Membre de l'organisation : peut s'inscrire. */
+  /**
+   * Hors de l'organisation, le lecteur voit l'évènement par le partage :
+   * invité par un joueur, ou venu par le lien de partage. `null` sinon.
+   */
+  guest: "invite" | "link" | null;
+  /** Membre de l'organisation, ou invité connecté : peut s'inscrire. */
   canRegister: boolean;
   /** Créateur ou éditeur de l'organisation : peut modifier, supprimer, lire le résumé. */
   canManage: boolean;
@@ -199,6 +204,8 @@ export interface CommunityEventOrg {
 /** Un évènement du calendrier de la communauté, avec son organisation. */
 export interface CommunityEventView extends OrgEventView {
   org: CommunityEventOrg;
+  /** Invité à cet évènement par ce joueur, hors de son organisation. */
+  invitedByName?: string;
 }
 
 /**

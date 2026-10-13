@@ -339,6 +339,15 @@ export function EventRow({
             {event.title}
           </Link>
           <VisibilityChip visibility={event.visibility} />
+          {event.guest ? (
+            <Chip className="border-[#7fe3f0]/45 text-[#7fe3f0]">
+              {"invitedByName" in event && event.invitedByName
+                ? t("invitedBy", { name: String(event.invitedByName) })
+                : event.guest === "link"
+                  ? t("viaLink")
+                  : t("invited")}
+            </Chip>
+          ) : null}
           {live ? <Chip tone="live">{t("Time.live")}</Chip> : null}
           {registered ? (
             <Chip tone="registered">
@@ -396,7 +405,7 @@ export function EventRow({
             {t("Registration.register")}
           </Link>
         ) : null}
-        {org && !org.isMember && !ended ? (
+        {org && !org.isMember && !event.guest && !ended ? (
           <span className="text-xs text-white/60">
             {tCalendar("membersOnly")}
           </span>

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getOrgEventView } from "@/lib/org-events";
+import { getOrgEventView, markEventSeen } from "@/lib/org-events";
 import { EventDetail } from "../detail";
 import { EventsShell, orgName, readerIdFromSession } from "../shell";
 
@@ -30,6 +30,10 @@ export default async function OrgEventPage({ params }: Params) {
     getOrgEventView(orgId, eventId, readerId),
   ]);
   if (!name || !event) notFound();
+  // Ouvert par l'invité : son invitation n'est plus nouvelle.
+  if (readerId && event.guest === "invite") {
+    await markEventSeen(eventId, readerId);
+  }
 
   return (
     <EventsShell orgId={orgId} name={name} trail={[{ label: event.title }]}>

@@ -94,10 +94,6 @@
           "label": "Inventario",
           "description": "Tus objetos, ordenados por lugar"
         },
-        "markers": {
-          "label": "Marcadores",
-          "description": "Tus posiciones guardadas en el juego"
-        },
         "parcels": {
           "label": "Paquetes",
           "description": "Envíos y recepciones por código"
@@ -137,6 +133,10 @@
         "chat": {
           "label": "Nexus Chat",
           "description": "Un asistente que actúa en tu cuenta"
+        },
+        "markers": {
+          "label": "Marcadores",
+          "description": "Tus posiciones guardadas en el juego"
         }
       }
     },
@@ -1926,7 +1926,8 @@
       "signIn": "Inicia sesión para inscribirte.",
       "showAsPlanned": "Mostrarlo como mi próxima sesión",
       "shownAsPlanned": "Añadido a tu estado como sesión prevista. Tus amigos y la org lo ven.",
-      "squadReady": "El escuadrón del evento está listo: abrirlo"
+      "squadReady": "El escuadrón del evento está listo: abrirlo",
+      "signInButton": "Iniciar sesión"
     },
     "Summary": {
       "title": "Resumen del organizador",
@@ -1992,8 +1993,23 @@
       "noMatchText": "Vuelve a mostrar una organización o desmarca «Solo mis inscripciones».",
       "planFor": "¿Para qué organización?",
       "month": "El mes",
-      "monthAndFilters": "El mes y los filtros"
-    }
+      "monthAndFilters": "El mes y los filtros",
+      "invited": "Invitaciones"
+    },
+    "share": "Compartir",
+    "guestLinkTitle": "Enlace para compartir",
+    "guestInviteTitle": "Invitación",
+    "guestLinkBy": "{name} te compartió este evento de {org}.",
+    "guestLink": "ves este evento de {org} gracias a un enlace para compartir.",
+    "guestInvite": "estás invitado a este evento de {org}.",
+    "listSignIn": "Inicia sesión para ver quién viene.",
+    "linkRevokedTitle": "Este enlace ya no está activo",
+    "linkUnknownTitle": "Este enlace no existe",
+    "linkDeadHint": "Puede que el organizador lo haya desactivado o reemplazado. Pídele un nuevo enlace o una invitación.",
+    "communityEvents": "Eventos de la comunidad",
+    "invitedBy": "Invitado por {name}",
+    "viaLink": "Por un enlace",
+    "invited": "Invitado"
   },
   "NewOrganization": {
     "title": "Nueva organización",
@@ -3723,11 +3739,11 @@
       "inventory:write": "añadir, mover y modificar los lotes de tu inventario",
       "refining:read": "leer tus órdenes de refinado",
       "refining:write": "iniciar, modificar y retirar tus órdenes de refinado, y recoger sus materiales en tu inventario",
-      "markers:read": "leer tus marcadores de posición",
-      "markers:write": "crear, modificar y eliminar tus marcadores de posición",
       "marketplace:read": "leer tu carrito, tus pedidos y tus tiendas",
       "marketplace:write": "llenar tu carrito, hacer y seguir tus pedidos, poner a la venta y gestionar los pedidos de tus tiendas",
-      "contributions:write": "proponer contribuciones en tu nombre (lugares, planos, objetos)"
+      "contributions:write": "proponer contribuciones en tu nombre (lugares, planos, objetos)",
+      "markers:read": "leer tus marcadores de posición",
+      "markers:write": "crear, modificar y eliminar tus marcadores de posición"
     },
     "warning": "Una aplicación autorizada actúa en tu nombre. Puedes retirar este acceso en cualquier momento en tus ajustes.",
     "website": "Sitio de la aplicación",
@@ -3983,10 +3999,6 @@
         "update_refining_job": "Modificación de la orden de refinado",
         "collect_refining_job": "Recogida de la orden de refinado",
         "delete_refining_job": "Retirada de la orden de refinado",
-        "list_markers": "Lectura de tus marcadores",
-        "add_marker": "Creación del marcador",
-        "update_marker": "Modificación del marcador",
-        "delete_marker": "Eliminación del marcador",
         "sell_lot": "Puesta en venta del lote",
         "contribute_item_edit": "Propuesta de corrección de objeto",
         "contribute_place_create": "Propuesta de lugar",
@@ -4001,7 +4013,11 @@
         "plan_draft_render": "Vista previa del plano",
         "plan_draft_submit": "Envío del plano",
         "plan_draft_discard": "Descarte del borrador de plano",
-        "whoami": "Lectura de tu cuenta"
+        "whoami": "Lectura de tu cuenta",
+        "list_markers": "Lectura de tus marcadores",
+        "add_marker": "Creación del marcador",
+        "update_marker": "Modificación del marcador",
+        "delete_marker": "Eliminación del marcador"
       }
     },
     "errors": {
@@ -4321,7 +4337,71 @@
     "cardOwn": "Solo yo",
     "cardInReview": "En revisión",
     "cardMine": "Tuyo",
-    "cardBy": "Por {name}"
+    "cardBy": "Por {name}",
+    "cardShared": "Compartido conmigo",
+    "cardGuests": "{count, plural, one {# invitado} other {# invitados}}",
+    "sharedWithYou": "compartido contigo por {name}",
+    "visibleOwnGuests": "Visible para ti y {count, plural, one {un jugador invitado} other {# jugadores invitados}}",
+    "plusGuests": ", y {count, plural, one {un jugador invitado} other {# jugadores invitados}}",
+    "leave": "Dejar de verlo"
+  },
+  "Share": {
+    "title": "Compartir «{name}»",
+    "loading": "Compartir",
+    "introEvent": "Invita a jugadores de fuera de la organización o comparte un enlace: quien lo tenga ve el evento y puede inscribirse.",
+    "introPlace": "Los jugadores invitados ven este lugar, se guían hasta él y guardan allí sus objetos. Solo tú lo modificas.",
+    "invite": "Invitar a un jugador",
+    "searchPlaceholder": "Nombre de un jugador o de un amigo",
+    "friend": "Amigo",
+    "hasAccess": "Tiene acceso",
+    "inviteButton": "Invitar",
+    "noMatch": "Ningún jugador con ese nombre.",
+    "haveAccess": "Tienen acceso",
+    "orgMembers": "Los miembros de {org}",
+    "memberCount": "{count, plural, one {# miembro} other {# miembros}}",
+    "changeOrg": "Cambiar",
+    "noOrg": "Ninguna organización",
+    "pickOrg": "Elegir una organización",
+    "nobody": "Nadie más por ahora.",
+    "link": "Enlace para compartir",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "linkHint": "Cualquiera con este enlace ve el evento. Con sesión iniciada, puede inscribirse y lo encuentra entre sus eventos.",
+    "newLink": "Nuevo enlace",
+    "disableLink": "Desactivar el enlace",
+    "disableHint": "Desactivar el enlace quita el acceso a quienes llegaron por él y no se inscribieron. Un nuevo enlace hace lo mismo y da otra dirección.",
+    "noLink": "Ningún enlace activo.",
+    "createLink": "Crear un enlace para compartir",
+    "cameByLink": "abierto el {date, date, short}",
+    "invitedBy": "invitado por {name}",
+    "byLink": "por el enlace",
+    "seen": "visto",
+    "unseen": "aún no visto",
+    "remove": "Quitar a {name}",
+    "errors": {
+      "unknown": "Se produjo un error. Inténtalo de nuevo.",
+      "copy": "La copia falló: selecciona el enlace y cópialo.",
+      "self": "Ya tienes acceso.",
+      "userNotFound": "Este jugador no existe.",
+      "tooManyShares": "No más de 100 invitados por compartición.",
+      "tooManyInvites": "Has enviado 50 invitaciones hoy. Inténtalo mañana.",
+      "forbidden": "Solo quienes lo gestionan pueden compartirlo.",
+      "notFound": "No encontrado.",
+      "noLink": "Esto no se comparte por enlace."
+    }
+  },
+  "Invitations": {
+    "bell": "Invitaciones",
+    "bellUnseen": "{count, plural, one {# invitación nueva} other {# invitaciones nuevas}}",
+    "title": "Invitaciones",
+    "loading": "Cargando…",
+    "empty": "Ninguna invitación por ahora.",
+    "error": "No se pudieron cargar las invitaciones.",
+    "eventInvite": "<b>{name}</b> te invita a <b>{title}</b>",
+    "placeInvite": "<b>{name}</b> comparte contigo el lugar privado <b>{title}</b>",
+    "openEvent": "Ver el evento",
+    "openPlace": "Ver el lugar",
+    "decline": "Rechazar"
   },
   "Markers": {
     "title": "Mis marcadores",

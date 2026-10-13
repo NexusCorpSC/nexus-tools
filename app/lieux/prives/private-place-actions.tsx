@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SharePanel } from "@/components/share-panel";
 import { POINTS } from "@/types/contributions";
 import type { PrivatePlace } from "@/types/private-places";
 
@@ -28,8 +29,10 @@ import type { PrivatePlace } from "@/types/private-places";
  */
 export function PrivatePlaceActions({ place }: { place: PrivatePlace }) {
   const t = useTranslations("PrivatePlaces");
+  const router = useRouter();
   const [proposing, setProposing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const open =
     place.proposal?.status === "pending" ||
     place.proposal?.status === "changesRequested";
@@ -42,11 +45,9 @@ export function PrivatePlaceActions({ place }: { place: PrivatePlace }) {
           {t("edit")}
         </Link>
       </Button>
-      <Button asChild variant="outline" size="sm">
-        <Link href={`/lieux/${place.slug}/modifier#partage`}>
-          <UserGroupIcon className="size-4" />
-          {t("share")}
-        </Link>
+      <Button variant="outline" size="sm" onClick={() => setSharing(true)}>
+        <UserGroupIcon className="size-4" />
+        {t("share")}
       </Button>
       <Button
         size="sm"
@@ -72,6 +73,48 @@ export function PrivatePlaceActions({ place }: { place: PrivatePlace }) {
         onOpenChange={setProposing}
       />
       <DeleteDialog place={place} open={deleting} onOpenChange={setDeleting} />
+      <SharePanel
+        kind="place"
+        id={place.slug}
+        open={sharing}
+        onOpenChange={(next) => {
+          setSharing(next);
+          // Le nombre d'invités du bandeau suit.
+          if (!next) router.refresh();
+        }}
+        orgEditHref={`/lieux/${place.slug}/modifier#partage`}
+      />
+    </div>
+  );
+}
+
+/** L'invité qui ne veut plus voir ce lieu : il retire son propre accès. */
+export function LeaveSharedPlace({ slug }: { slug: string }) {
+  const t = useTranslations("PrivatePlaces");
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [failed, setFailed] = useState(false);
+
+  const leave = () =>
+    startTransition(async () => {
+      setFailed(false);
+      const response = await fetch("/api/me/shares/place/" + slug, {
+        method: "DELETE",
+      }).catch(() => null);
+      if (!response?.ok) {
+        setFailed(true);
+        return;
+      }
+      router.push("/lieux?visibilite=prives");
+      router.refresh();
+    });
+
+  return (
+    <div className="flex items-center gap-2">
+      {failed && <span className="text-xs text-red-300">{t("errors.unknown")}</span>}
+      <Button size="sm" variant="ghost" disabled={isPending} onClick={leave}>
+        {t("leave")}
+      </Button>
     </div>
   );
 }

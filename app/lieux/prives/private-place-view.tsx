@@ -4,6 +4,7 @@ import {
   LockClosedIcon,
   MapIcon,
   UserGroupIcon,
+  UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,10 @@ import {
   PlacePositionSection,
   SectionTitle,
 } from "../[slug]/sections";
-import { PrivatePlaceActions } from "./private-place-actions";
+import {
+  LeaveSharedPlace,
+  PrivatePlaceActions,
+} from "./private-place-actions";
 
 /**
  * La fiche d'un lieu privé, à `/lieux/{slug}` comme les autres : un bandeau
@@ -44,23 +48,34 @@ export async function PrivatePlaceView({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-xl border border-[#c4b2ff]/45 bg-[#c4b2ff]/10 px-4 py-3">
         {place.org ? (
           <UserGroupIcon className="size-5 shrink-0 text-[#c4b2ff]" />
+        ) : place.sharedWithMe || place.guestCount ? (
+          <UserPlusIcon className="size-5 shrink-0 text-[#c4b2ff]" />
         ) : (
           <LockClosedIcon className="size-5 shrink-0 text-[#c4b2ff]" />
         )}
         <p className="min-w-0 flex-1 basis-64 text-sm">
           <b className="text-[#c4b2ff]">{t("badge")}</b>
           {" · "}
-          {place.org
-            ? t("visibleWithOrg", {
-                org: place.org.name,
-                count: place.org.memberCount - 1,
-              })
-            : t("visibleOwn")}
+          {place.sharedWithMe && !place.org
+            ? t("sharedWithYou", { name: place.ownerName ?? "?" })
+            : place.org
+              ? t("visibleWithOrg", {
+                  org: place.org.name,
+                  count: place.org.memberCount - 1,
+                })
+              : place.guestCount
+                ? t("visibleOwnGuests", { count: place.guestCount })
+                : t("visibleOwn")}
+          {place.org && place.guestCount
+            ? t("plusGuests", { count: place.guestCount })
+            : null}
           {!place.isOwner &&
             place.ownerName &&
+            !(place.sharedWithMe && !place.org) &&
             ` ${t("createdBy", { name: place.ownerName })}`}
         </p>
         {place.isOwner && <PrivatePlaceActions place={place} />}
+        {place.sharedWithMe && <LeaveSharedPlace slug={place.slug} />}
       </div>
 
       {open && (

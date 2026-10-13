@@ -6,6 +6,7 @@ import {
   LockClosedIcon,
   MapPinIcon,
   UserGroupIcon,
+  UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { placeTrail } from "@/lib/place-icons";
@@ -44,12 +45,18 @@ export function PrivatePlaceCard({ place }: { place: PrivatePlaceSummary }) {
           <span className="inline-flex items-center gap-1 rounded-full border border-[#c4b2ff]/45 bg-black/60 px-2 py-0.5 text-xs font-semibold text-[#c4b2ff] backdrop-blur-sm">
             {place.org ? (
               <UserGroupIcon className="size-3" />
+            ) : place.sharedWithMe || place.guestCount ? (
+              <UserPlusIcon className="size-3" />
             ) : (
               <LockClosedIcon className="size-3" />
             )}
             {place.org
               ? t("cardOrg", { org: place.org.tag ?? place.org.name })
-              : t("cardOwn")}
+              : place.sharedWithMe
+                ? t("cardShared")
+                : place.guestCount
+                  ? t("cardGuests", { count: place.guestCount })
+                  : t("cardOwn")}
           </span>
           {inReview && (
             <span className="rounded-full border border-amber-300/45 bg-black/60 px-2 py-0.5 text-xs font-semibold text-amber-200 backdrop-blur-sm">
