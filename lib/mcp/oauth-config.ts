@@ -33,6 +33,8 @@ export const MCP_SCOPES = [
   "inventory:write",
   "refining:read",
   "refining:write",
+  "markers:read",
+  "markers:write",
   "marketplace:read",
   "marketplace:write",
   "contributions:write",

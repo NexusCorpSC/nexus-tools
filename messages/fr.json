@@ -94,6 +94,10 @@
           "label": "Inventaire",
           "description": "Vos objets, rangés par lieu"
         },
+        "markers": {
+          "label": "Marqueurs",
+          "description": "Vos positions relevées en jeu"
+        },
         "parcels": {
           "label": "Colis",
           "description": "Envois et réceptions par code"
@@ -3757,6 +3761,8 @@
       "inventory:write": "ajouter, déplacer et modifier les lots de votre inventaire",
       "refining:read": "lire vos ordres de raffinage",
       "refining:write": "lancer, modifier et retirer vos ordres de raffinage, et collecter leurs matériaux dans votre inventaire",
+      "markers:read": "lire vos marqueurs de position",
+      "markers:write": "créer, modifier et supprimer vos marqueurs de position",
       "marketplace:read": "lire votre panier, vos commandes et vos magasins",
       "marketplace:write": "remplir votre panier, passer et suivre vos commandes, mettre en vente et gérer les commandes de vos magasins",
       "contributions:write": "proposer des contributions en votre nom (lieux, plans, objets)"
@@ -4015,6 +4021,10 @@
         "update_refining_job": "Modification de l'ordre de raffinage",
         "collect_refining_job": "Collecte de l'ordre de raffinage",
         "delete_refining_job": "Retrait de l'ordre de raffinage",
+        "list_markers": "Lecture de vos marqueurs",
+        "add_marker": "Création du marqueur",
+        "update_marker": "Modification du marqueur",
+        "delete_marker": "Suppression du marqueur",
         "sell_lot": "Mise en vente du lot",
         "contribute_item_edit": "Proposition de correction d'objet",
         "contribute_place_create": "Proposition de lieu",
@@ -4239,7 +4249,8 @@
       "district": "Quartiers",
       "building": "Bâtiments",
       "shop": "Magasins",
-      "star": "Systèmes"
+      "star": "Systèmes",
+      "marker": "Marqueurs"
     },
     "legend": {
       "bodies": "Planète, lune",
@@ -4248,11 +4259,17 @@
       "outposts": "Avant-poste",
       "items": "Vos objets",
       "hint": "Cliquer pour zoomer · Glisser pour tourner · Clic droit pour déplacer · Molette pour zoomer · Échap pour remonter",
-      "private": "Lieu privé"
+      "private": "Lieu privé",
+      "marker": "Marqueur"
     },
     "showPrivate": "Lieux privés",
     "privateShared": "Lieu privé · {org}",
-    "privateOwn": "Lieu privé · vous seul"
+    "privateOwn": "Lieu privé · vous seul",
+    "markers": "Mes marqueurs",
+    "markerType": "Marqueur · {kind}",
+    "markerBy": "De {owner}, relevé {when}",
+    "markerSince": "Relevé {when}",
+    "openMarkers": "Mes marqueurs"
   },
   "PrivatePlaces": {
     "addTitle": "Ajouter un lieu",
@@ -4343,5 +4360,81 @@
     "cardInReview": "En relecture",
     "cardMine": "Le vôtre",
     "cardBy": "Par {name}"
+  },
+  "Markers": {
+    "title": "Mes marqueurs",
+    "summary": "{markers, plural, =0 {Aucun marqueur} one {# marqueur} other {# marqueurs}} · {collections, plural, =0 {aucune collection} one {# collection} other {# collections}} · visibles de vous seul, sauf les collections partagées.",
+    "openStarMap": "Voir sur la Star Map",
+    "add": "Ajouter un marqueur",
+    "collections": "Collections",
+    "all": "Tous",
+    "none": "Sans collection",
+    "onlyMe": "Moi seul",
+    "sharedWith": "Partagée · {org}",
+    "sharedBy": "De {owner} · {org}",
+    "newCollection": "Nouvelle collection",
+    "editCollection": "Modifier la collection {name}",
+    "searchPlaceholder": "Nom ou note",
+    "kindFilter": "Catégorie",
+    "allKinds": "Toutes catégories",
+    "bodyFilter": "Corps céleste",
+    "allBodies": "Tous les corps",
+    "sort": "Trier",
+    "sorts": {
+      "recent": "Récents",
+      "name": "Nom"
+    },
+    "kinds": {
+      "ore": "Minerai",
+      "wreck": "Épave",
+      "cave": "Grotte",
+      "poi": "Point d'intérêt",
+      "danger": "Danger",
+      "other": "Autre"
+    },
+    "selectedCount": "{count, plural, one {# marqueur sélectionné} other {# marqueurs sélectionnés}}",
+    "moveTo": "Déplacer vers…",
+    "clearSelection": "Désélectionner",
+    "empty": "Aucun marqueur pour l'instant. Dans Nexus App, « Marquer ma position » dans le NPS (ou Ctrl+Maj+M) en crée un ; ici, ajoutez-en un en collant une ligne /showlocation.",
+    "noMatch": "Aucun marqueur ne correspond à ces filtres.",
+    "select": "Sélectionner {name}",
+    "by": "Partagé par {owner}",
+    "inSpaceOf": "Espace de {system}",
+    "showOnMap": "Voir {name} sur la Star Map",
+    "edit": "Modifier {name}",
+    "sharedReadOnly": "Une collection partagée par un autre joueur : seul son créateur la modifie.",
+    "addTitle": "Ajouter un marqueur",
+    "addHint": "Collez la ligne copiée par /showlocation : le corps et les coordonnées se remplissent seuls.",
+    "fieldName": "Nom",
+    "namePlaceholder": "Daymar, rocher sud",
+    "fieldKind": "Catégorie",
+    "fieldCollection": "Collection",
+    "fieldNote": "Note",
+    "optional": "(facultatif)",
+    "notePlaceholder": "3 rochers de Quantanium, besoin d'une Prospector",
+    "fieldSystem": "Système",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer ce marqueur ?",
+    "cancel": "Annuler",
+    "toPrivatePlace": "En faire un lieu privé",
+    "save": "Enregistrer",
+    "addSubmit": "Ajouter",
+    "collectionTitle": "Collection « {name} »",
+    "collectionPlaceholder": "Quantanium Daymar",
+    "fieldColor": "Couleur",
+    "shareTitle": "Qui voit cette collection",
+    "shareNoOrg": "Vous n'êtes membre d'aucune organisation : la collection restera visible de vous seul.",
+    "shareHint": "Les membres voient ses marqueurs sur la Star Map et dans le NPS, et peuvent s'y guider. Seul vous les modifiez. Si vous quittez l'organisation, la collection redevient visible de vous seul.",
+    "deleteCollection": "Supprimer la collection",
+    "deleteCollectionConfirm": "Supprimer la collection ? Ses marqueurs restent, sans collection.",
+    "errors": {
+      "unknown": "Une erreur est survenue. Réessayez.",
+      "invalidInput": "Vérifiez les champs du formulaire.",
+      "positionRequired": "Saisissez la position du marqueur, ou collez une ligne /showlocation.",
+      "notFound": "Ce marqueur n'existe plus.",
+      "forbidden": "Seul le créateur peut le modifier.",
+      "notMember": "Vous n'êtes pas membre de cette organisation.",
+      "tooMany": "Vous avez atteint la limite : 1 000 marqueurs et 50 collections par compte."
+    }
   }
 }

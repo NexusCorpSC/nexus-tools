@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { deleteMarker, MarkerError } from "@/lib/markers";
 import {
   countOwnedPrivatePlaces,
   createPrivatePlace,
@@ -42,12 +43,16 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/lieux/prives
  * Crée un lieu privé (`PrivatePlaceInput`). `fromLocationId` complète un
- * emplacement personnel de l'inventaire plutôt que d'en créer un.
+ * emplacement personnel de l'inventaire plutôt que d'en créer un ;
+ * `fromMarkerId` est le marqueur qui devient ce lieu, supprimé ensuite.
  */
 export async function POST(request: NextRequest) {
   const user = await sessionUser();
   if (!user) return unauthorized();
-  let body: PrivatePlaceInput & { fromLocationId?: unknown };
+  let body: PrivatePlaceInput & {
+    fromLocationId?: unknown;
+    fromMarkerId?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -59,6 +64,12 @@ export async function POST(request: NextRequest) {
       body,
       typeof body.fromLocationId === "string" ? body.fromLocationId : undefined,
     );
+    if (typeof body.fromMarkerId === "string") {
+      // Le lieu existe : un marqueur déjà parti ne doit pas le faire échouer.
+      await deleteMarker(user.id, body.fromMarkerId).catch((error) => {
+        if (!(error instanceof MarkerError)) throw error;
+      });
+    }
     return NextResponse.json({ slug }, { status: 201 });
   } catch (error) {
     return errorResponse(error);

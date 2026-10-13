@@ -407,6 +407,34 @@ async function ensureGameLocations(database: Db) {
     );
 }
 
+// ─── Marqueurs ───────────────────────────────────────────────────────────────
+
+/**
+ * Les marqueurs d'un joueur (sa liste, du plus récent, et la limite par
+ * compte), ceux d'une collection partagée, et les collections d'un joueur ou
+ * de ses organisations.
+ */
+async function ensureMarkers(database: Db) {
+  const markers = database.collection("markers");
+  await markers.createIndex(
+    { ownerId: 1, createdAt: -1 },
+    { name: "markers_owner" },
+  );
+  await markers.createIndex(
+    { collectionId: 1, createdAt: -1 },
+    { name: "markers_collection", sparse: true },
+  );
+  const collections = database.collection("markerCollections");
+  await collections.createIndex(
+    { ownerId: 1, name: 1 },
+    { name: "markerCollections_owner" },
+  );
+  await collections.createIndex(
+    { orgId: 1 },
+    { name: "markerCollections_org", sparse: true },
+  );
+}
+
 // ─── Vaisseaux de cargo ───────────────────────────────────────────────────────
 
 /** L'id est la clé que toute autre opération vise. */
@@ -637,6 +665,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["gameData", ensureGameData],
   ["gameLocations", ensureGameLocations],
   ["lore", ensureLore],
+  ["markers", ensureMarkers],
   ["cargoShips", ensureCargoShips],
   ["parcels", ensureParcels],
   ["refiningJobs", ensureRefiningJobs],

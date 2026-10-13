@@ -94,6 +94,10 @@
           "label": "Inventory",
           "description": "Your items, by location"
         },
+        "markers": {
+          "label": "Markers",
+          "description": "Positions you saved in game"
+        },
         "parcels": {
           "label": "Parcels",
           "description": "Sent and received by code"
@@ -3758,6 +3762,8 @@
       "inventory:write": "add, move and edit the lots of your inventory",
       "refining:read": "read your refining orders",
       "refining:write": "start, edit and remove your refining orders, and collect their materials into your inventory",
+      "markers:read": "read your position markers",
+      "markers:write": "create, edit and delete your position markers",
       "marketplace:read": "read your cart, your orders and your shops",
       "marketplace:write": "fill your cart, place and follow your orders, put items on sale and handle your shops' orders",
       "contributions:write": "submit contributions on your behalf (places, maps, items)"
@@ -4016,6 +4022,10 @@
         "update_refining_job": "Editing the refining order",
         "collect_refining_job": "Collecting the refining order",
         "delete_refining_job": "Removing the refining order",
+        "list_markers": "Reading your markers",
+        "add_marker": "Creating the marker",
+        "update_marker": "Editing the marker",
+        "delete_marker": "Deleting the marker",
         "sell_lot": "Listing the lot for sale",
         "contribute_item_edit": "Suggesting an item fix",
         "contribute_place_create": "Suggesting a place",
@@ -4240,7 +4250,8 @@
       "district": "Districts",
       "building": "Buildings",
       "shop": "Shops",
-      "star": "Systems"
+      "star": "Systems",
+      "marker": "Markers"
     },
     "legend": {
       "bodies": "Planet, moon",
@@ -4249,11 +4260,17 @@
       "outposts": "Outpost",
       "items": "Your items",
       "hint": "Click to zoom · Drag to turn · Right-drag to move · Scroll to zoom · Esc to go up",
-      "private": "Private place"
+      "private": "Private place",
+      "marker": "Marker"
     },
     "showPrivate": "Private places",
     "privateShared": "Private place · {org}",
-    "privateOwn": "Private place · only you"
+    "privateOwn": "Private place · only you",
+    "markers": "My markers",
+    "markerType": "Marker · {kind}",
+    "markerBy": "From {owner}, saved {when}",
+    "markerSince": "Saved {when}",
+    "openMarkers": "My markers"
   },
   "PrivatePlaces": {
     "addTitle": "Add a place",
@@ -4344,5 +4361,81 @@
     "cardInReview": "In review",
     "cardMine": "Yours",
     "cardBy": "By {name}"
+  },
+  "Markers": {
+    "title": "My markers",
+    "summary": "{markers, plural, =0 {No markers} one {# marker} other {# markers}} · {collections, plural, =0 {no collections} one {# collection} other {# collections}} · visible to you only, except shared collections.",
+    "openStarMap": "View on the Star Map",
+    "add": "Add a marker",
+    "collections": "Collections",
+    "all": "All",
+    "none": "No collection",
+    "onlyMe": "Only me",
+    "sharedWith": "Shared · {org}",
+    "sharedBy": "From {owner} · {org}",
+    "newCollection": "New collection",
+    "editCollection": "Edit the {name} collection",
+    "searchPlaceholder": "Name or note",
+    "kindFilter": "Category",
+    "allKinds": "All categories",
+    "bodyFilter": "Celestial body",
+    "allBodies": "All bodies",
+    "sort": "Sort",
+    "sorts": {
+      "recent": "Recent",
+      "name": "Name"
+    },
+    "kinds": {
+      "ore": "Ore",
+      "wreck": "Wreck",
+      "cave": "Cave",
+      "poi": "Point of interest",
+      "danger": "Danger",
+      "other": "Other"
+    },
+    "selectedCount": "{count, plural, one {# marker selected} other {# markers selected}}",
+    "moveTo": "Move to…",
+    "clearSelection": "Clear selection",
+    "empty": "No markers yet. In Nexus App, “Mark my position” in the NPS (or Ctrl+Shift+M) creates one; here, add one by pasting a /showlocation line.",
+    "noMatch": "No marker matches these filters.",
+    "select": "Select {name}",
+    "by": "Shared by {owner}",
+    "inSpaceOf": "{system} space",
+    "showOnMap": "Show {name} on the Star Map",
+    "edit": "Edit {name}",
+    "sharedReadOnly": "A collection shared by another player: only its creator can change it.",
+    "addTitle": "Add a marker",
+    "addHint": "Paste the line copied by /showlocation: the body and coordinates fill in by themselves.",
+    "fieldName": "Name",
+    "namePlaceholder": "Daymar, south rock",
+    "fieldKind": "Category",
+    "fieldCollection": "Collection",
+    "fieldNote": "Note",
+    "optional": "(optional)",
+    "notePlaceholder": "3 Quantanium rocks, needs a Prospector",
+    "fieldSystem": "System",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this marker?",
+    "cancel": "Cancel",
+    "toPrivatePlace": "Turn into a private place",
+    "save": "Save",
+    "addSubmit": "Add",
+    "collectionTitle": "“{name}” collection",
+    "collectionPlaceholder": "Daymar Quantanium",
+    "fieldColor": "Color",
+    "shareTitle": "Who sees this collection",
+    "shareNoOrg": "You are not a member of any organization: the collection stays visible to you only.",
+    "shareHint": "Members see its markers on the Star Map and in the NPS, and can be guided to them. Only you can change them. If you leave the organization, the collection becomes visible to you only.",
+    "deleteCollection": "Delete the collection",
+    "deleteCollectionConfirm": "Delete the collection? Its markers stay, with no collection.",
+    "errors": {
+      "unknown": "Something went wrong. Try again.",
+      "invalidInput": "Check the form fields.",
+      "positionRequired": "Enter the marker's position, or paste a /showlocation line.",
+      "notFound": "This marker no longer exists.",
+      "forbidden": "Only its creator can change it.",
+      "notMember": "You are not a member of this organization.",
+      "tooMany": "You reached the limit: 1,000 markers and 50 collections per account."
+    }
   }
 }

@@ -26,7 +26,7 @@ import {
   type ProposedImage,
 } from "@/app/admin/lieux/components/proposed-place-image";
 import { blobName } from "@/app/lieux/[slug]/gallery";
-import { MAX_PLACE_NAME_LENGTH } from "@/types/places";
+import { MAX_PLACE_NAME_LENGTH, type PlacePosition } from "@/types/places";
 import {
   MAX_PRIVATE_PLACE_DESCRIPTION_LENGTH,
   PRIVATE_PLACE_TYPES,
@@ -46,7 +46,10 @@ export function PrivatePlaceForm({
   orgs,
   initialParent,
   initialName,
+  initialPosition,
+  initialDescription,
   fromLocationId,
+  fromMarkerId,
 }: {
   /** Absent : on le crée. */
   place?: PrivatePlace;
@@ -55,6 +58,10 @@ export function PrivatePlaceForm({
   /** Le nom d'un emplacement de l'inventaire que l'on complète. */
   initialName?: string;
   fromLocationId?: string;
+  initialPosition?: PlacePosition;
+  initialDescription?: string;
+  /** Le marqueur qui devient ce lieu : supprimé une fois le lieu créé. */
+  fromMarkerId?: string;
 }) {
   const t = useTranslations("PrivatePlaces");
   const tPlaces = useTranslations("Places");
@@ -73,9 +80,11 @@ export function PrivatePlaceForm({
   const [systemSlug, setSystemSlug] = useState(
     place?.systemSlug ?? initialParent?.systemSlug,
   );
-  const [description, setDescription] = useState(place?.description ?? "");
+  const [description, setDescription] = useState(
+    place?.description ?? initialDescription ?? "",
+  );
   const [position, setPosition] = useState<PositionValue>(
-    place?.position ?? null,
+    place?.position ?? initialPosition ?? null,
   );
   const [image, setImage] = useState<ProposedImage | null>(
     place?.image ?? null,
@@ -131,6 +140,7 @@ export function PrivatePlaceForm({
         image: sentImage,
         orgId: orgId || null,
         ...(fromLocationId && !place ? { fromLocationId } : {}),
+        ...(fromMarkerId && !place ? { fromMarkerId } : {}),
       };
       const response = await fetch(
         place ? `/api/lieux/prives/${place.slug}` : "/api/lieux/prives",
@@ -225,7 +235,7 @@ export function PrivatePlaceForm({
       </div>
 
       <PlacePositionField
-        initial={place?.position}
+        initial={place?.position ?? initialPosition}
         systemSlug={systemSlug}
         onChange={setPosition}
       />

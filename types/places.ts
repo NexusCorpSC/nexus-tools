@@ -1,3 +1,5 @@
+import type { Marker } from "@/types/markers";
+
 /**
  * Les lieux du 'verse : le catalogue des endroits où l'on se pose, par
  * opposition aux emplacements de stockage de l'inventaire, que chaque joueur
@@ -644,6 +646,8 @@ export type NpsPlace = {
 export type NpsResponse = {
   bodies: NpsBody[];
   places: NpsPlace[];
+  /** Connecté : ses marqueurs et ceux que ses organisations partagent. */
+  markers?: Marker[];
 };
 
 /** Ce qui fait d'un lieu un lieu privé, et à qui il se montre. */

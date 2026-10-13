@@ -471,7 +471,9 @@ export function createStarMap({
         positions.set(place.world!, index * 3);
         colors.set(
           new THREE.Color(
-            MARKER_COLOR[place.type] ?? MARKER_COLOR.outpost,
+            place.marker?.color ??
+              MARKER_COLOR[place.type] ??
+              MARKER_COLOR.outpost,
           ).toArray(),
           index * 3,
         );
@@ -609,9 +611,10 @@ export function createStarMap({
     if (!place.world || !place.system) continue;
     const element = document.createElement("button");
     element.type = "button";
-    // Un lieu privé montre toujours son nom : c'est le sien.
+    // Un lieu privé ou un marqueur montre toujours son nom : c'est le sien.
     const minor =
       !place.private &&
+      !place.marker &&
       (place.type === "outpost" ||
         (place.type === "station" &&
           !!place.parentSlug &&
@@ -623,19 +626,27 @@ export function createStarMap({
         ? " system"
         : "") +
       (place.type === "planet" || place.type === "city" ? " major" : "") +
-      (place.private ? " private" : "");
+      (place.private ? " private" : "") +
+      (place.marker ? " marker" : "");
     element.setAttribute("aria-label", `${typeLabel(place)} ${place.name}`);
+    if (place.marker)
+      element.style.setProperty("--marker-color", place.marker.color);
     const marker = document.createElement("i");
-    marker.className = place.private
-      ? "star-map-marker private"
-      : `star-map-marker ${markerShape(place.type)}`;
+    marker.className = place.marker
+      ? "star-map-marker pin"
+      : place.private
+        ? "star-map-marker private"
+        : `star-map-marker ${markerShape(place.type)}`;
     marker.style.setProperty(
       "--c",
-      place.private
-        ? PRIVATE_MARKER_COLOR
-        : place.system && STAR_MAP_SYSTEMS.includes(place.slug as StarMapSystem)
-          ? SYSTEM_LOOK[place.slug as StarMapSystem].color
-          : (MARKER_COLOR[place.type] ?? MARKER_COLOR.planet),
+      place.marker
+        ? place.marker.color
+        : place.private
+          ? PRIVATE_MARKER_COLOR
+          : place.system &&
+              STAR_MAP_SYSTEMS.includes(place.slug as StarMapSystem)
+            ? SYSTEM_LOOK[place.slug as StarMapSystem].color
+            : (MARKER_COLOR[place.type] ?? MARKER_COLOR.planet),
     );
     const text = document.createElement("span");
     text.className = "star-map-text";
@@ -890,6 +901,7 @@ export function createStarMap({
       if (
         show &&
         place.type === "outpost" &&
+        !place.marker &&
         !showOutposts &&
         place.slug !== focusSlug
       )

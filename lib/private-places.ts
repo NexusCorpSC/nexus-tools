@@ -78,7 +78,7 @@ export const PRIVATE_IMAGE_PATH =
 
 // ─── Qui voit quoi ─────────────────────────────────────────────────────────
 
-type OrgInfo = {
+export type OrgInfo = {
   id: string;
   name: string;
   tag?: string;
@@ -86,7 +86,7 @@ type OrgInfo = {
 };
 
 /** Les organisations d'un joueur, et qui en est membre. */
-type Viewer = {
+export type Viewer = {
   userId: string;
   orgs: Map<string, OrgInfo>;
 };
@@ -107,7 +107,7 @@ function toOrgInfo(org: {
   };
 }
 
-async function getViewer(userId: string): Promise<Viewer> {
+export async function getViewer(userId: string): Promise<Viewer> {
   const found = ObjectId.isValid(userId)
     ? await organizations()
         .find(
@@ -127,12 +127,25 @@ async function getViewer(userId: string): Promise<Viewer> {
  * L'organisation qui voit ce lieu, si son créateur en est encore membre. Celle
  * qu'il a quittée ne compte plus, même pour lui.
  */
-async function effectiveOrg(
+function effectiveOrg(
   doc: DbPrivatePlace,
+  viewer: Viewer,
+  cache?: Map<string, OrgInfo | null>,
+): Promise<OrgInfo | null> {
+  return sharingOrg(doc.privacy, viewer, cache);
+}
+
+/**
+ * L'organisation avec qui `ownerId` partage quelque chose (`orgId`), telle que
+ * `viewer` la voit : seulement si le créateur en est encore membre, et si
+ * `viewer` en est membre ou est le créateur. Les marqueurs suivent la même
+ * règle (`lib/markers.ts`).
+ */
+export async function sharingOrg(
+  { orgId, ownerId }: { orgId?: string; ownerId: string },
   viewer: Viewer,
   cache: Map<string, OrgInfo | null> = new Map(),
 ): Promise<OrgInfo | null> {
-  const { orgId, ownerId } = doc.privacy;
   if (!orgId) return null;
   // Hors de l'organisation, seul le créateur peut encore le voir.
   if (!viewer.orgs.has(orgId) && viewer.userId !== ownerId) return null;

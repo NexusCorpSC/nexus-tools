@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getNpsData } from "@/lib/places";
+import { visibleMarkers } from "@/lib/markers";
 import { listPrivatePlaces } from "@/lib/private-places";
 import type { NpsPlace } from "@/types/places";
 
@@ -10,7 +11,7 @@ import type { NpsPlace } from "@/types/places";
  * Pour le NPS de l'app : les corps célestes (centre, rayon, rotation) et les
  * lieux dont la position a été relevée. Voir `NpsResponse`. Connecté, le
  * joueur y trouve aussi ses lieux privés relevés et ceux de ses
- * organisations, marqués `private`.
+ * organisations, marqués `private`, et ses marqueurs (`markers`).
  */
 export async function GET() {
   const [data, session] = await Promise.all([
@@ -19,7 +20,10 @@ export async function GET() {
   ]);
   if (!session?.user) return NextResponse.json(data);
 
-  const own = await listPrivatePlaces(session.user.id, { positioned: true });
+  const [own, markers] = await Promise.all([
+    listPrivatePlaces(session.user.id, { positioned: true }),
+    visibleMarkers(session.user.id),
+  ]);
   const privatePlaces: NpsPlace[] = own.map((place) => {
     const entry: NpsPlace = {
       slug: place.slug,
@@ -37,5 +41,6 @@ export async function GET() {
   return NextResponse.json({
     ...data,
     places: [...data.places, ...privatePlaces],
+    markers,
   });
 }

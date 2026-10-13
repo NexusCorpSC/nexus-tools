@@ -49,21 +49,26 @@ function read(
 export function PlacePositionField({
   initial,
   systemSlug,
+  required,
   onChange,
 }: {
   initial?: PlacePosition;
   /** Le système du lieu, si on le sait : seuls ses corps sont proposés. */
   systemSlug?: string;
+  /** Pas de choix « aucune » : un marqueur a toujours une position. */
+  required?: boolean;
   onChange: (value: PositionValue) => void;
 }) {
   const t = useTranslations("Places.Position");
   const [bodies, setBodies] = useState<NpsBody[] | null>(null);
   const [bodiesFailed, setBodiesFailed] = useState(false);
   const [mode, setMode] = useState<Mode>(
-    initial ? (initial.body ? "body" : "space") : "none",
+    initial ? (initial.body ? "body" : "space") : required ? "body" : "none",
   );
   const [bodySlug, setBodySlug] = useState(initial?.body ?? "");
-  const [unit, setUnit] = useState<Unit>(initial?.body ? "km" : "m");
+  const [unit, setUnit] = useState<Unit>(
+    initial ? (initial.body ? "km" : "m") : required ? "km" : "m",
+  );
   const [fields, setFields] = useState<Xyz>(() =>
     initial ? toFields(initial, initial.body ? "km" : "m") : EMPTY,
   );
@@ -131,7 +136,7 @@ export function PlacePositionField({
   }
 
   const choices: { key: Mode; label: string }[] = [
-    { key: "none", label: t("none") },
+    ...(required ? [] : [{ key: "none" as const, label: t("none") }]),
     { key: "body", label: t("onBody") },
     { key: "space", label: t("inSpace") },
   ];
