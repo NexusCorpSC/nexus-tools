@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useNow, useTranslations } from "next-intl";
 import { useUrlFilters } from "@/lib/list-url";
 import {
   BODY_TYPES,
@@ -32,6 +32,7 @@ const GROUP_ORDER = [
   "district",
   "building",
   "shop",
+  "marker",
 ];
 
 /** Au-delà, un groupe se replie derrière « Afficher les N autres ». */
@@ -96,7 +97,16 @@ function Pager({
   );
 }
 
-function Marker({ place }: { place: LaidOutPlace }) {
+function Marker({ place }: { place: StarMapPlace }) {
+  if (place.marker) {
+    return (
+      <i
+        aria-hidden
+        className="star-map-marker pin"
+        style={{ "--c": place.marker.color } as React.CSSProperties}
+      />
+    );
+  }
   const color = place.private
     ? PRIVATE_MARKER_COLOR
     : isStarMapSystem(place.slug)
@@ -135,7 +145,31 @@ export function StarMap({
 }) {
   const t = useTranslations("StarMap");
   const tPlaces = useTranslations("Places");
+  const tMarkers = useTranslations("Markers");
   const format = useFormatter();
+  const now = useNow({ updateInterval: 60_000 });
+  // Ses marqueurs, par collection : chacune se masque d'un clic.
+  const markerCollections = useMemo(() => {
+    const found = new Map<
+      string,
+      { key: string; name?: string; color: string; count: number }
+    >();
+    for (const place of input) {
+      if (!place.marker) continue;
+      const { collectionKey: key, collection: name, color } = place.marker;
+      const entry = found.get(key) ?? { key, name, color, count: 0 };
+      entry.count += 1;
+      found.set(key, entry);
+    }
+    return [...found.values()].sort(
+      (a, b) =>
+        Number(a.key === "none") - Number(b.key === "none") ||
+        (a.name ?? "").localeCompare(b.name ?? ""),
+    );
+  }, [input]);
+  const [hiddenCollections, setHiddenCollections] = useState<Set<string>>(
+    new Set(),
+  );
   // Ses lieux privés, que l'on peut masquer : la carte se refait sans eux.
   const hasPrivate = useMemo(
     () => input.some((place) => place.private),
@@ -145,9 +179,15 @@ export function StarMap({
   const places = useMemo(
     () =>
       layoutStarMap(
-        showPrivate ? input : input.filter((place) => !place.private),
+        input.filter(
+          (place) =>
+            (showPrivate || !place.private) &&
+            !(
+              place.marker && hiddenCollections.has(place.marker.collectionKey)
+            ),
+        ),
       ),
-    [input, showPrivate],
+    [input, showPrivate, hiddenCollections],
   );
   const [focus, setFocus] = useState<string | null>(
     initialPlace && places.has(initialPlace) ? initialPlace : null,
@@ -172,8 +212,11 @@ export function StarMap({
     [places],
   );
   const typeLabel = useCallback(
-    (place: LaidOutPlace) => tPlaces(`types.${place.type}`),
-    [tPlaces],
+    (place: LaidOutPlace) =>
+      place.marker
+        ? t("markerType", { kind: tMarkers(`kinds.${place.marker.kind}`) })
+        : tPlaces(`types.${place.type}`),
+    [t, tMarkers, tPlaces],
   );
 
   // Les lots sous chaque lieu, ancêtres compris : ce que disent les pastilles.
@@ -512,6 +555,49 @@ export function StarMap({
               {t("showPrivate")}
             </label>
           )}
+          {markerCollections.length > 0 && (
+            <div
+              role="group"
+              aria-label={t("markers")}
+              className="flex flex-wrap items-center gap-1"
+            >
+              <span className="text-[12.5px] text-[#7ff0d0]">
+                {t("markers")}
+              </span>
+              {markerCollections.map((collection) => {
+                const hidden = hiddenCollections.has(collection.key);
+                return (
+                  <button
+                    key={collection.key}
+                    type="button"
+                    aria-pressed={!hidden}
+                    onClick={() => {
+                      const next = new Set(hiddenCollections);
+                      if (hidden) next.delete(collection.key);
+                      else next.add(collection.key);
+                      setHiddenCollections(next);
+                      if (
+                        !hidden &&
+                        current?.marker?.collectionKey === collection.key
+                      )
+                        setFocus(current.parentSlug ?? null);
+                    }}
+                    className="flex items-center gap-1.5 rounded-full border border-[#9ED0FF]/20 px-2 py-0.5 text-[11.5px] text-[#c9e4ff] aria-[pressed=false]:text-[#5c7b96] aria-[pressed=false]:line-through"
+                  >
+                    <i
+                      aria-hidden
+                      className="size-2 rounded-full"
+                      style={{
+                        background: collection.color,
+                        opacity: hidden ? 0.4 : 1,
+                      }}
+                    />
+                    {collection.name ?? tMarkers("none")}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -558,6 +644,42 @@ export function StarMap({
                 : t("privateOwn")}
             </p>
           )}
+          {current?.marker && (
+            <div className="grid gap-1.5 text-[13px]">
+              <p className="flex w-fit items-center gap-1.5 rounded-full border border-[#9ED0FF]/25 px-2 py-0.5 text-[11.5px]">
+                <i
+                  aria-hidden
+                  className="size-2 rounded-full"
+                  style={{ background: current.marker.color }}
+                />
+                {current.marker.collection ?? tMarkers("none")}
+                {current.marker.org && (
+                  <span className="text-[#c4b2ff]">· {current.marker.org}</span>
+                )}
+              </p>
+              {current.marker.note && (
+                <p className="leading-relaxed whitespace-pre-line">
+                  {current.marker.note}
+                </p>
+              )}
+              <p className="text-xs text-[#86a9c8]">
+                {current.marker.owner
+                  ? t("markerBy", {
+                      owner: current.marker.owner,
+                      when: format.relativeTime(
+                        new Date(current.marker.createdAt),
+                        now,
+                      ),
+                    })
+                  : t("markerSince", {
+                      when: format.relativeTime(
+                        new Date(current.marker.createdAt),
+                        now,
+                      ),
+                    })}
+              </p>
+            </div>
+          )}
           {current?.approx && (
             <p className="text-xs text-[#86a9c8]">{t("approx")}</p>
           )}
@@ -580,208 +702,218 @@ export function StarMap({
                 {t("up")}
               </button>
               <Link
-                href={`/lieux/${current.slug}`}
+                href={current.marker ? "/marqueurs" : `/lieux/${current.slug}`}
                 className="rounded-md border border-[#9ED0FF]/20 px-2.5 py-1 text-xs font-medium text-[#86a9c8] hover:bg-[#9ED0FF]/15 hover:text-[#c9e4ff]"
               >
-                {t("openPlace")}
+                {current.marker ? t("openMarkers") : t("openPlace")}
               </Link>
             </div>
           )}
         </div>
 
-        <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3"
-          onScroll={() => setTip(null)}
-        >
-          <section className="px-4 pt-3">
-            <h3 className="mb-2 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
-              {t("yourItems")}
-              {inventory && lotCount > 0 && (
-                <small className="font-mono text-[11px] font-normal tracking-normal text-[#5c7b96] normal-case">
-                  {t("lotsSummary", { lots: lotCount, places: lots.length })}
-                </small>
-              )}
-            </h3>
-            {!inventory ? (
-              <div className="grid gap-2.5 rounded-lg border border-dashed border-[#9ED0FF]/40 p-3 text-[13px] leading-relaxed text-[#86a9c8]">
-                {t("signInHint")}
-                <Link
-                  href="/login"
-                  className="justify-self-start rounded-md border border-[#9ED0FF]/50 px-2.5 py-1 text-xs font-medium text-[#c9e4ff] hover:bg-[#9ED0FF]/15"
-                >
-                  {t("signIn")}
-                </Link>
-              </div>
-            ) : lotCount === 0 ? (
-              <p className="text-[13px] text-[#86a9c8]">
-                {current
-                  ? t("noItemsHere", { place: current.name })
-                  : t("noItems")}
-              </p>
-            ) : (
-              <div className="grid">
-                {pageRows.map((group, index) =>
-                  group.best !== undefined ? (
-                    <div
-                      key={group.key}
-                      className="grid gap-1.5 border-b border-[#9ED0FF]/10 py-2"
-                    >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="min-w-0 truncate text-[13.5px] font-medium">
-                          {group.name}
-                        </span>
-                        <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
-                          {format.number(group.total)}
-                          {group.unit ? ` ${group.unit}` : ""}
-                          <span className="text-[#5c7b96]">
-                            {" · "}
-                            {t("bestQuality", { quality: group.best })}
+        {/* Un marqueur ne contient rien, et on n'y range pas d'objets. */}
+        {!current?.marker && (
+          <div
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3"
+            onScroll={() => setTip(null)}
+          >
+            <section className="px-4 pt-3">
+              <h3 className="mb-2 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
+                {t("yourItems")}
+                {inventory && lotCount > 0 && (
+                  <small className="font-mono text-[11px] font-normal tracking-normal text-[#5c7b96] normal-case">
+                    {t("lotsSummary", { lots: lotCount, places: lots.length })}
+                  </small>
+                )}
+              </h3>
+              {!inventory ? (
+                <div className="grid gap-2.5 rounded-lg border border-dashed border-[#9ED0FF]/40 p-3 text-[13px] leading-relaxed text-[#86a9c8]">
+                  {t("signInHint")}
+                  <Link
+                    href="/login"
+                    className="justify-self-start rounded-md border border-[#9ED0FF]/50 px-2.5 py-1 text-xs font-medium text-[#c9e4ff] hover:bg-[#9ED0FF]/15"
+                  >
+                    {t("signIn")}
+                  </Link>
+                </div>
+              ) : lotCount === 0 ? (
+                <p className="text-[13px] text-[#86a9c8]">
+                  {current
+                    ? t("noItemsHere", { place: current.name })
+                    : t("noItems")}
+                </p>
+              ) : (
+                <div className="grid">
+                  {pageRows.map((group, index) =>
+                    group.best !== undefined ? (
+                      <div
+                        key={group.key}
+                        className="grid gap-1.5 border-b border-[#9ED0FF]/10 py-2"
+                      >
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="min-w-0 truncate text-[13.5px] font-medium">
+                            {group.name}
                           </span>
-                        </span>
+                          <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
+                            {format.number(group.total)}
+                            {group.unit ? ` ${group.unit}` : ""}
+                            <span className="text-[#5c7b96]">
+                              {" · "}
+                              {t("bestQuality", { quality: group.best })}
+                            </span>
+                          </span>
+                        </div>
+                        {/* La qualité de 0 à 1000 ; un trait par lot, plus épais quand il pèse plus. */}
+                        <div className="relative h-2.5 rounded-[3px] bg-[#9ED0FF]/[0.08]">
+                          {group.lots.map(({ lot, place }) => {
+                            const width =
+                              2 + 8 * Math.sqrt(lot.quantity / biggestLot);
+                            return (
+                              <span
+                                key={lot.id}
+                                tabIndex={0}
+                                aria-label={`${format.number(lot.quantity)}${lot.unit ? ` ${lot.unit}` : ""}, ${t("quality", { quality: lot.quality ?? 0 })}`}
+                                onPointerEnter={(event) =>
+                                  showTip(event.currentTarget, lot, place)
+                                }
+                                onFocus={(event) =>
+                                  showTip(event.currentTarget, lot, place)
+                                }
+                                onPointerLeave={() => setTip(null)}
+                                onBlur={() => setTip(null)}
+                                className="absolute inset-y-0 cursor-default rounded-[2px] bg-[#ffc76a]/85 outline-none hover:bg-white focus-visible:bg-white"
+                                style={{
+                                  left: `calc(${(lot.quality ?? 0) / 10}% - ${width / 2}px)`,
+                                  width,
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
                       </div>
-                      {/* La qualité de 0 à 1000 ; un trait par lot, plus épais quand il pèse plus. */}
-                      <div className="relative h-2.5 rounded-[3px] bg-[#9ED0FF]/[0.08]">
-                        {group.lots.map(({ lot, place }) => {
-                          const width =
-                            2 + 8 * Math.sqrt(lot.quantity / biggestLot);
+                    ) : (
+                      <div key={group.key}>
+                        {/* L'équipement n'a pas de qualité : une liste simple. */}
+                        {pageRows[index - 1]?.best !== undefined && (
+                          <h4 className="mt-3 mb-1 text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
+                            {t("equipment")}
+                          </h4>
+                        )}
+                        <div className="flex items-baseline justify-between gap-2 py-1 text-[13.5px]">
+                          <span className="min-w-0 truncate">{group.name}</span>
+                          <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
+                            × {format.number(group.total)}
+                            {group.unit ? ` ${group.unit}` : ""}
+                          </span>
+                        </div>
+                      </div>
+                    ),
+                  )}
+                  {pageRows.some((group) => group.best !== undefined) && (
+                    <p className="mt-1.5 font-mono text-[10.5px] text-[#5c7b96]">
+                      {t("qualityLegend")}
+                    </p>
+                  )}
+                </div>
+              )}
+              {inventory && lotCount > 0 && (
+                <Pager page={page} pages={pages} onPage={setPage} />
+              )}
+              {inventory && !current && offMap > 0 && (
+                <p className="mt-2 text-xs text-[#5c7b96]">
+                  {t("offMap", { count: offMap })}{" "}
+                  <Link
+                    href="/inventory"
+                    className="underline hover:text-[#c9e4ff]"
+                  >
+                    {t("openInventory")}
+                  </Link>
+                </p>
+              )}
+            </section>
+
+            <section className="px-4 pt-4">
+              <h3 className="mb-1 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#86a9c8] uppercase">
+                {t("contains")}
+                <small className="font-mono font-normal text-[#5c7b96]">
+                  {children.length}
+                </small>
+              </h3>
+              {children.length === 0 ? (
+                <p className="text-[13px] leading-relaxed text-[#86a9c8]">
+                  {t("nothingInside")}
+                </p>
+              ) : (
+                [...GROUP_ORDER, "star"].map((type) => {
+                  const group = children
+                    .filter(
+                      (child) =>
+                        (child.marker ? "marker" : child.type) === type,
+                    )
+                    .sort(
+                      (a, b) =>
+                        (counts.get(b.slug) ?? 0) - (counts.get(a.slug) ?? 0) ||
+                        a.name.localeCompare(b.name),
+                    );
+                  if (group.length === 0) return null;
+                  const key = `${current?.slug ?? ""}:${type}`;
+                  const shown = expanded.has(key)
+                    ? group
+                    : group.slice(0, GROUP_PREVIEW);
+                  return (
+                    <div key={type}>
+                      <p className="mt-2.5 mb-1 flex justify-between text-[11.5px] text-[#5c7b96]">
+                        <span>{t(`groups.${type}`)}</span>
+                        <span>{group.length}</span>
+                      </p>
+                      <div className="grid gap-px">
+                        {shown.map((child) => {
+                          const count = counts.get(child.slug) ?? 0;
                           return (
-                            <span
-                              key={lot.id}
-                              tabIndex={0}
-                              aria-label={`${format.number(lot.quantity)}${lot.unit ? ` ${lot.unit}` : ""}, ${t("quality", { quality: lot.quality ?? 0 })}`}
-                              onPointerEnter={(event) =>
-                                showTip(event.currentTarget, lot, place)
-                              }
-                              onFocus={(event) =>
-                                showTip(event.currentTarget, lot, place)
-                              }
-                              onPointerLeave={() => setTip(null)}
-                              onBlur={() => setTip(null)}
-                              className="absolute inset-y-0 cursor-default rounded-[2px] bg-[#ffc76a]/85 outline-none hover:bg-white focus-visible:bg-white"
-                              style={{
-                                left: `calc(${(lot.quality ?? 0) / 10}% - ${width / 2}px)`,
-                                width,
-                              }}
-                            />
+                            <button
+                              key={child.slug}
+                              type="button"
+                              onClick={() => setFocus(child.slug)}
+                              className="-mx-2 flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13.5px] hover:bg-[#9ED0FF]/10"
+                            >
+                              <Marker place={child} />
+                              <span className="min-w-0 flex-1 truncate">
+                                {child.name}
+                              </span>
+                              {count > 0 && <Chip count={count} />}
+                              {child.children.length > 0 && (
+                                <span className="font-mono text-[11.5px] text-[#5c7b96]">
+                                  {t("placesCount", {
+                                    count: child.children.length,
+                                  })}
+                                </span>
+                              )}
+                            </button>
                           );
                         })}
                       </div>
-                    </div>
-                  ) : (
-                    <div key={group.key}>
-                      {/* L'équipement n'a pas de qualité : une liste simple. */}
-                      {pageRows[index - 1]?.best !== undefined && (
-                        <h4 className="mt-3 mb-1 text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
-                          {t("equipment")}
-                        </h4>
+                      {group.length > shown.length && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpanded((previous) =>
+                              new Set(previous).add(key),
+                            )
+                          }
+                          className="py-1 text-xs text-[#9ed0ff] hover:underline"
+                        >
+                          {t("showMore", {
+                            count: group.length - shown.length,
+                          })}
+                        </button>
                       )}
-                      <div className="flex items-baseline justify-between gap-2 py-1 text-[13.5px]">
-                        <span className="min-w-0 truncate">{group.name}</span>
-                        <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
-                          × {format.number(group.total)}
-                          {group.unit ? ` ${group.unit}` : ""}
-                        </span>
-                      </div>
                     </div>
-                  ),
-                )}
-                {pageRows.some((group) => group.best !== undefined) && (
-                  <p className="mt-1.5 font-mono text-[10.5px] text-[#5c7b96]">
-                    {t("qualityLegend")}
-                  </p>
-                )}
-              </div>
-            )}
-            {inventory && lotCount > 0 && (
-              <Pager page={page} pages={pages} onPage={setPage} />
-            )}
-            {inventory && !current && offMap > 0 && (
-              <p className="mt-2 text-xs text-[#5c7b96]">
-                {t("offMap", { count: offMap })}{" "}
-                <Link
-                  href="/inventory"
-                  className="underline hover:text-[#c9e4ff]"
-                >
-                  {t("openInventory")}
-                </Link>
-              </p>
-            )}
-          </section>
-
-          <section className="px-4 pt-4">
-            <h3 className="mb-1 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#86a9c8] uppercase">
-              {t("contains")}
-              <small className="font-mono font-normal text-[#5c7b96]">
-                {children.length}
-              </small>
-            </h3>
-            {children.length === 0 ? (
-              <p className="text-[13px] leading-relaxed text-[#86a9c8]">
-                {t("nothingInside")}
-              </p>
-            ) : (
-              [...GROUP_ORDER, "star"].map((type) => {
-                const group = children
-                  .filter((child) => child.type === type)
-                  .sort(
-                    (a, b) =>
-                      (counts.get(b.slug) ?? 0) - (counts.get(a.slug) ?? 0) ||
-                      a.name.localeCompare(b.name),
                   );
-                if (group.length === 0) return null;
-                const key = `${current?.slug ?? ""}:${type}`;
-                const shown = expanded.has(key)
-                  ? group
-                  : group.slice(0, GROUP_PREVIEW);
-                return (
-                  <div key={type}>
-                    <p className="mt-2.5 mb-1 flex justify-between text-[11.5px] text-[#5c7b96]">
-                      <span>{t(`groups.${type}`)}</span>
-                      <span>{group.length}</span>
-                    </p>
-                    <div className="grid gap-px">
-                      {shown.map((child) => {
-                        const count = counts.get(child.slug) ?? 0;
-                        return (
-                          <button
-                            key={child.slug}
-                            type="button"
-                            onClick={() => setFocus(child.slug)}
-                            className="-mx-2 flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13.5px] hover:bg-[#9ED0FF]/10"
-                          >
-                            <Marker place={child} />
-                            <span className="min-w-0 flex-1 truncate">
-                              {child.name}
-                            </span>
-                            {count > 0 && <Chip count={count} />}
-                            {child.children.length > 0 && (
-                              <span className="font-mono text-[11.5px] text-[#5c7b96]">
-                                {t("placesCount", {
-                                  count: child.children.length,
-                                })}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {group.length > shown.length && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpanded((previous) => new Set(previous).add(key))
-                        }
-                        className="py-1 text-xs text-[#9ed0ff] hover:underline"
-                      >
-                        {t("showMore", { count: group.length - shown.length })}
-                      </button>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </section>
-        </div>
+                })
+              )}
+            </section>
+          </div>
+        )}
       </aside>
 
       {/* Légende */}
@@ -822,6 +954,15 @@ export function StarMap({
                 style={{ "--c": PRIVATE_MARKER_COLOR } as React.CSSProperties}
               />
               {t("legend.private")}
+            </span>
+          )}
+          {markerCollections.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-[#7ff0d0]">
+              <i
+                className="star-map-marker pin"
+                style={{ "--c": "#7ff0d0" } as React.CSSProperties}
+              />
+              {t("legend.marker")}
             </span>
           )}
           <span className="inline-flex items-center gap-1.5">

@@ -159,7 +159,13 @@ export const STROKE_DASHES = ["solid", "dashed", "dotted"] as const;
 export type StrokeDash = (typeof STROKE_DASHES)[number];
 
 /** The kinds a dash is drawn on. A label or a token in dots reads as a bug. */
-export const DASHED_KINDS = ["pen", "line", "arrow", "rect", "ellipse"] as const;
+export const DASHED_KINDS = [
+  "pen",
+  "line",
+  "arrow",
+  "rect",
+  "ellipse",
+] as const;
 
 export function isPlanScope(value: unknown): value is PlanScope {
   return (PLAN_SCOPES as readonly unknown[]).includes(value);

@@ -13,6 +13,7 @@ import {
   FlaskConical,
   Hammer,
   MapPin,
+  MapPinned,
   NotebookPen,
   Orbit,
   Package,
@@ -101,6 +102,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     icon: User,
     items: [
       { id: "inventory", href: "/inventory", icon: Archive },
+      { id: "markers", href: "/marqueurs", icon: MapPinned },
       { id: "parcels", href: "/inventory/parcels", icon: Send },
       { id: "reputations", href: "/reps", icon: Star },
       { id: "notes", href: "/notes", icon: NotebookPen },

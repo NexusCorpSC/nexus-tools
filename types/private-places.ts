@@ -1,9 +1,5 @@
 import type { ContributionStatus } from "@/types/contributions";
-import type {
-  PlaceAncestor,
-  PlacePosition,
-  PlaceType,
-} from "@/types/places";
+import type { PlaceAncestor, PlacePosition, PlaceType } from "@/types/places";
 
 /**
  * Les lieux privés : un lieu que seul son créateur voit, ou qu'il partage avec

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getPlaceBySlug } from "@/lib/places";
+import { getMarker } from "@/lib/markers";
 import { myOrgOptions } from "@/lib/private-places";
 import { PlaceForm } from "@/app/admin/lieux/components/place-form";
 import { ContributionNotice } from "@/app/contributions/notice";
@@ -32,18 +33,32 @@ export default async function ProposeAnyPlacePage({
     prive?: string;
     emplacement?: string;
     nom?: string;
+    marqueur?: string;
   }>;
 }) {
-  const { parent: parentSlug, prive, emplacement, nom } = await searchParams;
+  const {
+    parent: requestedParent,
+    prive,
+    emplacement,
+    nom,
+    marqueur,
+  } = await searchParams;
   const query = new URLSearchParams();
-  if (parentSlug) query.set("parent", parentSlug);
+  if (requestedParent) query.set("parent", requestedParent);
   if (prive) query.set("prive", prive);
   if (emplacement) query.set("emplacement", emplacement);
   if (nom) query.set("nom", nom);
+  if (marqueur) query.set("marqueur", marqueur);
   const { userId, standing } = await requireContributor(
     `/lieux/proposer${query.size ? `?${query}` : ""}`,
   );
 
+  // Un marqueur qui devient un lieu privé : son corps (ou son système) pour
+  // parent, sa position, sa note pour description.
+  const marker = marqueur ? await getMarker(String(userId), marqueur) : null;
+  const fromMarker = marker?.isOwner ? marker : null;
+  const parentSlug =
+    requestedParent ?? fromMarker?.bodySlug ?? fromMarker?.systemSlug;
   const found = parentSlug ? await getPlaceBySlug(parentSlug) : null;
   // Un magasin ne contient pas d'autre lieu : on laisse alors choisir.
   const parent = found?.type === "shop" ? null : found;
@@ -62,7 +77,7 @@ export default async function ProposeAnyPlacePage({
 
       <AddPlaceChoice
         points={POINTS.placeCreate}
-        initial={prive || emplacement ? "private" : "public"}
+        initial={prive || emplacement || fromMarker ? "private" : "public"}
         publicPart={
           <div className="space-y-5">
             <div className="space-y-2">
@@ -99,8 +114,11 @@ export default async function ProposeAnyPlacePage({
                   }
                 : undefined
             }
-            initialName={nom}
+            initialName={nom ?? fromMarker?.name}
+            initialPosition={fromMarker?.position}
+            initialDescription={fromMarker?.note}
             fromLocationId={emplacement}
+            fromMarkerId={fromMarker?.id}
           />
         }
       />

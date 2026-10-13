@@ -177,6 +177,32 @@ const CASES: Case[] = [
     auth: true,
     write: true,
   },
+  {
+    tool: "add_marker",
+    args: {
+      location: "Coordinates: x:12850457093.000 y:0.000 z:0.000",
+      system: "stanton",
+      name: "Marqueur de fumée",
+      kind: "ore",
+      note: "fumée",
+    },
+    auth: true,
+    write: true,
+    save: (s) => ({ marker: (s.marker as { id: string }).id }),
+  },
+  { tool: "list_markers", args: { query: "fumée" }, auth: true },
+  {
+    tool: "update_marker",
+    args: { markerId: "$marker", kind: "poi", note: null },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "delete_marker",
+    args: { markerId: "$marker" },
+    auth: true,
+    write: true,
+  },
   { tool: "my_contributor_standing", args: {}, auth: true },
   {
     tool: "contribute_place_edit",

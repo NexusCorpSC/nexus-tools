@@ -15,6 +15,7 @@
  * Pur et sans Three.js : se teste et se relit sans navigateur.
  */
 
+import type { MarkerKind } from "@/types/markers";
 import type { PlaceType } from "@/types/places";
 
 /** Les systèmes que la carte montre, par leur slug au catalogue. */
@@ -102,6 +103,28 @@ export type StarMapPlace = {
    * l'organisation qui le voit aussi.
    */
   private?: { org?: string };
+  /**
+   * Un marqueur du joueur (`lib/markers.ts`) : il se place comme un lieu, sous
+   * son corps ou son système, avec le type `outpost`, mais se dessine en
+   * épingle de la couleur de sa collection.
+   */
+  marker?: StarMapMarker;
+};
+
+/** Ce que la carte montre d'un marqueur. */
+export type StarMapMarker = {
+  id: string;
+  color: string;
+  kind: MarkerKind;
+  note?: string;
+  /** L'id de sa collection, ou `none`, pour masquer une collection d'un coup. */
+  collectionKey: string;
+  collection?: string;
+  /** L'organisation qui le voit aussi. */
+  org?: string;
+  /** Son créateur, quand ce n'est pas celui qui regarde. */
+  owner?: string;
+  createdAt: string;
 };
 
 /** Un lieu placé dans la scène. */

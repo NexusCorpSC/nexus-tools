@@ -3,8 +3,8 @@
  * joueur, et pour les évènements un lien qui ouvre l'accès à quiconque l'a.
  */
 
-/** Ce qui se partage. Les marqueurs de position viendront s'y ajouter. */
-export const SHARE_KINDS = ["event", "place"] as const;
+/** Ce qui se partage. */
+export const SHARE_KINDS = ["event", "place", "markerCollection"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
 
 export function isShareKind(value: unknown): value is ShareKind {
@@ -71,6 +71,8 @@ export type Invitation = {
   /** Un lieu privé : son type, et le lieu public qui le contient. */
   placeType?: string;
   parentName?: string;
+  /** Une collection de marqueurs : combien elle en contient. */
+  markerCount?: number;
   /** La fiche à ouvrir, chemin du site. */
   href: string;
   invitedByName: string;

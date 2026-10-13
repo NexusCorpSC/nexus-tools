@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
   getStarMapInventory,
+  getStarMapMarkers,
   getStarMapPlaces,
   getStarMapPrivatePlaces,
 } from "@/lib/star-map";
@@ -28,15 +29,16 @@ export default async function StarMapPage({
     searchParams,
     auth.api.getSession({ headers: await headers() }),
   ]);
-  const [places, privatePlaces, inventory] = await Promise.all([
+  const [places, privatePlaces, markers, inventory] = await Promise.all([
     getStarMapPlaces(),
     session ? getStarMapPrivatePlaces(session.user.id) : Promise.resolve([]),
+    session ? getStarMapMarkers(session.user.id) : Promise.resolve([]),
     session ? getStarMapInventory(session.user.id) : Promise.resolve(null),
   ]);
 
   return (
     <StarMap
-      places={[...places, ...privatePlaces]}
+      places={[...places, ...privatePlaces, ...markers]}
       inventory={inventory}
       initialPlace={place}
     />

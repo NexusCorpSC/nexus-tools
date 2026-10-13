@@ -101,6 +101,16 @@
 .star-map-label.private .star-map-text {
   color: #c4b2ff;
 }
+/* Un marqueur : une épingle de la couleur de sa collection, et son nom de la même teinte. */
+.star-map-marker.pin {
+  width: 10px;
+  height: 10px;
+  border-radius: 50% 50% 50% 0;
+  transform: translateY(-4px) rotate(-45deg);
+}
+.star-map-label.marker .star-map-text {
+  color: var(--marker-color, #7ff0d0);
+}
 
 .star-map-chip {
   font-family: var(--font-geist-mono), ui-monospace, monospace;

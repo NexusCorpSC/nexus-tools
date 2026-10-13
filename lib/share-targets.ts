@@ -7,6 +7,10 @@ import {
   eventShareTarget,
   eventsByIds,
 } from "@/lib/org-events";
+import {
+  markerCollectionShareTarget,
+  markerCollectionsByIds,
+} from "@/lib/markers";
 import { placeShareTarget, privatePlacesBySlugs } from "@/lib/private-places";
 import { siteBaseUrl } from "@/lib/site-url";
 import {
@@ -33,7 +37,7 @@ import type {
 /**
  * Ce que chaque type d'objet dit au partage : qui peut partager, comment il
  * s'appelle, s'il a un lien, et ce qu'on garde quand le lien est désactivé.
- * Un nouveau type partageable (les marqueurs) s'ajoute ici.
+ * Un nouveau type partageable s'ajoute ici.
  */
 type Target = {
   title: string;
@@ -58,6 +62,17 @@ async function resolve(
       allowLink: true,
       org: { name: found.orgName, memberCount: found.memberCount },
       keepOnRevoke: () => activeRegistrantIds(found.doc),
+    };
+  }
+  if (kind === "markerCollection") {
+    const found = await markerCollectionShareTarget(id, userId);
+    if (!found) throw new ShareError("notFound", 404);
+    return {
+      title: found.name,
+      canManage: found.isOwner,
+      allowLink: false,
+      org: found.org,
+      keepOnRevoke: () => [],
     };
   }
   const found = await placeShareTarget(id, userId);
@@ -172,17 +187,26 @@ export async function listInvitations(
   userId: string,
 ): Promise<InvitationsResponse> {
   const { shares: found, unseen } = await myInvitations(userId);
-  const eventIds = found.filter((s) => s.kind === "event").map((s) => s.targetId);
+  const eventIds = found
+    .filter((s) => s.kind === "event")
+    .map((s) => s.targetId);
   const placeSlugs = found
     .filter((s) => s.kind === "place")
     .map((s) => s.targetId);
-  const [events, places, cards] = await Promise.all([
+  const collectionIds = found
+    .filter((s) => s.kind === "markerCollection")
+    .map((s) => s.targetId);
+  const [events, places, markerCollections, cards] = await Promise.all([
     eventsByIds(eventIds),
     privatePlacesBySlugs(placeSlugs),
+    markerCollectionsByIds(collectionIds),
     userCards(found.flatMap((s) => (s.invitedBy ? [s.invitedBy] : []))),
   ]);
   const eventById = new Map(events.map((event) => [String(event._id), event]));
   const placeBySlug = new Map(places.map((place) => [place.slug, place]));
+  const collectionById = new Map(
+    markerCollections.map((collection) => [collection.id, collection]),
+  );
   const orgNames = await orgNamesOf([
     ...new Set(events.map((event) => event.orgId)),
   ]);
@@ -213,6 +237,18 @@ export async function listInvitations(
         startsAt: event.startsAt,
         orgName: orgNames.get(event.orgId),
         href: `/orgs/${event.orgId}/events/${share.targetId}`,
+      });
+    } else if (share.kind === "markerCollection") {
+      const collection = collectionById.get(share.targetId);
+      if (!collection) {
+        gone.push(String(share._id));
+        continue;
+      }
+      invitations.push({
+        ...base,
+        title: collection.name,
+        markerCount: collection.count,
+        href: `/marqueurs?collection=${share.targetId}`,
       });
     } else {
       const place = placeBySlug.get(share.targetId);

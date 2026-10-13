@@ -2,6 +2,7 @@ import "server-only";
 
 import { ObjectId } from "bson";
 import db from "@/lib/db";
+import { visibleMarkers } from "@/lib/markers";
 import { listPrivatePlaces } from "@/lib/private-places";
 import { STAR_MAP_SYSTEMS, type StarMapPlace } from "@/lib/star-map-layout";
 import type { CelestialBody, Place, PlacePosition } from "@/types/places";
@@ -100,6 +101,46 @@ export async function getStarMapPrivatePlaces(
         result.at = { x, y, z };
         if (body) result.at.body = body;
       }
+      return result;
+    });
+}
+
+/**
+ * Les marqueurs qu'un joueur voit dans les trois systèmes, rangés sous leur
+ * corps (ou leur système dans l'espace) comme des lieux de la carte, avec un
+ * slug à part (`marqueur-{id}`) qu'aucun lieu ne porte.
+ */
+export async function getStarMapMarkers(
+  userId: string,
+): Promise<StarMapPlace[]> {
+  const systems = new Set<string>(STAR_MAP_SYSTEMS);
+  const found = await visibleMarkers(userId);
+  return found
+    .filter((marker) => systems.has(marker.systemSlug))
+    .map((marker) => {
+      const { body, x, y, z } = marker.position;
+      const at: NonNullable<StarMapPlace["at"]> = { x, y, z };
+      if (body) at.body = body;
+      const result: StarMapPlace = {
+        slug: `marqueur-${marker.id}`,
+        name: marker.name,
+        type: "outpost",
+        parentSlug: marker.bodySlug ?? marker.systemSlug,
+        at,
+        marker: {
+          id: marker.id,
+          color: marker.color,
+          kind: marker.kind,
+          collectionKey: marker.collectionId ?? "none",
+          createdAt: marker.createdAt,
+        },
+      };
+      if (marker.note) result.marker!.note = marker.note;
+      if (marker.collectionName)
+        result.marker!.collection = marker.collectionName;
+      if (marker.org) result.marker!.org = marker.org.name;
+      if (!marker.isOwner && marker.ownerName)
+        result.marker!.owner = marker.ownerName;
       return result;
     });
 }
