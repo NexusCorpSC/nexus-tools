@@ -384,7 +384,7 @@ async function ownCollection(
       )
     : null;
   if (!found) {
-    throw new MarkerError("invalidInput", 400, "Collection inconnue");
+    throw new MarkerError("notFound", 404, "Collection inconnue");
   }
   return String(found._id);
 }
