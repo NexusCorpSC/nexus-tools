@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { getOrgEventSummary } from "@/lib/org-events";
-import { refusal, resolveAuthor } from "../../caller";
-
-type Params = { params: Promise<{ orgId: string; eventId: string }> };
+import {
+  refusal,
+  resolveAuthor,
+  eventParams,
+  type EventParams,
+} from "../../caller";
 
 /**
  * GET /api/orgs/:orgId/events/:eventId/summary
@@ -10,11 +13,11 @@ type Params = { params: Promise<{ orgId: string; eventId: string }> };
  * role, and the withdrawn ones apart, counted nowhere. The event's creator and
  * the organization's editors only.
  */
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(_request: Request, context: EventParams) {
   const caller = await resolveAuthor();
   if ("refused" in caller) return caller.refused;
 
-  const { orgId, eventId } = await params;
+  const { orgId, eventId } = await eventParams(context);
   const outcome = await getOrgEventSummary(
     orgId,
     eventId,

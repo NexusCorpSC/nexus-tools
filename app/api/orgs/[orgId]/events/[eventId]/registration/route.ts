@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registerToOrgEvent, withdrawFromOrgEvent } from "@/lib/org-events";
-import { readJson, refusal, resolveAuthor } from "../../caller";
-
-type Params = { params: Promise<{ orgId: string; eventId: string }> };
+import {
+  readJson,
+  refusal,
+  resolveAuthor,
+  eventParams,
+  type EventParams,
+} from "../../caller";
 
 /**
  * PUT /api/orgs/:orgId/events/:eventId/registration
@@ -12,11 +16,11 @@ type Params = { params: Promise<{ orgId: string; eventId: string }> };
  * Body: `{ role?, answers? }`. `role` is required when the event offers roles;
  * `answers` is keyed by question id, and required questions must be answered.
  */
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(request: NextRequest, context: EventParams) {
   const caller = await resolveAuthor();
   if ("refused" in caller) return caller.refused;
 
-  const { orgId, eventId } = await params;
+  const { orgId, eventId } = await eventParams(context);
   const outcome = await registerToOrgEvent(
     orgId,
     eventId,
@@ -38,11 +42,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
  * Idempotent; responds with the event as the caller now sees it. Closed once
  * the event is over, like registering.
  */
-export async function DELETE(_request: Request, { params }: Params) {
+export async function DELETE(_request: Request, context: EventParams) {
   const caller = await resolveAuthor();
   if ("refused" in caller) return caller.refused;
 
-  const { orgId, eventId } = await params;
+  const { orgId, eventId } = await eventParams(context);
   const outcome = await withdrawFromOrgEvent(
     orgId,
     eventId,

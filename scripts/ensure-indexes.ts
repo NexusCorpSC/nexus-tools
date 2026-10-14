@@ -176,6 +176,13 @@ async function ensureOrgEvents(database: Db) {
   await database
     .collection("orgEvents")
     .createIndex({ visibility: 1, startsAt: 1 }, { name: "orgEvents_public" });
+  // Les évènements personnels d'un joueur, hors de toute organisation.
+  await database
+    .collection("orgEvents")
+    .createIndex(
+      { "createdBy.userId": 1, orgId: 1, startsAt: 1 },
+      { name: "orgEvents_creator" },
+    );
 }
 
 // ─── Plans de vol ─────────────────────────────────────────────────────────────

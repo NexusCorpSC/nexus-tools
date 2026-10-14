@@ -5,17 +5,22 @@ import {
   parseOrgEventInput,
   updateOrgEvent,
 } from "@/lib/org-events";
-import { readJson, readerId, refusal, resolveAuthor } from "../caller";
-
-type Params = { params: Promise<{ orgId: string; eventId: string }> };
+import {
+  readJson,
+  readerId,
+  refusal,
+  resolveAuthor,
+  eventParams,
+  type EventParams,
+} from "../caller";
 
 /**
  * GET /api/orgs/:orgId/events/:eventId
  * The event, with what the reader can do with it. A public event reads without
  * an account; a private one answers 404 to anyone but members.
  */
-export async function GET(_request: Request, { params }: Params) {
-  const { orgId, eventId } = await params;
+export async function GET(_request: Request, context: EventParams) {
+  const { orgId, eventId } = await eventParams(context);
   const view = await getOrgEventView(orgId, eventId, await readerId());
 
   if (!view) return refusal("not-found");
@@ -31,11 +36,11 @@ export async function GET(_request: Request, { params }: Params) {
  * Roles and questions keep their `id` when it is sent back; registrations
  * pointing at a removed one read as if it were unanswered.
  */
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(request: NextRequest, context: EventParams) {
   const caller = await resolveAuthor();
   if ("refused" in caller) return caller.refused;
 
-  const { orgId, eventId } = await params;
+  const { orgId, eventId } = await eventParams(context);
   const parsed = parseOrgEventInput(await readJson(request));
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
@@ -56,11 +61,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
  * DELETE /api/orgs/:orgId/events/:eventId
  * Its creator and the organization's editors only.
  */
-export async function DELETE(_request: Request, { params }: Params) {
+export async function DELETE(_request: Request, context: EventParams) {
   const caller = await resolveAuthor();
   if ("refused" in caller) return caller.refused;
 
-  const { orgId, eventId } = await params;
+  const { orgId, eventId } = await eventParams(context);
   const outcome = await deleteOrgEvent(orgId, eventId, caller.author.userId);
   if ("refusal" in outcome) return refusal(outcome.refusal);
 

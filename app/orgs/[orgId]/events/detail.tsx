@@ -30,6 +30,8 @@ import { RoleIcon } from "@/app/squads/role-icon";
 import { cn } from "@/lib/utils";
 import {
   ORG_EVENT_ANSWER_MAX_LENGTH,
+  eventApiPath,
+  eventHref,
   type OrgEventParticipant,
   type OrgEventRole,
   type OrgEventView,
@@ -84,15 +86,18 @@ export function EventDetail({
   async function remove() {
     if (!window.confirm(t("deleteConfirm"))) return;
     setDeleteError(false);
-    const response = await fetch(
-      `/api/orgs/${event.orgId}/events/${event.id}`,
-      { method: "DELETE" },
-    );
+    const response = await fetch(eventApiPath(event.orgId, event.id), {
+      method: "DELETE",
+    });
     if (!response.ok) {
       setDeleteError(true);
       return;
     }
-    router.push(lastListUrl(`/orgs/${event.orgId}/events`));
+    router.push(
+      lastListUrl(
+        event.orgId === null ? "/events" : `/orgs/${event.orgId}/events`,
+      ),
+    );
     router.refresh();
   }
 
@@ -102,7 +107,14 @@ export function EventDetail({
         <DateBlock startsAt={event.startsAt} />
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap gap-1.5">
-            <VisibilityChip visibility={event.visibility} orgName={orgName} />
+            {event.orgId === null ? (
+              <Chip>
+                <User className="size-3" aria-hidden="true" />
+                {t("Personal.chip")}
+              </Chip>
+            ) : (
+              <VisibilityChip visibility={event.visibility} orgName={orgName} />
+            )}
             {status ? (
               <Chip
                 tone={
@@ -132,13 +144,13 @@ export function EventDetail({
               {t("share")}
             </Button>
             <Button variant="outline" asChild>
-              <Link href={`/orgs/${event.orgId}/events/${event.id}/summary`}>
+              <Link href={`${eventHref(event)}/summary`}>
                 <ClipboardList className="size-4" />
                 {t("summary")}
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href={`/orgs/${event.orgId}/events/${event.id}/edit`}>
+              <Link href={`${eventHref(event)}/edit`}>
                 <Pencil className="size-4" />
                 {t("edit")}
               </Link>
@@ -182,14 +194,22 @@ export function EventDetail({
           )}
           <p className="min-w-0">
             <b className="text-[#7fe3f0]">
-              {event.guest === "link" ? t("guestLinkTitle") : t("guestInviteTitle")}
+              {event.guest === "link"
+                ? t("guestLinkTitle")
+                : t("guestInviteTitle")}
             </b>{" "}
             ·{" "}
-            {event.guest === "link"
-              ? sharedByName
-                ? t("guestLinkBy", { name: sharedByName, org: orgName })
-                : t("guestLink", { org: orgName })
-              : t("guestInvite", { org: orgName })}
+            {event.orgId === null
+              ? event.guest === "link"
+                ? sharedByName
+                  ? t("Personal.guestLinkBy", { name: sharedByName })
+                  : t("Personal.guestLink", { name: event.createdBy.name })
+                : t("Personal.guestInvite", { name: event.createdBy.name })
+              : event.guest === "link"
+                ? sharedByName
+                  ? t("guestLinkBy", { name: sharedByName, org: orgName })
+                  : t("guestLink", { org: orgName })
+                : t("guestInvite", { org: orgName })}
           </p>
         </div>
       ) : null}
@@ -532,7 +552,7 @@ function RegistrationPanel({
     setError(null);
     try {
       const response = await fetch(
-        `/api/orgs/${event.orgId}/events/${event.id}/registration`,
+        `${eventApiPath(event.orgId, event.id)}/registration`,
         {
           method,
           headers: { "Content-Type": "application/json" },

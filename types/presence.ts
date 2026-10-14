@@ -47,7 +47,8 @@ export function formatElapsed(since: string, now: number): string {
 
 /** L'évènement d'organisation d'où vient une session prévue. */
 export interface PlannedEventRef {
-  orgId: string;
+  /** `null` pour un évènement personnel. */
+  orgId: string | null;
   eventId: string;
   title: string;
 }

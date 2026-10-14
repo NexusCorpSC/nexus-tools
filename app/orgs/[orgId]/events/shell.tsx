@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/breadcrumb";
 
 /**
- * Le cadre commun des pages d'évènements.
+ * Le cadre commun des pages d'évènements, d'une organisation ou personnels
+ * (`orgId` `null`, sous Communauté › Évènements).
  *
  * Hors du groupe `(accredited)` : un évènement public se lit sans être membre,
  * même dans une organisation privée. Ce que chacun peut voir, c'est
@@ -40,7 +41,8 @@ export async function EventsShell({
   trail,
   children,
 }: {
-  orgId: string;
+  orgId: string | null;
+  /** Le nom de l'organisation ; ignoré pour un évènement personnel. */
   name: string;
   /** Les maillons après « Évènements » ; le dernier est la page courante. */
   trail: { label: string; href?: string }[];
@@ -48,7 +50,10 @@ export async function EventsShell({
 }) {
   const t = await getTranslations("OrgEvents");
   const crumbs = [
-    { label: t("title"), href: `/orgs/${orgId}/events` },
+    {
+      label: t("title"),
+      href: orgId === null ? "/events" : `/orgs/${orgId}/events`,
+    },
     ...trail,
   ];
 
@@ -60,13 +65,21 @@ export async function EventsShell({
             <BreadcrumbLink href="/">{t("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/orgs">{t("organizations")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href={`/orgs/${orgId}`}>{name}</BreadcrumbLink>
-          </BreadcrumbItem>
+          {orgId === null ? (
+            <BreadcrumbItem>{t("Community.community")}</BreadcrumbItem>
+          ) : (
+            <>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/orgs">
+                  {t("organizations")}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/orgs/${orgId}`}>{name}</BreadcrumbLink>
+              </BreadcrumbItem>
+            </>
+          )}
           {crumbs.map((crumb, index) => (
             <span key={index} className="contents">
               <BreadcrumbSeparator />

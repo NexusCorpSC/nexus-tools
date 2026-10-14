@@ -4,6 +4,10 @@ import type { SquadRoleIcon } from "@/types/squad";
  * Les évènements d'une organisation : un membre prévoit une sortie dans le
  * calendrier de l'orga, les autres s'y inscrivent.
  *
+ * Un évènement peut aussi n'appartenir à aucune organisation (`orgId: null`) :
+ * un évènement personnel, que son créateur gère seul et que voient ceux qu'il
+ * invite ou à qui il donne le lien de partage. Toujours privé.
+ *
  * L'inscription peut demander un rôle — choisi parmi ceux que l'organisateur a
  * définis, avec les mêmes glyphes que les rôles d'escouade, pour qu'une
  * escouade tirée de l'évènement les reprenne tels quels — et des réponses à des
@@ -26,6 +30,9 @@ export const ORG_EVENT_QUESTION_MAX_LENGTH = 200;
 export const ORG_EVENT_MAX_QUESTIONS = 10;
 export const ORG_EVENT_ANSWER_MAX_LENGTH = 1000;
 export const ORG_EVENT_MAX_REGISTRATIONS = 200;
+
+/** Les évènements personnels pas encore finis qu'un joueur peut tenir à la fois. */
+export const PERSONAL_EVENT_MAX_UPCOMING = 50;
 
 /** Au-delà, ce n'est plus une session de jeu : une saisie à reprendre. */
 export const ORG_EVENT_MAX_DURATION_HOURS = 48;
@@ -80,7 +87,8 @@ export interface OrgEventAuthor {
 /** Ce que tout lecteur autorisé voit d'un évènement. */
 export interface OrgEvent {
   id: string;
-  orgId: string;
+  /** `null` : un évènement personnel, hors de toute organisation. */
+  orgId: string | null;
   title: string;
   description: string;
   /** ISO. */
@@ -183,7 +191,8 @@ export interface OrgEventRegistrationInput {
  * prochaine session.
  */
 export interface MyUpcomingEvent {
-  orgId: string;
+  /** `null` pour un évènement personnel. */
+  orgId: string | null;
   orgName: string;
   eventId: string;
   title: string;
@@ -203,7 +212,8 @@ export interface CommunityEventOrg {
 
 /** Un évènement du calendrier de la communauté, avec son organisation. */
 export interface CommunityEventView extends OrgEventView {
-  org: CommunityEventOrg;
+  /** `null` pour un évènement personnel. */
+  org: CommunityEventOrg | null;
   /** Invité à cet évènement par ce joueur, hors de son organisation. */
   invitedByName?: string;
 }
@@ -216,4 +226,20 @@ export interface CommunityCalendar {
   events: CommunityEventView[];
   /** Les organisations du lecteur, même sans évènement : les filtres. */
   myOrgs: CommunityEventOrg[];
+}
+
+/** La fiche d'un évènement sur le site. */
+export function eventHref(event: { orgId: string | null; id: string }): string {
+  return event.orgId === null
+    ? `/events/${event.id}`
+    : `/orgs/${event.orgId}/events/${event.id}`;
+}
+
+/** La route d'API d'un évènement ; sans `id`, celle qui les crée. */
+export function eventApiPath(orgId: string | null, id?: string): string {
+  const base =
+    orgId === null
+      ? "/api/personal-events"
+      : `/api/orgs/${encodeURIComponent(orgId)}/events`;
+  return id ? `${base}/${encodeURIComponent(id)}` : base;
 }

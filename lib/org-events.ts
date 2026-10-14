@@ -31,6 +31,8 @@ import {
   ORG_EVENT_ROLE_LABEL_MAX_LENGTH,
   ORG_EVENT_TITLE_MAX_LENGTH,
   ORG_EVENT_VISIBILITIES,
+  PERSONAL_EVENT_MAX_UPCOMING,
+  eventHref,
   type OrgEvent,
   type OrgEventAuthor,
   type OrgEventQuestion,
@@ -54,13 +56,19 @@ import {
  * Chaque écriture d'une inscription est donc positionnelle — deux membres qui
  * s'inscrivent au même instant ne doivent pas s'écraser.
  *
+ * Un évènement personnel est un document de la même collection, avec
+ * `orgId: null` : son créateur y tient la place des membres et des éditeurs —
+ * lui seul le lit, le gère et s'y inscrit sans invitation —, et il est
+ * toujours privé.
+ *
  * Collection `orgEvents`, index `{ orgId, startsAt }` posé par
  * `scripts/ensure-indexes.ts`.
  */
 
 export interface DbOrgEvent {
   _id: ObjectId;
-  orgId: string;
+  /** `null` : un évènement personnel. */
+  orgId: string | null;
   title: string;
   description: string;
   startsAt: string;
@@ -123,18 +131,41 @@ export interface EventAccess extends OrgAccess {
   guest: "invite" | "link" | null;
 }
 
+/**
+ * Un évènement personnel n'a qu'un « membre » : son créateur, qui le gère.
+ */
+function ownerAccess(
+  doc: Pick<DbOrgEvent, "createdBy">,
+  readerId: string | null,
+): OrgAccess {
+  const owner = !!readerId && doc.createdBy.userId === readerId;
+  return { isMember: owner, isEditor: owner };
+}
+
+/** L'accès à l'organisation de l'évènement, ou à l'évènement personnel. */
+async function scopeAccess(
+  doc: Pick<DbOrgEvent, "orgId" | "createdBy">,
+  readerId: string | null,
+): Promise<OrgAccess | null> {
+  return doc.orgId === null
+    ? ownerAccess(doc, readerId)
+    : getOrgAccess(doc.orgId, readerId);
+}
+
 async function eventAccess(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
   readerId: string | null,
 ): Promise<[EventAccess | null, DbOrgEvent | null]> {
-  const [access, doc, share] = await Promise.all([
-    getOrgAccess(orgId, readerId),
+  const [orgAccess, doc, share] = await Promise.all([
+    orgId === null ? Promise.resolve(null) : getOrgAccess(orgId, readerId),
     findEvent(orgId, eventId),
     ObjectId.isValid(eventId)
       ? shareOf("event", eventId, readerId)
       : Promise.resolve(null),
   ]);
+  const access =
+    orgId === null ? (doc ? ownerAccess(doc, readerId) : null) : orgAccess;
   if (!access) return [null, doc];
   return [
     { ...access, guest: access.isMember ? null : (share?.via ?? null) },
@@ -244,8 +275,9 @@ function toView(
   };
 }
 
+/** `orgId` `null` : un évènement personnel. */
 async function findEvent(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
 ): Promise<DbOrgEvent | null> {
   if (!ObjectId.isValid(eventId)) return null;
@@ -346,7 +378,8 @@ function toCommunityOrg(
 /**
  * Le calendrier de la communauté, de la veille à `COMMUNITY_DAYS` jours : les
  * évènements publics de toutes les organisations et, pour un lecteur
- * connecté, tous ceux de ses organisations — du plus tôt au plus tard.
+ * connecté, tous ceux de ses organisations, ses évènements personnels et ceux
+ * où il est invité — du plus tôt au plus tard.
  */
 export async function listCommunityEvents(
   readerId: string | null,
@@ -390,7 +423,7 @@ export async function listCommunityEvents(
   // Les évènements où il est invité, hors de ses organisations.
   const guestShares = readerId ? await sharedWith("event", readerId) : [];
   const guestBy = new Map(guestShares.map((share) => [share.targetId, share]));
-  const [ownDocs, publicDocs, guestDocs] = await Promise.all([
+  const [ownDocs, publicDocs, guestDocs, personalDocs] = await Promise.all([
     accessByOrg.size > 0
       ? collection()
           .find({ ...window, orgId: { $in: [...accessByOrg.keys()] } })
@@ -421,9 +454,16 @@ export async function listCommunityEvents(
           .limit(LIST_LIMIT)
           .toArray()
       : Promise.resolve([]),
+    readerId
+      ? collection()
+          .find({ ...window, orgId: null, "createdBy.userId": readerId })
+          .sort({ startsAt: 1 })
+          .limit(LIST_LIMIT)
+          .toArray()
+      : Promise.resolve([]),
   ]);
   const seen = new Set<string>();
-  const docs = [...ownDocs, ...guestDocs, ...publicDocs]
+  const docs = [...ownDocs, ...personalDocs, ...guestDocs, ...publicDocs]
     .filter((doc) => {
       const id = doc._id.toString();
       if (seen.has(id)) return false;
@@ -438,7 +478,11 @@ export async function listCommunityEvents(
   const myOrgs = mine.map((org) => toCommunityOrg(org, true));
   const orgs = new Map(myOrgs.map((org) => [org.id, org]));
   const others = [
-    ...new Set(docs.map((doc) => doc.orgId).filter((id) => !orgs.has(id))),
+    ...new Set(
+      docs.flatMap((doc) =>
+        doc.orgId === null || orgs.has(doc.orgId) ? [] : [doc.orgId],
+      ),
+    ),
   ];
   if (others.length > 0) {
     const found = await organizations
@@ -453,12 +497,17 @@ export async function listCommunityEvents(
 
   const events: CommunityEventView[] = [];
   for (const doc of docs) {
-    const org = orgs.get(doc.orgId);
+    const org = doc.orgId === null ? null : orgs.get(doc.orgId);
     // Une organisation supprimée laisse ses évènements sans personne à qui
     // les rattacher : ils ne s'affichent plus.
-    if (!org) continue;
+    if (org === undefined) continue;
     const share = guestBy.get(doc._id.toString());
-    const member = accessByOrg.get(doc.orgId);
+    const member =
+      doc.orgId === null
+        ? doc.createdBy.userId === readerId
+          ? ownerAccess(doc, readerId)
+          : undefined
+        : accessByOrg.get(doc.orgId);
     const access: EventAccess = member
       ? { ...member, guest: null }
       : { isMember: false, isEditor: false, guest: share?.via ?? null };
@@ -479,7 +528,7 @@ export async function listCommunityEvents(
 
 /** `null` quand l'évènement n'existe pas ou que le lecteur ne peut pas le voir. */
 export async function getOrgEventView(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
   readerId: string | null,
 ): Promise<OrgEventView | null> {
@@ -496,7 +545,7 @@ export type SummaryOutcome =
 
 /** Le résumé de l'organisateur : inscrits actifs, réponses, comptes par rôle. */
 export async function getOrgEventSummary(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
   readerId: string,
 ): Promise<SummaryOutcome> {
@@ -728,7 +777,7 @@ function assignIds<T extends { id: string | null }>(
 
 export type WriteOutcome =
   | { view: OrgEventView }
-  | { refusal: "not-found" | "forbidden" | "unknown-place" };
+  | { refusal: "not-found" | "forbidden" | "unknown-place" | "too-many" };
 
 async function resolvePlace(
   slug: string | null,
@@ -741,16 +790,31 @@ async function resolvePlace(
   return { place: { slug: place.slug, name: place.name } };
 }
 
-/** Un membre de l'organisation prévoit un évènement. */
+/**
+ * Un membre de l'organisation prévoit un évènement ; sans organisation
+ * (`orgId` `null`), n'importe quel joueur connecté prévoit un évènement
+ * personnel, dans la limite de `PERSONAL_EVENT_MAX_UPCOMING` à venir.
+ */
 export async function createOrgEvent(
-  orgId: string,
+  orgId: string | null,
   author: OrgEventAuthor,
   input: ParsedOrgEventInput,
 ): Promise<WriteOutcome> {
-  const orgAccess = await getOrgAccess(orgId, author.userId);
+  const orgAccess =
+    orgId === null
+      ? { isMember: true, isEditor: true }
+      : await getOrgAccess(orgId, author.userId);
   if (!orgAccess) return { refusal: "not-found" };
   const access: EventAccess = { ...orgAccess, guest: null };
   if (!access.isMember) return { refusal: "forbidden" };
+  if (orgId === null) {
+    const upcoming = await collection().countDocuments({
+      orgId: null,
+      "createdBy.userId": author.userId,
+      endsAt: { $gt: new Date().toISOString() },
+    });
+    if (upcoming >= PERSONAL_EVENT_MAX_UPCOMING) return { refusal: "too-many" };
+  }
 
   const resolved = await resolvePlace(input.meetingPlaceSlug);
   if ("refusal" in resolved) return resolved;
@@ -765,7 +829,8 @@ export async function createOrgEvent(
     endsAt: input.endsAt,
     meetingPoint: input.meetingPoint,
     meetingPlace: resolved.place,
-    visibility: input.visibility,
+    // Sans organisation, pas de calendrier public où paraître.
+    visibility: orgId === null ? "private" : input.visibility,
     roles: assignIds(input.roles, [], "r"),
     questions: assignIds(input.questions, [], "q"),
     createdBy: author,
@@ -788,7 +853,7 @@ export async function createOrgEvent(
  * avec leur id.
  */
 export async function updateOrgEvent(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
   readerId: string,
   input: ParsedOrgEventInput,
@@ -811,7 +876,7 @@ export async function updateOrgEvent(
         endsAt: input.endsAt,
         meetingPoint: input.meetingPoint,
         meetingPlace: resolved.place,
-        visibility: input.visibility,
+        visibility: doc.orgId === null ? "private" : input.visibility,
         roles: assignIds(input.roles, doc.roles, "r"),
         questions: assignIds(input.questions, doc.questions, "q"),
         updatedAt: new Date().toISOString(),
@@ -826,7 +891,7 @@ export async function updateOrgEvent(
 }
 
 export async function deleteOrgEvent(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
   readerId: string,
 ): Promise<{ deleted: true } | { refusal: "not-found" | "forbidden" }> {
@@ -900,7 +965,7 @@ export type RegisterOutcome =
  * compte rendu, plus de la préparation.
  */
 export async function registerToOrgEvent(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
   caller: OrgEventAuthor,
   body: unknown,
@@ -988,7 +1053,7 @@ export async function registerToOrgEvent(
  * fait alors partie du compte rendu.
  */
 export async function withdrawFromOrgEvent(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
   readerId: string,
 ): Promise<{ view: OrgEventView } | { refusal: "not-found" | "closed" }> {
@@ -1047,7 +1112,9 @@ export async function listMyUpcomingEvents(
     .limit(LIST_LIMIT)
     .toArray();
 
-  const orgIds = [...new Set(docs.map((doc) => doc.orgId))];
+  const orgIds = [
+    ...new Set(docs.flatMap((doc) => (doc.orgId === null ? [] : [doc.orgId]))),
+  ];
   const orgs = orgIds.length
     ? await db
         .db()
@@ -1059,7 +1126,7 @@ export async function listMyUpcomingEvents(
 
   return docs.map((doc) => ({
     orgId: doc.orgId,
-    orgName: names.get(doc.orgId) ?? "",
+    orgName: doc.orgId === null ? "" : (names.get(doc.orgId) ?? ""),
     eventId: doc._id.toString(),
     title: doc.title,
     startsAt: doc.startsAt,
@@ -1073,7 +1140,7 @@ export async function listMyUpcomingEvents(
  */
 export async function findMyUpcomingEvent(
   userId: string,
-  orgId: string,
+  orgId: string | null,
   eventId: string,
 ): Promise<MyUpcomingEvent | null> {
   const doc = await findEvent(orgId, eventId);
@@ -1121,7 +1188,7 @@ export type EventSquadOutcome =
  * dissoute (le dernier membre parti), on peut en tirer une nouvelle.
  */
 export async function createSquadFromEvent(
-  orgId: string,
+  orgId: string | null,
   eventId: string,
   caller: { userId: string; name: string },
 ): Promise<EventSquadOutcome> {
@@ -1229,6 +1296,7 @@ export type LinkOutcome =
   /** Connecté : il garde l'évènement, et va sur sa fiche. */
   | { redirect: string }
   /** Anonyme : la fiche se lit sur place, sans les noms des inscrits. */
+  /** `orgName` vide pour un évènement personnel. */
   | { view: OrgEventView; orgName: string; sharedByName: string | null };
 
 /**
@@ -1247,9 +1315,9 @@ export async function openEventLink(
     _id: new ObjectId(link.targetId),
   });
   if (!doc) return { refusal: "not-found" };
-  const access = await getOrgAccess(doc.orgId, readerId);
+  const access = await scopeAccess(doc, readerId);
   if (!access) return { refusal: "not-found" };
-  const href = `/orgs/${doc.orgId}/events/${link.targetId}`;
+  const href = eventHref({ orgId: doc.orgId, id: link.targetId });
 
   // Connecté, il garde l'évènement ; le lien plein, il le lit comme un
   // visiteur anonyme.
@@ -1262,10 +1330,12 @@ export async function openEventLink(
   }
 
   const [org, cards] = await Promise.all([
-    db
-      .db()
-      .collection<Organization>("organizations")
-      .findOne({ _id: doc.orgId }, { projection: { name: 1 } }),
+    doc.orgId === null
+      ? Promise.resolve(null)
+      : db
+          .db()
+          .collection<Organization>("organizations")
+          .findOne({ _id: doc.orgId }, { projection: { name: 1 } }),
     userCards([link.createdBy]),
   ]);
   return {
@@ -1291,26 +1361,30 @@ export async function eventShareTarget(
   doc: DbOrgEvent;
   canRead: boolean;
   canManage: boolean;
-  orgName: string;
-  memberCount: number;
+  /** `null` pour un évènement personnel. */
+  org: { name: string; memberCount: number } | null;
 } | null> {
   if (!ObjectId.isValid(eventId)) return null;
   const doc = await collection().findOne({ _id: new ObjectId(eventId) });
   if (!doc) return null;
   const [[access], org] = await Promise.all([
     eventAccess(doc.orgId, eventId, userId),
-    db
-      .db()
-      .collection<Organization>("organizations")
-      .findOne({ _id: doc.orgId }, { projection: { name: 1, members: 1 } }),
+    doc.orgId === null
+      ? Promise.resolve(null)
+      : db
+          .db()
+          .collection<Organization>("organizations")
+          .findOne({ _id: doc.orgId }, { projection: { name: 1, members: 1 } }),
   ]);
   if (!access) return null;
   return {
     doc,
     canRead: canRead(doc, access),
     canManage: canManage(doc, access, userId),
-    orgName: org?.name ?? "",
-    memberCount: org?.members?.length ?? 0,
+    org:
+      doc.orgId === null
+        ? null
+        : { name: org?.name ?? "", memberCount: org?.members?.length ?? 0 },
   };
 }
 

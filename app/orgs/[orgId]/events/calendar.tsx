@@ -6,7 +6,11 @@ import { Clock, MapPin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoleIcon } from "@/app/squads/role-icon";
 import { cn } from "@/lib/utils";
-import type { CommunityEventOrg, OrgEventView } from "@/types/org-events";
+import {
+  eventHref,
+  type CommunityEventOrg,
+  type OrgEventView,
+} from "@/types/org-events";
 import {
   Avatar,
   Chip,
@@ -251,7 +255,10 @@ function WeekStrip({ week, events }: { week: Date[]; events: OrgEventView[] }) {
   );
 }
 
-/** Les évènements d'un jour ; ceux qui portent `org` sont ceux de la communauté. */
+/**
+ * Les évènements d'un jour ; ceux qui portent `org` sont ceux de la
+ * communauté, `org: null` pour un évènement personnel.
+ */
 export function DaySection({
   id,
   date,
@@ -261,7 +268,7 @@ export function DaySection({
   id: string;
   date: Date;
   now: number;
-  events: (OrgEventView & { org?: ColoredOrg })[];
+  events: (OrgEventView & { org?: ColoredOrg | null })[];
 }) {
   const t = useTranslations("OrgEvents.Calendar");
   const { day } = useFormats();
@@ -292,7 +299,7 @@ export function DaySection({
 /**
  * Une ligne du calendrier. Avec `org`, celui de la communauté : l'organisation
  * passe au-dessus du titre, et qui n'en est pas membre lit qu'il ne peut pas
- * s'y inscrire.
+ * s'y inscrire. `org: null` : un évènement personnel.
  */
 export function EventRow({
   event,
@@ -301,11 +308,11 @@ export function EventRow({
 }: {
   event: OrgEventView;
   now: number;
-  org?: ColoredOrg;
+  org?: ColoredOrg | null;
 }) {
   const t = useTranslations("OrgEvents");
   const tCalendar = useTranslations("OrgEvents.Calendar");
-  const href = `/orgs/${event.orgId}/events/${event.id}`;
+  const href = eventHref(event);
   const mine = event.myRegistration;
   const registered = isRegistered(event);
   const ended = Date.parse(event.endsAt) <= now;
@@ -330,7 +337,7 @@ export function EventRow({
       <TimeColumn startsAt={event.startsAt} endsAt={event.endsAt} />
 
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1.5">
-        {org ? <OrgLine org={org} /> : null}
+        {org ? <OrgLine org={org} /> : org === null ? <PersonalLine /> : null}
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={href}
@@ -448,6 +455,32 @@ export function orgColors(orgIds: string[]): Map<string, string> {
 
 /** Une organisation de la communauté, avec la couleur que la page lui donne. */
 export type ColoredOrg = CommunityEventOrg & { color?: string };
+
+/** La couleur des évènements personnels, celle des lieux privés. */
+export const PERSONAL_COLOR = "#C4B2FF";
+
+/** Le badge d'un évènement personnel, à la place de celui d'une organisation. */
+export function PersonalTag() {
+  const t = useTranslations("OrgEvents.Personal");
+  return (
+    <span
+      className="inline-flex h-5 min-w-6 items-center justify-center rounded-[5px] px-1.5 font-mono text-[10px] font-bold tracking-wide text-[#071A2B]"
+      style={{ backgroundColor: PERSONAL_COLOR }}
+    >
+      {t("tag")}
+    </span>
+  );
+}
+
+function PersonalLine() {
+  const t = useTranslations("OrgEvents.Personal");
+  return (
+    <span className="relative z-10 inline-flex items-center gap-1.5 self-start text-[13px] text-white/70">
+      <PersonalTag />
+      {t("label")}
+    </span>
+  );
+}
 
 /** Le badge d'une organisation : son tag sur sa couleur. */
 export function OrgTag({ org }: { org: ColoredOrg }) {

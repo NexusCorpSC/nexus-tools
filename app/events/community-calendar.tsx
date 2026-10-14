@@ -22,6 +22,8 @@ import type { CommunityEventOrg, CommunityEventView } from "@/types/org-events";
 import {
   DaySection,
   OrgTag,
+  PERSONAL_COLOR,
+  PersonalTag,
   isRegistered,
   orgColors,
 } from "@/app/orgs/[orgId]/events/calendar";
@@ -38,6 +40,9 @@ type Tab = "all" | "mine" | "invited" | "public";
 
 /** La case des organisations dont le lecteur n'est pas membre, dans les filtres. */
 const OTHERS = "others";
+
+/** La case des évènements personnels, hors de toute organisation. */
+const PERSONAL = "personal";
 
 /** Ce que la page montre d'abord : sept jours, le reste derrière « Afficher la suite ». */
 const FIRST_DAYS = 7;
@@ -84,7 +89,7 @@ export function CommunityCalendarView({
   // Les siennes d'abord : leurs couleurs ne se répètent pas.
   const colors = orgColors([
     ...myOrgs.map((org) => org.id),
-    ...events.map((event) => event.org.id),
+    ...events.flatMap((event) => (event.org ? [event.org.id] : [])),
   ]);
   const upcoming =
     now === null
@@ -93,16 +98,36 @@ export function CommunityCalendarView({
           .filter((event) => Date.parse(event.endsAt) > now)
           .map((event) => ({
             ...event,
-            org: { ...event.org, color: colors.get(event.org.id) },
+            org: event.org
+              ? { ...event.org, color: colors.get(event.org.id) }
+              : null,
           }));
   const visible = upcoming.filter((event) => {
-    if (tab === "mine" && !event.org.isMember) return false;
+    // « Les miens » : mes organisations, et les évènements personnels que je
+    // gère.
+    if (tab === "mine" && !(event.org ? event.org.isMember : event.canManage))
+      return false;
     if (tab === "invited" && !event.guest) return false;
     if (tab === "public" && event.visibility !== "public") return false;
-    if (hidden.has(event.org.isMember ? event.org.id : OTHERS)) return false;
+    if (
+      hidden.has(
+        event.org === null
+          ? PERSONAL
+          : event.org.isMember
+            ? event.org.id
+            : OTHERS,
+      )
+    )
+      return false;
     if (onlyRegistered && !isRegistered(event)) return false;
     return true;
   });
+  const hasPersonal = upcoming.some((event) => event.org === null);
+  // Les filtres dès qu'il y a autre chose que les évènements publics.
+  const showFilters =
+    signedIn &&
+    (myOrgs.length > 0 ||
+      upcoming.some((event) => event.org === null || event.guest));
 
   const weekEnd =
     now === null ? 0 : startOfDay(new Date(now), FIRST_DAYS).getTime();
@@ -119,9 +144,9 @@ export function CommunityCalendarView({
   }
 
   const otherOrgs = new Set(
-    upcoming
-      .filter((event) => !event.org.isMember)
-      .map((event) => event.org.id),
+    upcoming.flatMap((event) =>
+      event.org && !event.org.isMember ? [event.org.id] : [],
+    ),
   );
 
   function toggle(key: string) {
@@ -170,11 +195,11 @@ export function CommunityCalendarView({
                 : tCalendar("weekSummary", { count: thisWeek.length })}
           </p>
         </div>
-        <PlanButton myOrgs={myOrgs} colors={colors} />
+        {signedIn ? <PlanButton myOrgs={myOrgs} colors={colors} /> : null}
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {signedIn && myOrgs.length > 0 ? (
+        {showFilters ? (
           <div
             role="group"
             aria-label={t("tabs")}
@@ -216,7 +241,7 @@ export function CommunityCalendarView({
             onClick={() => setPanelOpen((open) => !open)}
             className="flex h-11 items-center justify-between rounded-lg border border-[#9ED0FF]/30 px-4 text-sm font-medium lg:hidden"
           >
-            {signedIn && myOrgs.length > 0 ? t("monthAndFilters") : t("month")}
+            {showFilters ? t("monthAndFilters") : t("month")}
             <ChevronDown
               className={cn(
                 "size-4 transition-transform",
@@ -239,9 +264,18 @@ export function CommunityCalendarView({
                 onPick={pickDay}
               />
             ) : null}
-            {signedIn && myOrgs.length > 0 ? (
+            {showFilters ? (
               <section className={cn(panel, "flex flex-col gap-1 p-4")}>
                 <h2 className={cn(kicker, "mb-2")}>{t("orgsTitle")}</h2>
+                {hasPersonal ? (
+                  <FilterBox
+                    checked={!hidden.has(PERSONAL)}
+                    onChange={() => toggle(PERSONAL)}
+                  >
+                    <PersonalTag />
+                    <span className="flex-1">{t("personal")}</span>
+                  </FilterBox>
+                ) : null}
                 {myOrgs.map((org) => (
                   <FilterBox
                     key={org.id}
@@ -378,7 +412,10 @@ function FilterBox({
   );
 }
 
-/** « Prévoir un évènement » : directement dans sa seule orga, sinon on choisit laquelle. */
+/**
+ * « Prévoir un évènement » : directement un évènement personnel sans
+ * organisation, sinon on choisit pour qui.
+ */
 function PlanButton({
   myOrgs,
   colors,
@@ -387,7 +424,6 @@ function PlanButton({
   colors: Map<string, string>;
 }) {
   const t = useTranslations("OrgEvents");
-  if (myOrgs.length === 0) return null;
 
   const label = (
     <>
@@ -396,10 +432,10 @@ function PlanButton({
     </>
   );
 
-  if (myOrgs.length === 1) {
+  if (myOrgs.length === 0) {
     return (
       <Button asChild className={cn("h-11 px-5", primaryButton)}>
-        <Link href={`/orgs/${myOrgs[0].id}/events/new`}>{label}</Link>
+        <Link href="/events/new">{label}</Link>
       </Button>
     );
   }
@@ -416,6 +452,13 @@ function PlanButton({
         <p className="px-2 pt-1 pb-2 text-xs text-white/65">
           {t("Community.planFor")}
         </p>
+        <Link
+          href="/events/new"
+          className="flex min-h-10 items-center gap-2 rounded-md px-2 text-sm hover:bg-[#9ED0FF]/10"
+        >
+          <PersonalTag />
+          {t("Community.planPersonal")}
+        </Link>
         {myOrgs.map((org) => (
           <Link
             key={org.id}
@@ -445,7 +488,9 @@ function MonthCalendar({
   now: number;
   offset: number;
   onOffset: (offset: number) => void;
-  events: (CommunityEventView & { org: { color?: string } })[];
+  events: (Omit<CommunityEventView, "org"> & {
+    org: (CommunityEventOrg & { color?: string }) | null;
+  })[];
   onPick: (key: string) => void;
 }) {
   const t = useTranslations("OrgEvents.Community");
@@ -483,7 +528,7 @@ function MonthCalendar({
   for (const event of events) {
     const key = dayKey(new Date(event.startsAt));
     const colors = colorsByDay.get(key) ?? [];
-    const color = event.org.color ?? "#9ED0FF";
+    const color = event.org ? (event.org.color ?? "#9ED0FF") : PERSONAL_COLOR;
     if (!colors.includes(color)) colors.push(color);
     colorsByDay.set(key, colors);
     countByDay.set(key, (countByDay.get(key) ?? 0) + 1);
