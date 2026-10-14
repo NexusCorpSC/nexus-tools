@@ -1900,7 +1900,8 @@
       "create": "Create the event",
       "save": "Save",
       "cancel": "Cancel",
-      "error": "Saving failed: {message}"
+      "error": "Saving failed: {message}",
+      "visibilityPersonal": "Outside any organization: only you see it, along with the players you invite or give the share link to once the event is created."
     },
     "Registration": {
       "title": "Registration",
@@ -1966,7 +1967,7 @@
       "metaDescription": "Public outings of Star Citizen organizations on Nexus Tools, and those of your organizations.",
       "tabs": "Which events",
       "all": "All",
-      "mine": "My organizations",
+      "mine": "Mine",
       "public": "Public",
       "publicOnly": "Public events from every organization",
       "previousMonth": "Previous month",
@@ -1990,10 +1991,12 @@
       "nonePublicText": "Organizations publish their events open to everyone here.",
       "noMatchTitle": "No outing matches",
       "noMatchText": "Show an organization again or untick “Only my registrations”.",
-      "planFor": "For which organization?",
+      "planFor": "For whom?",
       "month": "The month",
       "monthAndFilters": "Month and filters",
-      "invited": "Invitations"
+      "invited": "Invitations",
+      "personal": "Personal events",
+      "planPersonal": "No organization"
     },
     "share": "Share",
     "guestLinkTitle": "Share link",
@@ -2008,7 +2011,17 @@
     "communityEvents": "Community events",
     "invitedBy": "Invited by {name}",
     "viaLink": "Via a link",
-    "invited": "Invited"
+    "invited": "Invited",
+    "Personal": {
+      "tag": "PERS.",
+      "label": "Personal event",
+      "chip": "Private · by invitation",
+      "newTitle": "New personal event",
+      "signIn": "Sign in to plan an event.",
+      "guestLinkBy": "{name} shared their event with you.",
+      "guestLink": "you see {name}'s event through a share link.",
+      "guestInvite": "you are invited to {name}'s event."
+    }
   },
   "NewOrganization": {
     "title": "New organization",

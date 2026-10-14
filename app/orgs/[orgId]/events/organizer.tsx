@@ -6,11 +6,13 @@ import { useTranslations } from "next-intl";
 import { ArrowLeft, Download, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type {
-  OrgEventRegistration,
-  OrgEventRole,
-  OrgEventSummary,
-  OrgEventView,
+import {
+  eventApiPath,
+  eventHref,
+  type OrgEventRegistration,
+  type OrgEventRole,
+  type OrgEventSummary,
+  type OrgEventView,
 } from "@/types/org-events";
 import {
   RoleTag,
@@ -129,7 +131,7 @@ export function OrganizerSummary({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1.5">
           <Link
-            href={`/orgs/${event.orgId}/events/${event.id}`}
+            href={eventHref(event)}
             className="inline-flex items-center gap-1.5 text-sm text-[#9ED0FF] hover:text-[#CFE8FF]"
           >
             <ArrowLeft className="size-4" />
@@ -370,7 +372,7 @@ function SquadCard({
     setError(null);
     try {
       const response = await fetch(
-        `/api/orgs/${event.orgId}/events/${event.id}/squad`,
+        `${eventApiPath(event.orgId, event.id)}/squad`,
         { method: "POST" },
       );
       if (!response.ok) throw new Error(await errorOf(response));

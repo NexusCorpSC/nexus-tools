@@ -13,6 +13,7 @@ import {
 } from "@/lib/markers";
 import { placeShareTarget, privatePlacesBySlugs } from "@/lib/private-places";
 import { siteBaseUrl } from "@/lib/site-url";
+import { eventHref } from "@/types/org-events";
 import {
   ShareError,
   activeLink,
@@ -60,7 +61,7 @@ async function resolve(
       title: found.doc.title,
       canManage: found.canManage,
       allowLink: true,
-      org: { name: found.orgName, memberCount: found.memberCount },
+      org: found.org,
       keepOnRevoke: () => activeRegistrantIds(found.doc),
     };
   }
@@ -208,7 +209,9 @@ export async function listInvitations(
     markerCollections.map((collection) => [collection.id, collection]),
   );
   const orgNames = await orgNamesOf([
-    ...new Set(events.map((event) => event.orgId)),
+    ...new Set(
+      events.flatMap((event) => (event.orgId === null ? [] : [event.orgId])),
+    ),
   ]);
 
   const invitations: Invitation[] = [];
@@ -235,8 +238,8 @@ export async function listInvitations(
         ...base,
         title: event.title,
         startsAt: event.startsAt,
-        orgName: orgNames.get(event.orgId),
-        href: `/orgs/${event.orgId}/events/${share.targetId}`,
+        orgName: event.orgId === null ? undefined : orgNames.get(event.orgId),
+        href: eventHref({ orgId: event.orgId, id: share.targetId }),
       });
     } else if (share.kind === "markerCollection") {
       const collection = collectionById.get(share.targetId);

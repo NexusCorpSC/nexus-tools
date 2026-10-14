@@ -20,6 +20,8 @@ import {
   ORG_EVENT_QUESTION_MAX_LENGTH,
   ORG_EVENT_ROLE_LABEL_MAX_LENGTH,
   ORG_EVENT_TITLE_MAX_LENGTH,
+  eventApiPath,
+  eventHref,
   type OrgEvent,
   type OrgEventInput,
   type OrgEventView,
@@ -176,7 +178,8 @@ function Step({
 
 /**
  * Crée un évènement, ou modifie celui qu'on lui donne : quatre étapes, et à
- * côté l'aperçu de la ligne qu'il fera dans le calendrier.
+ * côté l'aperçu de la ligne qu'il fera dans le calendrier. `orgId` `null` :
+ * un évènement personnel, toujours privé.
  *
  * Rendu une fois monté seulement : les heures se lisent dans le fuseau du
  * navigateur, que le rendu serveur ne connaît pas.
@@ -186,7 +189,7 @@ export function EventForm({
   orgName,
   initial,
 }: {
-  orgId: string;
+  orgId: string | null;
   orgName: string;
   initial?: OrgEvent;
 }) {
@@ -305,9 +308,7 @@ export function EventForm({
     setError(null);
     try {
       const response = await fetch(
-        initial
-          ? `/api/orgs/${orgId}/events/${initial.id}`
-          : `/api/orgs/${orgId}/events`,
+        initial ? eventApiPath(orgId, initial.id) : eventApiPath(orgId),
         {
           method: initial ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -316,7 +317,7 @@ export function EventForm({
       );
       if (!response.ok) throw new Error(await errorOf(response));
       const saved: OrgEventView = await response.json();
-      router.push(`/orgs/${orgId}/events/${saved.id}`);
+      router.push(eventHref(saved));
       router.refresh();
     } catch (failure) {
       setError(
@@ -596,46 +597,56 @@ export function EventForm({
         </Step>
 
         <Step number={4} title={t("stepVisibility")}>
-          <div
-            role="radiogroup"
-            aria-label={t("visibility")}
-            className="grid gap-2 sm:grid-cols-2"
-          >
-            {(["private", "public"] as const).map((option) => {
-              const Icon = option === "public" ? Globe : Lock;
-              return (
-                <label
-                  key={option}
-                  className={cn(
-                    "flex cursor-pointer gap-3 rounded-xl border p-3.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#9ED0FF]/60",
-                    visibility === option
-                      ? "border-[#9ED0FF] bg-[#9ED0FF]/10"
-                      : "border-[#9ED0FF]/20 hover:border-[#9ED0FF]/45",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="visibility"
-                    className="mt-1 size-4 accent-[#9ED0FF]"
-                    value={option}
-                    checked={visibility === option}
-                    onChange={() => setVisibility(option)}
-                  />
-                  <span className="flex flex-col gap-0.5">
-                    <span className="flex items-center gap-1.5 font-semibold">
-                      <Icon className="size-4 text-[#9ED0FF]" />
-                      {tEvents(option)}
+          {orgId === null ? (
+            <div className="flex gap-3 rounded-xl border border-[#9ED0FF] bg-[#9ED0FF]/10 p-3.5">
+              <Lock className="mt-0.5 size-4 shrink-0 text-[#9ED0FF]" />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-semibold">{tEvents("private")}</span>
+                <span className={hint}>{t("visibilityPersonal")}</span>
+              </span>
+            </div>
+          ) : (
+            <div
+              role="radiogroup"
+              aria-label={t("visibility")}
+              className="grid gap-2 sm:grid-cols-2"
+            >
+              {(["private", "public"] as const).map((option) => {
+                const Icon = option === "public" ? Globe : Lock;
+                return (
+                  <label
+                    key={option}
+                    className={cn(
+                      "flex cursor-pointer gap-3 rounded-xl border p-3.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#9ED0FF]/60",
+                      visibility === option
+                        ? "border-[#9ED0FF] bg-[#9ED0FF]/10"
+                        : "border-[#9ED0FF]/20 hover:border-[#9ED0FF]/45",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="visibility"
+                      className="mt-1 size-4 accent-[#9ED0FF]"
+                      value={option}
+                      checked={visibility === option}
+                      onChange={() => setVisibility(option)}
+                    />
+                    <span className="flex flex-col gap-0.5">
+                      <span className="flex items-center gap-1.5 font-semibold">
+                        <Icon className="size-4 text-[#9ED0FF]" />
+                        {tEvents(option)}
+                      </span>
+                      <span className={hint}>
+                        {option === "private"
+                          ? t("visibilityPrivate", { org: orgName })
+                          : t("visibilityPublic")}
+                      </span>
                     </span>
-                    <span className={hint}>
-                      {option === "private"
-                        ? t("visibilityPrivate", { org: orgName })
-                        : t("visibilityPublic")}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </Step>
 
         {error ? <p className="text-sm text-red-300">{error}</p> : null}

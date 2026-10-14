@@ -34,6 +34,23 @@ export async function resolveAuthor(): Promise<
   };
 }
 
+/**
+ * Les routes d'un évènement personnel, `/api/personal-events/…`, reprennent
+ * celles des évènements d'organisation : sans `orgId` dans l'adresse, c'est
+ * `null`.
+ */
+export type EventParams = {
+  params: Promise<{ orgId?: string; eventId: string }>;
+};
+
+export async function eventParams({ params }: EventParams): Promise<{
+  orgId: string | null;
+  eventId: string;
+}> {
+  const { orgId, eventId } = await params;
+  return { orgId: orgId ?? null, eventId };
+}
+
 export async function readJson(request: Request): Promise<unknown> {
   try {
     return await request.json();
@@ -49,7 +66,13 @@ export async function readJson(request: Request): Promise<unknown> {
  * pas membre : la réponse ne confirme pas qu'il existe.
  */
 export function refusal(
-  reason: "not-found" | "forbidden" | "unknown-place" | "closed" | "full",
+  reason:
+    | "not-found"
+    | "forbidden"
+    | "unknown-place"
+    | "closed"
+    | "full"
+    | "too-many",
 ): NextResponse {
   switch (reason) {
     case "not-found":
@@ -69,6 +92,11 @@ export function refusal(
     case "full":
       return NextResponse.json(
         { error: "The event has no room left" },
+        { status: 409 },
+      );
+    case "too-many":
+      return NextResponse.json(
+        { error: "Too many upcoming personal events" },
         { status: 409 },
       );
   }

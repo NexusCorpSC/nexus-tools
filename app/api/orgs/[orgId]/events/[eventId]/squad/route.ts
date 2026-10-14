@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSquadFromEvent } from "@/lib/org-events";
-import { refusal, resolveAuthor } from "../../caller";
-
-type Params = { params: Promise<{ orgId: string; eventId: string }> };
+import {
+  refusal,
+  resolveAuthor,
+  eventParams,
+  type EventParams,
+} from "../../caller";
 
 /**
  * POST /api/orgs/:orgId/events/:eventId/squad
@@ -15,11 +18,11 @@ type Params = { params: Promise<{ orgId: string; eventId: string }> };
  *
  * Responds `{ event, squad: { id, name, code }, squadCount, leftOut }`.
  */
-export async function POST(_request: Request, { params }: Params) {
+export async function POST(_request: Request, context: EventParams) {
   const caller = await resolveAuthor();
   if ("refused" in caller) return caller.refused;
 
-  const { orgId, eventId } = await params;
+  const { orgId, eventId } = await eventParams(context);
   const outcome = await createSquadFromEvent(orgId, eventId, caller.author);
 
   if ("refusal" in outcome) {

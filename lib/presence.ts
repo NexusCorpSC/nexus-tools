@@ -199,9 +199,10 @@ export type PlanOutcome =
 /**
  * Prévoit ma prochaine session, ou remplace celle déjà prévue.
  *
- * `body` : `{ at?, activity?, event?: { orgId, eventId } }`. Avec `event`, la
- * session reprend un évènement où je suis inscrit : son heure de début et son
- * titre, sauf `at` ou `activity` précisés. Sans, `at` est requis.
+ * `body` : `{ at?, activity?, event?: { orgId, eventId } }` (`orgId` `null`
+ * pour un évènement personnel). Avec `event`, la session reprend un évènement
+ * où je suis inscrit : son heure de début et son titre, sauf `at` ou
+ * `activity` précisés. Sans, `at` est requis.
  */
 export async function planSession(
   userId: ObjectId,
@@ -216,9 +217,12 @@ export async function planSession(
   let eventStart: string | null = null;
   if (input.event !== undefined && input.event !== null) {
     const ref = input.event as Record<string, unknown>;
-    if (typeof ref.orgId !== "string" || typeof ref.eventId !== "string") {
+    if (
+      (typeof ref.orgId !== "string" && ref.orgId !== null) ||
+      typeof ref.eventId !== "string"
+    ) {
       return {
-        error: "`event` must be { orgId: string, eventId: string }",
+        error: "`event` must be { orgId: string | null, eventId: string }",
         status: 400,
       };
     }

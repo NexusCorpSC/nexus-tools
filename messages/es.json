@@ -1901,7 +1901,8 @@
       "create": "Crear el evento",
       "save": "Guardar",
       "cancel": "Cancelar",
-      "error": "No se pudo guardar: {message}"
+      "error": "No se pudo guardar: {message}",
+      "visibilityPersonal": "Fuera de cualquier organización: solo tú lo ves, junto con los jugadores que invites o a quienes des el enlace para compartir una vez creado el evento."
     },
     "Registration": {
       "title": "Inscripción",
@@ -1967,7 +1968,7 @@
       "metaDescription": "Las salidas públicas de las organizaciones de Star Citizen en Nexus Tools, y las de tus organizaciones.",
       "tabs": "Qué eventos",
       "all": "Todo",
-      "mine": "Mis organizaciones",
+      "mine": "Los míos",
       "public": "Públicos",
       "publicOnly": "Eventos públicos de todas las organizaciones",
       "previousMonth": "Mes anterior",
@@ -1991,10 +1992,12 @@
       "nonePublicText": "Las organizaciones publican aquí sus eventos abiertos a todos.",
       "noMatchTitle": "Ninguna salida coincide",
       "noMatchText": "Vuelve a mostrar una organización o desmarca «Solo mis inscripciones».",
-      "planFor": "¿Para qué organización?",
+      "planFor": "¿Para quién?",
       "month": "El mes",
       "monthAndFilters": "El mes y los filtros",
-      "invited": "Invitaciones"
+      "invited": "Invitaciones",
+      "personal": "Eventos personales",
+      "planPersonal": "Sin organización"
     },
     "share": "Compartir",
     "guestLinkTitle": "Enlace para compartir",
@@ -2009,7 +2012,17 @@
     "communityEvents": "Eventos de la comunidad",
     "invitedBy": "Invitado por {name}",
     "viaLink": "Por un enlace",
-    "invited": "Invitado"
+    "invited": "Invitado",
+    "Personal": {
+      "tag": "PERS.",
+      "label": "Evento personal",
+      "chip": "Privado · por invitación",
+      "newTitle": "Nuevo evento personal",
+      "signIn": "Inicia sesión para planificar un evento.",
+      "guestLinkBy": "{name} te ha compartido su evento.",
+      "guestLink": "ves el evento de {name} gracias a un enlace para compartir.",
+      "guestInvite": "estás invitado al evento de {name}."
+    }
   },
   "NewOrganization": {
     "title": "Nueva organización",
