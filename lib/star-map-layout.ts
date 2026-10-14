@@ -127,6 +127,24 @@ export type StarMapMarker = {
   createdAt: string;
 };
 
+/** Un joueur en jeu, tel que la scène le dessine. */
+export type StarMapPlayer = {
+  id: string;
+  name: string;
+  /** Ce que lit un lecteur d'écran. */
+  label: string;
+  avatar: string | null;
+  /** Moi, un ami, ou un membre d'une de mes organisations. */
+  kind: "me" | "friend" | "org";
+  /** Sans relevé récent : il s'estompe. */
+  stale: boolean;
+  world: Vec3;
+  /** Au sol : la normale, pour le cacher sur la face qu'on ne voit pas. */
+  normal?: Vec3;
+  /** Son corps, sinon son système : il s'affiche quand on regarde par là. */
+  anchor: string;
+};
+
 /** Un lieu placé dans la scène. */
 export type LaidOutPlace = StarMapPlace & {
   system: StarMapSystem | null;
@@ -329,53 +347,75 @@ export function layoutStarMap(
   }
 
   // Le reste : au sol ou en orbite d'un corps, ou dans l'espace du système.
-  const placedBodies = bodies.filter(
-    (body) => body.world && body.at && !body.at.body,
-  );
   for (const place of out.values()) {
     if (!place.system || place.world || !place.at || BODY_TYPES.has(place.type))
       continue;
-    const at = place.at;
-
-    let body: LaidOutPlace | undefined;
-    let local: Vec3 | null = null;
-    if (at.body) {
-      body = out.get(at.body);
-      local = [at.x, at.y, at.z];
-    } else {
-      // Un point du système tout près d'un corps : il est en orbite autour.
-      for (const candidate of placedBodies) {
-        if (candidate.system !== place.system || !candidate.radius) continue;
-        const d: Vec3 = [
-          at.x - candidate.at!.x,
-          at.y - candidate.at!.y,
-          at.z - candidate.at!.z,
-        ];
-        if (length(d) < candidate.radius * ORBIT_RADII) {
-          body = candidate;
-          local = d;
-          break;
-        }
-      }
-    }
-
-    if (body?.world && local) {
-      const radius = body.radius ?? 1e6;
-      const altitude = length(local) - radius;
-      const normal = unit(toScene(local[0], local[1], local[2]));
-      place.world = add(
-        body.world,
-        scale(normal, altitudeDistance(altitude, radius, body.r)),
-      );
-      if (altitude < radius * GROUND_ALTITUDE) place.normal = normal;
-    } else if (!at.body) {
-      const v = toScene(at.x, at.y, at.z);
-      place.world = add(
-        SYSTEM_LOOK[place.system].center,
-        scale(unit(v), systemDistance(length(v))),
-      );
+    const found = locatePoint(out, place.system, place.at);
+    if (found) {
+      place.world = found.world;
+      if (found.normal) place.normal = found.normal;
     }
   }
 
   return out;
+}
+
+/**
+ * Où un point se dessine dans une carte déjà placée : au sol ou en orbite d'un
+ * corps, ou dans l'espace de son système. `null` quand son corps n'est pas sur
+ * la carte. Sert aux lieux, et aux joueurs que la carte suit en direct.
+ */
+export function locatePoint(
+  places: Map<string, LaidOutPlace>,
+  system: StarMapSystem,
+  at: NonNullable<StarMapPlace["at"]>,
+): { world: Vec3; normal?: Vec3 } | null {
+  let body: LaidOutPlace | undefined;
+  let local: Vec3 | null = null;
+  if (at.body) {
+    body = places.get(at.body);
+    local = [at.x, at.y, at.z];
+  } else {
+    // Un point du système tout près d'un corps : il est en orbite autour.
+    for (const candidate of places.values()) {
+      if (
+        candidate.system !== system ||
+        !BODY_TYPES.has(candidate.type) ||
+        !candidate.world ||
+        !candidate.at ||
+        candidate.at.body ||
+        !candidate.radius
+      )
+        continue;
+      const d: Vec3 = [
+        at.x - candidate.at.x,
+        at.y - candidate.at.y,
+        at.z - candidate.at.z,
+      ];
+      if (length(d) < candidate.radius * ORBIT_RADII) {
+        body = candidate;
+        local = d;
+        break;
+      }
+    }
+  }
+
+  if (body?.world && local) {
+    const radius = body.radius ?? 1e6;
+    const altitude = length(local) - radius;
+    const normal = unit(toScene(local[0], local[1], local[2]));
+    const world = add(
+      body.world,
+      scale(normal, altitudeDistance(altitude, radius, body.r)),
+    );
+    return altitude < radius * GROUND_ALTITUDE ? { world, normal } : { world };
+  }
+  if (at.body) return null;
+  const v = toScene(at.x, at.y, at.z);
+  return {
+    world: add(
+      SYSTEM_LOOK[system].center,
+      scale(unit(v), systemDistance(length(v))),
+    ),
+  };
 }

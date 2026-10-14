@@ -37,6 +37,13 @@ function collection() {
 }
 
 /**
+ * La dernière position partagée de chacun (`lib/player-positions.ts`) : elle
+ * ne vaut que pendant la session, et s'efface avec elle. Nommée ici pour que
+ * l'arrêt la supprime sans que ce module dépende du suivi de position.
+ */
+export const PLAYER_POSITIONS_COLLECTION = "playerPositions";
+
+/**
  * Une session prévue par utilisateur, à part de la déclaration « en jeu » :
  * on peut jouer et avoir déjà prévu la suivante. Même clé naturelle, même
  * index unique.
@@ -171,9 +178,15 @@ export async function declarePlaying(
   };
 }
 
-/** Arrête de jouer ; la session prévue, s'il y en a une, reste. */
+/**
+ * Arrête de jouer ; la session prévue, s'il y en a une, reste. La position
+ * partagée, elle, s'efface : on n'est plus en jeu.
+ */
 export async function stopPlaying(userId: ObjectId): Promise<MyPresence> {
-  await collection().deleteOne({ userId });
+  await Promise.all([
+    collection().deleteOne({ userId }),
+    db.db().collection(PLAYER_POSITIONS_COLLECTION).deleteOne({ userId }),
+  ]);
   return toMine(null, await getPlanned(userId), new Date());
 }
 

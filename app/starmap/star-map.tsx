@@ -12,13 +12,25 @@ import {
   STAR_MAP_SYSTEMS,
   SYSTEM_LOOK,
   isStarMapSystem,
+  locatePoint,
   markerShape,
   layoutStarMap,
   type LaidOutPlace,
   type StarMapPlace,
+  type StarMapPlayer,
 } from "@/lib/star-map-layout";
 import type { StarMapInventory, StarMapLot } from "@/lib/star-map";
+import type { MyPositionSharing, PlayerInGame } from "@/types/player-positions";
 import type { StarMapScene } from "./scene";
+import {
+  MyPositionDialog,
+  PlayerCard,
+  PlayersSection,
+  isStale,
+  playerKind,
+  usePlaceOf,
+  usePlayers,
+} from "./players";
 import "./star-map.css";
 
 /** L'ordre des groupes dans « Contient ». */
@@ -137,17 +149,33 @@ export function StarMap({
   places: input,
   inventory,
   initialPlace,
+  players: initialPlayers,
+  sharing: initialSharing,
 }: {
   places: StarMapPlace[];
   /** `null` : personne n'est connecté. */
   inventory: StarMapInventory | null;
   initialPlace?: string;
+  /** Les joueurs en jeu que je vois ; `null` : personne n'est connecté. */
+  players: PlayerInGame[] | null;
+  sharing: MyPositionSharing | null;
 }) {
   const t = useTranslations("StarMap");
   const tPlaces = useTranslations("Places");
   const tMarkers = useTranslations("Markers");
+  const tPlayers = useTranslations("StarMap.players");
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
+  const playersNow = useNow({ updateInterval: 10_000 });
+  const placeOf = usePlaceOf();
+  const { players: allPlayers, refresh: refreshPlayers } =
+    usePlayers(initialPlayers);
+  const [sharing, setSharing] = useState(initialSharing);
+  const [positionOpen, setPositionOpen] = useState(false);
+  const [showPlayers, setShowPlayers] = useState(true);
+  // Les amis (`friends`) ou une organisation, masqués d'un clic.
+  const [hiddenGroups, setHiddenGroups] = useState<Set<string>>(new Set());
+  const [playerId, setPlayerId] = useState<string | null>(null);
   // Ses marqueurs, par collection : chacune se masque d'un clic.
   const markerCollections = useMemo(() => {
     const found = new Map<
@@ -245,7 +273,79 @@ export function StarMap({
     return count;
   }, [inventory, places]);
 
-  const select = useCallback((slug: string | null) => setFocus(slug), []);
+  const select = useCallback((slug: string | null) => {
+    setPlayerId(null);
+    setFocus(slug);
+  }, []);
+
+  // Les groupes de joueurs qu'on peut masquer : les amis, puis chaque
+  // organisation par laquelle on en voit.
+  const playerGroups = useMemo(() => {
+    const groups = new Map<string, string>();
+    for (const player of allPlayers ?? []) {
+      if (player.friend) groups.set("friends", tPlayers("friends"));
+      for (const org of player.orgs) groups.set(org.id, org.tag ?? org.name);
+    }
+    return [...groups].map(([key, label]) => ({ key, label }));
+  }, [allPlayers, tPlayers]);
+
+  // Ceux qu'on montre : moi toujours, les autres tant qu'un de leurs groupes
+  // est affiché.
+  const shownPlayers = useMemo(() => {
+    if (!showPlayers || !allPlayers) return [];
+    return allPlayers.filter(
+      (player) =>
+        player.me ||
+        (player.friend && !hiddenGroups.has("friends")) ||
+        player.orgs.some((org) => !hiddenGroups.has(org.id)),
+    );
+  }, [allPlayers, showPlayers, hiddenGroups]);
+  const me = allPlayers?.find((player) => player.me);
+  const followed = playerId
+    ? shownPlayers.find((player) => player.userId === playerId)
+    : undefined;
+
+  // Les joueurs placés dans la scène : seulement dans les trois systèmes.
+  const scenePlayers = useMemo(() => {
+    const result: StarMapPlayer[] = [];
+    for (const player of shownPlayers) {
+      if (!isStarMapSystem(player.systemSlug)) continue;
+      const { body, x, y, z } = player.position;
+      const at: NonNullable<StarMapPlace["at"]> = { x, y, z };
+      if (body) at.body = body;
+      const found = locatePoint(places, player.systemSlug, at);
+      if (!found) continue;
+      const scenePlayer: StarMapPlayer = {
+        id: player.userId,
+        name: player.me ? tPlayers("you") : player.name,
+        label: `${player.name}, ${placeOf(player)}`,
+        avatar: player.avatar,
+        kind: playerKind(player),
+        stale: isStale(player, playersNow.getTime()),
+        world: found.world,
+        anchor: player.bodySlug ?? player.systemSlug,
+      };
+      if (found.normal) scenePlayer.normal = found.normal;
+      result.push(scenePlayer);
+    }
+    return result;
+  }, [shownPlayers, places, playersNow, tPlayers, placeOf]);
+
+  const followPlayer = useCallback(
+    (id: string) => {
+      const player = allPlayers?.find((one) => one.userId === id);
+      if (!player) return;
+      setPlayerId(id);
+      const anchor = player.bodySlug ?? player.systemSlug;
+      setFocus(places.has(anchor) ? anchor : null);
+    },
+    [allPlayers, places],
+  );
+  const followRef = useRef(followPlayer);
+  useEffect(() => {
+    followRef.current = followPlayer;
+  }, [followPlayer]);
+  const onPlayer = useCallback((id: string) => followRef.current(id), []);
 
   // La scène, chargée à la demande avec Three.js.
   useEffect(() => {
@@ -259,6 +359,7 @@ export function StarMap({
           places,
           typeLabel,
           onSelect: select,
+          onPlayer,
         });
         setReady(true);
       })
@@ -269,7 +370,11 @@ export function StarMap({
       scene.current = null;
       setReady(false);
     };
-  }, [places, typeLabel, select]);
+  }, [places, typeLabel, select, onPlayer]);
+
+  useEffect(() => {
+    if (ready) scene.current?.setPlayers(scenePlayers, playerId);
+  }, [scenePlayers, playerId, ready]);
 
   const first = useRef(true);
   useEffect(() => {
@@ -308,7 +413,8 @@ export function StarMap({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && current)
+      if (event.key === "Escape" && playerId) setPlayerId(null);
+      else if (event.key === "Escape" && current)
         setFocus(
           current.parentSlug && places.has(current.parentSlug)
             ? current.parentSlug
@@ -317,7 +423,7 @@ export function StarMap({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [current, places]);
+  }, [current, places, playerId]);
 
   const trail = useMemo(() => {
     const chain: LaidOutPlace[] = [];
@@ -598,8 +704,72 @@ export function StarMap({
               })}
             </div>
           )}
+          {allPlayers && (
+            <div
+              role="group"
+              aria-label={t("players.toggle")}
+              className="flex flex-wrap items-center gap-1"
+            >
+              <label className="flex cursor-pointer items-center gap-2 text-[12.5px] text-[#ff9f7a]">
+                <input
+                  type="checkbox"
+                  checked={showPlayers}
+                  onChange={(event) => {
+                    setShowPlayers(event.target.checked);
+                    if (!event.target.checked) setPlayerId(null);
+                  }}
+                  className="size-3.5 accent-[#ff9f7a]"
+                />
+                {t("players.toggle")}
+              </label>
+              {showPlayers &&
+                playerGroups.map((group) => {
+                  const hidden = hiddenGroups.has(group.key);
+                  return (
+                    <button
+                      key={group.key}
+                      type="button"
+                      aria-pressed={!hidden}
+                      onClick={() => {
+                        const next = new Set(hiddenGroups);
+                        if (hidden) next.delete(group.key);
+                        else next.add(group.key);
+                        setHiddenGroups(next);
+                      }}
+                      className="rounded-full border border-[#ff9f7a]/30 px-2 py-0.5 text-[11.5px] text-[#c9e4ff] aria-[pressed=false]:text-[#5c7b96] aria-[pressed=false]:line-through"
+                    >
+                      {group.label}
+                    </button>
+                  );
+                })}
+              {sharing && (
+                <button
+                  type="button"
+                  onClick={() => setPositionOpen(true)}
+                  className="rounded-md border border-[#ff9f7a]/45 bg-[#ff9f7a]/10 px-2.5 py-1 text-[12px] font-medium text-[#ff9f7a] hover:bg-[#ff9f7a]/20"
+                >
+                  {sharing.sharing.enabled && sharing.position
+                    ? t("players.mySharing")
+                    : t("players.myPosition")}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
+      {positionOpen && sharing && (
+        <MyPositionDialog
+          initial={sharing}
+          systems={STAR_MAP_SYSTEMS.filter((slug) => places.has(slug)).map(
+            (slug) => ({ slug, name: places.get(slug)!.name }),
+          )}
+          onClose={() => setPositionOpen(false)}
+          onSaved={async (next) => {
+            setSharing(next);
+            await refreshPlayers();
+          }}
+        />
+      )}
 
       {/* Panneau du lieu regardé */}
       <aside
@@ -607,311 +777,340 @@ export function StarMap({
         aria-live="polite"
         className="absolute inset-x-3 bottom-3 flex max-h-[42%] flex-col overflow-hidden rounded-xl border border-[#9ED0FF]/20 bg-[#092f49]/80 backdrop-blur-md md:inset-x-auto md:top-3 md:right-3 md:max-h-none md:w-80"
       >
-        <div className="grid gap-1.5 border-b border-[#9ED0FF]/20 px-4 pt-4 pb-3">
-          <p className="flex items-center gap-2 font-mono text-[10.5px] tracking-[0.12em] text-[#86a9c8] uppercase">
-            <i
-              aria-hidden
-              className="size-2 rounded-full"
-              style={{
-                background: systemColor,
-                boxShadow: `0 0 8px ${systemColor}`,
-              }}
-            />
-            {current ? typeLabel(current) : t("verseType")}
-            {parent ? ` · ${parent.name}` : ""}
-          </p>
-          <h2 className="text-2xl font-semibold text-balance">
-            {current ? current.name : t("verse")}
-          </h2>
-          {facts.length > 0 && (
-            <dl className="flex flex-wrap gap-x-4 gap-y-1">
-              {facts.map(([value, label]) => (
-                <div key={label} className="grid">
-                  <dt className="order-2 text-[10.5px] tracking-[0.08em] text-[#5c7b96] uppercase">
-                    {label}
-                  </dt>
-                  <dd className="font-mono text-[13px] tabular-nums">
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {current?.private && (
-            <p className="w-fit rounded-full border border-[#c4b2ff]/45 px-2 py-0.5 text-[11.5px] font-semibold text-[#c4b2ff]">
-              {current.private.org
-                ? t("privateShared", { org: current.private.org })
-                : t("privateOwn")}
+        {followed ? (
+          <PlayerCard
+            player={followed}
+            me={me}
+            onClose={() => setPlayerId(null)}
+          />
+        ) : (
+          <div className="grid gap-1.5 border-b border-[#9ED0FF]/20 px-4 pt-4 pb-3">
+            <p className="flex items-center gap-2 font-mono text-[10.5px] tracking-[0.12em] text-[#86a9c8] uppercase">
+              <i
+                aria-hidden
+                className="size-2 rounded-full"
+                style={{
+                  background: systemColor,
+                  boxShadow: `0 0 8px ${systemColor}`,
+                }}
+              />
+              {current ? typeLabel(current) : t("verseType")}
+              {parent ? ` · ${parent.name}` : ""}
             </p>
-          )}
-          {current?.marker && (
-            <div className="grid gap-1.5 text-[13px]">
-              <p className="flex w-fit items-center gap-1.5 rounded-full border border-[#9ED0FF]/25 px-2 py-0.5 text-[11.5px]">
-                <i
-                  aria-hidden
-                  className="size-2 rounded-full"
-                  style={{ background: current.marker.color }}
-                />
-                {current.marker.collection ?? tMarkers("none")}
-                {current.marker.org && (
-                  <span className="text-[#c4b2ff]">· {current.marker.org}</span>
-                )}
+            <h2 className="text-2xl font-semibold text-balance">
+              {current ? current.name : t("verse")}
+            </h2>
+            {facts.length > 0 && (
+              <dl className="flex flex-wrap gap-x-4 gap-y-1">
+                {facts.map(([value, label]) => (
+                  <div key={label} className="grid">
+                    <dt className="order-2 text-[10.5px] tracking-[0.08em] text-[#5c7b96] uppercase">
+                      {label}
+                    </dt>
+                    <dd className="font-mono text-[13px] tabular-nums">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {current?.private && (
+              <p className="w-fit rounded-full border border-[#c4b2ff]/45 px-2 py-0.5 text-[11.5px] font-semibold text-[#c4b2ff]">
+                {current.private.org
+                  ? t("privateShared", { org: current.private.org })
+                  : t("privateOwn")}
               </p>
-              {current.marker.note && (
-                <p className="leading-relaxed whitespace-pre-line">
-                  {current.marker.note}
+            )}
+            {current?.marker && (
+              <div className="grid gap-1.5 text-[13px]">
+                <p className="flex w-fit items-center gap-1.5 rounded-full border border-[#9ED0FF]/25 px-2 py-0.5 text-[11.5px]">
+                  <i
+                    aria-hidden
+                    className="size-2 rounded-full"
+                    style={{ background: current.marker.color }}
+                  />
+                  {current.marker.collection ?? tMarkers("none")}
+                  {current.marker.org && (
+                    <span className="text-[#c4b2ff]">
+                      · {current.marker.org}
+                    </span>
+                  )}
                 </p>
-              )}
-              <p className="text-xs text-[#86a9c8]">
-                {current.marker.owner
-                  ? t("markerBy", {
-                      owner: current.marker.owner,
-                      when: format.relativeTime(
-                        new Date(current.marker.createdAt),
-                        now,
-                      ),
-                    })
-                  : t("markerSince", {
-                      when: format.relativeTime(
-                        new Date(current.marker.createdAt),
-                        now,
-                      ),
-                    })}
-              </p>
-            </div>
-          )}
-          {current?.approx && (
-            <p className="text-xs text-[#86a9c8]">{t("approx")}</p>
-          )}
-          {current && !current.world && (
-            <p className="text-xs text-[#86a9c8]">{t("unplaced")}</p>
-          )}
-          {current && (
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() =>
-                  setFocus(
-                    current.parentSlug && places.has(current.parentSlug)
-                      ? current.parentSlug
-                      : null,
-                  )
-                }
-                className="rounded-md border border-[#9ED0FF]/50 px-2.5 py-1 text-xs font-medium hover:bg-[#9ED0FF]/15"
-              >
-                {t("up")}
-              </button>
-              <Link
-                href={current.marker ? "/marqueurs" : `/lieux/${current.slug}`}
-                className="rounded-md border border-[#9ED0FF]/20 px-2.5 py-1 text-xs font-medium text-[#86a9c8] hover:bg-[#9ED0FF]/15 hover:text-[#c9e4ff]"
-              >
-                {current.marker ? t("openMarkers") : t("openPlace")}
-              </Link>
-            </div>
-          )}
-        </div>
+                {current.marker.note && (
+                  <p className="leading-relaxed whitespace-pre-line">
+                    {current.marker.note}
+                  </p>
+                )}
+                <p className="text-xs text-[#86a9c8]">
+                  {current.marker.owner
+                    ? t("markerBy", {
+                        owner: current.marker.owner,
+                        when: format.relativeTime(
+                          new Date(current.marker.createdAt),
+                          now,
+                        ),
+                      })
+                    : t("markerSince", {
+                        when: format.relativeTime(
+                          new Date(current.marker.createdAt),
+                          now,
+                        ),
+                      })}
+                </p>
+              </div>
+            )}
+            {current?.approx && (
+              <p className="text-xs text-[#86a9c8]">{t("approx")}</p>
+            )}
+            {current && !current.world && (
+              <p className="text-xs text-[#86a9c8]">{t("unplaced")}</p>
+            )}
+            {current && (
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFocus(
+                      current.parentSlug && places.has(current.parentSlug)
+                        ? current.parentSlug
+                        : null,
+                    )
+                  }
+                  className="rounded-md border border-[#9ED0FF]/50 px-2.5 py-1 text-xs font-medium hover:bg-[#9ED0FF]/15"
+                >
+                  {t("up")}
+                </button>
+                <Link
+                  href={
+                    current.marker ? "/marqueurs" : `/lieux/${current.slug}`
+                  }
+                  className="rounded-md border border-[#9ED0FF]/20 px-2.5 py-1 text-xs font-medium text-[#86a9c8] hover:bg-[#9ED0FF]/15 hover:text-[#c9e4ff]"
+                >
+                  {current.marker ? t("openMarkers") : t("openPlace")}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Un marqueur ne contient rien, et on n'y range pas d'objets. */}
-        {!current?.marker && (
+        {(!current?.marker || followed) && (
           <div
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3"
             onScroll={() => setTip(null)}
           >
-            <section className="px-4 pt-3">
-              <h3 className="mb-2 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
-                {t("yourItems")}
-                {inventory && lotCount > 0 && (
-                  <small className="font-mono text-[11px] font-normal tracking-normal text-[#5c7b96] normal-case">
-                    {t("lotsSummary", { lots: lotCount, places: lots.length })}
-                  </small>
-                )}
-              </h3>
-              {!inventory ? (
-                <div className="grid gap-2.5 rounded-lg border border-dashed border-[#9ED0FF]/40 p-3 text-[13px] leading-relaxed text-[#86a9c8]">
-                  {t("signInHint")}
-                  <Link
-                    href="/login"
-                    className="justify-self-start rounded-md border border-[#9ED0FF]/50 px-2.5 py-1 text-xs font-medium text-[#c9e4ff] hover:bg-[#9ED0FF]/15"
-                  >
-                    {t("signIn")}
-                  </Link>
-                </div>
-              ) : lotCount === 0 ? (
-                <p className="text-[13px] text-[#86a9c8]">
-                  {current
-                    ? t("noItemsHere", { place: current.name })
-                    : t("noItems")}
-                </p>
-              ) : (
-                <div className="grid">
-                  {pageRows.map((group, index) =>
-                    group.best !== undefined ? (
-                      <div
-                        key={group.key}
-                        className="grid gap-1.5 border-b border-[#9ED0FF]/10 py-2"
-                      >
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="min-w-0 truncate text-[13.5px] font-medium">
-                            {group.name}
-                          </span>
-                          <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
-                            {format.number(group.total)}
-                            {group.unit ? ` ${group.unit}` : ""}
-                            <span className="text-[#5c7b96]">
-                              {" · "}
-                              {t("bestQuality", { quality: group.best })}
-                            </span>
-                          </span>
-                        </div>
-                        {/* La qualité de 0 à 1000 ; un trait par lot, plus épais quand il pèse plus. */}
-                        <div className="relative h-2.5 rounded-[3px] bg-[#9ED0FF]/[0.08]">
-                          {group.lots.map(({ lot, place }) => {
-                            const width =
-                              2 + 8 * Math.sqrt(lot.quantity / biggestLot);
-                            return (
-                              <span
-                                key={lot.id}
-                                tabIndex={0}
-                                aria-label={`${format.number(lot.quantity)}${lot.unit ? ` ${lot.unit}` : ""}, ${t("quality", { quality: lot.quality ?? 0 })}`}
-                                onPointerEnter={(event) =>
-                                  showTip(event.currentTarget, lot, place)
-                                }
-                                onFocus={(event) =>
-                                  showTip(event.currentTarget, lot, place)
-                                }
-                                onPointerLeave={() => setTip(null)}
-                                onBlur={() => setTip(null)}
-                                className="absolute inset-y-0 cursor-default rounded-[2px] bg-[#ffc76a]/85 outline-none hover:bg-white focus-visible:bg-white"
-                                style={{
-                                  left: `calc(${(lot.quality ?? 0) / 10}% - ${width / 2}px)`,
-                                  width,
-                                }}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div key={group.key}>
-                        {/* L'équipement n'a pas de qualité : une liste simple. */}
-                        {pageRows[index - 1]?.best !== undefined && (
-                          <h4 className="mt-3 mb-1 text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
-                            {t("equipment")}
-                          </h4>
-                        )}
-                        <div className="flex items-baseline justify-between gap-2 py-1 text-[13.5px]">
-                          <span className="min-w-0 truncate">{group.name}</span>
-                          <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
-                            × {format.number(group.total)}
-                            {group.unit ? ` ${group.unit}` : ""}
-                          </span>
-                        </div>
-                      </div>
-                    ),
-                  )}
-                  {pageRows.some((group) => group.best !== undefined) && (
-                    <p className="mt-1.5 font-mono text-[10.5px] text-[#5c7b96]">
-                      {t("qualityLegend")}
-                    </p>
-                  )}
-                </div>
-              )}
-              {inventory && lotCount > 0 && (
-                <Pager page={page} pages={pages} onPage={setPage} />
-              )}
-              {inventory && !current && offMap > 0 && (
-                <p className="mt-2 text-xs text-[#5c7b96]">
-                  {t("offMap", { count: offMap })}{" "}
-                  <Link
-                    href="/inventory"
-                    className="underline hover:text-[#c9e4ff]"
-                  >
-                    {t("openInventory")}
-                  </Link>
-                </p>
-              )}
-            </section>
-
-            <section className="px-4 pt-4">
-              <h3 className="mb-1 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#86a9c8] uppercase">
-                {t("contains")}
-                <small className="font-mono font-normal text-[#5c7b96]">
-                  {children.length}
-                </small>
-              </h3>
-              {children.length === 0 ? (
-                <p className="text-[13px] leading-relaxed text-[#86a9c8]">
-                  {t("nothingInside")}
-                </p>
-              ) : (
-                [...GROUP_ORDER, "star"].map((type) => {
-                  const group = children
-                    .filter(
-                      (child) =>
-                        (child.marker ? "marker" : child.type) === type,
-                    )
-                    .sort(
-                      (a, b) =>
-                        (counts.get(b.slug) ?? 0) - (counts.get(a.slug) ?? 0) ||
-                        a.name.localeCompare(b.name),
-                    );
-                  if (group.length === 0) return null;
-                  const key = `${current?.slug ?? ""}:${type}`;
-                  const shown = expanded.has(key)
-                    ? group
-                    : group.slice(0, GROUP_PREVIEW);
-                  return (
-                    <div key={type}>
-                      <p className="mt-2.5 mb-1 flex justify-between text-[11.5px] text-[#5c7b96]">
-                        <span>{t(`groups.${type}`)}</span>
-                        <span>{group.length}</span>
-                      </p>
-                      <div className="grid gap-px">
-                        {shown.map((child) => {
-                          const count = counts.get(child.slug) ?? 0;
-                          return (
-                            <button
-                              key={child.slug}
-                              type="button"
-                              onClick={() => setFocus(child.slug)}
-                              className="-mx-2 flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13.5px] hover:bg-[#9ED0FF]/10"
-                            >
-                              <Marker place={child} />
-                              <span className="min-w-0 flex-1 truncate">
-                                {child.name}
-                              </span>
-                              {count > 0 && <Chip count={count} />}
-                              {child.children.length > 0 && (
-                                <span className="font-mono text-[11.5px] text-[#5c7b96]">
-                                  {t("placesCount", {
-                                    count: child.children.length,
-                                  })}
-                                </span>
-                              )}
-                            </button>
-                          );
+            {shownPlayers.length > 0 && (
+              <PlayersSection
+                players={shownPlayers}
+                me={me}
+                onSelect={followPlayer}
+              />
+            )}
+            {!followed && (
+              <>
+                <section className="px-4 pt-3">
+                  <h3 className="mb-2 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
+                    {t("yourItems")}
+                    {inventory && lotCount > 0 && (
+                      <small className="font-mono text-[11px] font-normal tracking-normal text-[#5c7b96] normal-case">
+                        {t("lotsSummary", {
+                          lots: lotCount,
+                          places: lots.length,
                         })}
-                      </div>
-                      {group.length > shown.length && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpanded((previous) =>
-                              new Set(previous).add(key),
-                            )
-                          }
-                          className="py-1 text-xs text-[#9ed0ff] hover:underline"
-                        >
-                          {t("showMore", {
-                            count: group.length - shown.length,
-                          })}
-                        </button>
+                      </small>
+                    )}
+                  </h3>
+                  {!inventory ? (
+                    <div className="grid gap-2.5 rounded-lg border border-dashed border-[#9ED0FF]/40 p-3 text-[13px] leading-relaxed text-[#86a9c8]">
+                      {t("signInHint")}
+                      <Link
+                        href="/login"
+                        className="justify-self-start rounded-md border border-[#9ED0FF]/50 px-2.5 py-1 text-xs font-medium text-[#c9e4ff] hover:bg-[#9ED0FF]/15"
+                      >
+                        {t("signIn")}
+                      </Link>
+                    </div>
+                  ) : lotCount === 0 ? (
+                    <p className="text-[13px] text-[#86a9c8]">
+                      {current
+                        ? t("noItemsHere", { place: current.name })
+                        : t("noItems")}
+                    </p>
+                  ) : (
+                    <div className="grid">
+                      {pageRows.map((group, index) =>
+                        group.best !== undefined ? (
+                          <div
+                            key={group.key}
+                            className="grid gap-1.5 border-b border-[#9ED0FF]/10 py-2"
+                          >
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="min-w-0 truncate text-[13.5px] font-medium">
+                                {group.name}
+                              </span>
+                              <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
+                                {format.number(group.total)}
+                                {group.unit ? ` ${group.unit}` : ""}
+                                <span className="text-[#5c7b96]">
+                                  {" · "}
+                                  {t("bestQuality", { quality: group.best })}
+                                </span>
+                              </span>
+                            </div>
+                            {/* La qualité de 0 à 1000 ; un trait par lot, plus épais quand il pèse plus. */}
+                            <div className="relative h-2.5 rounded-[3px] bg-[#9ED0FF]/[0.08]">
+                              {group.lots.map(({ lot, place }) => {
+                                const width =
+                                  2 + 8 * Math.sqrt(lot.quantity / biggestLot);
+                                return (
+                                  <span
+                                    key={lot.id}
+                                    tabIndex={0}
+                                    aria-label={`${format.number(lot.quantity)}${lot.unit ? ` ${lot.unit}` : ""}, ${t("quality", { quality: lot.quality ?? 0 })}`}
+                                    onPointerEnter={(event) =>
+                                      showTip(event.currentTarget, lot, place)
+                                    }
+                                    onFocus={(event) =>
+                                      showTip(event.currentTarget, lot, place)
+                                    }
+                                    onPointerLeave={() => setTip(null)}
+                                    onBlur={() => setTip(null)}
+                                    className="absolute inset-y-0 cursor-default rounded-[2px] bg-[#ffc76a]/85 outline-none hover:bg-white focus-visible:bg-white"
+                                    style={{
+                                      left: `calc(${(lot.quality ?? 0) / 10}% - ${width / 2}px)`,
+                                      width,
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div key={group.key}>
+                            {/* L'équipement n'a pas de qualité : une liste simple. */}
+                            {pageRows[index - 1]?.best !== undefined && (
+                              <h4 className="mt-3 mb-1 text-[11px] font-semibold tracking-[0.1em] text-[#ffc76a] uppercase">
+                                {t("equipment")}
+                              </h4>
+                            )}
+                            <div className="flex items-baseline justify-between gap-2 py-1 text-[13.5px]">
+                              <span className="min-w-0 truncate">
+                                {group.name}
+                              </span>
+                              <span className="shrink-0 font-mono text-[12.5px] tabular-nums">
+                                × {format.number(group.total)}
+                                {group.unit ? ` ${group.unit}` : ""}
+                              </span>
+                            </div>
+                          </div>
+                        ),
+                      )}
+                      {pageRows.some((group) => group.best !== undefined) && (
+                        <p className="mt-1.5 font-mono text-[10.5px] text-[#5c7b96]">
+                          {t("qualityLegend")}
+                        </p>
                       )}
                     </div>
-                  );
-                })
-              )}
-            </section>
+                  )}
+                  {inventory && lotCount > 0 && (
+                    <Pager page={page} pages={pages} onPage={setPage} />
+                  )}
+                  {inventory && !current && offMap > 0 && (
+                    <p className="mt-2 text-xs text-[#5c7b96]">
+                      {t("offMap", { count: offMap })}{" "}
+                      <Link
+                        href="/inventory"
+                        className="underline hover:text-[#c9e4ff]"
+                      >
+                        {t("openInventory")}
+                      </Link>
+                    </p>
+                  )}
+                </section>
+
+                <section className="px-4 pt-4">
+                  <h3 className="mb-1 flex items-baseline justify-between text-[11px] font-semibold tracking-[0.1em] text-[#86a9c8] uppercase">
+                    {t("contains")}
+                    <small className="font-mono font-normal text-[#5c7b96]">
+                      {children.length}
+                    </small>
+                  </h3>
+                  {children.length === 0 ? (
+                    <p className="text-[13px] leading-relaxed text-[#86a9c8]">
+                      {t("nothingInside")}
+                    </p>
+                  ) : (
+                    [...GROUP_ORDER, "star"].map((type) => {
+                      const group = children
+                        .filter(
+                          (child) =>
+                            (child.marker ? "marker" : child.type) === type,
+                        )
+                        .sort(
+                          (a, b) =>
+                            (counts.get(b.slug) ?? 0) -
+                              (counts.get(a.slug) ?? 0) ||
+                            a.name.localeCompare(b.name),
+                        );
+                      if (group.length === 0) return null;
+                      const key = `${current?.slug ?? ""}:${type}`;
+                      const shown = expanded.has(key)
+                        ? group
+                        : group.slice(0, GROUP_PREVIEW);
+                      return (
+                        <div key={type}>
+                          <p className="mt-2.5 mb-1 flex justify-between text-[11.5px] text-[#5c7b96]">
+                            <span>{t(`groups.${type}`)}</span>
+                            <span>{group.length}</span>
+                          </p>
+                          <div className="grid gap-px">
+                            {shown.map((child) => {
+                              const count = counts.get(child.slug) ?? 0;
+                              return (
+                                <button
+                                  key={child.slug}
+                                  type="button"
+                                  onClick={() => setFocus(child.slug)}
+                                  className="-mx-2 flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13.5px] hover:bg-[#9ED0FF]/10"
+                                >
+                                  <Marker place={child} />
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {child.name}
+                                  </span>
+                                  {count > 0 && <Chip count={count} />}
+                                  {child.children.length > 0 && (
+                                    <span className="font-mono text-[11.5px] text-[#5c7b96]">
+                                      {t("placesCount", {
+                                        count: child.children.length,
+                                      })}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {group.length > shown.length && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpanded((previous) =>
+                                  new Set(previous).add(key),
+                                )
+                              }
+                              className="py-1 text-xs text-[#9ed0ff] hover:underline"
+                            >
+                              {t("showMore", {
+                                count: group.length - shown.length,
+                              })}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </section>
+              </>
+            )}
           </div>
         )}
       </aside>
@@ -954,6 +1153,15 @@ export function StarMap({
                 style={{ "--c": PRIVATE_MARKER_COLOR } as React.CSSProperties}
               />
               {t("legend.private")}
+            </span>
+          )}
+          {shownPlayers.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-[#ff9f7a]">
+              <i
+                className="star-map-avatar"
+                style={{ width: 11, height: 11 }}
+              />
+              {t("legend.player")}
             </span>
           )}
           {markerCollections.length > 0 && (

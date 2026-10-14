@@ -143,3 +143,70 @@ html:has(.star-map-root) body {
 html:has(.star-map-root) [data-site-footer] {
   display: none;
 }
+
+/*
+ * Un joueur en jeu : un rond corail à son initiale (ou son avatar), plein pour
+ * un ami, en pointillé pour un membre d'organisation, blanc pour soi.
+ */
+.star-map-player {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #2b1006;
+  text-shadow: none;
+  background: #ff9f7a center / cover no-repeat;
+  box-shadow:
+    0 0 0 3px rgba(255, 159, 122, 0.18),
+    0 0 12px rgba(255, 159, 122, 0.55);
+}
+.star-map-label.player.org .star-map-player {
+  color: #ff9f7a;
+  background-color: #0b2a40;
+  border: 1.5px dashed #ff9f7a;
+}
+.star-map-label.player.me .star-map-player {
+  color: #06192a;
+  background-color: #f3f8ff;
+  box-shadow:
+    0 0 0 3px rgba(243, 248, 255, 0.18),
+    0 0 12px rgba(243, 248, 255, 0.5);
+}
+.star-map-label.player.selected .star-map-player {
+  box-shadow:
+    0 0 0 5px rgba(255, 159, 122, 0.3),
+    0 0 18px rgba(255, 159, 122, 0.9);
+}
+.star-map-label.player.stale:not(.hidden) {
+  opacity: 0.5;
+}
+.star-map-label.player.compact .star-map-text {
+  display: none;
+}
+.star-map-label.player.compact:hover .star-map-text,
+.star-map-label.player.compact:focus-visible .star-map-text {
+  display: inline;
+}
+.star-map-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  font-weight: 700;
+  color: #2b1006;
+  background: #ff9f7a center / cover no-repeat;
+}
+.star-map-avatar.org {
+  color: #ff9f7a;
+  background-color: #0b2a40;
+  border: 1.5px dashed #ff9f7a;
+}
+.star-map-avatar.me {
+  color: #06192a;
+  background-color: #f3f8ff;
+}

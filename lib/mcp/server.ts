@@ -15,6 +15,7 @@ import { registerMarketplaceReadTools } from "./tools/marketplace";
 import { registerMarketplacePersonalTools } from "./tools/marketplace-personal";
 import { registerPlaceTools } from "./tools/places";
 import { registerMarkerTools } from "./tools/markers";
+import { registerPlayerTools } from "./tools/players";
 import { registerRefiningTools } from "./tools/refining";
 import { registerSearchTools } from "./tools/search";
 
@@ -41,6 +42,7 @@ export function registerNexusServer(mcp: McpServer) {
   registerInventoryTools(server);
   registerRefiningTools(server);
   registerMarkerTools(server);
+  registerPlayerTools(server);
   registerContributionTools(server);
   registerPlanDraftTools(server);
   registerNexusResources(server);
@@ -66,5 +68,5 @@ export const MCP_INSTRUCTIONS =
   "Prices are in aUEC. NPS coordinates come from the in-game /showlocation command. " +
   "For the lore of the 'Verse (history, people, companies, species, systems), use search_lore, get_lore_article and get_star_system: " +
   "they hold RSI's Galactapedia and starmap, in English. " +
-  "Personal tools (inventory, refining orders, position markers, contributions, marketplace orders…) need the user to sign in to their Nexus account; " +
+  "Personal tools (inventory, refining orders, position markers, friends in game, contributions, marketplace orders…) need the user to sign in to their Nexus account; " +
   "every change they make is shown to the user for confirmation first, and contributions go to community review unless the user is a trusted contributor.";

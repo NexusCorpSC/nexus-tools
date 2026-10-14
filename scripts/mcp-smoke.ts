@@ -203,6 +203,7 @@ const CASES: Case[] = [
     auth: true,
     write: true,
   },
+  { tool: "list_players_in_game", args: {}, auth: true },
   { tool: "my_contributor_standing", args: {}, auth: true },
   {
     tool: "contribute_place_edit",
