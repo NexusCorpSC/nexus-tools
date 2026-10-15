@@ -78,10 +78,7 @@ const itemCreateChallenge = personalTool(
   "contribute_item_create",
   "contributions:write",
 );
-const confirmChallenge = personalTool(
-  "confirm_data",
-  "contributions:write",
-);
+const confirmChallenge = personalTool("confirm_data", "contributions:write");
 // Lire ses contributions, c'est lire son profil de contributeur, comme
 // `my_contributor_standing` et `/api/me/contributions`.
 const mineChallenge = personalTool("list_my_contributions", "profile");
