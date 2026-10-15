@@ -19,6 +19,7 @@ import { registerMarkerTools } from "./tools/markers";
 import { registerPlayerTools } from "./tools/players";
 import { registerRefiningTools } from "./tools/refining";
 import { registerSearchTools } from "./tools/search";
+import { registerSocialTools } from "./tools/social";
 
 /**
  * Le serveur MCP de Nexus Tools, servi par `app/mcp/route.ts`.
@@ -44,6 +45,7 @@ export function registerNexusServer(mcp: McpServer) {
   registerRefiningTools(server);
   registerMarkerTools(server);
   registerPlayerTools(server);
+  registerSocialTools(server);
   registerEventTools(server);
   registerContributionTools(server);
   registerPlanDraftTools(server);

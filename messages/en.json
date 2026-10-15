@@ -4090,7 +4090,14 @@
         "delete_event": "Deleting the event",
         "plan_session": "Planning your next session",
         "cancel_planned_session": "Cancelling the planned session",
-        "set_playing": "Updating your in-game status"
+        "set_playing": "Updating your in-game status",
+        "list_friends": "Reading your friends",
+        "my_friend_code": "Reading your friend code",
+        "add_friend": "Adding a friend",
+        "remove_friend": "Removing the friend",
+        "list_my_orgs": "Reading your organizations",
+        "get_org": "Reading the organization",
+        "org_inventory": "Searching the organization's inventory"
       }
     },
     "errors": {

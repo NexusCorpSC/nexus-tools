@@ -4,14 +4,13 @@ import { headers } from "next/headers";
 import db from "@/lib/db";
 import { ObjectId } from "bson";
 import { Organization } from "@/app/orgs/page";
+import {
+  listOrgInventory,
+  ORG_INVENTORY_ALL_LIMIT as ALL_LIMIT,
+} from "@/lib/org-inventory";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
-/**
- * `all=1` : tout d'un coup, pour regrouper par lieu et par ressource côté
- * client — une page de 20 couperait un groupe en deux. Borné quand même.
- */
-const ALL_LIMIT = 5000;
 
 type Params = { params: Promise<{ orgId: string }> };
 
@@ -58,146 +57,13 @@ export async function GET(request: NextRequest, { params }: Params) {
       );
   const skip = (page - 1) * limit;
 
-  // Member userIds
-  const memberUserIds = org.members.map((m) => m.userId.toString());
-
-  // Base match: all org-visible items, with optional name/quality filters
-  const baseMatch: Record<string, unknown> = {
-    userId: { $in: memberUserIds },
-    orgVisible: true,
-  };
-  if (query.trim()) {
-    baseMatch.name = { $regex: query.trim(), $options: "i" };
-  }
-  if (quality.trim()) {
-    const minQuality = parseInt(quality, 10);
-    if (!isNaN(minQuality)) {
-      baseMatch.quality = { $gte: minQuality };
-    }
-  }
-
-  // Optional per-member filter applied inside each facet branch
-  const userIdFilter =
-    userId.trim() && memberUserIds.includes(userId.trim())
-      ? [{ $match: { userId: userId.trim() } }]
-      : [];
-
-  const userLookup = [
-    {
-      $lookup: {
-        from: "users",
-        let: { uid: "$userId" },
-        pipeline: [
-          { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$uid"] } } },
-          { $project: { name: 1 } },
-          { $limit: 1 },
-        ],
-        as: "userData",
-      },
-    },
-    {
-      $addFields: {
-        ownerName: { $ifNull: [{ $arrayElemAt: ["$userData.name", 0] }, "$userId"] },
-      },
-    },
-    { $unset: "userData" },
-  ];
-
-  const locationLookup = [
-    {
-      $lookup: {
-        from: "locations",
-        let: { locationId: "$locationId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: [{ $toString: "$_id" }, "$$locationId"] },
-            },
-          },
-          { $limit: 1 },
-        ],
-        as: "locationData",
-      },
-    },
-    { $addFields: { location: { $arrayElemAt: ["$locationData", 0] } } },
-    { $unset: "locationData" },
-  ];
-
-  // Single aggregate: total + paginated items (with lookups) + members list
-  const [result] = await db
-    .db()
-    .collection("inventoryItems")
-    .aggregate([
-      { $match: baseMatch },
-      {
-        $facet: {
-          total: [...userIdFilter, { $count: "count" }],
-          items: [
-            ...userIdFilter,
-            { $sort: { updatedAt: -1 } },
-            { $skip: skip },
-            { $limit: limit },
-            ...locationLookup,
-            ...userLookup,
-          ],
-          members: [
-            { $group: { _id: "$userId" } },
-            {
-              $lookup: {
-                from: "users",
-                let: { uid: "$_id" },
-                pipeline: [
-                  { $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$uid"] } } },
-                  { $project: { name: 1 } },
-                  { $limit: 1 },
-                ],
-                as: "userData",
-              },
-            },
-            {
-              $addFields: {
-                name: { $ifNull: [{ $arrayElemAt: ["$userData.name", 0] }, "$_id"] },
-              },
-            },
-            { $project: { _id: 1, name: 1 } },
-            { $sort: { name: 1 } },
-          ],
-        },
-      },
-    ])
-    .toArray();
-
-  const total: number = result?.total?.[0]?.count ?? 0;
-  const rawItems = result?.items ?? [];
-  const members: { id: string; name: string }[] = (result?.members ?? []).map(
-    (m: Record<string, unknown>) => ({
-      id: m._id as string,
-      name: m.name as string,
-    })
-  );
-
-  const items = rawItems.map((item: Record<string, unknown>) => ({
-    id: (item._id as ObjectId).toString(),
-    name: item.name,
-    description: item.description,
-    quality: item.quality,
-    quantity: item.quantity,
-    unit: item.unit,
-    locationId: item.locationId,
-    userId: item.userId,
-    orgVisible: true,
-    updatedAt: item.updatedAt,
-    ownerName: item.ownerName,
-    location: item.location
-      ? {
-          id: ((item.location as Record<string, unknown>)._id as ObjectId).toString(),
-          name: (item.location as Record<string, unknown>).name,
-          slug: (item.location as Record<string, unknown>).slug,
-          system: (item.location as Record<string, unknown>).system,
-          userId: (item.location as Record<string, unknown>).userId,
-        }
-      : null,
-  }));
+  const { total, items, members } = await listOrgInventory(org.members, {
+    query,
+    quality,
+    userId,
+    skip,
+    limit,
+  });
 
   return NextResponse.json({
     items,

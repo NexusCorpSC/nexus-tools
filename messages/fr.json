@@ -4089,7 +4089,14 @@
         "delete_event": "Suppression de l'évènement",
         "plan_session": "Planification de votre prochaine session",
         "cancel_planned_session": "Annulation de la session prévue",
-        "set_playing": "Mise à jour de votre statut en jeu"
+        "set_playing": "Mise à jour de votre statut en jeu",
+        "list_friends": "Lecture de vos amis",
+        "my_friend_code": "Lecture de votre code ami",
+        "add_friend": "Ajout d'un ami",
+        "remove_friend": "Retrait de l'ami",
+        "list_my_orgs": "Lecture de vos organisations",
+        "get_org": "Lecture de l'organisation",
+        "org_inventory": "Recherche dans l'inventaire de l'organisation"
       }
     },
     "errors": {

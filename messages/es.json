@@ -4051,7 +4051,14 @@
         "delete_event": "Eliminación del evento",
         "plan_session": "Planificación de tu próxima sesión",
         "cancel_planned_session": "Cancelación de la sesión prevista",
-        "set_playing": "Actualización de tu estado en el juego"
+        "set_playing": "Actualización de tu estado en el juego",
+        "list_friends": "Lectura de tus amigos",
+        "my_friend_code": "Lectura de tu código de amigo",
+        "add_friend": "Adición de un amigo",
+        "remove_friend": "Eliminación del amigo",
+        "list_my_orgs": "Lectura de tus organizaciones",
+        "get_org": "Lectura de la organización",
+        "org_inventory": "Búsqueda en el inventario de la organización"
       }
     },
     "errors": {

@@ -536,6 +536,27 @@ const CASES: Case[] = [
     auth: true,
     write: true,
   },
+  { tool: "list_friends", args: {}, auth: true },
+  { tool: "my_friend_code", args: {}, auth: true },
+  {
+    tool: "add_friend",
+    args: { code: "pas-un-code" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "remove_friend",
+    args: { friend: "Ami de fumée inexistant" },
+    auth: true,
+    expectError: true,
+  },
+  { tool: "list_my_orgs", args: {}, auth: true },
+  {
+    tool: "org_inventory",
+    args: { org: "Organisation de fumée inexistante", query: "ore" },
+    auth: true,
+    expectError: true,
+  },
 ];
 
 /** Les modèles de ressources et prompts dont on essaie l'autocomplétion. */
