@@ -557,6 +557,34 @@ const CASES: Case[] = [
     auth: true,
     expectError: true,
   },
+  { tool: "search_missions", args: { query: "smoke", hasBlueprints: true } },
+  { tool: "get_mission", args: { missionId: "nope" }, expectError: true },
+  { tool: "list_factions", args: {} },
+  {
+    tool: "get_faction",
+    args: { faction: "Smoke Faction Nowhere" },
+    expectError: true,
+  },
+  {
+    tool: "set_blueprint_owned",
+    args: { blueprint: "smoke-blueprint", owned: true },
+    auth: true,
+    write: true,
+  },
+  { tool: "list_my_blueprints", args: { query: "smoke" }, auth: true },
+  {
+    tool: "set_blueprint_owned",
+    args: { blueprint: "smoke-blueprint", owned: false },
+    auth: true,
+    write: true,
+  },
+  { tool: "my_reputations", args: { startedOnly: true }, auth: true },
+  {
+    tool: "update_reputation",
+    args: { faction: "Smoke Faction Nowhere", standing: "Ally" },
+    auth: true,
+    expectError: true,
+  },
 ];
 
 /** Les modèles de ressources et prompts dont on essaie l'autocomplétion. */

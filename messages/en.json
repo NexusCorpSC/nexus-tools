@@ -4097,7 +4097,16 @@
         "remove_friend": "Removing the friend",
         "list_my_orgs": "Reading your organizations",
         "get_org": "Reading the organization",
-        "org_inventory": "Searching the organization's inventory"
+        "org_inventory": "Searching the organization's inventory",
+        "list_my_blueprints": "Reading your blueprints",
+        "set_blueprint_owned": "Updating your blueprints",
+        "blueprint_owners_in_org": "Finding members who own the blueprint",
+        "get_mission": "Reading the mission",
+        "search_missions": "Searching missions",
+        "list_factions": "Reading the factions",
+        "get_faction": "Reading the faction",
+        "my_reputations": "Reading your reputations",
+        "update_reputation": "Updating the reputation"
       }
     },
     "errors": {

@@ -4096,7 +4096,16 @@
         "remove_friend": "Retrait de l'ami",
         "list_my_orgs": "Lecture de vos organisations",
         "get_org": "Lecture de l'organisation",
-        "org_inventory": "Recherche dans l'inventaire de l'organisation"
+        "org_inventory": "Recherche dans l'inventaire de l'organisation",
+        "list_my_blueprints": "Lecture de vos blueprints",
+        "set_blueprint_owned": "Mise à jour de vos blueprints",
+        "blueprint_owners_in_org": "Recherche des membres qui possèdent le blueprint",
+        "get_mission": "Lecture de la mission",
+        "search_missions": "Recherche de missions",
+        "list_factions": "Lecture des factions",
+        "get_faction": "Lecture de la faction",
+        "my_reputations": "Lecture de vos réputations",
+        "update_reputation": "Mise à jour de la réputation"
       }
     },
     "errors": {

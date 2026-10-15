@@ -4058,7 +4058,16 @@
         "remove_friend": "Eliminación del amigo",
         "list_my_orgs": "Lectura de tus organizaciones",
         "get_org": "Lectura de la organización",
-        "org_inventory": "Búsqueda en el inventario de la organización"
+        "org_inventory": "Búsqueda en el inventario de la organización",
+        "list_my_blueprints": "Lectura de tus blueprints",
+        "set_blueprint_owned": "Actualización de tus blueprints",
+        "blueprint_owners_in_org": "Búsqueda de los miembros que poseen el blueprint",
+        "get_mission": "Lectura de la misión",
+        "search_missions": "Búsqueda de misiones",
+        "list_factions": "Lectura de las facciones",
+        "get_faction": "Lectura de la facción",
+        "my_reputations": "Lectura de tus reputaciones",
+        "update_reputation": "Actualización de la reputación"
       }
     },
     "errors": {
