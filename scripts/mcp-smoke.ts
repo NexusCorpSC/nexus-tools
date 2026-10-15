@@ -110,6 +110,25 @@ const CASES: Case[] = [
   },
   { tool: "search_inventory_locations", args: { query: "smoke" }, auth: true },
   {
+    tool: "create_parcel",
+    args: { items: [{ lotId: "$lot", quantity: 1 }] },
+    auth: true,
+    write: true,
+    save: (s) => ({ parcel: String(s.code ?? "") }),
+  },
+  {
+    tool: "list_parcels",
+    args: { direction: "sent", status: "pending" },
+    auth: true,
+  },
+  {
+    tool: "accept_parcel",
+    args: { code: "$parcel", location: "smoke-station" },
+    auth: true,
+    expectError: true,
+  },
+  { tool: "cancel_parcel", args: { code: "$parcel" }, auth: true, write: true },
+  {
     tool: "add_inventory",
     args: { location: "Nowhere at all", lots: [{ name: "X", quantity: 1 }] },
     auth: true,
@@ -584,6 +603,92 @@ const CASES: Case[] = [
     args: { faction: "Smoke Faction Nowhere", standing: "Ally" },
     auth: true,
     expectError: true,
+  },
+  {
+    tool: "create_private_place",
+    args: {
+      name: `Planque de fumée ${Date.now()}`,
+      type: "building",
+      parent: "smoke-station",
+    },
+    auth: true,
+    write: true,
+    save: (s) => ({ privatePlace: (s.place as { slug: string }).slug }),
+  },
+  {
+    tool: "update_private_place",
+    args: { slug: "$privatePlace", description: "fumée" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "delete_private_place",
+    args: { slug: "$privatePlace" },
+    auth: true,
+    write: true,
+  },
+  { tool: "get_notes", args: {}, auth: true },
+  {
+    tool: "update_notes",
+    args: { content: `Note de fumée ${Date.now()}` },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "update_notes",
+    args: { content: "x".repeat(20001) },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "create_marker_collection",
+    args: { name: "Collection de fumée", color: "blue" },
+    auth: true,
+    write: true,
+    save: (s) => ({
+      markerCollection: (s.collection as { id: string }).id,
+    }),
+  },
+  { tool: "list_marker_collections", args: {}, auth: true },
+  {
+    tool: "update_marker_collection",
+    args: { collection: "$markerCollection", color: "violet" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "list_shares",
+    args: { kind: "markerCollection", id: "$markerCollection" },
+    auth: true,
+  },
+  {
+    tool: "share_with_player",
+    args: {
+      kind: "markerCollection",
+      id: "$markerCollection",
+      player: "zzzz-joueur-inexistant",
+    },
+    auth: true,
+    expectError: true,
+  },
+  { tool: "list_invitations", args: {}, auth: true },
+  {
+    tool: "leave_share",
+    args: { kind: "markerCollection", id: "000000000000000000000000" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "create_share_link",
+    args: { eventId: "pas-un-id" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "delete_marker_collection",
+    args: { collection: "$markerCollection" },
+    auth: true,
+    write: true,
   },
 ];
 

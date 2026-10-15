@@ -16,11 +16,16 @@ import { registerLoreTools } from "./tools/lore";
 import { registerMarketplaceReadTools } from "./tools/marketplace";
 import { registerMarketplacePersonalTools } from "./tools/marketplace-personal";
 import { registerPlaceTools } from "./tools/places";
+import { registerPrivatePlaceTools } from "./tools/private-places";
+import { registerMarkerCollectionTools } from "./tools/marker-collections";
 import { registerMarkerTools } from "./tools/markers";
 import { registerMissionTools } from "./tools/missions";
+import { registerNoteTools } from "./tools/notes";
+import { registerParcelTools } from "./tools/parcels";
 import { registerPlayerTools } from "./tools/players";
 import { registerRefiningTools } from "./tools/refining";
 import { registerSearchTools } from "./tools/search";
+import { registerSharingTools } from "./tools/sharing";
 import { registerSocialTools } from "./tools/social";
 
 /**
@@ -42,15 +47,20 @@ export function registerNexusServer(mcp: McpServer) {
   registerItemTools(server);
   registerMissionTools(server);
   registerPlaceTools(server);
+  registerPrivatePlaceTools(server);
   registerLoreTools(server);
   registerMarketplaceReadTools(server);
   registerMarketplacePersonalTools(server);
   registerInventoryTools(server);
+  registerParcelTools(server);
   registerRefiningTools(server);
   registerMarkerTools(server);
+  registerMarkerCollectionTools(server);
   registerPlayerTools(server);
   registerSocialTools(server);
   registerEventTools(server);
+  registerSharingTools(server);
+  registerNoteTools(server);
   registerContributionTools(server);
   registerPlanDraftTools(server);
   registerNexusResources(server);
