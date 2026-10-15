@@ -3795,7 +3795,16 @@
       "contributions:write": "proposer des contributions en votre nom (lieux, plans, objets)",
       "markers:read": "lire vos marqueurs de position",
       "markers:write": "créer, modifier et supprimer vos marqueurs de position",
-      "players:read": "voir la position des amis et membres d'organisation en jeu"
+      "players:read": "voir vos amis, vos organisations et leurs membres, leur présence et leur position en jeu, et les invitations reçues",
+      "players:write": "ajouter et retirer des amis, et partager vos lieux privés, évènements et collections de marqueurs avec d'autres joueurs",
+      "events:read": "lire vos évènements, vos inscriptions et votre présence prévue",
+      "events:write": "créer et modifier vos évènements, vous y inscrire ou vous désinscrire, et prévoir vos sessions de jeu",
+      "crafting:read": "lire les blueprints que vous possédez",
+      "crafting:write": "marquer des blueprints comme acquis ou les retirer",
+      "reputation:read": "lire vos réputations auprès des factions",
+      "reputation:write": "modifier vos réputations auprès des factions",
+      "notes:read": "lire votre bloc-notes",
+      "notes:write": "écrire dans votre bloc-notes"
     },
     "warning": "Une application autorisée agit en votre nom. Vous pourrez retirer cet accès à tout moment dans vos paramètres.",
     "website": "Site de l'application",
@@ -4070,7 +4079,17 @@
         "add_marker": "Création du marqueur",
         "update_marker": "Modification du marqueur",
         "delete_marker": "Suppression du marqueur",
-        "list_players_in_game": "Recherche de vos amis en jeu"
+        "list_players_in_game": "Recherche de vos amis en jeu",
+        "list_my_events": "Lecture de vos évènements",
+        "get_event": "Lecture de l'évènement",
+        "register_event": "Inscription à l'évènement",
+        "withdraw_event": "Désinscription de l'évènement",
+        "create_event": "Création de l'évènement",
+        "update_event": "Modification de l'évènement",
+        "delete_event": "Suppression de l'évènement",
+        "plan_session": "Planification de votre prochaine session",
+        "cancel_planned_session": "Annulation de la session prévue",
+        "set_playing": "Mise à jour de votre statut en jeu"
       }
     },
     "errors": {

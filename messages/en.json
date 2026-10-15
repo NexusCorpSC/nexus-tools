@@ -3796,7 +3796,16 @@
       "contributions:write": "submit contributions on your behalf (places, maps, items)",
       "markers:read": "read your position markers",
       "markers:write": "create, edit and delete your position markers",
-      "players:read": "see where your friends and organization members in game are"
+      "players:read": "see your friends, your organizations and their members, their presence and position in game, and the invitations you received",
+      "players:write": "add and remove friends, and share your private places, events and marker collections with other players",
+      "events:read": "read your events, your registrations and your planned presence",
+      "events:write": "create and edit your events, register to them or withdraw, and plan your play sessions",
+      "crafting:read": "read the blueprints you own",
+      "crafting:write": "mark blueprints as acquired or remove them",
+      "reputation:read": "read your faction reputations",
+      "reputation:write": "change your faction reputations",
+      "notes:read": "read your notepad",
+      "notes:write": "write in your notepad"
     },
     "warning": "An authorized application acts on your behalf. You can remove this access at any time in your settings.",
     "website": "Application website",
@@ -4071,7 +4080,17 @@
         "add_marker": "Creating the marker",
         "update_marker": "Editing the marker",
         "delete_marker": "Deleting the marker",
-        "list_players_in_game": "Looking for your friends in game"
+        "list_players_in_game": "Looking for your friends in game",
+        "list_my_events": "Reading your events",
+        "get_event": "Reading the event",
+        "register_event": "Registering to the event",
+        "withdraw_event": "Withdrawing from the event",
+        "create_event": "Creating the event",
+        "update_event": "Updating the event",
+        "delete_event": "Deleting the event",
+        "plan_session": "Planning your next session",
+        "cancel_planned_session": "Cancelling the planned session",
+        "set_playing": "Updating your in-game status"
       }
     },
     "errors": {

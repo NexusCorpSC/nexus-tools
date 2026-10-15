@@ -6,6 +6,7 @@ import { registerNexusResources } from "./resources";
 import { registerAccountTools } from "./tools/account";
 import { registerBlueprintTools } from "./tools/blueprints";
 import { registerContributionTools } from "./tools/contributions";
+import { registerEventTools } from "./tools/events";
 import { registerInventoryTools } from "./tools/inventory";
 import { registerPlanDraftTools } from "./tools/plan-drafts";
 import { registerPlanFormatResource } from "./plan-format";
@@ -43,6 +44,7 @@ export function registerNexusServer(mcp: McpServer) {
   registerRefiningTools(server);
   registerMarkerTools(server);
   registerPlayerTools(server);
+  registerEventTools(server);
   registerContributionTools(server);
   registerPlanDraftTools(server);
   registerNexusResources(server);

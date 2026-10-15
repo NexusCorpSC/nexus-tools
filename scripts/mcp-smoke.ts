@@ -453,6 +453,89 @@ const CASES: Case[] = [
     seller: true,
     write: true,
   },
+  {
+    tool: "create_event",
+    args: {
+      title: "Sortie de fumée",
+      startsAt: new Date(Date.now() + 86_400_000).toISOString(),
+      durationMinutes: 120,
+      meetingPoint: "Hangar fumée",
+      roles: [
+        { label: "Pilote", icon: "rocket", wanted: 2 },
+        { label: "Mineur", icon: "hammer" },
+      ],
+      questions: [{ label: "Vaisseau ?", required: true }],
+    },
+    auth: true,
+    write: true,
+    save: (s) => ({ event: (s.event as { id: string }).id }),
+  },
+  { tool: "list_my_events", args: { organization: "personal" }, auth: true },
+  { tool: "get_event", args: { eventId: "$event" }, auth: true },
+  {
+    tool: "get_event",
+    args: { eventId: "pas-un-id" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "register_event",
+    args: { eventId: "$event", role: "Pilote" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "register_event",
+    args: {
+      eventId: "$event",
+      role: "Pilote",
+      answers: [{ question: "Vaisseau ?", answer: "Prospector" }],
+    },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "update_event",
+    args: { eventId: "$event", title: "Sortie de fumée (modifiée)" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "plan_session",
+    args: { eventId: "$event" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "cancel_planned_session",
+    args: {},
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "set_playing",
+    args: { playing: true, activity: "Minage" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "set_playing",
+    args: { playing: false },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "withdraw_event",
+    args: { eventId: "$event" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "delete_event",
+    args: { eventId: "$event" },
+    auth: true,
+    write: true,
+  },
 ];
 
 /** Les modèles de ressources et prompts dont on essaie l'autocomplétion. */
