@@ -4127,7 +4127,12 @@
         "list_invitations": "Reading your invitations",
         "leave_share": "Leaving the share",
         "create_share_link": "Creating the share link",
-        "revoke_share_link": "Disabling the share link"
+        "revoke_share_link": "Disabling the share link",
+        "contribute_item_create": "Proposing a new item",
+        "confirm_data": "Confirming the data",
+        "list_my_contributions": "Reading your contributions",
+        "list_missing": "Reading what's missing in the catalog",
+        "get_leaderboard": "Reading the contributor leaderboard"
       }
     },
     "errors": {

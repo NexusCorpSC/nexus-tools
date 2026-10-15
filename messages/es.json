@@ -4088,7 +4088,12 @@
         "list_invitations": "Lectura de las invitaciones recibidas",
         "leave_share": "Abandono del compartido recibido",
         "create_share_link": "Creación del enlace para compartir",
-        "revoke_share_link": "Desactivación del enlace para compartir"
+        "revoke_share_link": "Desactivación del enlace para compartir",
+        "contribute_item_create": "Propuesta de un nuevo objeto",
+        "confirm_data": "Confirmación del dato",
+        "list_my_contributions": "Lectura de tus contribuciones",
+        "list_missing": "Lectura de lo que falta en el catálogo",
+        "get_leaderboard": "Lectura de la clasificación de contribuidores"
       }
     },
     "errors": {

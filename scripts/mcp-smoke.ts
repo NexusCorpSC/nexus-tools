@@ -690,6 +690,23 @@ const CASES: Case[] = [
     auth: true,
     write: true,
   },
+  { tool: "list_missing", args: {} },
+  { tool: "list_missing", args: { kind: "stalePrices", limit: 5 } },
+  { tool: "get_leaderboard", args: {} },
+  { tool: "get_leaderboard", args: { period: "all", scope: "orgs" } },
+  { tool: "list_my_contributions", args: {}, auth: true },
+  {
+    tool: "contribute_item_create",
+    args: { item: { name: "Smoke Item", kind: "item", category: "Weapons" } },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "confirm_data",
+    args: { subject: "sources", slug: "nope", accurate: true },
+    auth: true,
+    expectError: true,
+  },
 ];
 
 /** Les modèles de ressources et prompts dont on essaie l'autocomplétion. */
