@@ -253,6 +253,9 @@ export function registerPrivatePlaceTools(server: McpServer) {
     },
     async (args, ctx) => {
       const user = await currentUser(ctx);
+      if (!args.name.trim()) {
+        return toolError("Nothing was created: the name is required.");
+      }
       if ((await countOwnedPrivatePlaces(user.id)) >= MAX_PRIVATE_PLACES) {
         return toolError(`Nothing was created: ${ERRORS.tooMany}`);
       }
@@ -368,7 +371,10 @@ export function registerPrivatePlaceTools(server: McpServer) {
           `parent ${place.parentName ?? place.parentSlug} → ${parent.place.name}`,
         );
       }
-      const name = args.name?.trim() ?? place.name;
+      const name = args.name?.trim() || place.name;
+      if (args.name !== undefined && !args.name.trim()) {
+        return toolError("Nothing was changed: the name cannot be empty.");
+      }
       if (name !== place.name) changes.push(`name “${place.name}” → “${name}”`);
       const type = args.type ?? place.type;
       if (type !== place.type) changes.push(`type ${place.type} → ${type}`);

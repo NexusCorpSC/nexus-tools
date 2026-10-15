@@ -117,6 +117,10 @@ function refresh(slug: string) {
   }
 }
 
+/** `filterBlueprints` passe le texte tel quel à `$regex` : « ( » ferait échouer la requête. */
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const fold = (value: string) =>
   value.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 
@@ -195,6 +199,7 @@ export function registerCraftingTools(server: McpServer) {
       const limit = args.limit ?? PAGE_SIZE.default;
       const page = args.page ?? 1;
       const query = args.query?.trim();
+      const pattern = query ? escapeRegex(query) : undefined;
 
       let blueprints: z.infer<typeof ownedBlueprintSchema>[];
       let total: number;
@@ -202,7 +207,7 @@ export function registerCraftingTools(server: McpServer) {
         // Les blueprints par défaut sont peu nombreux : on filtre après coup
         // sur toute la liste possédée, puis on pagine.
         const all = await filterBlueprints({
-          query: query || undefined,
+          query: pattern,
           category,
           subcategory,
           owned: true,
@@ -215,7 +220,7 @@ export function registerCraftingTools(server: McpServer) {
         blueprints = kept.slice((page - 1) * limit, page * limit).map(toOwned);
       } else {
         const found = await filterBlueprints({
-          query: query || undefined,
+          query: pattern,
           category,
           subcategory,
           owned: true,

@@ -29,11 +29,14 @@ export async function GET(request: NextRequest, { params }: Params) {
     .findOne({ _id: orgId });
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const isMember = org.members.some((m) =>
-    new ObjectId(m.userId).equals(session.user.id)
+    new ObjectId(m.userId).equals(session.user.id),
   );
   // Masquée par un signalement, elle n'est plus publique pour personne
   // d'autre que ses membres.
@@ -53,7 +56,11 @@ export async function GET(request: NextRequest, { params }: Params) {
     ? ALL_LIMIT
     : Math.min(
         MAX_LIMIT,
-        Math.max(1, parseInt(sp.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT)
+        Math.max(
+          1,
+          parseInt(sp.get("limit") ?? String(DEFAULT_LIMIT), 10) ||
+            DEFAULT_LIMIT,
+        ),
       );
   const skip = (page - 1) * limit;
 

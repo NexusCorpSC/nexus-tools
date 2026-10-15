@@ -92,8 +92,9 @@ function toItem(item: ParcelViewItem): z.infer<typeof parcelItemSchema> {
     quantity: item.quantity,
     unit: item.unit || undefined,
     quality: item.quality ?? undefined,
-    location: item.locationName,
-    lotId: item.itemId,
+    // La base rend `null` pour un champ écrit `undefined` (lieu supprimé).
+    location: item.locationName ?? undefined,
+    lotId: item.itemId ?? undefined,
   };
 }
 
@@ -105,10 +106,10 @@ function toParcel(parcel: ParcelView): ParcelOut {
     items: parcel.items.map(toItem),
     createdAt: parcel.createdAt,
     expiresAt: parcel.expiresAt,
-    senderName: parcel.senderName,
-    recipientName: parcel.recipientName,
-    deliveredAt: parcel.deliveredAt,
-    deliveredLocation: parcel.deliveredLocationName,
+    senderName: parcel.senderName ?? undefined,
+    recipientName: parcel.recipientName ?? undefined,
+    deliveredAt: parcel.deliveredAt ?? undefined,
+    deliveredLocation: parcel.deliveredLocationName ?? undefined,
   };
 }
 
