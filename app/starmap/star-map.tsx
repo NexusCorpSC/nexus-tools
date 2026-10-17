@@ -20,7 +20,7 @@ import {
   type StarMapPlayer,
 } from "@/lib/star-map-layout";
 import type { StarMapInventory, StarMapLot } from "@/lib/star-map";
-import { displayUnit, toDisplayQty } from "@/lib/units";
+import { displayUnit, lotGroupKey, toDisplayQty } from "@/lib/units";
 import { roundQty } from "@/lib/utils";
 import type { MyPositionSharing, PlayerInGame } from "@/types/player-positions";
 import type { StarMapScene } from "./scene";
@@ -66,7 +66,8 @@ type LotGroup = {
   total: number;
   /** La meilleure qualité ; absente pour l'équipement. */
   best?: number;
-  lots: { lot: StarMapLot; place: LaidOutPlace }[];
+  /** Chaque lot, avec sa quantité dans l'unité de la ligne. */
+  lots: { lot: StarMapLot; place: LaidOutPlace; quantity: number }[];
 };
 
 /** Ce que l'infobulle d'un trait dit du lot, et où la poser à l'écran. */
@@ -470,26 +471,28 @@ export function StarMap({
   const lotCount = lots.reduce((sum, [, list]) => sum + list.length, 0);
   // Un objet par ligne : les ressources (qui ont une qualité) d'abord, de la
   // meilleure à la moins bonne, puis l'équipement par nom.
-  const rows = useMemo(() => {
+  // L'épaisseur d'un trait se mesure au plus gros lot de ressource.
+  const { rows, biggestLot } = useMemo(() => {
     const byKey = new Map<string, LotGroup>();
+    let biggest = 0;
     for (const [place, list] of lots) {
       for (const lot of list) {
-        const { unit } = displayUnit(lot.unit);
-        const key = `${lot.name.trim().toLowerCase()}|${(unit ?? "").toLowerCase()}`;
+        const key = lotGroupKey(lot.name, lot.unit);
         let group = byKey.get(key);
         if (!group) {
-          group = { key, name: lot.name.trim(), unit, total: 0, lots: [] };
+          const { unit } = displayUnit(lot.unit);
+          group = { key, name: lot.name, unit, total: 0, lots: [] };
           byKey.set(key, group);
         }
-        group.total = roundQty(
-          group.total + toDisplayQty(lot.quantity, lot.unit),
-        );
-        group.lots.push({ lot, place });
+        const quantity = toDisplayQty(lot.quantity, lot.unit);
+        group.total = roundQty(group.total + quantity);
+        group.lots.push({ lot, place, quantity });
+        if (lot.quality !== undefined) biggest = Math.max(biggest, quantity);
         if (lot.quality !== undefined)
           group.best = Math.max(group.best ?? 0, lot.quality);
       }
     }
-    return [...byKey.values()].sort((a, b) =>
+    const sorted = [...byKey.values()].sort((a, b) =>
       a.best !== undefined && b.best !== undefined
         ? b.best - a.best
         : a.best !== undefined
@@ -498,31 +501,20 @@ export function StarMap({
             ? 1
             : a.name.localeCompare(b.name),
     );
+    return { rows: sorted, biggestLot: biggest || 1 };
   }, [lots]);
-  // L'épaisseur d'un trait se mesure au plus gros lot de ressource.
-  const biggestLot = Math.max(
-    1,
-    ...rows.flatMap((group) =>
-      group.best === undefined
-        ? []
-        : group.lots.map(({ lot }) => toDisplayQty(lot.quantity, lot.unit)),
-    ),
-  );
   /** Un lot dans l'unité de sa ligne : « 0,5 SCU » pour 50 cSCU. */
-  const lotQuantity = (lot: StarMapLot) => {
-    const { unit } = displayUnit(lot.unit);
-    const quantity = format.number(toDisplayQty(lot.quantity, lot.unit));
-    return unit ? `${quantity} ${unit}` : quantity;
-  };
+  const lotQuantity = (quantity: number, unit?: string) =>
+    `${format.number(quantity)}${unit ? ` ${unit}` : ""}`;
   const [tip, setTip] = useState<LotTip | null>(null);
   const showTip = (
     element: HTMLElement,
-    lot: StarMapLot,
-    place: LaidOutPlace,
+    group: LotGroup,
+    { lot, place, quantity }: LotGroup["lots"][number],
   ) => {
     const rect = element.getBoundingClientRect();
     const parts = [
-      lotQuantity(lot),
+      lotQuantity(quantity, group.unit),
       t("quality", { quality: lot.quality ?? 0 }),
     ];
     if (lots.length > 1) parts.push(place.name);
@@ -975,24 +967,20 @@ export function StarMap({
                             </div>
                             {/* La qualité de 0 à 1000 ; un trait par lot, plus épais quand il pèse plus. */}
                             <div className="relative h-2.5 rounded-[3px] bg-[#9ED0FF]/[0.08]">
-                              {group.lots.map(({ lot, place }) => {
+                              {group.lots.map((entry) => {
+                                const { lot, quantity } = entry;
                                 const width =
-                                  2 +
-                                  8 *
-                                    Math.sqrt(
-                                      toDisplayQty(lot.quantity, lot.unit) /
-                                        biggestLot,
-                                    );
+                                  2 + 8 * Math.sqrt(quantity / biggestLot);
                                 return (
                                   <span
                                     key={lot.id}
                                     tabIndex={0}
-                                    aria-label={`${lotQuantity(lot)}, ${t("quality", { quality: lot.quality ?? 0 })}`}
+                                    aria-label={`${lotQuantity(quantity, group.unit)}, ${t("quality", { quality: lot.quality ?? 0 })}`}
                                     onPointerEnter={(event) =>
-                                      showTip(event.currentTarget, lot, place)
+                                      showTip(event.currentTarget, group, entry)
                                     }
                                     onFocus={(event) =>
-                                      showTip(event.currentTarget, lot, place)
+                                      showTip(event.currentTarget, group, entry)
                                     }
                                     onPointerLeave={() => setTip(null)}
                                     onBlur={() => setTip(null)}

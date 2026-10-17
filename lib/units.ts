@@ -25,6 +25,15 @@ export function displayUnit(unit?: string | null): DisplayUnit {
   return SCALED_UNITS[trimmed.toLowerCase()] ?? { unit: trimmed, perUnit: 1 };
 }
 
+/**
+ * What makes two lots the same row: the name, whatever its case, and the unit
+ * shown, so a resource counted in cSCU and in SCU stays one row.
+ */
+export function lotGroupKey(name: string, unit?: string | null): string {
+  const shown = displayUnit(unit).unit ?? "";
+  return `${name.trim().toLowerCase()}|${shown.toLowerCase()}`;
+}
+
 /** A quantity stored in `unit`, in the unit it is shown in. */
 export function toDisplayQty(quantity: number, unit?: string | null): number {
   return roundQty(quantity / displayUnit(unit).perUnit);
