@@ -37,7 +37,12 @@ import { PARCEL_PARAM, ReceiveParcelDialog, SentParcelDialog } from "./parcels";
 import { cn, roundQty } from "@/lib/utils";
 import { ItemNameCombobox } from "./item-name-combobox";
 import { LotSaleBadge, SellLotButton } from "./sell-lot";
-import { displayUnit, fromDisplayQty, toDisplayQty } from "@/lib/units";
+import {
+  displayUnit,
+  fromDisplayQty,
+  lotGroupKey,
+  toDisplayQty,
+} from "@/lib/units";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1323,7 +1328,7 @@ export function groupByLocation<T extends InventoryItemWithLocation>(
       section.scu += toDisplayQty(item.quantity, item.unit);
     }
 
-    const groupKey = `${item.name.trim().toLowerCase()}|${(unit ?? "").toLowerCase()}`;
+    const groupKey = lotGroupKey(item.name, item.unit);
     let group = section.groups.find((g) => g.key === groupKey);
     if (!group) {
       group = { key: groupKey, name: item.name, unit, lots: [] };
