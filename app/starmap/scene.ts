@@ -19,6 +19,7 @@ import {
   type StarMapPlayer,
   type StarMapSystem,
 } from "@/lib/star-map-layout";
+import { bodyLook, hashOf } from "@/lib/star-map-bodies";
 
 export type StarMapScene = {
   /** Regarder un lieu ; `null` : les trois systèmes. */
@@ -86,83 +87,76 @@ void main(){ vP = position; vN = normalize(mat3(modelMatrix)*normal); vec4 w = m
 const BODY_FRAGMENT =
   NOISE +
   /* glsl */ `
-uniform vec3 c1; uniform vec3 c2; uniform vec3 c3; uniform int look; uniform vec3 starPos; uniform vec3 starCol; uniform float seed; uniform vec3 atmo;
+uniform vec3 r0; uniform vec3 r1; uniform vec3 r2; uniform vec3 patchCol; uniform vec3 cloudCol; uniform vec3 atmo;
+uniform float gas; uniform float scale; uniform float swirl; uniform float bands; uniform float patchCover;
+uniform float cloudCover; uniform float ice; uniform float lights; uniform float glow; uniform float seed;
+uniform vec3 starPos; uniform vec3 starCol;
 varying vec3 vN; varying vec3 vP; varying vec3 vW;
+vec3 ramp(float t){ return t < 0.5 ? mix(r0, r1, t*2.0) : mix(r1, r2, t*2.0-1.0); }
 void main(){
-  vec3 p = normalize(vP) + seed;
-  vec3 col; float night = 0.0; float emis = 0.0;
-  float n = fbm(p*2.6);
-  if (look == 1) {
-    float b = sin(normalize(vP).y*14.0 + fbm(p*3.0)*4.0);
-    col = mix(c1, c2, b*0.5+0.5); col = mix(col, c3, smoothstep(0.55,0.8,fbm(p*5.0+b)));
-  } else if (look == 2) {
-    col = mix(c2, c1, smoothstep(0.35,0.6,n)); col = mix(col, c3, smoothstep(0.55,0.75,fbm(p*7.0)));
-    col = mix(col, vec3(1.0), smoothstep(0.75,0.95,abs(normalize(vP).y)));
-  } else if (look == 4) {
-    col = mix(c1, c3, smoothstep(0.3,0.7,n)); float cr = abs(fbm(p*5.0)-0.5); emis = smoothstep(0.035,0.0,cr);
-  } else if (look == 5) {
-    col = mix(c2, c1, smoothstep(0.35,0.6,n)); col = mix(col, c3, smoothstep(0.62,0.72,fbm(p*4.0)));
-  } else if (look == 6) {
-    col = mix(c2, c1, smoothstep(0.3,0.7,n)); float cr = fbm(p*11.0); col = mix(col, c3, smoothstep(0.62,0.7,cr)*0.6); col *= 0.75+0.25*fbm(p*24.0);
+  vec3 s = normalize(vP);
+  // Les bandes : le motif s'écrase le long des parallèles.
+  float stretch = max(gas, bands);
+  vec3 q = vec3(s.x*(1.0-0.75*stretch), s.y*(1.0+5.0*stretch), s.z*(1.0-0.75*stretch))*scale + seed;
+  vec3 w = vec3(fbm(q*0.9+1.7), fbm(q*0.9+8.3), fbm(q*0.9+4.1)) - 0.5;
+  vec3 qq = q + w*swirl*2.5;
+  float h = fbm(qq);
+  float detail = fbm(qq*4.0+3.0);
+  float fine = fbm(qq*14.0+7.0);
+  vec3 col;
+  if (gas > 0.5) {
+    float b = sin(s.y*scale*5.0 + (h-0.5)*(2.0+swirl*12.0))*0.5 + 0.5;
+    float t = clamp(mix(b, (h-0.25)*2.0, 0.4) + (detail-0.5)*0.35, 0.0, 1.0);
+    col = ramp(smoothstep(0.0, 1.0, t));
   } else {
-    col = mix(c3, c1, smoothstep(0.3,0.65,n)); col = mix(col, c2, smoothstep(0.55,0.75,fbm(p*6.0)));
-    if (look == 3) night = smoothstep(0.55,0.75,fbm(p*18.0))*smoothstep(0.4,0.6,n);
+    col = ramp(clamp((h-0.3)/0.4 + (detail-0.5)*0.6, 0.0, 1.0));
   }
+  // Une seconde matière en taches : mers, laves, plaques.
+  float pm = 0.0;
+  if (patchCover > 0.0) {
+    float m = fbm(qq*1.1 + 11.0 + w*swirl) + (detail-0.5)*0.18;
+    float thr = mix(0.62, 0.36, patchCover);
+    pm = smoothstep(thr-0.012, thr+0.012, m);
+    col = mix(col, patchCol*(0.88 + 0.24*detail), pm);
+  }
+  if (ice > 0.0) {
+    float lat = abs(s.y) + (detail-0.5)*0.18;
+    col = mix(col, vec3(0.94,0.96,0.99), smoothstep(ice, ice+0.05, lat));
+  }
+  float cm = 0.0;
+  if (cloudCover > 0.0) {
+    float c = fbm(vec3(s.x*3.0, s.y*6.0, s.z*3.0) + seed*1.3 + w*3.0);
+    float thr = mix(0.72, 0.32, cloudCover);
+    cm = smoothstep(thr-0.05, thr+0.1, c)*0.92;
+    col = mix(col, cloudCol, cm);
+  }
+  col *= 0.9 + 0.2*fine;
   vec3 N = normalize(vN); vec3 L = normalize(starPos - vW); vec3 Vd = normalize(cameraPosition - vW);
-  float d = dot(N,L); float diff = smoothstep(-0.08, 0.6, d);
+  float d = dot(N,L); float diff = smoothstep(-0.08, 0.6, d); float dark = 1.0 - smoothstep(-0.2, 0.15, d);
   vec3 lit = col * (0.045 + 1.05*diff*starCol + 0.16*max(dot(N,Vd),0.0));
-  lit += vec3(1.0,0.75,0.4) * night * (1.0-smoothstep(-0.2,0.15,d)) * 1.2;
-  lit += vec3(1.0,0.45,0.1) * emis * (0.5+0.5*(1.0-diff));
+  if (lights > 0.0) {
+    float city = smoothstep(0.58, 0.72, fbm(s*38.0 + seed)) * smoothstep(0.35, 0.6, fbm(s*6.0 + seed*2.0));
+    lit += vec3(1.0,0.78,0.45) * city * lights * (1.0-pm) * (1.0-cm) * dark * 1.4;
+  }
+  lit += patchCol * pm * glow * (0.35 + 0.9*dark) * (0.6 + 0.8*detail);
   float fr = pow(1.0 - max(dot(N,Vd),0.0), 3.0);
   lit += atmo * fr * (0.15 + 1.1*smoothstep(-0.3,0.5,d));
   gl_FragColor = vec4(lit, 1.0);
 }`;
 
-/**
- * L'allure d'un corps : sa palette et son type de surface. Les corps connus
- * ont la leur ; les autres en tirent une de leur slug, stable d'une visite à
- * l'autre.
- */
-const LOOKS: Record<string, [number, string, string, string]> = {
-  crusader: [1, "#d9a77a", "#f2dcc0", "#a8714f"],
-  hurston: [0, "#8b6a4a", "#c49b6b", "#5a4632"],
-  arccorp: [3, "#b8573a", "#e0a070", "#3a2a2a"],
-  microtech: [2, "#d8ecff", "#9cc4e8", "#ffffff"],
-  "pyro-i": [4, "#3a1c12", "#ff6a1a", "#7a2e12"],
-  monox: [0, "#8a8f87", "#5c625a", "#b5b8ad"],
-  bloom: [5, "#4f7a3a", "#2f5a3a", "#a8a070"],
-  "pyro-iv": [0, "#9c7a5a", "#6a5040", "#c0a080"],
-  "pyro-v": [1, "#c26a3a", "#f0b070", "#7a3a2a"],
-  terminus: [2, "#b0c8d8", "#e8f0f4", "#7090a8"],
-  "nyx-i": [0, "#6a5a7a", "#9a88aa", "#3a3048"],
-  "nyx-ii": [2, "#c8d8f0", "#8aa0c8", "#eef4ff"],
-  "nyx-iii": [0, "#5a4a3a", "#8a7a6a", "#2a2420"],
-  delamar: [6, "#6a6460", "#8a847a", "#403a36"],
-};
-const MOON_PALETTES: [string, string, string][] = [
-  ["#a89a8a", "#7a6e62", "#cfc4b6"],
-  ["#c9b48a", "#8a7a5a", "#e6d6b0"],
-  ["#9ab0b8", "#6a8088", "#d0e0e6"],
-];
-const PLANET_PALETTES: [number, string, string, string][] = [
-  [0, "#8b7a6a", "#b39b80", "#5a4c40"],
-  [2, "#c8d8f0", "#8aa0c8", "#eef4ff"],
-  [5, "#5f7a4a", "#3a5a40", "#a8a070"],
-];
+const RING_VERTEX = /* glsl */ `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`;
 
-function hashOf(text: string): number {
-  let hash = 0;
-  for (const char of text) hash = (hash * 31 + char.charCodeAt(0)) | 0;
-  return hash >>> 0;
-}
-
-function lookOf(place: LaidOutPlace): [number, string, string, string] {
-  const known = LOOKS[place.slug];
-  if (known) return known;
-  if (place.type === "moon")
-    return [6, ...MOON_PALETTES[hashOf(place.slug) % 3]];
-  return PLANET_PALETTES[hashOf(place.slug) % 3];
-}
+const RING_FRAGMENT =
+  NOISE +
+  /* glsl */ `
+uniform vec3 color; uniform vec3 starCol; uniform float inner; uniform float outer; uniform float opacity; uniform float seed;
+varying vec3 vP;
+void main(){
+  float t = (length(vP.xy) - inner) / (outer - inner);
+  float rings = 0.35 + 0.65*noise(vec3(t*48.0, seed, 0.0)) * (0.6 + 0.4*noise(vec3(t*160.0, seed, 3.0)));
+  float edge = smoothstep(0.0, 0.06, t) * smoothstep(1.0, 0.82, t);
+  gl_FragColor = vec4(color * (0.45 + 0.65*starCol) * (0.75 + 0.5*rings), opacity * edge * rings);
+}`;
 
 function glowTexture(stops: [number, string][]): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
@@ -403,15 +397,19 @@ export function createStarMap({
   // ── Planètes et lunes ──
   for (const place of places.values()) {
     if (!BODY_TYPES.has(place.type) || !place.world || !place.system) continue;
-    const [look, c1, c2, c3] = lookOf(place);
+    const look = bodyLook(place.slug, place.type);
+    const seed = (hashOf(place.slug) % 1000) / 100;
+    // La lumière de l'étoile, à peine teintée : les couleurs du corps restent celles du jeu.
     const tint = new THREE.Color(SYSTEM_LOOK[place.system].color).lerp(
       new THREE.Color(1, 1, 1),
-      0.6,
+      0.78,
     );
-    const atmosphere =
-      look === 6
-        ? raw("#000000")
-        : raw(c1).lerp(raw("#8fc8ff"), 0.6).multiplyScalar(0.8);
+    const starCol = new THREE.Color().setRGB(
+      tint.r,
+      tint.g,
+      tint.b,
+      THREE.LinearSRGBColorSpace,
+    );
     const mesh = new THREE.Mesh(
       sphere,
       track(
@@ -419,25 +417,61 @@ export function createStarMap({
           vertexShader: BODY_VERTEX,
           fragmentShader: BODY_FRAGMENT,
           uniforms: {
-            c1: { value: raw(c1) },
-            c2: { value: raw(c2) },
-            c3: { value: raw(c3) },
-            look: { value: look },
-            starPos: { value: starWorld.get(place.system) },
-            starCol: {
-              value: new THREE.Color().setRGB(
-                tint.r,
-                tint.g,
-                tint.b,
-                THREE.LinearSRGBColorSpace,
-              ),
+            r0: { value: raw(look.ramp[0]) },
+            r1: { value: raw(look.ramp[1]) },
+            r2: { value: raw(look.ramp[2]) },
+            patchCol: { value: raw(look.patches?.color ?? "#000000") },
+            patchCover: { value: look.patches?.cover ?? 0 },
+            cloudCol: { value: raw(look.clouds?.color ?? "#f4f6f8") },
+            cloudCover: { value: look.clouds?.cover ?? 0 },
+            gas: { value: look.kind === "gas" ? 1 : 0 },
+            scale: { value: look.scale ?? 2.5 },
+            swirl: { value: look.swirl ?? 0 },
+            bands: { value: look.bands ?? 0 },
+            ice: { value: look.ice ?? 0 },
+            lights: { value: look.lights ?? 0 },
+            glow: { value: look.glow ?? 0 },
+            atmo: {
+              value: look.atmosphere
+                ? raw(look.atmosphere.color).multiplyScalar(
+                    0.8 * (look.atmosphere.strength ?? 1),
+                  )
+                : raw("#000000"),
             },
-            seed: { value: (hashOf(place.slug) % 1000) / 100 },
-            atmo: { value: atmosphere },
+            starPos: { value: starWorld.get(place.system) },
+            starCol: { value: starCol },
+            seed: { value: seed },
           },
         }),
       ),
     );
+    // L'axe penche un peu, l'anneau avec ; la longitude varie d'un corps à l'autre.
+    mesh.rotation.set(0, seed * 0.6, ((look.tilt ?? 0) * Math.PI) / 180);
+    if (look.ring) {
+      const { inner, outer, color, opacity = 0.6 } = look.ring;
+      const ring = new THREE.Mesh(
+        track(new THREE.RingGeometry(inner, outer, 160, 1)),
+        track(
+          new THREE.ShaderMaterial({
+            vertexShader: RING_VERTEX,
+            fragmentShader: RING_FRAGMENT,
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+            uniforms: {
+              color: { value: raw(color) },
+              starCol: { value: starCol },
+              inner: { value: inner },
+              outer: { value: outer },
+              opacity: { value: opacity },
+              seed: { value: seed },
+            },
+          }),
+        ),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      mesh.add(ring);
+    }
     mesh.scale.setScalar(place.r);
     mesh.position.copy(world(place));
     mesh.userData.slug = place.slug;
