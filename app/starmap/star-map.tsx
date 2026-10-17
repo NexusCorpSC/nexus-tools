@@ -20,6 +20,8 @@ import {
   type StarMapPlayer,
 } from "@/lib/star-map-layout";
 import type { StarMapInventory, StarMapLot } from "@/lib/star-map";
+import { displayUnit, toDisplayQty } from "@/lib/units";
+import { roundQty } from "@/lib/utils";
 import type { MyPositionSharing, PlayerInGame } from "@/types/player-positions";
 import type { StarMapScene } from "./scene";
 import {
@@ -53,7 +55,10 @@ const GROUP_PREVIEW = 8;
 /** Objets par page dans « Vos objets ici ». */
 const LOTS_PER_PAGE = 20;
 
-/** Les lots d'un même objet (même nom, même unité) sous le lieu regardé. */
+/**
+ * Les lots d'un même objet sous le lieu regardé : même nom, à la casse près,
+ * et même unité affichée (les cSCU d'une raffinerie comptent en SCU).
+ */
 type LotGroup = {
   key: string;
   name: string;
@@ -469,13 +474,16 @@ export function StarMap({
     const byKey = new Map<string, LotGroup>();
     for (const [place, list] of lots) {
       for (const lot of list) {
-        const key = `${lot.name}|${lot.unit ?? ""}`;
+        const { unit } = displayUnit(lot.unit);
+        const key = `${lot.name.trim().toLowerCase()}|${(unit ?? "").toLowerCase()}`;
         let group = byKey.get(key);
         if (!group) {
-          group = { key, name: lot.name, unit: lot.unit, total: 0, lots: [] };
+          group = { key, name: lot.name.trim(), unit, total: 0, lots: [] };
           byKey.set(key, group);
         }
-        group.total += lot.quantity;
+        group.total = roundQty(
+          group.total + toDisplayQty(lot.quantity, lot.unit),
+        );
         group.lots.push({ lot, place });
         if (lot.quality !== undefined)
           group.best = Math.max(group.best ?? 0, lot.quality);
@@ -495,9 +503,17 @@ export function StarMap({
   const biggestLot = Math.max(
     1,
     ...rows.flatMap((group) =>
-      group.best === undefined ? [] : group.lots.map(({ lot }) => lot.quantity),
+      group.best === undefined
+        ? []
+        : group.lots.map(({ lot }) => toDisplayQty(lot.quantity, lot.unit)),
     ),
   );
+  /** Un lot dans l'unité de sa ligne : « 0,5 SCU » pour 50 cSCU. */
+  const lotQuantity = (lot: StarMapLot) => {
+    const { unit } = displayUnit(lot.unit);
+    const quantity = format.number(toDisplayQty(lot.quantity, lot.unit));
+    return unit ? `${quantity} ${unit}` : quantity;
+  };
   const [tip, setTip] = useState<LotTip | null>(null);
   const showTip = (
     element: HTMLElement,
@@ -506,7 +522,7 @@ export function StarMap({
   ) => {
     const rect = element.getBoundingClientRect();
     const parts = [
-      `${format.number(lot.quantity)}${lot.unit ? ` ${lot.unit}` : ""}`,
+      lotQuantity(lot),
       t("quality", { quality: lot.quality ?? 0 }),
     ];
     if (lots.length > 1) parts.push(place.name);
@@ -961,12 +977,17 @@ export function StarMap({
                             <div className="relative h-2.5 rounded-[3px] bg-[#9ED0FF]/[0.08]">
                               {group.lots.map(({ lot, place }) => {
                                 const width =
-                                  2 + 8 * Math.sqrt(lot.quantity / biggestLot);
+                                  2 +
+                                  8 *
+                                    Math.sqrt(
+                                      toDisplayQty(lot.quantity, lot.unit) /
+                                        biggestLot,
+                                    );
                                 return (
                                   <span
                                     key={lot.id}
                                     tabIndex={0}
-                                    aria-label={`${format.number(lot.quantity)}${lot.unit ? ` ${lot.unit}` : ""}, ${t("quality", { quality: lot.quality ?? 0 })}`}
+                                    aria-label={`${lotQuantity(lot)}, ${t("quality", { quality: lot.quality ?? 0 })}`}
                                     onPointerEnter={(event) =>
                                       showTip(event.currentTarget, lot, place)
                                     }
