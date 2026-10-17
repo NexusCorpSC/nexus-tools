@@ -3,7 +3,7 @@ import { ListLink } from "@/components/list-link";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
-import { MapIcon } from "@heroicons/react/24/outline";
+import { MapIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { Button } from "@/components/ui/button";
 import { ObjectId } from "mongodb";
@@ -383,21 +383,19 @@ export default async function PlacePage({
                 {place.children.map((child) => (
                   <PlaceRow key={child.slug} place={child} />
                 ))}
-                <p className="pt-1 text-xs text-muted-foreground">
-                  {t("containedHint")}
-                </p>
               </div>
             ) : (
               <PlaceEmpty>{t("noContained")}</PlaceEmpty>
             )}
-            {!canEdit && (
-              <Link
-                href={`/lieux/${place.slug}/contribuer/lieu`}
-                className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-              >
-                {t("missingPlace")}
-                <PointsChip points={POINTS.placeCreate} />
-              </Link>
+            {/* Un magasin ne contient pas d'autre lieu. Un visiteur passe par la connexion. */}
+            {place.type !== "shop" && (
+              <Button asChild variant="outline" size="sm" className="mt-2">
+                <Link href={`/lieux/${place.slug}/contribuer/lieu`}>
+                  <PlusIcon className="size-4" />
+                  {t("proposeChild")}
+                  <PointsChip points={POINTS.placeCreate} />
+                </Link>
+              </Button>
             )}
           </div>
 
