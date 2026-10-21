@@ -64,6 +64,7 @@ import {
 } from "@/types/contributions";
 import {
   TIMELINE_FIELDS,
+  MAX_TIMELINE_GUIDE_SECTIONS,
   type TimelineEvent,
   type TimelineEventInput,
   type TimelineGuideSection,
@@ -760,15 +761,21 @@ function describeTimeline(
   before: Record<string, unknown>,
   after: Record<string, unknown>,
 ): ContributionChange[] {
+  // Deux sections peuvent porter le même titre : le libellé, qui sert aussi
+  // de clé à la table de relecture, les distingue.
+  const labels = new Map<string, number>();
   return fields.flatMap((field) => {
     if (guideSectionId(field) === null) {
       return describe(field, before[field], after[field]);
     }
     const left = before[field] as TimelineGuideSection | null | undefined;
     const right = after[field] as TimelineGuideSection | null | undefined;
+    const title = right?.title ?? left?.title ?? "";
+    const seen = (labels.get(title) ?? 0) + 1;
+    labels.set(title, seen);
     return [
       {
-        field: `guide.${right?.title ?? left?.title ?? ""}`,
+        field: `guide.${seen > 1 ? `${title} (${seen})` : title}`,
         before: showSection(left),
         after: showSection(right),
       },
@@ -788,6 +795,10 @@ function timelineBefore(event: TimelineEvent, fields: string[]) {
   );
 }
 
+function sameTitle(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
 /**
  * Une correction d'évènement que l'auteur a encore ouverte, et ce qu'il
  * envoie maintenant, en une seule proposition : réécrire une section puis une
@@ -797,6 +808,8 @@ function timelineBefore(event: TimelineEvent, fields: string[]) {
 export function mergeTimelineEdit(
   previous: Record<string, unknown> | undefined,
   input: unknown,
+  /** Les sections déjà publiées : une nouvelle section ne les remplace jamais. */
+  publishedIds: ReadonlySet<string> = new Set(),
 ): Record<string, unknown> {
   const raw = isPlainObject(input) ? input : {};
   const merged: Record<string, unknown> = {};
@@ -815,6 +828,26 @@ export function mergeTimelineEdit(
     if (isPlainObject(entry) && typeof entry.id === "string") {
       sections.set(entry.id, entry);
       removed.delete(entry.id);
+      continue;
+    }
+    // Une nouvelle section renvoyée sous le même titre corrige celle qui
+    // attend déjà, au lieu d'en ajouter une seconde.
+    const title = isPlainObject(entry) ? sameTitle(entry.title) : "";
+    const pending = [...sections.entries()].find(
+      ([id, section]) =>
+        !publishedIds.has(id) &&
+        isPlainObject(section) &&
+        title !== "" &&
+        sameTitle(section.title) === title,
+    );
+    if (pending && isPlainObject(entry)) {
+      const [id, section] = pending;
+      sections.set(
+        id,
+        isPlainObject(section) && typeof section.id === "string"
+          ? { ...entry, id: section.id }
+          : entry,
+      );
     } else {
       sections.set(`new-${sections.size}`, entry);
     }
@@ -873,6 +906,13 @@ export async function buildTimelineEdit(
 
   const after: Record<string, unknown> = pick(normalized, fields);
   const sections = Array.isArray(raw.guide) ? raw.guide : [];
+  if (sections.length > MAX_TIMELINE_GUIDE_SECTIONS) {
+    throw new ContributionError(
+      "invalidInput",
+      400,
+      `${MAX_TIMELINE_GUIDE_SECTIONS} sections au plus dans un guide`,
+    );
+  }
   for (const entry of sections) {
     const section = validate(() => normalizeGuideSection(entry));
     if (!section) continue;
@@ -888,6 +928,22 @@ export async function buildTimelineEdit(
     if (fields.includes(guideField(id))) continue;
     fields.push(guideField(id));
     after[guideField(id)] = null;
+  }
+  // Le plafond du guide se vérifie à l'envoi : à la publication, il ne
+  // laisserait au relecteur qu'une proposition impossible à appliquer.
+  const guideIds = new Set(event.guide.map((section) => section.id));
+  for (const field of fields) {
+    const id = guideSectionId(field);
+    if (id === null) continue;
+    if (after[field]) guideIds.add(id);
+    else guideIds.delete(id);
+  }
+  if (guideIds.size > MAX_TIMELINE_GUIDE_SECTIONS) {
+    throw new ContributionError(
+      "invalidInput",
+      400,
+      `${MAX_TIMELINE_GUIDE_SECTIONS} sections au plus dans un guide`,
+    );
   }
   if (fields.length === 0) throw new ContributionError("noChange", 400);
 

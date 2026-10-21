@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { ObjectId } from "mongodb";
 import { del, put } from "@vercel/blob";
 import { auth } from "@/lib/auth";
-import db from "@/lib/db";
+import { tryGrantUpload } from "@/lib/upload-grants";
 import { ContributionError } from "@/lib/contribution-store";
 import { getStanding, submitPlaceMedia } from "@/lib/contributions";
 import { getPlaceBySlug } from "@/lib/places";
@@ -20,13 +20,6 @@ const TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
-
-/** Le même plafond horaire que `/api/lieux/upload`, sur la même collection. */
-const UPLOADS_PER_HOUR = 60;
-const HOUR_MS = 60 * 60 * 1000;
-
-const uploadGrants = () =>
-  db.db().collection<{ userId: ObjectId; at: Date }>("uploadGrants");
 
 function fail(error: string, status: number) {
   return NextResponse.json({ error }, { status });
@@ -78,13 +71,8 @@ export async function POST(
   ) {
     return fail("tooManyPending", 429);
   }
-  const now = new Date();
-  const recent = await uploadGrants().countDocuments({
-    userId: author.id,
-    at: { $gte: new Date(now.getTime() - HOUR_MS) },
-  });
-  if (recent >= UPLOADS_PER_HOUR) return fail("tooManyUploads", 429);
-  await uploadGrants().insertOne({ userId: author.id, at: now });
+  // Le même plafond horaire que `/api/lieux/upload`.
+  if (!(await tryGrantUpload(author.id))) return fail("tooManyUploads", 429);
 
   let url: string;
   try {

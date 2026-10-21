@@ -30,8 +30,9 @@ export async function PATCH(request: Request, { params }: Params) {
   try {
     const bug =
       typeof body.affected === "boolean"
-        ? await setTimelineBugAffected(bugId, user.id, body.affected)
+        ? await setTimelineBugAffected(slug, bugId, user.id, body.affected)
         : await updateTimelineBug(
+            slug,
             bugId,
             { id: user.id, moderator: await isTimelineModerator() },
             body,
@@ -49,7 +50,7 @@ export async function DELETE(_request: Request, { params }: Params) {
   const user = await timelineSession();
   if (!user) return unauthenticated();
   try {
-    await deleteTimelineBug(bugId, {
+    await deleteTimelineBug(slug, bugId, {
       id: user.id,
       moderator: await isTimelineModerator(),
     });

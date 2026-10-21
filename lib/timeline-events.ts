@@ -641,8 +641,18 @@ export async function createTimelineEvent(
   return toTimelineEvent(doc);
 }
 
+/**
+ * Efface un évènement, avec ses bugs et les progressions des joueurs : ils
+ * tiennent à son slug, et un évènement recréé sous le même nom en hériterait.
+ */
 export async function deleteTimelineEvent(slug: string): Promise<boolean> {
   const { deletedCount } = await timelineEvents().deleteOne({ slug });
+  if (deletedCount > 0) {
+    await Promise.all([
+      timelineBugs().deleteMany({ eventSlug: slug }),
+      timelineProgress().deleteMany({ eventSlug: slug }),
+    ]);
+  }
   return deletedCount > 0;
 }
 
@@ -852,13 +862,32 @@ export async function createTimelineBug(
 }
 
 /** « Je l'ai aussi », ou plus. Idempotent dans les deux sens. */
+/**
+ * Le bug de cet évènement, et seulement de lui : un identifiant venu d'une
+ * autre page ne touche rien. Hors suppression, l'évènement doit être en ligne.
+ */
+async function bugOf(
+  eventSlug: string,
+  bugId: string,
+  { live }: { live: boolean },
+): Promise<{ _id: ObjectId; doc: DbTimelineBug }> {
+  if (!ObjectId.isValid(bugId)) throw new TimelineBugError("notFound");
+  if (live && !(await getTimelineEvent(eventSlug))) {
+    throw new TimelineBugError("notFound");
+  }
+  const _id = new ObjectId(bugId);
+  const doc = await timelineBugs().findOne({ _id, eventSlug });
+  if (!doc) throw new TimelineBugError("notFound");
+  return { _id, doc };
+}
+
 export async function setTimelineBugAffected(
+  eventSlug: string,
   bugId: string,
   userId: ObjectId,
   affected: boolean,
 ): Promise<TimelineBug> {
-  if (!ObjectId.isValid(bugId)) throw new TimelineBugError("notFound");
-  const _id = new ObjectId(bugId);
+  const { _id } = await bugOf(eventSlug, bugId, { live: true });
   if (affected) {
     await timelineBugs().updateOne(
       { _id, affectedBy: { $ne: userId } },
@@ -877,14 +906,12 @@ export async function setTimelineBugAffected(
 
 /** Son auteur ou un modérateur corrige un bug : statut, contournement, patch du correctif. */
 export async function updateTimelineBug(
+  eventSlug: string,
   bugId: string,
   actor: { id: ObjectId; moderator: boolean },
   input: unknown,
 ): Promise<TimelineBug> {
-  if (!ObjectId.isValid(bugId)) throw new TimelineBugError("notFound");
-  const _id = new ObjectId(bugId);
-  const doc = await timelineBugs().findOne({ _id });
-  if (!doc) throw new TimelineBugError("notFound");
+  const { _id, doc } = await bugOf(eventSlug, bugId, { live: true });
   if (!actor.moderator && !doc.userId.equals(actor.id)) {
     throw new TimelineBugError("forbidden");
   }
@@ -904,13 +931,11 @@ export async function updateTimelineBug(
 }
 
 export async function deleteTimelineBug(
+  eventSlug: string,
   bugId: string,
   actor: { id: ObjectId; moderator: boolean },
 ): Promise<void> {
-  if (!ObjectId.isValid(bugId)) throw new TimelineBugError("notFound");
-  const _id = new ObjectId(bugId);
-  const doc = await timelineBugs().findOne({ _id });
-  if (!doc) throw new TimelineBugError("notFound");
+  const { _id, doc } = await bugOf(eventSlug, bugId, { live: false });
   if (!actor.moderator && !doc.userId.equals(actor.id)) {
     throw new TimelineBugError("forbidden");
   }

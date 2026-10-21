@@ -4808,7 +4808,8 @@
       "bodyHint": "Markdown · {count} / {max} caracteres",
       "cancel": "Cancelar",
       "remove": "Retirar la sección",
-      "removeConfirm": "¿Proponer retirar esta sección de la guía?"
+      "removeConfirm": "¿Proponer retirar esta sección de la guía?",
+      "pendingTitle": "Tus secciones pendientes de revisión (edítalas en lugar de volver a crearlas):"
     },
     "Form": {
       "createTitle": "Proponer un evento",

@@ -612,11 +612,32 @@ export function EventForm({
     })),
   });
 
+  // Ce que le formulaire montrait à l'ouverture, champ par champ : une
+  // correction n'envoie que ce que le joueur a changé. Renvoyer le reste
+  // annulerait ce que d'autres ont publié depuis, ou effacerait un lieu que
+  // le formulaire n'a pas su afficher.
+  const [baseline] = useState(() =>
+    Object.fromEntries(
+      Object.entries(toInput()).map(([field, value]) => [
+        field,
+        JSON.stringify(value),
+      ]),
+    ),
+  );
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
-      const input = toInput();
+      const full = toInput();
+      const input =
+        mode === "create"
+          ? full
+          : Object.fromEntries(
+              Object.entries(full).filter(
+                ([field, value]) => JSON.stringify(value) !== baseline[field],
+              ),
+            );
       const result = await contribute(
         mode === "create"
           ? { kind: "timelineCreate", input }

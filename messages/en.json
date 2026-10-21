@@ -4847,7 +4847,8 @@
       "bodyHint": "Markdown · {count} / {max} characters",
       "cancel": "Cancel",
       "remove": "Remove section",
-      "removeConfirm": "Propose to remove this section from the guide?"
+      "removeConfirm": "Propose to remove this section from the guide?",
+      "pendingTitle": "Your sections awaiting review (edit them rather than adding them again):"
     },
     "Form": {
       "createTitle": "Propose an event",

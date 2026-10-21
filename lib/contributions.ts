@@ -80,6 +80,7 @@ import {
 
 import { evaluateAchievements, isReached } from "@/lib/achievements";
 import { organizations } from "@/lib/orgs";
+import { getTimelineEvent } from "@/lib/timeline-events";
 
 export { ContributionError, type Contributor } from "@/lib/contribution-store";
 
@@ -618,6 +619,11 @@ export async function submitCatalogContribution(
       input: mergeTimelineEdit(
         await openTimelineProposal(author.id, submission.slug, meta),
         submission.input,
+        new Set(
+          (await getTimelineEvent(submission.slug))?.guide.map(
+            (section) => section.id,
+          ) ?? [],
+        ),
       ),
     };
   }
@@ -640,26 +646,28 @@ export async function submitCatalogContribution(
     throw new ContributionError("notPending", 409);
   }
 
-  if (!resumed) {
-    if (
-      standing.level < DIRECT_EDIT_LEVEL &&
-      standing.pending >= MAX_PENDING_RECRUIT
-    ) {
-      throw new ContributionError("tooManyPending", 429);
-    }
-    // Deux propositions du même lieu ou du même objet : la seconde attendrait
-    // une relecture qui ne pourrait que la refuser.
-    if (
-      draft.kind === "placeCreate" ||
+  if (
+    !resumed &&
+    standing.level < DIRECT_EDIT_LEVEL &&
+    standing.pending >= MAX_PENDING_RECRUIT
+  ) {
+    throw new ContributionError("tooManyPending", 429);
+  }
+  // Deux propositions du même lieu ou du même objet : la seconde attendrait
+  // une relecture qui ne pourrait que la refuser. Une proposition reprise et
+  // renommée peut tomber sur le slug d'une autre : elle ne compte pas, elle.
+  if (
+    (draft.kind === "placeCreate" ||
       draft.kind === "itemCreate" ||
-      draft.kind === "timelineCreate"
-    ) {
-      const taken = await contributions().countDocuments({
-        ...sameTargetFilter(draft),
-        status: { $in: OPEN_STATUSES },
-      });
-      if (taken > 0) throw new ContributionError("duplicate", 409);
-    }
+      draft.kind === "timelineCreate") &&
+    (!resumed || resumed.target.slug !== draft.target.slug)
+  ) {
+    const taken = await contributions().countDocuments({
+      ...sameTargetFilter(draft),
+      status: { $in: OPEN_STATUSES },
+      ...(resumed ? { _id: { $ne: resumed._id } } : {}),
+    });
+    if (taken > 0) throw new ContributionError("duplicate", 409);
   }
 
   const direct =

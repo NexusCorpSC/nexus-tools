@@ -4846,7 +4846,8 @@
       "bodyHint": "Markdown · {count} / {max} caractères",
       "cancel": "Annuler",
       "remove": "Retirer la section",
-      "removeConfirm": "Proposer de retirer cette section du guide ?"
+      "removeConfirm": "Proposer de retirer cette section du guide ?",
+      "pendingTitle": "Vos sections en attente de relecture (à modifier plutôt que d'en recréer une) :"
     },
     "Form": {
       "createTitle": "Proposer un évènement",

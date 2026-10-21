@@ -22,6 +22,7 @@ import {
 export function GuideForm({
   slug,
   sectionId,
+  published,
   initialTitle,
   initialBody,
   otherTitles,
@@ -32,6 +33,8 @@ export function GuideForm({
   slug: string;
   /** Absent : une nouvelle section, ajoutée en fin de guide. */
   sectionId?: string;
+  /** La section est publiée : la retirer passe par une proposition. */
+  published: boolean;
   initialTitle: string;
   initialBody: string;
   otherTitles: string[];
@@ -166,7 +169,7 @@ export function GuideForm({
         >
           {t("cancel")}
         </Button>
-        {sectionId && (
+        {sectionId && published && (
           <button
             type="button"
             disabled={pending}
