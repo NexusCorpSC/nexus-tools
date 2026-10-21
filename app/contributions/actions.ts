@@ -33,6 +33,11 @@ function revalidateTarget(contribution: Contribution) {
     revalidatePath(`/missions/${target.slug}`);
     // Ses lieux la citent sur leur fiche.
     revalidatePath("/lieux/[slug]", "page");
+  } else if (target.type === "timelineEvent") {
+    revalidatePath("/timeline");
+    revalidatePath(`/timeline/${target.slug}`);
+    // Le bandeau des évènements en cours.
+    revalidatePath("/");
   } else {
     revalidatePath("/items");
     revalidatePath(`/items/${target.slug}`);
@@ -66,6 +71,8 @@ export async function contributeAction(
       revalidatePath(`/lieux/${result.contribution.target.slug}`);
     } else if (result.contribution.target.type === "mission") {
       revalidatePath(`/missions/${result.contribution.target.slug}`);
+    } else if (result.contribution.target.type === "timelineEvent") {
+      revalidatePath(`/timeline/${result.contribution.target.slug}`);
     } else {
       revalidatePath(`/items/${result.contribution.target.slug}`);
     }

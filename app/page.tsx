@@ -22,6 +22,7 @@ import GlowBackground from "@/components/glow-background";
 import FeatureCard from "@/components/feature-card";
 import NexusAppShowcase from "@/components/nexus-app-showcase";
 import ToolCard from "@/components/tool-card";
+import { TimelineLiveBanner } from "./timeline/live-banner";
 import LinkButton from "@/components/ui/link-button";
 import ImgCrafting from "./img-crafting.png";
 import ImgReputation from "./img-reputation.png";
@@ -61,6 +62,7 @@ export default function Home() {
 
       {/* Hero */}
       <section className="relative mx-auto max-w-5xl px-6 pt-20 pb-16 text-center lg:px-8">
+        <TimelineLiveBanner />
         <div className="inline-flex items-center gap-2 rounded-full border border-[#9ED0FF]/30 bg-[#9ED0FF]/10 px-4 py-1.5 text-xs font-medium text-[#9ED0FF] mb-8 backdrop-blur-sm">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#9ED0FF] opacity-75" />

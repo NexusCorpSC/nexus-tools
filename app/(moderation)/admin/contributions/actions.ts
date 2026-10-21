@@ -117,6 +117,12 @@ function revalidate(done: Contribution[]) {
     if (target.type === "item") {
       paths.add("/items");
       paths.add(`/items/${target.slug}`);
+    } else if (target.type === "mission") {
+      paths.add(`/missions/${target.slug}`);
+    } else if (target.type === "timelineEvent") {
+      paths.add("/timeline");
+      paths.add(`/timeline/${target.slug}`);
+      paths.add("/");
     } else {
       paths.add("/lieux");
       paths.add(`/lieux/${target.slug}`);

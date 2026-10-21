@@ -29,6 +29,19 @@ import {
 } from "@/lib/missions";
 import { organizations } from "@/lib/orgs";
 import {
+  createTimelineEvent,
+  deleteTimelineEvent,
+  getMissionTitles,
+  getTimelineEvent,
+  getTimelineNames,
+  guideField,
+  guideSectionId,
+  normalizeGuideSection,
+  normalizeTimelineInput,
+  TimelineSlugTakenError,
+  updateTimelineFields,
+} from "@/lib/timeline-events";
+import {
   BLOB_HOST,
   ContributionError,
   placeMedia,
@@ -49,9 +62,16 @@ import {
   type ContributionKind,
   type ContributionTarget,
 } from "@/types/contributions";
+import {
+  TIMELINE_FIELDS,
+  type TimelineEvent,
+  type TimelineEventInput,
+  type TimelineGuideSection,
+} from "@/types/timeline-events";
 
 /**
- * Les contributions au catalogue : lieux, plans, objets.
+ * Les contributions au catalogue : lieux, plans, objets, missions, et
+ * évènements officiels.
  *
  * Chacune se prépare ici en trois temps, toujours par les fonctions de
  * `lib/places.ts` et `lib/items.ts`, avec leurs validations — il n'y a pas de
@@ -649,6 +669,241 @@ export async function buildMissionEdit(
   };
 }
 
+// ─── Évènements officiels ───────────────────────────────────────────────────
+
+export function timelineToInput(event: TimelineEvent): TimelineEventInput {
+  return pick(event, ["slug", ...TIMELINE_FIELDS]) as TimelineEventInput;
+}
+
+/** Ce que désignent les récompenses, contrats, lieu et liés : tout doit exister. */
+async function assertTimelineRefs(event: TimelineEventInput) {
+  const unknown = (label: string, values: string[]) => {
+    if (values.length > 0) {
+      throw new ContributionError(
+        "invalidInput",
+        400,
+        `${label} : ${values.join(", ")}`,
+      );
+    }
+  };
+  if (event.placeSlug && !(await getPlaceBySlug(event.placeSlug))) {
+    unknown("Lieu inconnu", [event.placeSlug]);
+  }
+  const itemSlugs = [
+    ...new Set(
+      event.tracks.flatMap((track) =>
+        track.tiers.flatMap((tier) =>
+          tier.rewards.flatMap((reward) =>
+            reward.itemSlug ? [reward.itemSlug] : [],
+          ),
+        ),
+      ),
+    ),
+  ];
+  const items = new Set(
+    (await getItemsBySlugs(itemSlugs)).map((item) => item.slug),
+  );
+  unknown(
+    "Objet inconnu",
+    itemSlugs.filter((slug) => !items.has(slug)),
+  );
+  const missionIds = [
+    ...new Set(
+      event.missions.flatMap((mission) =>
+        mission.missionId ? [mission.missionId] : [],
+      ),
+    ),
+  ];
+  const missions = await getMissionTitles(missionIds);
+  unknown(
+    "Mission inconnue",
+    missionIds.filter((id) => !missions[id]),
+  );
+  const related = await getTimelineNames(event.relatedSlugs ?? []);
+  unknown(
+    "Évènement lié inconnu",
+    (event.relatedSlugs ?? []).filter((slug) => !related[slug]),
+  );
+}
+
+export async function buildTimelineCreate(
+  input: unknown,
+): Promise<CatalogDraft> {
+  const normalized = validate(() => normalizeTimelineInput(input));
+  await assertTimelineRefs(normalized);
+  if (await getTimelineEvent(normalized.slug, { includeRemoved: true })) {
+    throw new ContributionError("duplicate", 409);
+  }
+
+  const after = pick(normalized, [...TIMELINE_FIELDS]);
+  return {
+    kind: "timelineCreate",
+    target: {
+      type: "timelineEvent",
+      slug: normalized.slug,
+      name: normalized.name,
+    },
+    proposal: normalized,
+    after,
+    changes: describeAll([...TIMELINE_FIELDS], {}, after),
+    points: POINTS.timelineCreate,
+  };
+}
+
+/** Une section telle que la relecture la lit : son titre, puis son texte. */
+function showSection(section: TimelineGuideSection | null | undefined) {
+  return section ? `${section.title}\n\n${section.body}` : undefined;
+}
+
+function describeTimeline(
+  fields: string[],
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+): ContributionChange[] {
+  return fields.flatMap((field) => {
+    if (guideSectionId(field) === null) {
+      return describe(field, before[field], after[field]);
+    }
+    const left = before[field] as TimelineGuideSection | null | undefined;
+    const right = after[field] as TimelineGuideSection | null | undefined;
+    return [
+      {
+        field: `guide.${right?.title ?? left?.title ?? ""}`,
+        before: showSection(left),
+        after: showSection(right),
+      },
+    ];
+  });
+}
+
+function timelineBefore(event: TimelineEvent, fields: string[]) {
+  return Object.fromEntries(
+    fields.map((field) => {
+      const id = guideSectionId(field);
+      if (id === null) {
+        return [field, (event as Record<string, unknown>)[field]];
+      }
+      return [field, event.guide.find((section) => section.id === id) ?? null];
+    }),
+  );
+}
+
+/**
+ * Une correction d'évènement que l'auteur a encore ouverte, et ce qu'il
+ * envoie maintenant, en une seule proposition : réécrire une section puis une
+ * autre fait une contribution qui porte les deux, pas une seconde qui
+ * effacerait la première en la reprenant. Ce qui est envoyé l'emporte.
+ */
+export function mergeTimelineEdit(
+  previous: Record<string, unknown> | undefined,
+  input: unknown,
+): Record<string, unknown> {
+  const raw = isPlainObject(input) ? input : {};
+  const merged: Record<string, unknown> = {};
+  const sections = new Map<string, unknown>();
+  const removed = new Set<string>();
+  for (const [field, value] of Object.entries(previous ?? {})) {
+    const id = guideSectionId(field);
+    if (id === null) merged[field] = value;
+    else if (value) sections.set(id, value);
+    else removed.add(id);
+  }
+  for (const [field, value] of Object.entries(raw)) {
+    if (field !== "guide" && field !== "guideRemoved") merged[field] = value;
+  }
+  for (const entry of Array.isArray(raw.guide) ? raw.guide : []) {
+    if (isPlainObject(entry) && typeof entry.id === "string") {
+      sections.set(entry.id, entry);
+      removed.delete(entry.id);
+    } else {
+      sections.set(`new-${sections.size}`, entry);
+    }
+  }
+  for (const id of Array.isArray(raw.guideRemoved) ? raw.guideRemoved : []) {
+    if (typeof id !== "string") continue;
+    sections.delete(id);
+    removed.add(id);
+  }
+  merged.guide = [...sections.values()];
+  merged.guideRemoved = [...removed];
+  return merged;
+}
+
+/**
+ * Une correction d'évènement : des champs, des sections du guide, ou les
+ * deux. Chaque section est un champ à elle (`guide.<id>`) : deux joueurs qui
+ * réécrivent deux sections différentes ne s'écrasent pas à la publication.
+ *
+ * `input.guide` porte les sections ajoutées ou réécrites, `input.guideRemoved`
+ * les identifiants des sections à retirer.
+ */
+export async function buildTimelineEdit(
+  slug: string,
+  input: unknown,
+  level: number,
+): Promise<CatalogDraft> {
+  const event = await getTimelineEvent(slug);
+  if (!event) throw new ContributionError("notFound", 404);
+
+  const raw = isPlainObject(input) ? input : {};
+  const proposal: Record<string, unknown> = { ...timelineToInput(event) };
+  for (const field of TIMELINE_FIELDS) {
+    if (!(field in raw)) continue;
+    // Le nom fait l'adresse en création ; ensuite, seul le niveau 4 le change.
+    if (field === "name" && level < RENAME_LEVEL) continue;
+    proposal[field] = raw[field];
+  }
+  proposal.slug = event.slug;
+  const normalized = validate(() => normalizeTimelineInput(proposal));
+
+  const fields: string[] = TIMELINE_FIELDS.filter(
+    (field) =>
+      !sameValue(
+        (event as Record<string, unknown>)[field],
+        (normalized as Record<string, unknown>)[field],
+      ),
+  );
+  if (
+    fields.some((field) =>
+      ["placeSlug", "relatedSlugs", "tracks", "missions"].includes(field),
+    )
+  ) {
+    await assertTimelineRefs(normalized);
+  }
+
+  const after: Record<string, unknown> = pick(normalized, fields);
+  const sections = Array.isArray(raw.guide) ? raw.guide : [];
+  for (const entry of sections) {
+    const section = validate(() => normalizeGuideSection(entry));
+    if (!section) continue;
+    const existing = event.guide.find((current) => current.id === section.id);
+    if (existing && sameValue(existing, section)) continue;
+    fields.push(guideField(section.id));
+    after[guideField(section.id)] = section;
+  }
+  const removed = Array.isArray(raw.guideRemoved) ? raw.guideRemoved : [];
+  for (const id of removed) {
+    if (typeof id !== "string") continue;
+    if (!event.guide.some((section) => section.id === id)) continue;
+    if (fields.includes(guideField(id))) continue;
+    fields.push(guideField(id));
+    after[guideField(id)] = null;
+  }
+  if (fields.length === 0) throw new ContributionError("noChange", 400);
+
+  const before = timelineBefore(event, fields);
+  return {
+    kind: "timelineEdit",
+    target: { type: "timelineEvent", slug: event.slug, name: event.name },
+    proposal: after,
+    fields,
+    before,
+    after,
+    changes: describeTimeline(fields, before, after),
+    points: POINTS.edit,
+  };
+}
+
 function applyError(error: unknown): ContributionError {
   if (error instanceof ContributionError) return error;
   return new ContributionError(
@@ -686,6 +941,12 @@ export async function currentBefore(
       if (!mission) return null;
       const before = pick(mission, fields);
       return { before, changes: describeAll(fields, before, after) };
+    }
+    case "timelineEdit": {
+      const event = await getTimelineEvent(target.slug);
+      if (!event) return null;
+      const before = timelineBefore(event, fields);
+      return { before, changes: describeTimeline(fields, before, after) };
     }
     case "plan": {
       const place = await getPlaceBySlug(target.slug);
@@ -794,6 +1055,29 @@ export async function applyCatalog(
         }
         return;
       }
+      case "timelineCreate": {
+        try {
+          await createTimelineEvent(proposal as unknown as TimelineEventInput);
+        } catch (error) {
+          if (error instanceof TimelineSlugTakenError) {
+            throw new ContributionError("duplicate", 409);
+          }
+          throw error;
+        }
+        return;
+      }
+      case "timelineEdit": {
+        if (
+          !(await updateTimelineFields(
+            target.slug,
+            contribution.after ?? {},
+            fields,
+          ))
+        ) {
+          throw new ContributionError("notFound", 404);
+        }
+        return;
+      }
       case "orgCreate": {
         // Validée, l'organisation peut passer publique : ses éditeurs le
         // décident, la validation ne l'expose pas d'elle-même.
@@ -844,6 +1128,40 @@ export async function revertConflicts(
       const mission = await getMissionForEdit(target.slug);
       if (!mission) return gone;
       return describeAll(fields, after, mission as Record<string, unknown>);
+    }
+    case "timelineEdit": {
+      const event = await getTimelineEvent(target.slug, {
+        includeRemoved: true,
+      });
+      if (!event) return gone;
+      return describeTimeline(
+        fields.filter(
+          (field) =>
+            !sameValue(after[field], timelineBefore(event, [field])[field]),
+        ),
+        after,
+        timelineBefore(event, fields),
+      );
+    }
+    case "timelineCreate": {
+      // Supprimer l'évènement emporterait le guide que d'autres ont écrit.
+      const event = await getTimelineEvent(target.slug, {
+        includeRemoved: true,
+      });
+      if (!event) return gone;
+      const changed = describeAll(
+        Object.keys(after),
+        after,
+        event as Record<string, unknown>,
+      );
+      if (event.guide.length > 0) {
+        changed.push({
+          field: "guide",
+          before: undefined,
+          after: String(event.guide.length),
+        });
+      }
+      return changed;
     }
     case "placeCreate": {
       // Supprimer le lieu emporterait ce que d'autres y ont mis depuis.
@@ -957,6 +1275,18 @@ export async function revertCatalog(
           ))
         ) {
           throw new ContributionError("missionNotFound", 404);
+        }
+        return;
+      }
+      case "timelineCreate": {
+        if (!(await deleteTimelineEvent(target.slug))) {
+          throw new ContributionError("notFound", 404);
+        }
+        return;
+      }
+      case "timelineEdit": {
+        if (!(await updateTimelineFields(target.slug, before, fields))) {
+          throw new ContributionError("notFound", 404);
         }
         return;
       }

@@ -19,6 +19,8 @@
  * - `plan` : un plan d'un lieu, ajouté ou repris (image ou dessiné) ;
  * - `itemCreate`, `itemEdit` : un objet proposé, ou des champs d'un objet ;
  * - `missionEdit` : les lieux d'une mission, ou son astuce ;
+ * - `timelineCreate`, `timelineEdit` : un évènement officiel proposé, ou des
+ *   champs et des sections du guide d'un évènement ;
  * - `orgCreate` : une organisation créée, à valider avant de passer publique ;
  * - `confirm` : une donnée qui vieillit (cours, services, sources d'un
  *   blueprint) confirmée telle quelle, ou dite plus exacte.
@@ -33,6 +35,8 @@ export const CONTRIBUTION_KINDS = [
   "missionEdit",
   "orgCreate",
   "confirm",
+  "timelineCreate",
+  "timelineEdit",
 ] as const;
 
 export type ContributionKind = (typeof CONTRIBUTION_KINDS)[number];
@@ -120,7 +124,8 @@ export type ContributionTargetType =
   | "item"
   | "mission"
   | "org"
-  | "blueprint";
+  | "blueprint"
+  | "timelineEvent";
 
 /**
  * Une ligne de l'avant/après, déjà mise en mots pour l'affichage. `field` est
@@ -220,6 +225,8 @@ export const POINTS = {
   firstMedia: 3,
   placeCreate: 3,
   itemCreate: 3,
+  /** Un évènement officiel proposé, avec au moins une source. */
+  timelineCreate: 3,
   /** Un plan dessiné, dès qu'il compte une pièce. */
   planDrawn: 5,
   /** Un plan image, avec ses repères. */

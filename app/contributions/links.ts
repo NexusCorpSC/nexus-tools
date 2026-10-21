@@ -16,6 +16,10 @@ export function resumeHref(contribution: Contribution): string {
       return `/items/proposer?c=${id}`;
     case "missionEdit":
       return `/missions/${target.slug}/contribuer?c=${id}`;
+    case "timelineCreate":
+      return `/timeline/nouveau?c=${id}`;
+    case "timelineEdit":
+      return `/timeline/${target.slug}/modifier?c=${id}`;
     // Une organisation se corrige sur sa propre page d'édition.
     case "orgCreate":
       return `/orgs/${target.slug}/edit`;
@@ -40,6 +44,11 @@ export function targetHref(contribution: Contribution): string {
       return `/orgs/${target.slug}`;
     case "blueprint":
       return `/crafting/blueprints/${target.slug}`;
+    case "timelineEvent":
+      return contribution.kind === "timelineCreate" &&
+        contribution.status !== "published"
+        ? "/timeline"
+        : `/timeline/${target.slug}`;
     case "place":
       if (
         contribution.kind === "placeCreate" &&

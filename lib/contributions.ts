@@ -32,6 +32,9 @@ import {
   buildPlaceCreate,
   buildPlaceEdit,
   buildPlan,
+  buildTimelineCreate,
+  buildTimelineEdit,
+  mergeTimelineEdit,
   planKey,
   planValue,
   revertCatalog,
@@ -497,7 +500,9 @@ export type CatalogSubmission =
   | { kind: "plan"; slug: string; plan: unknown }
   | { kind: "itemCreate"; input: unknown }
   | { kind: "itemEdit"; slug: string; input: unknown }
-  | { kind: "missionEdit"; missionId: string; input: unknown };
+  | { kind: "missionEdit"; missionId: string; input: unknown }
+  | { kind: "timelineCreate"; input: unknown }
+  | { kind: "timelineEdit"; slug: string; input: unknown };
 
 export type CatalogSubmissionMeta = {
   /** La contribution reprise : en attente, ou renvoyée à corriger. */
@@ -541,11 +546,33 @@ async function buildDraft(
       return buildItemEdit(submission.slug, submission.input, level);
     case "missionEdit":
       return buildMissionEdit(submission.missionId, submission.input);
+    case "timelineCreate":
+      return buildTimelineCreate(submission.input);
+    case "timelineEdit":
+      return buildTimelineEdit(submission.slug, submission.input, level);
     default:
       // L'envoi vient du navigateur : une nature inconnue est une saisie
       // invalide, pas une erreur du serveur.
       throw new ContributionError("invalidInput", 400);
   }
+}
+
+/** Ce que porte la correction d'évènement que l'auteur a encore ouverte. */
+async function openTimelineProposal(
+  userId: ObjectId,
+  slug: string,
+  meta: CatalogSubmissionMeta,
+): Promise<Record<string, unknown> | undefined> {
+  const open = await contributions().findOne({
+    ...(meta.contributionId && ObjectId.isValid(meta.contributionId)
+      ? { _id: new ObjectId(meta.contributionId) }
+      : {}),
+    userId,
+    kind: "timelineEdit",
+    "target.slug": slug,
+    status: { $in: ["pending", "changesRequested"] },
+  });
+  return (open?.proposal as Record<string, unknown> | undefined) ?? undefined;
 }
 
 /** Ce qui identifie « la même proposition » pour la reprendre plutôt que la doubler. */
@@ -585,6 +612,15 @@ export async function submitCatalogContribution(
 ): Promise<SubmitContributionResult> {
   const standing = await getStanding(author.id);
   if (standing.suspendedUntil) throw new ContributionError("suspended", 403);
+  if (submission.kind === "timelineEdit") {
+    submission = {
+      ...submission,
+      input: mergeTimelineEdit(
+        await openTimelineProposal(author.id, submission.slug, meta),
+        submission.input,
+      ),
+    };
+  }
   const draft = await buildDraft(submission, standing.level);
 
   let resumeFilter: Filter<DbContribution> = sameTargetFilter(draft);
@@ -613,7 +649,11 @@ export async function submitCatalogContribution(
     }
     // Deux propositions du même lieu ou du même objet : la seconde attendrait
     // une relecture qui ne pourrait que la refuser.
-    if (draft.kind === "placeCreate" || draft.kind === "itemCreate") {
+    if (
+      draft.kind === "placeCreate" ||
+      draft.kind === "itemCreate" ||
+      draft.kind === "timelineCreate"
+    ) {
       const taken = await contributions().countDocuments({
         ...sameTargetFilter(draft),
         status: { $in: OPEN_STATUSES },
@@ -835,6 +875,7 @@ async function credit(
     case "placeEdit":
     case "itemEdit":
     case "missionEdit":
+    case "timelineEdit":
       return {
         base: (await isRepeatEdit(contribution)) ? 0 : contribution.points,
         bonus: 0,

@@ -51,7 +51,7 @@ export async function resumableContribution(
   const anchor =
     kind === "placeCreate"
       ? contribution?.target.parent?.slug
-      : kind === "itemCreate"
+      : kind === "itemCreate" || kind === "timelineCreate"
         ? undefined
         : contribution?.target.slug;
   if (
@@ -73,12 +73,18 @@ export async function resumableContribution(
  */
 export async function openEditOn(
   userId: ObjectId,
-  kind: "placeEdit" | "itemEdit" | "missionEdit",
+  kind: "placeEdit" | "itemEdit" | "missionEdit" | "timelineEdit",
   slug: string,
 ): Promise<Contribution | null> {
   const open = await listMyOpenContributions(userId, {
     type:
-      kind === "placeEdit" ? "place" : kind === "itemEdit" ? "item" : "mission",
+      kind === "placeEdit"
+        ? "place"
+        : kind === "itemEdit"
+          ? "item"
+          : kind === "timelineEdit"
+            ? "timelineEvent"
+            : "mission",
     slug,
   });
   return open.find((entry) => entry.kind === kind) ?? null;
