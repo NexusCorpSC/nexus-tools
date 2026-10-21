@@ -33,7 +33,7 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "notFound" }, { status: 404 });
   }
   const user = await timelineSession();
-  const [refs, bugs, progress] = await Promise.all([
+  const [refs, bugCount, progress] = await Promise.all([
     resolveTimelineRefs(event),
     countTimelineBugs(slug),
     user ? getTimelineProgress(user.id, slug) : Promise.resolve(null),
@@ -41,7 +41,7 @@ export async function GET(_request: Request, { params }: Params) {
   return NextResponse.json({
     event: { ...event, status: timelineStatus(event) },
     refs,
-    bugs,
+    bugCount,
     progress,
   });
 }
