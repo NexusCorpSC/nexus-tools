@@ -32,6 +32,9 @@ import {
   buildPlaceCreate,
   buildPlaceEdit,
   buildPlan,
+  buildTimelineCreate,
+  buildTimelineEdit,
+  mergeTimelineEdit,
   planKey,
   planValue,
   revertCatalog,
@@ -77,6 +80,7 @@ import {
 
 import { evaluateAchievements, isReached } from "@/lib/achievements";
 import { organizations } from "@/lib/orgs";
+import { getTimelineEvent } from "@/lib/timeline-events";
 
 export { ContributionError, type Contributor } from "@/lib/contribution-store";
 
@@ -497,7 +501,9 @@ export type CatalogSubmission =
   | { kind: "plan"; slug: string; plan: unknown }
   | { kind: "itemCreate"; input: unknown }
   | { kind: "itemEdit"; slug: string; input: unknown }
-  | { kind: "missionEdit"; missionId: string; input: unknown };
+  | { kind: "missionEdit"; missionId: string; input: unknown }
+  | { kind: "timelineCreate"; input: unknown }
+  | { kind: "timelineEdit"; slug: string; input: unknown };
 
 export type CatalogSubmissionMeta = {
   /** La contribution reprise : en attente, ou renvoyée à corriger. */
@@ -541,11 +547,33 @@ async function buildDraft(
       return buildItemEdit(submission.slug, submission.input, level);
     case "missionEdit":
       return buildMissionEdit(submission.missionId, submission.input);
+    case "timelineCreate":
+      return buildTimelineCreate(submission.input);
+    case "timelineEdit":
+      return buildTimelineEdit(submission.slug, submission.input, level);
     default:
       // L'envoi vient du navigateur : une nature inconnue est une saisie
       // invalide, pas une erreur du serveur.
       throw new ContributionError("invalidInput", 400);
   }
+}
+
+/** Ce que porte la correction d'évènement que l'auteur a encore ouverte. */
+async function openTimelineProposal(
+  userId: ObjectId,
+  slug: string,
+  meta: CatalogSubmissionMeta,
+): Promise<Record<string, unknown> | undefined> {
+  const open = await contributions().findOne({
+    ...(meta.contributionId && ObjectId.isValid(meta.contributionId)
+      ? { _id: new ObjectId(meta.contributionId) }
+      : {}),
+    userId,
+    kind: "timelineEdit",
+    "target.slug": slug,
+    status: { $in: ["pending", "changesRequested"] },
+  });
+  return (open?.proposal as Record<string, unknown> | undefined) ?? undefined;
 }
 
 /** Ce qui identifie « la même proposition » pour la reprendre plutôt que la doubler. */
@@ -585,6 +613,20 @@ export async function submitCatalogContribution(
 ): Promise<SubmitContributionResult> {
   const standing = await getStanding(author.id);
   if (standing.suspendedUntil) throw new ContributionError("suspended", 403);
+  if (submission.kind === "timelineEdit") {
+    submission = {
+      ...submission,
+      input: mergeTimelineEdit(
+        await openTimelineProposal(author.id, submission.slug, meta),
+        submission.input,
+        new Set(
+          (await getTimelineEvent(submission.slug))?.guide.map(
+            (section) => section.id,
+          ) ?? [],
+        ),
+      ),
+    };
+  }
   const draft = await buildDraft(submission, standing.level);
 
   let resumeFilter: Filter<DbContribution> = sameTargetFilter(draft);
@@ -604,22 +646,28 @@ export async function submitCatalogContribution(
     throw new ContributionError("notPending", 409);
   }
 
-  if (!resumed) {
-    if (
-      standing.level < DIRECT_EDIT_LEVEL &&
-      standing.pending >= MAX_PENDING_RECRUIT
-    ) {
-      throw new ContributionError("tooManyPending", 429);
-    }
-    // Deux propositions du même lieu ou du même objet : la seconde attendrait
-    // une relecture qui ne pourrait que la refuser.
-    if (draft.kind === "placeCreate" || draft.kind === "itemCreate") {
-      const taken = await contributions().countDocuments({
-        ...sameTargetFilter(draft),
-        status: { $in: OPEN_STATUSES },
-      });
-      if (taken > 0) throw new ContributionError("duplicate", 409);
-    }
+  if (
+    !resumed &&
+    standing.level < DIRECT_EDIT_LEVEL &&
+    standing.pending >= MAX_PENDING_RECRUIT
+  ) {
+    throw new ContributionError("tooManyPending", 429);
+  }
+  // Deux propositions du même lieu ou du même objet : la seconde attendrait
+  // une relecture qui ne pourrait que la refuser. Une proposition reprise et
+  // renommée peut tomber sur le slug d'une autre : elle ne compte pas, elle.
+  if (
+    (draft.kind === "placeCreate" ||
+      draft.kind === "itemCreate" ||
+      draft.kind === "timelineCreate") &&
+    (!resumed || resumed.target.slug !== draft.target.slug)
+  ) {
+    const taken = await contributions().countDocuments({
+      ...sameTargetFilter(draft),
+      status: { $in: OPEN_STATUSES },
+      ...(resumed ? { _id: { $ne: resumed._id } } : {}),
+    });
+    if (taken > 0) throw new ContributionError("duplicate", 409);
   }
 
   const direct =
@@ -835,6 +883,7 @@ async function credit(
     case "placeEdit":
     case "itemEdit":
     case "missionEdit":
+    case "timelineEdit":
       return {
         base: (await isRepeatEdit(contribution)) ? 0 : contribution.points,
         bonus: 0,

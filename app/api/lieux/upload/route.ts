@@ -8,18 +8,7 @@ import { getStanding } from "@/lib/contributions";
 import { getPlaceBySlug } from "@/lib/places";
 import { DIRECT_MEDIA_LEVEL, MAX_PENDING_RECRUIT } from "@/types/contributions";
 import { PLACES_EDIT_PERMISSION } from "@/types/places";
-import db from "@/lib/db";
-
-/**
- * Ce qu'un joueur sans droit d'édition peut téléverser par heure, images de
- * galerie et de plans confondues. Un relevé envoie son aperçu à chaque
- * enregistrement : la limite laisse dessiner, pas remplir le stockage.
- */
-const UPLOADS_PER_HOUR = 60;
-const HOUR_MS = 60 * 60 * 1000;
-
-const uploadGrants = () =>
-  db.db().collection<{ userId: ObjectId; at: Date }>("uploadGrants");
+import { grantUpload } from "@/lib/upload-grants";
 
 /** La vignette d'un lieu. */
 const COVER = /^lieux\/[a-z0-9-]{1,120}\/image\.[a-z0-9]{1,6}$/i;
@@ -49,19 +38,6 @@ const MEDIA =
 /** L'image d'un lieu privé, à part des galeries publiques (`lib/private-places.ts`). */
 const PRIVATE_IMAGE = /^prives\/[A-Za-z0-9_-]{1,60}\.(?:jpe?g|png|webp)$/i;
 
-/** Compte un envoi, refusé au-delà du plafond horaire. */
-async function grantUpload(userId: ObjectId) {
-  const now = new Date();
-  const recent = await uploadGrants().countDocuments({
-    userId,
-    at: { $gte: new Date(now.getTime() - HOUR_MS) },
-  });
-  if (recent >= UPLOADS_PER_HOUR) {
-    throw new Error("Too many uploads, try again later.");
-  }
-  await uploadGrants().insertOne({ userId, at: now });
-}
-
 /**
  * Le chemin dans le blob est une fonction du slug et de l'identifiant du plan,
  * sans suffixe aléatoire : renvoyer une image la remplace en place. Supprimer
@@ -69,9 +45,8 @@ async function grantUpload(userId: ObjectId) {
  * les objets, assumé faute de collection de médias et de ménage associé.
  */
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
-
   try {
+    const body = (await request.json()) as HandleUploadBody;
     const jsonResponse = await handleUpload({
       body,
       request,

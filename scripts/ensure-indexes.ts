@@ -704,6 +704,38 @@ async function ensureShares(database: Db) {
   );
 }
 
+/**
+ * Les évènements officiels (`lib/timeline-events.ts`) : un slug par évènement,
+ * les bugs d'un évènement par nombre de joueurs touchés, et une progression
+ * par joueur et par évènement. Le plafond de bugs par jour lit `userId`.
+ */
+async function ensureTimeline(database: Db) {
+  const events = database.collection("timelineEvents");
+  await events.createIndex(
+    { slug: 1 },
+    { unique: true, name: "timelineEvents_slug_unique" },
+  );
+  await events.createIndex(
+    { removedAt: 1, startAt: -1 },
+    { name: "timelineEvents_list" },
+  );
+  const bugs = database.collection("timelineBugs");
+  await bugs.createIndex(
+    { eventSlug: 1, affectedCount: -1, createdAt: -1 },
+    { name: "timelineBugs_event" },
+  );
+  await bugs.createIndex(
+    { userId: 1, createdAt: -1 },
+    { name: "timelineBugs_user" },
+  );
+  await database
+    .collection("timelineProgress")
+    .createIndex(
+      { userId: 1, eventSlug: 1 },
+      { unique: true, name: "timelineProgress_user_event_unique" },
+    );
+}
+
 const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["squads", ensureSquads],
   ["raids", ensureRaids],
@@ -729,6 +761,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["planDrafts", ensurePlanDrafts],
   ["chat", ensureChat],
   ["shares", ensureShares],
+  ["timeline", ensureTimeline],
 ];
 
 async function main() {
