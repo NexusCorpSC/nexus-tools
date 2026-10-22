@@ -7,7 +7,9 @@ import { listTimelineEvents } from "@/lib/timeline-events";
 import {
   TIMELINE_EVENT_TYPES,
   TIMELINE_SYSTEMS,
+  matchesTimelineSearch,
   type TimelineEventSummary,
+  type TimelineSearch,
 } from "@/types/timeline-events";
 import {
   BannerArt,
@@ -32,7 +34,7 @@ export const metadata: Metadata = {
   },
 };
 
-type Search = { q?: string; type?: string; system?: string; guide?: string };
+type Search = TimelineSearch;
 
 function href(search: Search, change: Partial<Search>): string {
   const next = { ...search, ...change };
@@ -42,25 +44,6 @@ function href(search: Search, change: Partial<Search>): string {
   }
   const query = params.toString();
   return query ? `/timeline?${query}` : "/timeline";
-}
-
-function matches(event: TimelineEventSummary, search: Search): boolean {
-  if (search.type && event.type !== search.type) return false;
-  if (
-    search.system &&
-    !event.systems.includes(search.system as (typeof event.systems)[number])
-  ) {
-    return false;
-  }
-  if (search.guide === "missing" && event.guideSections > 0) return false;
-  const query = search.q?.trim().toLowerCase();
-  if (query) {
-    const haystack = [event.name, event.summary, event.patch ?? ""]
-      .join(" ")
-      .toLowerCase();
-    if (!haystack.includes(query)) return false;
-  }
-  return true;
 }
 
 async function GuideState({ sections }: { sections: number }) {
@@ -214,7 +197,7 @@ export default async function TimelinePage({
     .filter((event) => event.status === "upcoming" || event.status === "announced")
     .reverse();
   const filtered = events.filter(
-    (event) => event.startAt && matches(event, search),
+    (event) => event.startAt && matchesTimelineSearch(event, search),
   );
   const years = new Map<number, TimelineEventSummary[]>();
   for (const event of filtered) {

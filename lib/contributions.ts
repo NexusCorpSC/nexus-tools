@@ -576,6 +576,26 @@ async function openTimelineProposal(
   return (open?.proposal as Record<string, unknown> | undefined) ?? undefined;
 }
 
+/**
+ * Ce qu'une correction d'évènement envoie, complété par celle que l'auteur a
+ * encore ouverte : ce que `submitCatalogContribution` relira. Le serveur MCP
+ * s'en sert pour montrer au joueur, avant l'envoi, la proposition entière.
+ */
+export async function withOpenTimelineEdit(
+  userId: ObjectId,
+  slug: string,
+  input: unknown,
+  meta: CatalogSubmissionMeta = {},
+): Promise<Record<string, unknown>> {
+  return mergeTimelineEdit(
+    await openTimelineProposal(userId, slug, meta),
+    input,
+    new Set(
+      (await getTimelineEvent(slug))?.guide.map((section) => section.id) ?? [],
+    ),
+  );
+}
+
 /** Ce qui identifie « la même proposition » pour la reprendre plutôt que la doubler. */
 function sameTargetFilter(draft: CatalogDraft): Filter<DbContribution> {
   return {
@@ -616,14 +636,11 @@ export async function submitCatalogContribution(
   if (submission.kind === "timelineEdit") {
     submission = {
       ...submission,
-      input: mergeTimelineEdit(
-        await openTimelineProposal(author.id, submission.slug, meta),
+      input: await withOpenTimelineEdit(
+        author.id,
+        submission.slug,
         submission.input,
-        new Set(
-          (await getTimelineEvent(submission.slug))?.guide.map(
-            (section) => section.id,
-          ) ?? [],
-        ),
+        meta,
       ),
     };
   }

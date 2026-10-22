@@ -83,7 +83,7 @@ const confirmChallenge = personalTool("confirm_data", "contributions:write");
 // `my_contributor_standing` et `/api/me/contributions`.
 const mineChallenge = personalTool("list_my_contributions", "profile");
 
-const WRITE = {
+export const WRITE = {
   readOnlyHint: false,
   destructiveHint: false,
   idempotentHint: false,
@@ -111,7 +111,7 @@ export function contributionErrorText(error: ContributionError): string {
     : message;
 }
 
-const metaParams = {
+export const metaParams = {
   source: z
     .string()
     .max(500)
@@ -126,12 +126,17 @@ const metaParams = {
     .describe("Game version it was seen in, e.g. 4.3.1"),
 };
 
-const contributionOutput = writeOutput({
+export const contributionOutput = writeOutput({
   contributionId: z.string(),
   contributionStatus: z.string(),
   points: z.number(),
   url: z.string(),
 });
+
+/** Le nom en clair d'un type de fiche, quand son identifiant ne parle pas. */
+const TARGET_LABELS: Record<string, string> = {
+  timelineEvent: "official event",
+};
 
 function draftSummary(
   user: McpUser,
@@ -149,10 +154,13 @@ function draftSummary(
       ? "It will be published right away (contributor level 3 or more), and can be reviewed later."
       : "It will be reviewed by the community before publication.";
   const name = draft.target.name ?? draft.target.slug;
+  const type = TARGET_LABELS[draft.target.type] ?? draft.target.type;
   const what =
-    draft.kind === "itemCreate" || draft.kind === "placeCreate"
-      ? `the new ${draft.target.type} “${name}”${draft.target.parent ? ` under ${draft.target.parent.name}` : ""}`
-      : `this change to “${name}” (${draft.target.type})`;
+    draft.kind === "itemCreate" ||
+    draft.kind === "placeCreate" ||
+    draft.kind === "timelineCreate"
+      ? `the new ${type} “${name}”${draft.target.parent ? ` under ${draft.target.parent.name}` : ""}`
+      : `this change to “${name}” (${type})`;
   return `Propose, as ${user.name}, ${what}:\n${changes}\n${how}`;
 }
 
@@ -160,7 +168,7 @@ function draftSummary(
  * Le chemin commun des outils de contribution : construire la proposition
  * (ce qui la valide et donne l'avant/après), la faire confirmer, l'envoyer.
  */
-async function contribute(
+export async function contribute(
   ctx: ServerContext,
   build: (level: number) => Promise<CatalogDraft>,
   submission: CatalogSubmission,
@@ -187,7 +195,11 @@ async function contribute(
       slug: draft.target.slug,
     });
     const replaced = open.find((c) => c.kind === draft.kind);
-    if (replaced) {
+    if (replaced && draft.kind === "timelineEdit") {
+      // Une correction d'évènement complète celle qui attend (la fusion de
+      // `submitCatalogContribution`) : `build` la montre déjà entière.
+      summary += `\nThis completes ${user.name}'s correction awaiting review on this event: both are sent as one.`;
+    } else if (replaced) {
       summary += `\nThis replaces ${user.name}'s ${draft.kind} awaiting review on this entry (${(replaced.changes ?? []).map((c) => c.field).join(", ") || "same entry"}): send all the changes together.`;
     }
     const confirmation: Confirmation = confirmWrite(ctx, summary, confirm);
