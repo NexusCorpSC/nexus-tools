@@ -28,6 +28,7 @@ import { registerRefiningTools } from "./tools/refining";
 import { registerSearchTools } from "./tools/search";
 import { registerSharingTools } from "./tools/sharing";
 import { registerSocialTools } from "./tools/social";
+import { registerTimelineTools } from "./tools/timeline";
 
 /**
  * Le serveur MCP de Nexus Tools, servi par `app/mcp/route.ts`.
@@ -50,6 +51,7 @@ export function registerNexusServer(mcp: McpServer) {
   registerPlaceTools(server);
   registerPrivatePlaceTools(server);
   registerLoreTools(server);
+  registerTimelineTools(server);
   registerMarketplaceReadTools(server);
   registerMarketplacePersonalTools(server);
   registerInventoryTools(server);
@@ -88,5 +90,6 @@ export const MCP_INSTRUCTIONS =
   "Prices are in aUEC. NPS coordinates come from the in-game /showlocation command. " +
   "For the lore of the 'Verse (history, people, companies, species, systems), use search_lore, get_lore_article and get_star_system: " +
   "they hold RSI's Galactapedia and starmap, in English. " +
+  "For CIG's official in-game events (live, upcoming, past, their rewards, guide and known bugs), use search_official_events and get_official_event. " +
   "Personal tools (inventory, parcels, refining orders, position markers, private places, friends and organizations, events and planned sessions, owned blueprints, reputations, notepad, sharing, contributions, marketplace orders…) need the user to sign in to their Nexus account; " +
   "every change they make is shown to the user for confirmation first, and contributions go to community review unless the user is a trusted contributor.";

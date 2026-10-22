@@ -286,6 +286,55 @@ async function main() {
       });
     }
   }
+  // Un évènement officiel en cours, avec un parcours et une section de guide.
+  const eventStart = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+  const eventEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await upsert(
+    "timelineEvents",
+    { slug: "smoke-official-event" },
+    {
+      slug: "smoke-official-event",
+      name: "Smoke Official Event",
+      type: "ingame",
+      systems: ["stanton"],
+      placeSlug: "smoke-outpost",
+      summary: "Un évènement officiel de test",
+      access: "owners",
+      permanentRewards: true,
+      startAt: eventStart,
+      endAt: eventEnd,
+      patch: "4.10.2",
+      sources: [
+        {
+          kind: "commlink",
+          title: "Annonce",
+          url: "https://robertsspaceindustries.com/comm-link/smoke",
+        },
+      ],
+      tracks: [
+        {
+          id: "smoketrack01",
+          name: "Transport",
+          tiers: [
+            { points: 100, rewards: [{ itemSlug: "smoke-item" }] },
+            { points: 500, rewards: [{ name: "Smoke Paint", note: "Paint" }] },
+          ],
+        },
+      ],
+      missions: [{ name: "Smoke Delivery", track: "Transport", points: 50 }],
+      guide: [
+        { id: "smokesect01", title: "Bien démarrer", body: "Texte de test." },
+      ],
+      createdAt: eventStart,
+      updatedAt: eventStart,
+    },
+  );
+  await db.collection("timelineBugs").deleteMany({
+    eventSlug: "smoke-official-event",
+  });
+  await db.collection("timelineProgress").deleteMany({
+    eventSlug: "smoke-official-event",
+  });
   // Les contributions laissées par les essais précédents : sans cela, un
   // compte de niveau 1 atteint vite sa limite de propositions en attente.
   await db

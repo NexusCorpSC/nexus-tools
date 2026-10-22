@@ -248,6 +248,37 @@ export function timelineEndTime(
   return end.getTime();
 }
 
+/** Les filtres du hub `/timeline`, que l'outil MCP de recherche reprend. */
+export type TimelineSearch = {
+  q?: string;
+  type?: string;
+  system?: string;
+  /** `missing` : les évènements dont le guide reste à écrire. */
+  guide?: string;
+};
+
+export function matchesTimelineSearch(
+  event: TimelineEventSummary,
+  search: TimelineSearch,
+): boolean {
+  if (search.type && event.type !== search.type) return false;
+  if (
+    search.system &&
+    !event.systems.includes(search.system as TimelineSystem)
+  ) {
+    return false;
+  }
+  if (search.guide === "missing" && event.guideSections > 0) return false;
+  const query = search.q?.trim().toLowerCase();
+  if (query) {
+    const haystack = [event.name, event.summary, event.patch ?? ""]
+      .join(" ")
+      .toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+  return true;
+}
+
 export function countRewards(tracks: TimelineTrack[]): number {
   return tracks.reduce(
     (sum, track) =>

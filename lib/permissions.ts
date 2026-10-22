@@ -51,12 +51,24 @@ export async function hasPermission(permission: string) {
     return false;
   }
 
+  return userHasPermission(session.user.id, permission);
+}
+
+/**
+ * La même règle pour un joueur désigné par son identifiant : le serveur MCP
+ * agit au nom du jeton, sans session.
+ */
+export async function userHasPermission(userId: string, permission: string) {
+  if (!ObjectId.isValid(userId)) {
+    return false;
+  }
+
   const user = await db
     .db()
     .collection("users")
     .findOne(
       {
-        _id: new ObjectId(session?.user?.id),
+        _id: new ObjectId(userId),
         $or: [{ isAdmin: true }, { permissions: permission }],
       },
       {

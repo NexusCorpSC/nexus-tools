@@ -694,6 +694,95 @@ const CASES: Case[] = [
   { tool: "list_missing", args: { kind: "stalePrices", limit: 5 } },
   { tool: "get_leaderboard", args: {} },
   { tool: "get_leaderboard", args: { period: "all", scope: "orgs" } },
+  // Évènements officiels (/timeline).
+  { tool: "search_official_events", args: { query: "smoke" } },
+  {
+    tool: "search_official_events",
+    args: { status: "live", system: "stanton" },
+  },
+  { tool: "get_official_event", args: { slug: "smoke-official-event" } },
+  { tool: "get_official_event", args: { slug: "nope" }, expectError: true },
+  { tool: "list_official_event_bugs", args: { slug: "smoke-official-event" } },
+  {
+    tool: "contribute_official_event_edit",
+    args: {
+      slug: "smoke-official-event",
+      changes: { summary: `Résumé de fumée ${Date.now()}` },
+      guide: [{ title: "Astuces", body: "Section de fumée." }],
+    },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "contribute_official_event_edit",
+    args: { slug: "smoke-official-event" },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "contribute_official_event_create",
+    args: {
+      event: {
+        name: "Smoke Official Event",
+        type: "ingame",
+        summary: "Doublon",
+        sources: [
+          {
+            kind: "commlink",
+            title: "Annonce",
+            url: "https://robertsspaceindustries.com/comm-link/smoke",
+          },
+        ],
+      },
+    },
+    auth: true,
+    expectError: true,
+  },
+  {
+    tool: "report_official_event_bug",
+    args: { slug: "smoke-official-event", title: "Bug de fumée" },
+    auth: true,
+    write: true,
+    save: (s) => ({ timelineBug: (s.bug as { id: string }).id }),
+  },
+  {
+    tool: "update_official_event_bug",
+    args: {
+      slug: "smoke-official-event",
+      bugId: "$timelineBug",
+      changes: { status: "workaround", workaround: "Relancer le contrat" },
+    },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "update_official_event_bug",
+    args: {
+      slug: "smoke-official-event",
+      bugId: "$timelineBug",
+      affected: true,
+    },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "delete_official_event_bug",
+    args: { slug: "smoke-official-event", bugId: "$timelineBug" },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "save_official_event_progress",
+    args: { slug: "smoke-official-event", points: { Transport: 250 } },
+    auth: true,
+    write: true,
+  },
+  {
+    tool: "save_official_event_progress",
+    args: { slug: "smoke-official-event", points: { Nope: 1 } },
+    auth: true,
+    expectError: true,
+  },
   { tool: "list_my_contributions", args: {}, auth: true },
   {
     tool: "contribute_item_create",
