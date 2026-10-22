@@ -35,6 +35,7 @@ import {
   MAX_TIMELINE_MISSIONS,
   MAX_TIMELINE_NAME_LENGTH,
   MAX_TIMELINE_PATCH_LENGTH,
+  MAX_TIMELINE_POINTS,
   MAX_TIMELINE_RELATED,
   MAX_TIMELINE_REWARDS_PER_TIER,
   MAX_TIMELINE_SHORT_TEXT,
@@ -169,7 +170,7 @@ const trackSchema = z.object({
   tiers: z
     .array(
       z.object({
-        points: z.number().int().min(0),
+        points: z.number().int().min(0).max(MAX_TIMELINE_POINTS),
         rewards: z.array(rewardSchema).max(MAX_TIMELINE_REWARDS_PER_TIER),
       }),
     )
@@ -191,8 +192,14 @@ const missionSchema = z.object({
     .max(60)
     .optional()
     .describe("Name of the track it scores in"),
-  points: z.number().int().min(0).optional(),
-  auec: z.number().int().min(0).optional().describe("Payout in aUEC"),
+  points: z.number().int().min(0).max(MAX_TIMELINE_POINTS).optional(),
+  auec: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_TIMELINE_POINTS)
+    .optional()
+    .describe("Payout in aUEC"),
   conditions: z.string().max(MAX_TIMELINE_SHORT_TEXT).optional(),
 });
 
@@ -1027,7 +1034,7 @@ export function registerTimelineTools(server: McpServer) {
       inputSchema: z.object({
         slug: z.string().min(1).describe("Slug of the official event"),
         points: z
-          .record(z.string(), z.number().int().min(0))
+          .record(z.string(), z.number().int().min(0).max(MAX_TIMELINE_POINTS))
           .describe('Points by track id or name, e.g. {"Transport": 1200}'),
         confirm: confirmParam,
       }),
