@@ -984,18 +984,61 @@ export async function filterPlaces(
   );
   const page = Math.max(1, filters.page ?? 1);
   const filter = buildFilter(filters);
+  const query = filters.query?.trim();
+  const byName =
+    !filters.sort || !isPlaceSort(filters.sort) || filters.sort === "name";
 
   const [places, total] = await Promise.all([
-    collection()
-      .find(filter, { projection: SUMMARY_PROJECTION })
-      .sort(buildSort(filters.sort))
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray(),
+    query && byName
+      ? collection()
+          .aggregate(
+            [
+              { $match: filter },
+              { $addFields: { _rank: nameRank(query) } },
+              { $sort: { _rank: 1, name: 1 } },
+              { $skip: (page - 1) * limit },
+              { $limit: limit },
+              { $project: SUMMARY_PROJECTION },
+            ],
+            { collation: NAME_COLLATION },
+          )
+          .toArray()
+      : collection()
+          .find(filter, { projection: SUMMARY_PROJECTION })
+          .sort(buildSort(filters.sort))
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .toArray(),
     collection().countDocuments(filter),
   ]);
 
   return { places: places as PlaceSummary[], total };
+}
+
+/** Trie les noms sans tenir compte de la casse : « microTech » parmi les M. */
+const NAME_COLLATION = { locale: "en", strength: 2 } as const;
+
+/**
+ * Un lieu dont le nom répond passe devant ceux qui ne répondent que par leur
+ * parent, leur corps ou leur système. Sans cela, taper « Microtec » rendait
+ * d'abord les dizaines de lieux contenus dans microTech, et la limite coupait
+ * la planète elle-même. Nom exact, puis début du nom, puis nom qui contient.
+ */
+function nameRank(query: string): Document {
+  const escaped = escapeRegex(query);
+  const matches = (regex: string) => ({
+    $regexMatch: { input: "$name", regex, options: "i" },
+  });
+  return {
+    $switch: {
+      branches: [
+        { case: matches(`^${escaped}$`), then: 0 },
+        { case: matches(`^${escaped}`), then: 1 },
+        { case: matches(escaped), then: 2 },
+      ],
+      default: 3,
+    },
+  };
 }
 
 /**
