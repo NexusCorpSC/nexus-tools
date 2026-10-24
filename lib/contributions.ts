@@ -512,9 +512,36 @@ export type CatalogSubmissionMeta = {
   gameVersion?: unknown;
 };
 
+/**
+ * L'image principale d'un lieu proposé : téléversée dans la galerie du parent,
+ * faute de fiche à son nom. Elle devient sa première image à la publication.
+ * Celle que la proposition portait déjà reste valable si le lieu change de
+ * parent : elle attend dans la galerie de l'ancien, et rien ne l'y lit.
+ */
+async function proposedPlaceImage(
+  parentSlug: string,
+  image: unknown,
+  kept?: DbContribution["preview"],
+): Promise<DbContribution["preview"]> {
+  if (!image) return undefined;
+  const url = (image as { url?: unknown }).url;
+  if (kept && typeof url === "string" && url === kept.url) return kept;
+  const normalized = normalizeMediaInput(parentSlug, image);
+  if (await placeMedia().countDocuments({ url: normalized.url })) {
+    throw new ContributionError("invalidMedia", 400);
+  }
+  return {
+    url: normalized.url,
+    width: normalized.width,
+    height: normalized.height,
+  };
+}
+
 async function buildDraft(
   submission: CatalogSubmission,
   level: number,
+  /** L'image de la proposition reprise, gardée telle quelle. */
+  keptPreview?: DbContribution["preview"],
 ): Promise<CatalogDraft> {
   switch (submission.kind) {
     case "placeCreate": {
@@ -522,19 +549,11 @@ async function buildDraft(
         submission.parentSlug,
         submission.input,
       );
-      // Son image principale : téléversée dans la galerie du parent, faute de
-      // fiche à son nom. Elle devient sa première image à la publication.
-      const image = (submission.input as { image?: unknown } | null)?.image;
-      if (image) {
-        const { url, width, height } = normalizeMediaInput(
-          submission.parentSlug,
-          image,
-        );
-        if (await placeMedia().countDocuments({ url })) {
-          throw new ContributionError("invalidMedia", 400);
-        }
-        draft.preview = { url, width, height };
-      }
+      draft.preview = await proposedPlaceImage(
+        submission.parentSlug,
+        (submission.input as { image?: unknown } | null)?.image,
+        keptPreview,
+      );
       return draft;
     }
     case "placeEdit":
@@ -644,7 +663,23 @@ export async function submitCatalogContribution(
       ),
     };
   }
-  const draft = await buildDraft(submission, standing.level);
+  // L'image d'un lieu proposé repris n'a pas à suivre son parent.
+  const keptPreview =
+    submission.kind === "placeCreate" &&
+    meta.contributionId &&
+    ObjectId.isValid(meta.contributionId)
+      ? (
+          await contributions().findOne(
+            {
+              _id: new ObjectId(meta.contributionId),
+              userId: author.id,
+              kind: "placeCreate",
+            },
+            { projection: { preview: 1 } },
+          )
+        )?.preview
+      : undefined;
+  const draft = await buildDraft(submission, standing.level, keptPreview);
 
   let resumeFilter: Filter<DbContribution> = sameTargetFilter(draft);
   if (meta.contributionId) {
@@ -688,6 +723,7 @@ export async function submitCatalogContribution(
   }
 
   const direct =
+    !draft.reviewRequired &&
     standing.level >= DIRECT_EDIT_LEVEL &&
     (standing.level >= 5 ||
       (await countDirectEditsToday(author.id)) < DIRECT_EDIT_DAILY_CAP);
@@ -1260,6 +1296,48 @@ export async function requestChanges(
           at: now,
           message: text,
         },
+      },
+    },
+    { returnDocument: "after" },
+  );
+  if (!updated) throw new ContributionError("notPending", 409);
+  return toContribution(updated);
+}
+
+/**
+ * Range ailleurs un lieu proposé, à la relecture : le relecteur corrige le
+ * parent plutôt que de renvoyer la proposition pour si peu. Elle reste en
+ * attente, reconstruite sous son nouveau parent (même contrôles qu'à l'envoi :
+ * pas sous un magasin, position lisible dans le système du parent). Son image
+ * reste où elle a été téléversée.
+ */
+export async function moveProposedPlace(
+  id: string,
+  reviewer: Contributor & { player?: boolean },
+  parentSlug: string,
+  version?: string,
+): Promise<Contribution> {
+  const contribution = await findPending(id);
+  if (contribution.kind !== "placeCreate") {
+    throw new ContributionError("notAllowed", 400);
+  }
+  if (reviewer.player && contribution.userId.equals(reviewer.id)) {
+    throw new ContributionError("ownContribution", 403);
+  }
+  if (contribution.target.parent?.slug === parentSlug) {
+    throw new ContributionError("noChange", 400);
+  }
+
+  const draft = await buildPlaceCreate(parentSlug, contribution.proposal);
+  const updated = await contributions().findOneAndUpdate(
+    { _id: contribution._id, status: "pending", ...versionFilter(version) },
+    {
+      $set: {
+        target: draft.target,
+        proposal: draft.proposal,
+        after: draft.after,
+        changes: draft.changes,
+        updatedAt: new Date(),
       },
     },
     { returnDocument: "after" },

@@ -150,7 +150,7 @@ function draftSummary(
     )
     .join("\n");
   const how =
-    level >= DIRECT_EDIT_LEVEL
+    level >= DIRECT_EDIT_LEVEL && !draft.reviewRequired
       ? "It will be published right away (contributor level 3 or more), and can be reviewed later."
       : "It will be reviewed by the community before publication.";
   const name = draft.target.name ?? draft.target.slug;
@@ -514,7 +514,7 @@ export function registerContributionTools(server: McpServer) {
     {
       title: "Contribute a correction to a place",
       description:
-        "Propose changes to a place of the catalog (get_place shows the current entry): description, type, services, player tip, shop category and sold items. Only the fields given change. Asks the user to confirm first.",
+        "Propose changes to a place of the catalog (get_place shows the current entry): description, type, services, player tip, shop category, sold items, or its parent (moving it with everything inside it). Only the fields given change. Below contributor level 4, a move is always reviewed by the community. Asks the user to confirm first.",
       inputSchema: z.object({
         place: z.string().describe("Slug of the place"),
         changes: z.object({
@@ -531,6 +531,12 @@ export function registerContributionTools(server: McpServer) {
             .array(z.string())
             .optional()
             .describe("Item slugs a shop sells"),
+          parent: z
+            .string()
+            .optional()
+            .describe(
+              "Slug of the new parent place (search_places): the place moves there with everything inside it. Not a shop, nor a place it contains.",
+            ),
         }),
         ...metaParams,
         confirm: confirmParam,
@@ -539,14 +545,17 @@ export function registerContributionTools(server: McpServer) {
       annotations: WRITE,
       scopeChallenge: placeEditChallenge,
     },
-    async ({ place, changes, source, gameVersion, confirm }, ctx) =>
-      contribute(
+    async ({ place, changes, source, gameVersion, confirm }, ctx) => {
+      const { parent, ...rest } = changes;
+      const input = parent ? { ...rest, parentSlug: parent } : rest;
+      return contribute(
         ctx,
-        (level) => buildPlaceEdit(place, changes, level),
-        { kind: "placeEdit", slug: place, input: changes },
+        (level) => buildPlaceEdit(place, input, level),
+        { kind: "placeEdit", slug: place, input },
         { source, gameVersion },
         confirm,
-      ),
+      );
+    },
   );
 
   server.registerTool(

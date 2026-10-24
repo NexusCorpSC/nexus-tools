@@ -42,7 +42,8 @@ import {
 /**
  * Le formulaire sert aussi aux contributions. Il propose alors au lieu
  * d'écrire : pas de slug (il suit le nom), pas de vignette (elle vient de la
- * galerie), et le nom comme le parent restent fixes en deçà du niveau 4.
+ * galerie), et le nom reste fixe en deçà du niveau 4. Le parent se change à
+ * tout niveau : un déplacement passe alors toujours en relecture.
  */
 type ResumedContribution = {
   /** La contribution reprise, renvoyée à corriger ou encore en attente. */
@@ -168,6 +169,11 @@ export function PlaceForm({
           setError(tForm("newPlaceParentRequired"));
           return;
         }
+        // En deçà du niveau 4, un lieu ne sort pas de l'arbre : on le déplace.
+        if (locked && !parentSlug && published?.parentSlug) {
+          setError(tForm("moveParentRequired"));
+          return;
+        }
         const input = {
           name,
           type,
@@ -289,7 +295,7 @@ export function PlaceForm({
 
         {locked && (
           <p className="text-xs text-muted-foreground sm:col-span-2">
-            {tForm("renameLocked")}
+            {tForm("renameLockedPlace")}
           </p>
         )}
 
@@ -336,14 +342,11 @@ export function PlaceForm({
             value={parentSlug}
             valueLabel={parentLabel}
             disabled={
-              locked ||
-              (contribution?.mode === "create" && !contribution.pickParent)
+              contribution?.mode === "create" && !contribution.pickParent
             }
             exclude={place?.slug}
             // Un magasin ne contient pas d'autre lieu.
-            excludeTypes={
-              contribution?.mode === "create" ? ["shop"] : undefined
-            }
+            excludeTypes={contribution ? ["shop"] : undefined}
             onChange={(next) => {
               setParentSlug(next?.slug);
               setParentLabel(next?.name);
@@ -360,7 +363,7 @@ export function PlaceForm({
           {/* Un lieu proposé a toujours un parent : pas de système à créer. */}
           {contribution?.mode !== "create" && (
             <p className="text-xs text-muted-foreground">
-              {t("Admin.fieldParentHint")}
+              {locked ? tForm("moveReviewed") : t("Admin.fieldParentHint")}
             </p>
           )}
         </div>

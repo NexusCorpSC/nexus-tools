@@ -10,6 +10,7 @@ import {
   getContribution,
   getStanding,
   listRevertConflicts,
+  moveProposedPlace,
   publishContribution,
   rejectContribution,
   requestChanges,
@@ -258,6 +259,48 @@ export async function requestChangesAction(
       action: "contribution.requestChanges",
     },
   );
+}
+
+export type MoveProposedPlaceResult =
+  | { ok: true }
+  | { ok: false; error: ContributionErrorCode; detail?: string };
+
+/**
+ * Range un lieu proposé sous un autre parent, sans le décider : il reste en
+ * attente, et se publie ou se refuse ensuite comme les autres.
+ */
+export async function moveProposedPlaceAction(
+  id: string,
+  parentSlug: string,
+  version?: string,
+  scope: ReviewScope = "moderation",
+): Promise<MoveProposedPlaceResult> {
+  const by = await reviewer(scope);
+  try {
+    const before = await getContribution(id);
+    const moved = await moveProposedPlace(id, by, parentSlug, version);
+    await logModeration({
+      by: by.id,
+      byName: by.name,
+      action: "contribution.moveParent",
+      contributionId: new ObjectId(moved.id),
+      userId: new ObjectId(moved.userId),
+      target: {
+        type: moved.target.type,
+        id: moved.target.slug,
+        name: moved.target.name,
+      },
+      note: `${before?.target.parent?.slug ?? "?"} → ${moved.target.parent?.slug ?? "?"}`,
+    });
+    revalidate([moved]);
+    if (before?.target.parent) {
+      revalidatePath(`/lieux/${before.target.parent.slug}`);
+    }
+    return { ok: true };
+  } catch (error) {
+    if (!(error instanceof ContributionError)) throw error;
+    return { ok: false, error: error.code, detail: error.detail };
+  }
 }
 
 export type RevertActionResult =

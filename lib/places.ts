@@ -1717,7 +1717,7 @@ export async function getPlaceFacets(): Promise<PlaceFacets> {
  * ni s'enfoncer indéfiniment. Vérifié avant toute écriture de `parentSlug` :
  * une boucle rendrait `recomputeSubtree` infini et l'arbre inaffichable.
  */
-async function assertParentIsSound(
+export async function assertParentIsSound(
   slug: string,
   parentSlug: string | undefined,
 ): Promise<void> {
