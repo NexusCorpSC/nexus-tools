@@ -10,6 +10,7 @@ import {
   getContribution,
   getStanding,
   listRevertConflicts,
+  moveProposedPlace,
   publishContribution,
   rejectContribution,
   requestChanges,
@@ -105,6 +106,16 @@ async function assertNotOwn(by: { id: ObjectId; player: boolean }, id: string) {
   }
 }
 
+/** Un lieu déplacé quitte un parent et en rejoint un autre : leurs fiches changent. */
+function movedParents(contribution: Contribution): string[] {
+  const change = contribution.changes?.find(
+    (entry) => entry.field === "parentSlug",
+  );
+  return [change?.before, change?.after].filter(
+    (slug): slug is string => typeof slug === "string" && slug.length > 0,
+  );
+}
+
 /** Les pages qu'une décision change : la file, le journal, et la fiche visée. */
 function revalidate(done: Contribution[]) {
   revalidatePath("/admin/contributions");
@@ -113,7 +124,8 @@ function revalidate(done: Contribution[]) {
   revalidatePath("/admin");
   revalidatePath("/contributions");
   const paths = new Set<string>();
-  for (const { target } of done) {
+  for (const contribution of done) {
+    const { target } = contribution;
     if (target.type === "item") {
       paths.add("/items");
       paths.add(`/items/${target.slug}`);
@@ -128,6 +140,7 @@ function revalidate(done: Contribution[]) {
       paths.add(`/lieux/${target.slug}`);
       if (target.parent) paths.add(`/lieux/${target.parent.slug}`);
     }
+    for (const slug of movedParents(contribution)) paths.add(`/lieux/${slug}`);
   }
   for (const path of paths) revalidatePath(path);
 }
@@ -258,6 +271,48 @@ export async function requestChangesAction(
       action: "contribution.requestChanges",
     },
   );
+}
+
+export type MoveProposedPlaceResult =
+  | { ok: true }
+  | { ok: false; error: ContributionErrorCode; detail?: string };
+
+/**
+ * Range un lieu proposé sous un autre parent, sans le décider : il reste en
+ * attente, et se publie ou se refuse ensuite comme les autres.
+ */
+export async function moveProposedPlaceAction(
+  id: string,
+  parentSlug: string,
+  version?: string,
+  scope: ReviewScope = "moderation",
+): Promise<MoveProposedPlaceResult> {
+  const by = await reviewer(scope);
+  try {
+    const before = await getContribution(id);
+    const moved = await moveProposedPlace(id, by, parentSlug, version);
+    await logModeration({
+      by: by.id,
+      byName: by.name,
+      action: "contribution.moveParent",
+      contributionId: new ObjectId(moved.id),
+      userId: new ObjectId(moved.userId),
+      target: {
+        type: moved.target.type,
+        id: moved.target.slug,
+        name: moved.target.name,
+      },
+      note: `${before?.target.parent?.slug ?? "?"} → ${moved.target.parent?.slug ?? "?"}`,
+    });
+    revalidate([moved]);
+    if (before?.target.parent) {
+      revalidatePath(`/lieux/${before.target.parent.slug}`);
+    }
+    return { ok: true };
+  } catch (error) {
+    if (!(error instanceof ContributionError)) throw error;
+    return { ok: false, error: error.code, detail: error.detail };
+  }
 }
 
 export type RevertActionResult =

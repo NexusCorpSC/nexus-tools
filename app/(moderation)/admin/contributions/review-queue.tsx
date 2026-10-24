@@ -26,7 +26,10 @@ import {
   type RejectReason,
 } from "@/types/contributions";
 import { targetHref } from "@/app/contributions/links";
+import { PlacePicker } from "@/app/lieux/place-picker";
+import type { PlaceSummary } from "@/types/places";
 import {
+  moveProposedPlaceAction,
   publishContributionsAction,
   rejectContributionsAction,
   requestChangesAction,
@@ -116,6 +119,8 @@ export function ReviewQueue({
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [rejecting, setRejecting] = useState<string[] | null>(null);
   const [requesting, setRequesting] = useState<string[] | null>(null);
+  // Le lieu proposé dont on change le parent.
+  const [moving, setMoving] = useState<PendingContribution | null>(null);
   // La contribution que visent les raccourcis : la dernière survolée ou
   // atteinte au clavier.
   const [focused, setFocused] = useState<string | null>(null);
@@ -217,15 +222,47 @@ export function ReviewQueue({
     startTransition(async () => {
       try {
         report(
-          await requestChangesAction(
-            ids,
-            message,
-            versionsOf(ids),
-            scope,
-          ),
+          await requestChangesAction(ids, message, versionsOf(ids), scope),
           "changesRequested",
         );
         setRequesting(null);
+      } catch {
+        toast.error(t("failed"));
+      }
+    });
+  }
+
+  function moveParent(item: PendingContribution, parent: PlaceSummary) {
+    startTransition(async () => {
+      try {
+        const result = await moveProposedPlaceAction(
+          item.id,
+          parent.slug,
+          item.updatedAt,
+          scope,
+        );
+        if (result.ok) {
+          toast.success(
+            t("moveParentDone", {
+              name: item.target.name,
+              parent: parent.name,
+            }),
+          );
+          setMoving(null);
+          router.refresh();
+          return;
+        }
+        if (result.error === "notPending") {
+          // Reprise par son auteur ou décidée entre-temps : la file a changé.
+          toast.info(t("skipped", { count: 1 }));
+          setMoving(null);
+          router.refresh();
+          return;
+        }
+        toast.error(
+          result.detail ??
+            (tErrors.has(result.error) ? tErrors(result.error) : t("failed")),
+        );
       } catch {
         toast.error(t("failed"));
       }
@@ -241,6 +278,7 @@ export function ReviewQueue({
         target?.closest("input, textarea, select, [contenteditable=true]") ||
         rejecting ||
         requesting ||
+        moving ||
         pending
       ) {
         return;
@@ -258,7 +296,7 @@ export function ReviewQueue({
     return () => window.removeEventListener("keydown", onKey);
     // `publish` change à chaque rendu ; ce qu'il lit est déjà dans la liste.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focused, byId, rejecting, requesting, pending]);
+  }, [focused, byId, rejecting, requesting, moving, pending]);
 
   if (items.length === 0) {
     return (
@@ -490,7 +528,17 @@ export function ReviewQueue({
                           media={item.media}
                         />
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {item.kind === "placeCreate" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={pending}
+                            onClick={() => setMoving(item)}
+                          >
+                            {t("moveParent")}
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -592,6 +640,14 @@ export function ReviewQueue({
         pending={pending}
         onClose={() => setRequesting(null)}
         onConfirm={askChanges}
+      />
+
+      <MoveParentDialog
+        key={`move-${moving?.id ?? "closed"}`}
+        item={moving}
+        pending={pending}
+        onClose={() => setMoving(null)}
+        onConfirm={moveParent}
       />
     </div>
   );
@@ -769,6 +825,71 @@ function RequestChangesDialog({
           >
             {pending && <Loader2 className="animate-spin" />}
             {t("requestChangesConfirm")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Ranger un lieu proposé ailleurs : il reste en attente sous son nouveau parent. */
+function MoveParentDialog({
+  item,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  item: PendingContribution | null;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: (item: PendingContribution, parent: PlaceSummary) => void;
+}) {
+  const t = useTranslations("Contributions.Admin");
+  const [parent, setParent] = useState<PlaceSummary | undefined>();
+  const current = item?.target.parent;
+
+  return (
+    <Dialog
+      open={item !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {t("moveParentTitle", { name: item?.target.name ?? "" })}
+          </DialogTitle>
+          <DialogDescription>
+            {current
+              ? t("moveParentDescription", { parent: current.name })
+              : t("moveParentDescriptionNone")}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5 text-sm">
+          <span className="text-[#9ED0FF]/80">{t("moveParentField")}</span>
+          <PlacePicker
+            value={parent?.slug}
+            valueLabel={parent?.name}
+            exclude={current?.slug}
+            // Un magasin ne contient pas d'autre lieu.
+            excludeTypes={["shop"]}
+            onChange={setParent}
+            placeholder={t("moveParentPlaceholder")}
+          />
+        </div>
+        <DialogFooter className="gap-2">
+          <DialogClose asChild>
+            <Button variant="outline" disabled={pending}>
+              {t("cancel")}
+            </Button>
+          </DialogClose>
+          <Button
+            disabled={pending || !parent}
+            onClick={() => item && parent && onConfirm(item, parent)}
+          >
+            {pending && <Loader2 className="animate-spin" />}
+            {t("moveParentConfirm")}
           </Button>
         </DialogFooter>
       </DialogContent>

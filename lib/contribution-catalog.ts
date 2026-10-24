@@ -10,7 +10,9 @@ import {
   type ItemInput,
 } from "@/lib/items";
 import {
+  assertParentIsSound,
   createPlace,
+  PlaceParentError,
   deletePlace,
   getPlaceBySlug,
   normalizePlaceInput,
@@ -98,6 +100,8 @@ export type CatalogDraft = {
   /** Ce que la publication créditera, avant la règle des corrections répétées. */
   points: number;
   preview?: { url: string; width: number; height: number };
+  /** Relue même d'un niveau qui publie d'emblée : un lieu déplacé sous le niveau 4. */
+  reviewRequired?: boolean;
 };
 
 // ─── Comparer et décrire ────────────────────────────────────────────────────
@@ -232,8 +236,11 @@ const PLACE_FIELDS = [
   "position",
 ] as const;
 
-/** Réservés au niveau 4 : le nom fait l'adresse, le parent fait l'arbre. */
-const PLACE_RENAME_FIELDS = new Set(["name", "parentSlug"]);
+/**
+ * Réservé au niveau 4 : le nom fait l'adresse. Le parent fait l'arbre : en
+ * deçà, un déplacement se propose, mais passe toujours en relecture.
+ */
+const PLACE_RENAME_FIELDS = new Set(["name"]);
 
 export function placeToInput(place: Place): PlaceInput {
   return {
@@ -304,6 +311,30 @@ function present<T>(input: unknown, keys: readonly string[]): Partial<T> {
   ) as Partial<T>;
 }
 
+/**
+ * Le parent proposé pour un lieu : pas un magasin, ni le lieu lui-même ou ce
+ * qu'il contient, ni assez profond pour que l'arbre dépasse sa limite.
+ */
+async function assertProposedParent(slug: string, parent: Place) {
+  // Un magasin ne contient pas d'autre lieu.
+  if (parent.type === "shop") {
+    throw new ContributionError("parentShop", 400);
+  }
+  try {
+    await assertParentIsSound(slug, parent.slug);
+  } catch (error) {
+    if (!(error instanceof PlaceParentError)) throw error;
+    throw new ContributionError(
+      error.reason === "depth"
+        ? "parentDepth"
+        : error.reason === "unknown"
+          ? "placeNotFound"
+          : "parentCycle",
+      400,
+    );
+  }
+}
+
 function placeProposal(input: unknown): Partial<PlaceInput> {
   return present<PlaceInput>(input, PLACE_FIELDS);
 }
@@ -315,13 +346,14 @@ export async function buildPlaceCreate(
   const parent = await getPlaceBySlug(parentSlug);
   if (!parent) throw new ContributionError("placeNotFound", 404);
   // Un magasin ne contient pas d'autre lieu.
-  if (parent.type === "shop") throw new ContributionError("invalidInput", 400);
+  if (parent.type === "shop") throw new ContributionError("parentShop", 400);
 
   const proposal = {
     ...placeProposal(input),
     parentSlug: parent.slug,
   } as PlaceInput;
   const normalized = validate(() => normalizePlaceInput(proposal));
+  await assertProposedParent(normalized.slug, parent);
   await assertSoldItems(normalized.soldItems);
   await assertPositionBody(
     normalized.position,
@@ -365,6 +397,14 @@ export async function buildPlaceEdit(
     // En deçà du niveau 4, nom et parent restent ceux du lieu : la proposition
     // ne les porte pas, plutôt que d'être refusée pour eux.
     if (PLACE_RENAME_FIELDS.has(field) && level < RENAME_LEVEL) continue;
+    // Sortir un lieu de l'arbre en fait un système : pas en deçà du niveau 4.
+    if (
+      field === "parentSlug" &&
+      !proposed.parentSlug &&
+      level < RENAME_LEVEL
+    ) {
+      continue;
+    }
     (proposal as Record<string, unknown>)[field] = proposed[field];
   }
   proposal.slug = place.slug;
@@ -372,11 +412,26 @@ export async function buildPlaceEdit(
 
   const normalized = validate(() => normalizePlaceInput(proposal));
   await assertSoldItems(normalized.soldItems);
-  if ("position" in proposed) {
-    await assertPositionBody(normalized.position, place.systemSlug);
+
+  const moved = (normalized.parentSlug ?? null) !== (place.parentSlug ?? null);
+  let systemSlug = place.systemSlug;
+  if (moved && normalized.parentSlug) {
+    const parent = await getPlaceBySlug(normalized.parentSlug);
+    if (!parent) throw new ContributionError("placeNotFound", 404);
+    await assertProposedParent(place.slug, parent);
+    systemSlug = parent.type === "star" ? parent.slug : parent.systemSlug;
   }
-  if (normalized.parentSlug && !(await getPlaceBySlug(normalized.parentSlug))) {
-    throw new ContributionError("placeNotFound", 404);
+  // Déplacé dans un autre système, sa position relevée dans l'ancien ne s'y
+  // relit plus : elle part avec le déplacement, et la relecture le voit.
+  if (moved && systemSlug !== place.systemSlug && normalized.position?.body) {
+    const body = await getPlaceBySlug(normalized.position.body);
+    if (body?.systemSlug !== systemSlug) {
+      normalized.position = undefined;
+      proposal.position = null;
+    }
+  }
+  if ("position" in proposed || moved) {
+    await assertPositionBody(normalized.position, systemSlug);
   }
 
   const fields = PLACE_FIELDS.filter(
@@ -396,6 +451,7 @@ export async function buildPlaceEdit(
     after: afterValues,
     changes: describeAll(fields, beforeValues, afterValues),
     points: POINTS.edit,
+    reviewRequired: moved && level < RENAME_LEVEL,
   };
 }
 

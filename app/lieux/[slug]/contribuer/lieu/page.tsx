@@ -76,6 +76,9 @@ export default async function ProposePlacePage({
       <PlaceForm
         contribution={{
           mode: "create",
+          // Une proposition reprise peut changer de parent ; une neuve se
+          // range sous la fiche d'où on la propose.
+          pickParent: !!resumed,
           parentSlug: parent.slug,
           parentName: parent.name,
           parentSystemSlug:
