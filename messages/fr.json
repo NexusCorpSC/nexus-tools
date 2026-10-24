@@ -4969,6 +4969,8 @@
         "failed": "La recherche a échoué, réessayez.",
         "noResults": "Aucun contrat ne correspond.",
         "alreadyLinked": "déjà rattaché",
+        "selectAll": "Tout sélectionner",
+        "deselectAll": "Tout désélectionner",
         "moreResults": "{count, plural, one {# autre contrat n'est pas affiché} other {# autres contrats ne sont pas affichés}} : précisez le texte.",
         "selectedCount": "{count, plural, =0 {Aucun contrat coché} one {# contrat coché} other {# contrats cochés}}",
         "overCapacity": "{count, plural, one {# contrat ne sera pas ajouté} other {# contrats ne seront pas ajoutés}} : plus que {capacity} place(s) sur l'évènement.",

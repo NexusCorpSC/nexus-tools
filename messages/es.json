@@ -4931,6 +4931,8 @@
         "failed": "La búsqueda ha fallado, inténtalo de nuevo.",
         "noResults": "Ningún contrato coincide.",
         "alreadyLinked": "ya vinculado",
+        "selectAll": "Seleccionar todo",
+        "deselectAll": "Deseleccionar todo",
         "moreResults": "{count, plural, one {# contrato más no se muestra} other {# contratos más no se muestran}}: precisa el texto.",
         "selectedCount": "{count, plural, =0 {Ningún contrato marcado} one {# contrato marcado} other {# contratos marcados}}",
         "overCapacity": "{count, plural, one {# contrato no se añadirá} other {# contratos no se añadirán}}: solo quedan {capacity} plaza(s) en el evento.",

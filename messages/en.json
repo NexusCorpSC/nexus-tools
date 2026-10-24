@@ -4970,6 +4970,8 @@
         "failed": "The search failed, try again.",
         "noResults": "No matching contract.",
         "alreadyLinked": "already linked",
+        "selectAll": "Select all",
+        "deselectAll": "Deselect all",
         "moreResults": "{count, plural, one {# more contract is not shown} other {# more contracts are not shown}}: refine the text.",
         "selectedCount": "{count, plural, =0 {No contract ticked} one {# contract ticked} other {# contracts ticked}}",
         "overCapacity": "{count, plural, one {# contract won't be added} other {# contracts won't be added}}: only {capacity} slot(s) left on the event.",
