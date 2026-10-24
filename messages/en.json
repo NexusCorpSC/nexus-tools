@@ -4933,12 +4933,38 @@
       "missionConditions": "Conditions (rank, reputation…)",
       "removeMission": "Remove contract",
       "addMission": "Add a contract",
+      "addMissionsByPrefix": "Add by name prefix…",
+      "addMissionsBySearch": "Pick several contracts…",
       "related": "Related events",
       "relatedHint": "Previous editions, or what comes with it.",
       "addRelated": "Link an event…",
       "removeRelated": "Unlink",
       "submitCreate": "Propose the event",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "Picker": {
+        "title": "Link contracts",
+        "modePrefix": "Starts with",
+        "modeSearch": "Search",
+        "prefixHint": "Every contract whose name starts with this text, e.g. “RSI Disc. Month:”. Untick the ones to leave out.",
+        "searchHint": "Tick the contracts to link; the selection is kept from one search to the next.",
+        "prefixLabel": "Start of the contracts' name",
+        "prefixPlaceholder": "RSI Disc. Month:",
+        "searchLabel": "Search a contract",
+        "searchPlaceholder": "Contract name or description…",
+        "typeMore": "Type at least 2 characters.",
+        "loading": "Searching…",
+        "failed": "The search failed, try again.",
+        "noResults": "No matching contract.",
+        "alreadyLinked": "already linked",
+        "moreResults": "{count, plural, one {# more contract is not shown} other {# more contracts are not shown}}: refine the text.",
+        "selectedCount": "{count, plural, =0 {No contract ticked} one {# contract ticked} other {# contracts ticked}}",
+        "overCapacity": "{count, plural, one {# contract won't be added} other {# contracts won't be added}}: only {capacity} slot(s) left on the event.",
+        "track": "Track for the added contracts",
+        "noTrack": "No track",
+        "trackOption": "Track: {name}",
+        "cancel": "Cancel",
+        "add": "{count, plural, =0 {Add} one {Add # contract} other {Add # contracts}}"
+      }
     }
   }
 }

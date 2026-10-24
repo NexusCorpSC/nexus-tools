@@ -4894,12 +4894,38 @@
       "missionConditions": "Condiciones (rango, reputación…)",
       "removeMission": "Quitar el contrato",
       "addMission": "Añadir un contrato",
+      "addMissionsByPrefix": "Añadir por inicio del nombre…",
+      "addMissionsBySearch": "Elegir varios contratos…",
       "related": "Eventos relacionados",
       "relatedHint": "Las ediciones anteriores, o lo que lo acompaña.",
       "addRelated": "Vincular un evento…",
       "removeRelated": "Desvincular",
       "submitCreate": "Proponer el evento",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "Picker": {
+        "title": "Vincular contratos",
+        "modePrefix": "Empieza por",
+        "modeSearch": "Búsqueda",
+        "prefixHint": "Todos los contratos cuyo nombre empieza por este texto, por ejemplo «RSI Disc. Month:». Desmarca los que quieras dejar fuera.",
+        "searchHint": "Marca los contratos que quieras vincular; la selección se mantiene de una búsqueda a otra.",
+        "prefixLabel": "Inicio del nombre de los contratos",
+        "prefixPlaceholder": "RSI Disc. Month:",
+        "searchLabel": "Buscar un contrato",
+        "searchPlaceholder": "Nombre o descripción del contrato…",
+        "typeMore": "Escribe al menos 2 caracteres.",
+        "loading": "Buscando…",
+        "failed": "La búsqueda ha fallado, inténtalo de nuevo.",
+        "noResults": "Ningún contrato coincide.",
+        "alreadyLinked": "ya vinculado",
+        "moreResults": "{count, plural, one {# contrato más no se muestra} other {# contratos más no se muestran}}: precisa el texto.",
+        "selectedCount": "{count, plural, =0 {Ningún contrato marcado} one {# contrato marcado} other {# contratos marcados}}",
+        "overCapacity": "{count, plural, one {# contrato no se añadirá} other {# contratos no se añadirán}}: solo quedan {capacity} plaza(s) en el evento.",
+        "track": "Recorrido de los contratos añadidos",
+        "noTrack": "Sin recorrido",
+        "trackOption": "Recorrido: {name}",
+        "cancel": "Cancelar",
+        "add": "{count, plural, =0 {Añadir} one {Añadir # contrato} other {Añadir # contratos}}"
+      }
     }
   }
 }
