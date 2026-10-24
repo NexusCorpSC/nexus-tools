@@ -135,6 +135,20 @@ export function MissionPickerDialog({
     }
   };
 
+  // Le bouton agit sur la liste affichée, hors contrats déjà rattachés.
+  const allChecked = fresh.length > 0 && fresh.every((mission) => isChecked(mission._id));
+  const toggleAll = () => {
+    if (mode === "prefix") {
+      setExcluded(allChecked ? new Set(fresh.map((mission) => mission._id)) : new Set());
+    } else {
+      const shown = new Set(fresh.map((mission) => mission._id));
+      setSelected((current) => {
+        const others = current.filter((entry) => !shown.has(entry._id));
+        return allChecked ? others : [...others, ...fresh];
+      });
+    }
+  };
+
   const tabClass = (active: boolean) =>
     `rounded-md px-3 py-1.5 text-sm ${
       active ? "bg-[#9ED0FF]/15 text-[#E3F1FF]" : "text-muted-foreground hover:text-nexus"
@@ -183,6 +197,18 @@ export function MissionPickerDialog({
           }}
           className="h-9 w-full rounded-md border border-[#9ED0FF]/25 bg-[#071E30] px-2.5 text-sm text-[#E3F1FF]"
         />
+
+        {fresh.length > 0 && !results.loading && (
+          <div className="-mb-2 flex justify-end">
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="text-xs text-muted-foreground underline-offset-2 hover:text-nexus hover:underline"
+            >
+              {allChecked ? t("deselectAll") : t("selectAll")}
+            </button>
+          </div>
+        )}
 
         <div className="max-h-[45vh] min-h-24 overflow-auto rounded-md border border-[#9ED0FF]/15 bg-[#030912]/25 p-1">
           {text.trim().length < 2 ? (
