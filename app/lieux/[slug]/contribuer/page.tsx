@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { getPlaceDetails } from "@/lib/places";
+import { getPlaceBySlug, getPlaceDetails } from "@/lib/places";
 import { getItemNames } from "@/lib/items";
 import { PlaceForm } from "@/app/admin/lieux/components/place-form";
 import { ContributionNotice } from "@/app/contributions/notice";
@@ -48,11 +48,17 @@ export default async function ContributePlacePage({
     (await resumableContribution(c, userId, "placeEdit", slug)) ??
     (await openEditOn(userId, "placeEdit", slug));
   const initial = resumed?.proposal as Partial<Place> | undefined;
-  const [t, itemNames] = await Promise.all([
+  // Un déplacement repris : la proposition ne garde que le slug du parent.
+  const movedTo =
+    initial?.parentSlug && initial.parentSlug !== place.parentSlug
+      ? initial.parentSlug
+      : undefined;
+  const [t, itemNames, proposedParent] = await Promise.all([
     getTranslations("Contributions.Form"),
     getItemNames([
       ...new Set([...(place.soldItems ?? []), ...(initial?.soldItems ?? [])]),
     ]),
+    movedTo ? getPlaceBySlug(movedTo) : null,
   ]);
 
   return (
@@ -67,7 +73,11 @@ export default async function ContributePlacePage({
         </h1>
         <ContributionNotice
           standing={standing}
-          direct={standing.level >= DIRECT_EDIT_LEVEL}
+          // Un déplacement sous le niveau 4 passe toujours en relecture.
+          direct={
+            standing.level >= DIRECT_EDIT_LEVEL &&
+            !(movedTo && standing.level < RENAME_LEVEL)
+          }
           points={POINTS.edit}
           resumed={resumed}
         />
@@ -75,7 +85,7 @@ export default async function ContributePlacePage({
 
       <PlaceForm
         place={place}
-        parentName={place.parentName}
+        parentName={proposedParent?.name ?? movedTo ?? place.parentName}
         itemNames={itemNames}
         contribution={{
           mode: "edit",

@@ -29,6 +29,13 @@ function revalidateTarget(contribution: Contribution) {
     revalidatePath("/lieux");
     revalidatePath(`/lieux/${target.slug}`);
     if (target.parent) revalidatePath(`/lieux/${target.parent.slug}`);
+    // Un lieu déplacé quitte un parent et en rejoint un autre.
+    for (const change of contribution.changes ?? []) {
+      if (change.field !== "parentSlug") continue;
+      for (const slug of [change.before, change.after]) {
+        if (slug) revalidatePath(`/lieux/${slug}`);
+      }
+    }
   } else if (target.type === "mission") {
     revalidatePath(`/missions/${target.slug}`);
     // Ses lieux la citent sur leur fiche.

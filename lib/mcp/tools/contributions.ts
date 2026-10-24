@@ -514,7 +514,7 @@ export function registerContributionTools(server: McpServer) {
     {
       title: "Contribute a correction to a place",
       description:
-        "Propose changes to a place of the catalog (get_place shows the current entry): description, type, services, player tip, shop category, sold items, or its parent (moving it with everything inside it). Only the fields given change. Below contributor level 4, a move is always reviewed by the community. Asks the user to confirm first.",
+        "Propose changes to a place of the catalog (get_place shows the current entry): description, type, services, player tip, shop category, sold items, or its parent (moving it with everything inside it). Only the fields given change. Below contributor level 4, a move is always reviewed by the community. Moved to another star system, a position read in the old one is removed. Asks the user to confirm first.",
       inputSchema: z.object({
         place: z.string().describe("Slug of the place"),
         changes: z.object({

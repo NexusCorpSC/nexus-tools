@@ -2853,7 +2853,10 @@
       "suspended": "Vos contributions sont suspendues par la modération pour le moment.",
       "missionNotFound": "Cette mission n'existe plus.",
       "tooManyOrgs": "Vous avez déjà créé deux organisations : c'est la limite par compte.",
-      "alreadyConfirmed": "Vous l'avez déjà fait cette semaine. Merci !"
+      "alreadyConfirmed": "Vous l'avez déjà fait cette semaine. Merci !",
+      "parentShop": "Un magasin ne contient pas d'autre lieu : choisissez un autre parent.",
+      "parentCycle": "Un lieu ne peut pas être rangé dans lui-même, ni dans un lieu qu'il contient.",
+      "parentDepth": "L'arborescence des lieux est limitée à 8 niveaux, lieu et contenu compris : choisissez un parent moins profond."
     },
     "reasons": {
       "inaccurate": "Inexact ou invérifiable",
@@ -2977,7 +2980,7 @@
       "sentForReview": "Proposition envoyée pour relecture",
       "renameLocked": "Renommer, déplacer ou changer la nature d'une fiche demande le niveau 4.",
       "renameLockedPlace": "Renommer un lieu demande le niveau 4.",
-      "moveReviewed": "Changer de parent déplace le lieu et tout ce qu'il contient. En deçà du niveau 4, le déplacement passe toujours en relecture.",
+      "moveReviewed": "Changer de parent déplace le lieu et tout ce qu'il contient. En deçà du niveau 4, le déplacement passe toujours en relecture, même quand vos corrections sont publiées d'emblée. Vers un autre système, la position relevée dans l'ancien est retirée.",
       "moveParentRequired": "Choisissez le nouveau parent du lieu.",
       "changesRequestedTitle": "Un relecteur vous demande de reprendre cette proposition",
       "levelDirect": "{level} : votre modification sera publiée tout de suite, puis relue.",

@@ -2854,7 +2854,10 @@
       "suspended": "Your contributions are suspended by moderation for now.",
       "missionNotFound": "This mission no longer exists.",
       "tooManyOrgs": "You've already created two organizations: that's the limit per account.",
-      "alreadyConfirmed": "You already did this week. Thanks!"
+      "alreadyConfirmed": "You already did this week. Thanks!",
+      "parentShop": "A shop doesn't contain other places: pick another parent.",
+      "parentCycle": "A place can't be put inside itself, nor inside a place it contains.",
+      "parentDepth": "The place tree is limited to 8 levels, including everything inside the place: pick a shallower parent."
     },
     "reasons": {
       "inaccurate": "Inaccurate or unverifiable",
@@ -2978,7 +2981,7 @@
       "sentForReview": "Proposal sent for review",
       "renameLocked": "Renaming, moving or changing the kind of an entry requires level 4.",
       "renameLockedPlace": "Renaming a place requires level 4.",
-      "moveReviewed": "Changing the parent moves the place and everything inside it. Below level 4, a move is always reviewed.",
+      "moveReviewed": "Changing the parent moves the place and everything inside it. Below level 4, a move is always reviewed, even when your corrections are usually published right away. Moved to another system, a position read in the old one is removed.",
       "moveParentRequired": "Pick the place's new parent.",
       "changesRequestedTitle": "A reviewer asked you to rework this proposal",
       "levelDirect": "{level}: your change is published right away, then reviewed.",

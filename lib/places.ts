@@ -1712,10 +1712,38 @@ export async function getPlaceFacets(): Promise<PlaceFacets> {
 
 // ─── Écriture ────────────────────────────────────────────────────────────────
 
+/** Pourquoi un parent est refusé : les contributions le traduisent. */
+export class PlaceParentError extends Error {
+  constructor(
+    readonly reason: "self" | "cycle" | "unknown" | "depth",
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/**
+ * Ce que le lieu contient sous lui, en niveaux : 0 pour un lieu sans enfant.
+ * Tous les lieux comptent, privés compris : ils descendent avec lui.
+ */
+async function subtreeHeight(slug: string): Promise<number> {
+  const [place, deepest] = await Promise.all([
+    collection().findOne({ slug }, { projection: { _id: 0, depth: 1 } }),
+    collection().findOne(
+      { ancestorSlugs: slug },
+      { projection: { _id: 0, depth: 1 }, sort: { depth: -1 } },
+    ),
+  ]);
+  if (!place || !deepest) return 0;
+  return Math.max(0, (deepest.depth ?? 0) - (place.depth ?? 0));
+}
+
 /**
  * Un lieu ne peut pas se contenir lui-même, ni contenir celui qui le contient,
- * ni s'enfoncer indéfiniment. Vérifié avant toute écriture de `parentSlug` :
- * une boucle rendrait `recomputeSubtree` infini et l'arbre inaffichable.
+ * ni s'enfoncer indéfiniment — lui et tout ce qu'il contient. Vérifié avant
+ * toute écriture de `parentSlug` : une boucle rendrait `recomputeSubtree`
+ * infini et l'arbre inaffichable, et un lieu trop profond échapperait à
+ * `loadSubtree`.
  */
 export async function assertParentIsSound(
   slug: string,
@@ -1723,7 +1751,10 @@ export async function assertParentIsSound(
 ): Promise<void> {
   if (!parentSlug) return;
   if (parentSlug === slug) {
-    throw new Error("Un lieu ne peut pas être contenu dans lui-même");
+    throw new PlaceParentError(
+      "self",
+      "Un lieu ne peut pas être contenu dans lui-même",
+    );
   }
 
   const parent = await collection().findOne(
@@ -1731,15 +1762,20 @@ export async function assertParentIsSound(
     { projection: { _id: 0, slug: 1, ancestorSlugs: 1, depth: 1 } },
   );
   if (!parent) {
-    throw new Error(`Le lieu « ${parentSlug} » n'existe pas`);
+    throw new PlaceParentError(
+      "unknown",
+      `Le lieu « ${parentSlug} » n'existe pas`,
+    );
   }
   if ((parent.ancestorSlugs ?? []).includes(slug)) {
-    throw new Error(
+    throw new PlaceParentError(
+      "cycle",
       "Un lieu ne peut pas être contenu dans l'un des lieux qu'il contient",
     );
   }
-  if ((parent.depth ?? 0) + 1 > MAX_PLACE_DEPTH) {
-    throw new Error(
+  if ((parent.depth ?? 0) + 1 + (await subtreeHeight(slug)) > MAX_PLACE_DEPTH) {
+    throw new PlaceParentError(
+      "depth",
       `L'arborescence des lieux est limitée à ${MAX_PLACE_DEPTH} niveaux`,
     );
   }

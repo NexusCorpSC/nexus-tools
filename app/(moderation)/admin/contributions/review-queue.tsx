@@ -222,12 +222,7 @@ export function ReviewQueue({
     startTransition(async () => {
       try {
         report(
-          await requestChangesAction(
-            ids,
-            message,
-            versionsOf(ids),
-            scope,
-          ),
+          await requestChangesAction(ids, message, versionsOf(ids), scope),
           "changesRequested",
         );
         setRequesting(null);
@@ -248,7 +243,10 @@ export function ReviewQueue({
         );
         if (result.ok) {
           toast.success(
-            t("moveParentDone", { name: item.target.name, parent: parent.name }),
+            t("moveParentDone", {
+              name: item.target.name,
+              parent: parent.name,
+            }),
           );
           setMoving(null);
           router.refresh();
@@ -298,7 +296,7 @@ export function ReviewQueue({
     return () => window.removeEventListener("keydown", onKey);
     // `publish` change à chaque rendu ; ce qu'il lit est déjà dans la liste.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focused, byId, rejecting, requesting, pending]);
+  }, [focused, byId, rejecting, requesting, moving, pending]);
 
   if (items.length === 0) {
     return (

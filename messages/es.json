@@ -2815,7 +2815,10 @@
       "suspended": "La moderación ha suspendido tus contribuciones por el momento.",
       "missionNotFound": "Esta misión ya no existe.",
       "tooManyOrgs": "Ya has creado dos organizaciones: es el límite por cuenta.",
-      "alreadyConfirmed": "Ya lo has hecho esta semana. ¡Gracias!"
+      "alreadyConfirmed": "Ya lo has hecho esta semana. ¡Gracias!",
+      "parentShop": "Una tienda no contiene otros lugares: elige otro padre.",
+      "parentCycle": "Un lugar no puede guardarse dentro de sí mismo ni dentro de un lugar que contiene.",
+      "parentDepth": "El árbol de lugares está limitado a 8 niveles, contando todo lo que contiene el lugar: elige un padre menos profundo."
     },
     "reasons": {
       "inaccurate": "Inexacto o inverificable",
@@ -2939,7 +2942,7 @@
       "sentForReview": "Propuesta enviada para revisión",
       "renameLocked": "Renombrar, mover o cambiar el tipo de una ficha requiere el nivel 4.",
       "renameLockedPlace": "Renombrar un lugar requiere el nivel 4.",
-      "moveReviewed": "Cambiar el padre mueve el lugar y todo lo que contiene. Por debajo del nivel 4, el cambio siempre pasa por revisión.",
+      "moveReviewed": "Cambiar el padre mueve el lugar y todo lo que contiene. Por debajo del nivel 4, el cambio siempre pasa por revisión, aunque tus correcciones suelan publicarse al momento. Si va a otro sistema, se quita la posición tomada en el anterior.",
       "moveParentRequired": "Elige el nuevo padre del lugar.",
       "changesRequestedTitle": "Un revisor te pide que corrijas esta propuesta",
       "levelDirect": "{level}: tu modificación se publicará de inmediato y luego se revisará.",

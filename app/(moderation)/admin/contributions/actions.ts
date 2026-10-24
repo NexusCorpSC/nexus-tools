@@ -106,6 +106,16 @@ async function assertNotOwn(by: { id: ObjectId; player: boolean }, id: string) {
   }
 }
 
+/** Un lieu déplacé quitte un parent et en rejoint un autre : leurs fiches changent. */
+function movedParents(contribution: Contribution): string[] {
+  const change = contribution.changes?.find(
+    (entry) => entry.field === "parentSlug",
+  );
+  return [change?.before, change?.after].filter(
+    (slug): slug is string => typeof slug === "string" && slug.length > 0,
+  );
+}
+
 /** Les pages qu'une décision change : la file, le journal, et la fiche visée. */
 function revalidate(done: Contribution[]) {
   revalidatePath("/admin/contributions");
@@ -114,7 +124,8 @@ function revalidate(done: Contribution[]) {
   revalidatePath("/admin");
   revalidatePath("/contributions");
   const paths = new Set<string>();
-  for (const { target } of done) {
+  for (const contribution of done) {
+    const { target } = contribution;
     if (target.type === "item") {
       paths.add("/items");
       paths.add(`/items/${target.slug}`);
@@ -129,6 +140,7 @@ function revalidate(done: Contribution[]) {
       paths.add(`/lieux/${target.slug}`);
       if (target.parent) paths.add(`/lieux/${target.parent.slug}`);
     }
+    for (const slug of movedParents(contribution)) paths.add(`/lieux/${slug}`);
   }
   for (const path of paths) revalidatePath(path);
 }

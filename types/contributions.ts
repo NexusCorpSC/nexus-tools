@@ -368,6 +368,9 @@ export const CONTRIBUTION_ERRORS = [
   "missionNotFound",
   "tooManyOrgs",
   "alreadyConfirmed",
+  "parentShop",
+  "parentCycle",
+  "parentDepth",
 ] as const;
 
 export type ContributionErrorCode = (typeof CONTRIBUTION_ERRORS)[number];
