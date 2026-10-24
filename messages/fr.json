@@ -4932,12 +4932,38 @@
       "missionConditions": "Conditions (rang, réputation…)",
       "removeMission": "Retirer le contrat",
       "addMission": "Ajouter un contrat",
+      "addMissionsByPrefix": "Ajouter par début de nom…",
+      "addMissionsBySearch": "Choisir plusieurs contrats…",
       "related": "Évènements liés",
       "relatedHint": "Les éditions précédentes, ou ce qui l'accompagne.",
       "addRelated": "Lier un évènement…",
       "removeRelated": "Délier",
       "submitCreate": "Proposer l'évènement",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "Picker": {
+        "title": "Rattacher des contrats",
+        "modePrefix": "Commence par",
+        "modeSearch": "Recherche",
+        "prefixHint": "Tous les contrats dont le nom commence par ce texte, par exemple « RSI Disc. Month: ». Décochez ceux à laisser de côté.",
+        "searchHint": "Cochez les contrats à rattacher ; la sélection reste d'une recherche à l'autre.",
+        "prefixLabel": "Début du nom des contrats",
+        "prefixPlaceholder": "RSI Disc. Month:",
+        "searchLabel": "Rechercher un contrat",
+        "searchPlaceholder": "Nom ou description du contrat…",
+        "typeMore": "Tapez au moins 2 caractères.",
+        "loading": "Recherche…",
+        "failed": "La recherche a échoué, réessayez.",
+        "noResults": "Aucun contrat ne correspond.",
+        "alreadyLinked": "déjà rattaché",
+        "moreResults": "{count, plural, one {# autre contrat n'est pas affiché} other {# autres contrats ne sont pas affichés}} : précisez le texte.",
+        "selectedCount": "{count, plural, =0 {Aucun contrat coché} one {# contrat coché} other {# contrats cochés}}",
+        "overCapacity": "{count, plural, one {# contrat ne sera pas ajouté} other {# contrats ne seront pas ajoutés}} : plus que {capacity} place(s) sur l'évènement.",
+        "track": "Parcours des contrats ajoutés",
+        "noTrack": "Sans parcours",
+        "trackOption": "Parcours : {name}",
+        "cancel": "Annuler",
+        "add": "{count, plural, =0 {Ajouter} one {Ajouter # contrat} other {Ajouter # contrats}}"
+      }
     }
   }
 }

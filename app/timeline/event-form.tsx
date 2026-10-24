@@ -19,6 +19,11 @@ import {
 } from "@/app/contributions/contribute-kit";
 import type { ItemSummary } from "@/types/items";
 import {
+  MissionPickerDialog,
+  type MissionPick,
+  type MissionPickerMode,
+} from "@/app/timeline/mission-picker-dialog";
+import {
   MAX_TIMELINE_DESCRIPTION_LENGTH,
   MAX_TIMELINE_MISSIONS,
   MAX_TIMELINE_NAME_LENGTH,
@@ -506,6 +511,7 @@ export function EventForm({
       conditions: mission.conditions ?? "",
     })),
   );
+  const [picker, setPicker] = useState<MissionPickerMode | null>(null);
   const [related, setRelated] = useState<string[]>(initial?.relatedSlugs ?? []);
   const [meta, setMeta] = useState<ContributionMetaValue>({
     source: source ?? "",
@@ -1138,25 +1144,59 @@ export function EventForm({
           ))}
         </ul>
         {missions.length < MAX_TIMELINE_MISSIONS && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setMissions((current) => [
+                  ...current,
+                  {
+                    key: nextKey(),
+                    name: "",
+                    track: "",
+                    points: "",
+                    auec: "",
+                    conditions: "",
+                  },
+                ])
+              }
+            >
+              {t("addMission")}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setPicker("prefix")}>
+              {t("addMissionsByPrefix")}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setPicker("search")}>
+              {t("addMissionsBySearch")}
+            </Button>
+          </div>
+        )}
+        {picker && (
+          <MissionPickerDialog
+            initialMode={picker}
+            onClose={() => setPicker(null)}
+            linkedIds={
+              new Set(missions.flatMap((mission) => (mission.missionId ? [mission.missionId] : [])))
+            }
+            capacity={MAX_TIMELINE_MISSIONS - missions.length}
+            trackNames={trackNames}
+            onAdd={(picked: MissionPick[], track: string) =>
               setMissions((current) => [
                 ...current,
-                {
+                ...picked.map((mission) => ({
                   key: nextKey(),
+                  missionId: mission._id,
+                  missionTitle: mission.title,
                   name: "",
-                  track: "",
+                  track,
                   points: "",
                   auec: "",
                   conditions: "",
-                },
+                })),
               ])
             }
-          >
-            {t("addMission")}
-          </Button>
+          />
         )}
       </Section>
 

@@ -2,10 +2,14 @@ import { NextResponse, NextRequest } from "next/server";
 import db from "@/lib/db";
 import { ACTIVE_MISSION } from "@/lib/data/missions";
 import { ObjectId } from "bson";
+import { escapeRegex } from "@/lib/inventory";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get("query") || "";
+  // Les contrats dont le titre commence par ce texte, pris tel quel : « RSI
+  // Disc. Month: » rattache d'un coup les contrats d'un évènement officiel.
+  const prefix = searchParams.get("prefix")?.trim() || "";
   const factionId = searchParams.get("factionId") || undefined;
   const hasBlueprints = searchParams.get("hasBlueprints");
   const limitParam = searchParams.get("limit");
@@ -24,6 +28,9 @@ export async function GET(request: NextRequest) {
       { title: { $regex: query, $options: "i" } },
       { description: { $regex: query, $options: "i" } },
     ];
+  }
+  if (prefix) {
+    match["title"] = { $regex: `^${escapeRegex(prefix)}`, $options: "i" };
   }
   if (factionId) {
     try {
