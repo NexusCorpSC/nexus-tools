@@ -36,6 +36,11 @@ const mcpHandler = createMcpHandler(registerNexusServer, {
   cacheHints: MCP_CACHE_HINTS,
   verboseLogs: process.env.NODE_ENV === "development",
   onEvent: logMcpEvent,
+  // Le serveur n'envoie aucune notification (la liste des outils ne change
+  // qu'au déploiement). Un client qui ouvre `subscriptions/listen` tiendrait
+  // pour rien une fonction jusqu'à `maxDuration`, puis recommencerait : 22 %
+  // de la mémoire facturée par Vercel en octobre 2026. Refusées d'emblée.
+  maxSubscriptions: 0,
 });
 
 const resourceMetadataPath = "/.well-known/oauth-protected-resource/mcp";
