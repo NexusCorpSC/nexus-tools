@@ -292,6 +292,11 @@ export type AppRequestsSummary = {
   /** Vide sans `since` : la première lecture ne fait que poser le repère. */
   events: RequestNotice[];
   unseen: number;
+  /**
+   * Le repère à renvoyer comme `since` à la lecture suivante : quelques
+   * secondes avant l'heure du site, ou la dernière notice lue si la page
+   * était pleine.
+   */
   now: string;
 };
 

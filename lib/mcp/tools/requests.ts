@@ -13,6 +13,7 @@ import {
   listMyOrgs,
   listMyRequests,
   postOfferMessage,
+  requestUnitFor,
   RequestError,
   type Actor,
   type RequestChange,
@@ -447,7 +448,7 @@ export function registerRequestTools(server: McpServer) {
       };
       const orgNames = mine.filter((org) => orgIds.includes(org.id)).map((org) => org.name);
       const summary =
-        `Post a request for ${quantityLabel(args.quantity, args.unit)} of ${args.name}` +
+        `Post a request for ${quantityLabel(args.quantity, await requestUnitFor(args.name, args.unit))} of ${args.name}` +
         (args.minQuality !== undefined ? `, quality ≥ ${args.minQuality}` : "") +
         (args.unitPrice !== undefined ? `, ${args.unitPrice} aUEC each` : ", price negotiable") +
         (locationName ? `, pickup at ${locationName}` : "") +
@@ -681,7 +682,7 @@ export function registerRequestTools(server: McpServer) {
         offerId: z.string(),
         action: z.enum(OFFER_ACTIONS),
         unitPrice: z.number().int().min(0).optional().describe("For price: aUEC per unit"),
-        quantity: z.number().positive().optional().describe("For receive: what was received; the whole offer by default"),
+        quantity: z.number().positive().optional().describe("For receive: what was received; the whole offer by default, never more than the offer"),
         storeAt: z
           .string()
           .optional()
@@ -734,7 +735,12 @@ export function registerRequestTools(server: McpServer) {
             offer: shownOffer(result.offer),
             request: shownRequest(result.request),
           },
-          `Done: offer ${result.offer.id} is ${result.offer.status.toLowerCase()}; ${quantityLabel(result.request.remaining, result.request.unit)} still missing on ${mdLink(result.request.name, requestPath(result.request.id, result.offer.id))}.`,
+          `Done: offer ${result.offer.id} is ${result.offer.status.toLowerCase()}; ${quantityLabel(result.request.remaining, result.request.unit)} still missing on ${mdLink(result.request.name, requestPath(result.request.id, result.offer.id))}.` +
+            (result.inventory && !result.inventory.added
+              ? ` It could not be added to the inventory (${result.inventory.error}): add it by hand.`
+              : result.inventory?.added
+                ? " Added to the inventory."
+                : ""),
         );
       } catch (error) {
         return requestError(error, "Nothing was changed");

@@ -5132,7 +5132,8 @@
       "quantity": "Quantité reçue",
       "store": "Ajouter à mon inventaire",
       "where": "Lieu de rangement",
-      "confirm": "Marquer reçu"
+      "confirm": "Marquer reçu",
+      "inventoryFailed": "Reçu enregistré, mais l'ajout à votre inventaire a échoué : rangez-le à la main."
     },
     "owner": {
       "edit": "Modifier",
@@ -5186,7 +5187,8 @@
       "alreadyOffered": "Vous avez déjà une offre en cours sur cette demande.",
       "ownRequest": "Vous ne pouvez pas répondre à votre propre demande.",
       "closed": "Cette demande n'est plus ouverte.",
-      "notMember": "Vous n'êtes pas membre d'une des orgas choisies."
+      "notMember": "Vous n'êtes pas membre d'une des orgas choisies.",
+      "receivedTooMuch": "Vous ne pouvez pas recevoir plus que la quantité de l'offre."
     },
     "bell": {
       "label": "Demandes",

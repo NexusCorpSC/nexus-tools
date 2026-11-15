@@ -39,7 +39,11 @@ async function post(offerId: string, body: Record<string, unknown>) {
     body: JSON.stringify(body),
   });
   const data = await response.json().catch(() => ({}));
-  return { ok: response.ok, error: data.error as string | undefined };
+  return {
+    ok: response.ok,
+    error: data.error as string | undefined,
+    inventory: data.inventory as { added: boolean } | undefined,
+  };
 }
 
 /**
@@ -69,6 +73,8 @@ export function OfferThread({
   const [receiving, setReceiving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Après « Reçu » : l'ajout à l'inventaire a échoué, à ranger à la main.
+  const [inventoryFailed, setInventoryFailed] = useState(false);
   const actions = offerActionsFor(offer.status, role);
   const active = offer.status === "NEW" || offer.status === "KEPT";
 
@@ -296,13 +302,18 @@ export function OfferThread({
         </div>
       )}
 
+      {inventoryFailed && (
+        <p className="px-4 pb-3 text-sm text-amber-300">{t("receive.inventoryFailed")}</p>
+      )}
+
       {receiving && (
         <ReceiveDialog
           offer={offer}
           request={request}
           onClose={() => setReceiving(false)}
-          onDone={() => {
+          onDone={(added) => {
             setReceiving(false);
+            setInventoryFailed(added === false);
             router.refresh();
           }}
         />
@@ -321,7 +332,8 @@ function ReceiveDialog({
   offer: RequestOffer;
   request: PlayerRequest;
   onClose: () => void;
-  onDone: () => void;
+  /** `added` : ce qu'il est advenu du rangement dans l'inventaire, s'il y en avait un. */
+  onDone: (added?: boolean) => void;
 }) {
   const t = useTranslations("Requests");
   const [quantity, setQuantity] = useState(String(offer.quantity));
@@ -336,6 +348,7 @@ function ReceiveDialog({
     event.preventDefault();
     const value = Number(quantity.replace(",", "."));
     if (!Number.isFinite(value) || value <= 0) return setError(t("errors.quantity"));
+    if (value > offer.quantity) return setError(t("errors.receivedTooMuch"));
     if (store && !location) return setError(t("errors.location"));
     setBusy(true);
     setError(null);
@@ -349,7 +362,7 @@ function ReceiveDialog({
         setError(t.has(`errors.${result.error}`) ? t(`errors.${result.error}`) : t("errors.generic"));
         return;
       }
-      onDone();
+      onDone(result.inventory?.added);
     } catch {
       setError(t("errors.generic"));
     } finally {

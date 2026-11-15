@@ -5133,7 +5133,8 @@
       "quantity": "Quantity received",
       "store": "Add to my inventory",
       "where": "Storage location",
-      "confirm": "Mark received"
+      "confirm": "Mark received",
+      "inventoryFailed": "Marked received, but adding it to your inventory failed: add it by hand."
     },
     "owner": {
       "edit": "Edit",
@@ -5187,7 +5188,8 @@
       "alreadyOffered": "You already have an open offer on this request.",
       "ownRequest": "You can't answer your own request.",
       "closed": "This request is no longer open.",
-      "notMember": "You are not a member of one of the chosen orgs."
+      "notMember": "You are not a member of one of the chosen orgs.",
+      "receivedTooMuch": "You cannot receive more than the offer's quantity."
     },
     "bell": {
       "label": "Requests",

@@ -5094,7 +5094,8 @@
       "quantity": "Cantidad recibida",
       "store": "Añadir a mi inventario",
       "where": "Lugar de almacenamiento",
-      "confirm": "Marcar recibido"
+      "confirm": "Marcar recibido",
+      "inventoryFailed": "Recepción registrada, pero no se pudo añadir a tu inventario: añádelo a mano."
     },
     "owner": {
       "edit": "Modificar",
@@ -5148,7 +5149,8 @@
       "alreadyOffered": "Ya tienes una oferta en curso en esta petición.",
       "ownRequest": "No puedes responder a tu propia petición.",
       "closed": "Esta petición ya no está abierta.",
-      "notMember": "No eres miembro de una de las orgs elegidas."
+      "notMember": "No eres miembro de una de las orgs elegidas.",
+      "receivedTooMuch": "No puedes recibir más que la cantidad de la oferta."
     },
     "bell": {
       "label": "Peticiones",
