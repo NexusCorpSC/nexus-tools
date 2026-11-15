@@ -2,6 +2,11 @@ import "server-only";
 import { ObjectId, type Filter } from "mongodb";
 import { del } from "@vercel/blob";
 import db from "@/lib/db";
+import {
+  getRequestForReport,
+  requestExists,
+  setRequestReportHidden,
+} from "@/lib/player-requests";
 import { clearPlaceImageIf, deletePlace, getPlaceBySlug } from "@/lib/places";
 import { deleteItem, getItemBySlug } from "@/lib/items";
 import { getBlueprintBySlug } from "@/lib/crafting";
@@ -360,6 +365,14 @@ async function resolveTarget(
         owners: sellers,
       };
     }
+    case "request": {
+      const request = await getRequestForReport(id, viewer ?? null);
+      if (!request) return null;
+      return {
+        target: { type, id: request.id, name: request.name },
+        owners: [request.userId],
+      };
+    }
   }
 }
 
@@ -382,6 +395,8 @@ export function targetHref(target: ReportTarget): string {
       return `/shops/${target.id}`;
     case "listing":
       return `/shopping/i/${target.id}`;
+    case "request":
+      return `/demandes/${target.id}`;
   }
 }
 
@@ -443,6 +458,8 @@ async function mask(report: DbReport) {
       { id: target.id },
       { $set: { reportHidden: true } },
     );
+  } else if (target.type === "request") {
+    await setRequestReportHidden(target.id, true);
   }
 }
 
@@ -481,6 +498,8 @@ async function unmask(report: DbReport) {
       { id: target.id },
       { $unset: { reportHidden: "" } },
     );
+  } else if (target.type === "request") {
+    await setRequestReportHidden(target.id, false);
   }
 }
 
@@ -832,6 +851,8 @@ async function targetExists(target: ReportTarget): Promise<boolean> {
       return (await shops().countDocuments({ id: target.id })) > 0;
     case "listing":
       return (await listings().countDocuments({ id: target.id })) > 0;
+    case "request":
+      return requestExists(target.id);
     default:
       return (await resolveTarget(target.type, target.id)) !== null;
   }
@@ -1043,6 +1064,9 @@ async function deleteTarget(report: DbReport, moderator: Contributor) {
           { id: target.id },
           { $set: { reportHidden: true } },
         );
+        return;
+      case "request":
+        await setRequestReportHidden(target.id, true);
         return;
     }
   } catch (error) {

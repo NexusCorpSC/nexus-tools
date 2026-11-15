@@ -47,6 +47,8 @@ export const MCP_SCOPES = [
   "notes:write",
   "marketplace:read",
   "marketplace:write",
+  "requests:read",
+  "requests:write",
   "contributions:write",
 ] as const;
 

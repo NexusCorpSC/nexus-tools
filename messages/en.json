@@ -82,6 +82,10 @@
           "label": "My orders",
           "description": "Track purchases and deliveries"
         },
+        "requests": {
+          "label": "Requests",
+          "description": "What your friends and orgs are looking for"
+        },
         "refine": {
           "label": "Refining",
           "description": "Refinery work orders"
@@ -931,7 +935,8 @@
       "openCargo": "Add to the cargo sheet"
     },
     "proposeItem": "Suggest an item",
-    "suggestEdit": "Suggest a change"
+    "suggestEdit": "Suggest a change",
+    "requestIt": "Request it"
   },
   "Places": {
     "home": "Home",
@@ -3310,7 +3315,8 @@
       "item": "Report this item",
       "org": "Report this organization",
       "shop": "Report this shop",
-      "listing": "Report this listing"
+      "listing": "Report this listing",
+      "request": "Report this request"
     },
     "types": {
       "place": "Place",
@@ -3320,7 +3326,8 @@
       "org": "Organization",
       "blueprint": "Blueprint",
       "shop": "Shop",
-      "listing": "Listing"
+      "listing": "Listing",
+      "request": "Request"
     },
     "subtitle": "{name} · a moderator reviews every report",
     "question": "What's wrong?",
@@ -3841,7 +3848,9 @@
       "reputation:read": "read your faction reputations",
       "reputation:write": "change your faction reputations",
       "notes:read": "read your notepad",
-      "notes:write": "write in your notepad"
+      "notes:write": "write in your notepad",
+      "requests:read": "read the request board, your requests and your offers",
+      "requests:write": "post and manage your requests, make offers and negotiate"
     },
     "warning": "An authorized application acts on your behalf. You can remove this access at any time in your settings.",
     "website": "Application website",
@@ -4106,6 +4115,14 @@
         "update_refining_job": "Editing the refining order",
         "collect_refining_job": "Collecting the refining order",
         "delete_refining_job": "Removing the refining order",
+        "search_requests": "Reading the request board",
+        "get_request": "Reading the request",
+        "my_requests": "Reading your requests and offers",
+        "create_request": "Posting the request",
+        "update_request": "Changing the request",
+        "offer_request": "Sending the offer",
+        "offer_message": "Sending the message",
+        "offer_action": "Updating the offer",
         "sell_lot": "Listing the lot for sale",
         "contribute_item_edit": "Suggesting an item fix",
         "contribute_place_create": "Suggesting a place",
@@ -4981,6 +4998,220 @@
         "cancel": "Cancel",
         "add": "{count, plural, =0 {Add} one {Add # contract} other {Add # contracts}}"
       }
+    }
+  },
+  "Requests": {
+    "title": "Request board",
+    "subtitle": "What your friends, your orgs and the community are looking for. Answer “I have it” and negotiate in private.",
+    "publish": "+ Post a request",
+    "backToBoard": "Back to the board",
+    "iHaveIt": "I have it",
+    "negotiable": "negotiable",
+    "unitShort": "unit",
+    "cancel": "Cancel",
+    "sending": "Sending…",
+    "loading": "Loading…",
+    "tabs": {
+      "label": "Board views",
+      "board": "Board",
+      "mine": "My requests",
+      "offers": "My offers"
+    },
+    "filters": {
+      "search": "Search an item, a material…",
+      "all": "All",
+      "audience": {
+        "friends": "Friends",
+        "orgs": "My orgs",
+        "public": "Public"
+      },
+      "kind": {
+        "resource": "Materials",
+        "item": "Items",
+        "vehicle": "Ships"
+      },
+      "supply": "I can supply"
+    },
+    "kinds": {
+      "resource": "Material",
+      "item": "Item",
+      "weapon": "Weapon",
+      "vehicle": "Ship",
+      "other": "Free text"
+    },
+    "audience": {
+      "friends": "Friends",
+      "org": "Org",
+      "public": "Public"
+    },
+    "requestStatus": {
+      "OPEN": "Open",
+      "FILLED": "Filled",
+      "EXPIRED": "Expired",
+      "CLOSED": "Closed"
+    },
+    "offerStatus": {
+      "NEW": "New",
+      "KEPT": "Kept",
+      "RECEIVED": "Received",
+      "DECLINED": "Declined",
+      "WITHDRAWN": "Withdrawn"
+    },
+    "offerStatusReceived": "Received {quantity}",
+    "fields": {
+      "quantity": "Quantity",
+      "requested": "Requested",
+      "quality": "Quality",
+      "pricePer": "Price / {unit}",
+      "pricePerUnit": "Price / unit"
+    },
+    "progress": "{received} received of {quantity}",
+    "remaining": "<b>{quantity}</b> left",
+    "remainingPlain": "{quantity} left",
+    "receivedRemaining": "Received {received} · {remaining} left · {offers, plural, =0 {no open offer} one {# open offer} other {# open offers}}",
+    "pickupAt": "Pickup at {place}",
+    "expires": "expires {when}",
+    "youHave": "You have <b>{quantity}{quality}</b>",
+    "youHaveAt": "You have <b>{quantity}{quality}</b> at {place}",
+    "offerCount": "{count, plural, one {# offer} other {# offers}}",
+    "openMine": "See the offers I got",
+    "openMyOffer": "See my offer",
+    "emptyBoard": "No open request here yet.",
+    "emptyBoardCta": "Post the first one",
+    "emptyMine": "You haven't posted any request lately.",
+    "emptyOffers": "You haven't made any offer lately.",
+    "moreResults": "Showing {shown} of {total} requests: narrow the search to see the others.",
+    "tradeInGame": "The trade happens in game: Nexus only keeps track of what is still missing.",
+    "offers": {
+      "label": "Offers",
+      "title": "{count, plural, =0 {Offers} one {# offer} other {# offers}}",
+      "mine": "My offer",
+      "emptyMine": "No offer yet. Your friends and orgs have been told.",
+      "emptyOther": "You haven't answered this request yet.",
+      "to": "for {name}"
+    },
+    "offer": {
+      "title": "Offer to {name} · {item}",
+      "priceEach": "{price} aUEC / {unit}",
+      "fromInventory": "From my inventory",
+      "belowMinimum": "Below the requested minimum",
+      "noLot": "No lot",
+      "noLotHint": "I don't have the goods yet",
+      "quantity": "Quantity offered",
+      "quality": "Quality",
+      "message": "Message",
+      "messagePlaceholder": "Available tonight, I can deliver…",
+      "send": "Send the offer"
+    },
+    "thread": {
+      "label": "Conversation",
+      "yourOffer": "Your offer",
+      "you": "You",
+      "lotAt": "Inventory lot at {place}",
+      "priceProposal": "Price offered: <b>{price} aUEC / {unit}</b>",
+      "write": "Write a message…",
+      "send": "Send"
+    },
+    "events": {
+      "NEW": "Offer sent by {name}",
+      "KEPT": "Offer kept by {name}",
+      "RECEIVED": "{name} received {quantity}",
+      "DECLINED": "Offer declined by {name}",
+      "WITHDRAWN": "Offer withdrawn by {name}"
+    },
+    "actions": {
+      "price": "Offer a price",
+      "proposePrice": "Offer",
+      "keep": "Keep the offer",
+      "receive": "Received",
+      "decline": "Decline",
+      "withdraw": "Withdraw my offer"
+    },
+    "receive": {
+      "title": "Received from {name}",
+      "subtitle": "The quantity received is taken off what is still missing.",
+      "quantity": "Quantity received",
+      "store": "Add to my inventory",
+      "where": "Storage location",
+      "confirm": "Mark received",
+      "inventoryFailed": "Marked received, but adding it to your inventory failed: add it by hand."
+    },
+    "owner": {
+      "edit": "Edit",
+      "extend": "Extend",
+      "extendBy": "Extend by",
+      "close": "Close",
+      "closeConfirm": "Close the request?",
+      "closeYes": "Yes, close it"
+    },
+    "form": {
+      "title": "Post a request",
+      "editTitle": "Edit the request",
+      "subtitle": "Your friends and orgs see it on the board and are told. Those who have it make you an offer, then you negotiate in private.",
+      "what": "What I'm looking for",
+      "whatPlaceholder": "Riccite, FS-9 LMG, Cutlass Black…",
+      "whatHint": "An item from the catalogue or free text.",
+      "catalogKind": "{kind} from the catalogue",
+      "freeText": "Not in the catalogue: the request keeps this name.",
+      "unit": "Unit",
+      "units": "Units",
+      "minQuality": "Minimum quality",
+      "minQualityPlaceholder": "out of 1000",
+      "pickup": "Pickup location",
+      "pickupPlaceholder": "Station, city, outpost…",
+      "clearPickup": "Remove the location",
+      "priceHint": "Empty: “negotiable”.",
+      "audience": "Visible to",
+      "myFriends": "My friends",
+      "audienceHint": "Your friends and the members of the checked orgs see it and are told. Public: any signed-in player.",
+      "expiresIn": "Expires in",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "note": "Note",
+      "notePlaceholder": "What for, when, whether you can pick it up…",
+      "optional": "optional",
+      "publish": "Post",
+      "save": "Save"
+    },
+    "errors": {
+      "generic": "That didn't work. Try again.",
+      "load": "The request could not be read.",
+      "name": "Say what you are looking for.",
+      "quantity": "Enter a quantity above zero.",
+      "wholeQuantity": "Items are counted in whole numbers.",
+      "audience": "Choose who sees the request: friends, orgs or public.",
+      "location": "Choose where to store what you receive.",
+      "invalid": "A field is not valid. Check what you entered.",
+      "notFound": "This request no longer exists or isn't visible to you.",
+      "notAllowed": "Not possible any more: the offer changed meanwhile.",
+      "tooManyOpen": "You already have 20 open requests. Close one before posting another.",
+      "tooManyOffers": "You sent 30 offers today. Try again tomorrow.",
+      "alreadyOffered": "You already have an open offer on this request.",
+      "ownRequest": "You can't answer your own request.",
+      "closed": "This request is no longer open.",
+      "notMember": "You are not a member of one of the chosen orgs.",
+      "receivedTooMuch": "You cannot receive more than the offer's quantity."
+    },
+    "bell": {
+      "label": "Requests",
+      "labelUnseen": "Requests, {count} new",
+      "title": "Requests",
+      "openBoard": "Open the board",
+      "loading": "Loading…",
+      "error": "Couldn't load the activity.",
+      "empty": "Nothing new on your requests and offers.",
+      "request": "<b>{name}</b> is looking for {summary}",
+      "requestOrg": "<b>{name}</b> ({org}) is looking for {summary}",
+      "offer": "<b>{name}</b> offers {summary}",
+      "message": "<b>{name}</b> wrote to you · {summary}",
+      "price": "<b>{name}</b> offers {price} aUEC · {summary}",
+      "status": {
+        "NEW": "<b>{name}</b> made an offer · {summary}",
+        "KEPT": "<b>{name}</b> kept your offer · {summary}",
+        "RECEIVED": "<b>{name}</b> received your delivery · {summary}",
+        "DECLINED": "<b>{name}</b> declined your offer · {summary}",
+        "WITHDRAWN": "<b>{name}</b> withdrew their offer · {summary}"
+      },
+      "alerts": "Tell me about new requests from my friends and orgs"
     }
   }
 }

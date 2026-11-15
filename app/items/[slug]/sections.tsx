@@ -3,6 +3,7 @@ import { ListLink } from "@/components/list-link";
 import { getTranslations } from "next-intl/server";
 import {
   ExclamationTriangleIcon,
+  ClipboardDocumentListIcon,
   PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
@@ -552,6 +553,13 @@ export async function CommonSections({
         >
           <PencilSquareIcon className="size-4" />
           {canEdit ? t("Admin.edit") : t("suggestEdit")}
+        </Link>
+        <Link
+          href={`/demandes/new?item=${encodeURIComponent(item.slug)}`}
+          className="inline-flex h-9 items-center gap-1.5 px-2 text-sm text-nexus/70 hover:text-nexus-primary"
+        >
+          <ClipboardDocumentListIcon className="size-4" />
+          {t("requestIt")}
         </Link>
         <ReportMenu
           type="item"

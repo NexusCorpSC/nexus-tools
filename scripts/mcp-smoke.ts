@@ -178,6 +178,8 @@ const CASES: Case[] = [
     save: (s) => ({ refining: (s.job as { id: string }).id }),
   },
   { tool: "list_refining_jobs", args: { status: "running" }, auth: true },
+  { tool: "search_requests", args: { limit: 5 }, auth: true },
+  { tool: "my_requests", args: {}, auth: true },
   {
     tool: "update_refining_job",
     args: { jobId: "$refining", duration: 200, note: "fumée" },

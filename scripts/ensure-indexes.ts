@@ -123,6 +123,44 @@ async function ensureMarketplace(database: Db) {
   await movements.createIndex({ shopId: 1, at: -1 });
 }
 
+// ─── Tableau des demandes ─────────────────────────────────────────────────────
+
+/**
+ * Une demande par identifiant ; le tableau (ouvertes, les plus récentes) et
+ * « mes demandes ». Les offres d'une demande, celles d'un joueur, et ce qu'il
+ * a envoyé dans la journée. La cloche lit les activités d'un joueur.
+ */
+async function ensureRequests(database: Db) {
+  const requests = database.collection("playerRequests");
+  await requests.createIndex({ id: 1 }, { unique: true });
+  await requests.createIndex({ status: 1, expiresAt: 1, createdAt: -1 });
+  await requests.createIndex({ userId: 1, createdAt: -1 });
+  const offers = database.collection("requestOffers");
+  await offers.createIndex({ id: 1 }, { unique: true });
+  await offers.createIndex({ requestId: 1, createdAt: 1 });
+  await offers.createIndex({ userId: 1, updatedAt: -1 });
+  await offers.createIndex({ userId: 1, createdAt: -1 });
+  // Une seule offre en cours par joueur et par demande, même envoyée deux fois
+  // en même temps.
+  await offers.createIndex(
+    { requestId: 1, userId: 1 },
+    {
+      unique: true,
+      name: "one_active_offer",
+      partialFilterExpression: { status: { $in: ["NEW", "KEPT"] } },
+    },
+  );
+  const notices = database.collection("requestNotices");
+  await notices.createIndex({ userId: 1, at: -1 });
+  // Le compteur de la cloche, lu à chaque page : les non-vues d'un joueur.
+  await notices.createIndex({ userId: 1, seenAt: 1 });
+  // L'activité s'efface d'elle-même après 60 jours.
+  await notices.createIndex(
+    { at: 1 },
+    { name: "notices_ttl", expireAfterSeconds: 60 * 24 * 60 * 60 },
+  );
+}
+
 // ─── Présence en jeu ──────────────────────────────────────────────────────────
 
 /**
@@ -741,6 +779,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["raids", ensureRaids],
   ["notes", ensureNotes],
   ["marketplace", ensureMarketplace],
+  ["requests", ensureRequests],
   ["presences", ensurePresences],
   ["orgEvents", ensureOrgEvents],
   ["plans", ensurePlans],
