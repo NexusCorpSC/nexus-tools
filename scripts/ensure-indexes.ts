@@ -123,6 +123,28 @@ async function ensureMarketplace(database: Db) {
   await movements.createIndex({ shopId: 1, at: -1 });
 }
 
+// ─── Tableau des demandes ─────────────────────────────────────────────────────
+
+/**
+ * Une demande par identifiant ; le tableau (ouvertes, les plus récentes) et
+ * « mes demandes ». Les offres d'une demande, celles d'un joueur, et ce qu'il
+ * a envoyé dans la journée. La cloche lit les activités d'un joueur.
+ */
+async function ensureRequests(database: Db) {
+  const requests = database.collection("playerRequests");
+  await requests.createIndex({ id: 1 }, { unique: true });
+  await requests.createIndex({ status: 1, expiresAt: 1, createdAt: -1 });
+  await requests.createIndex({ userId: 1, createdAt: -1 });
+  const offers = database.collection("requestOffers");
+  await offers.createIndex({ id: 1 }, { unique: true });
+  await offers.createIndex({ requestId: 1, createdAt: 1 });
+  await offers.createIndex({ userId: 1, updatedAt: -1 });
+  await offers.createIndex({ userId: 1, createdAt: -1 });
+  await database
+    .collection("requestNotices")
+    .createIndex({ userId: 1, at: -1 });
+}
+
 // ─── Présence en jeu ──────────────────────────────────────────────────────────
 
 /**
@@ -741,6 +763,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["raids", ensureRaids],
   ["notes", ensureNotes],
   ["marketplace", ensureMarketplace],
+  ["requests", ensureRequests],
   ["presences", ensurePresences],
   ["orgEvents", ensureOrgEvents],
   ["plans", ensurePlans],

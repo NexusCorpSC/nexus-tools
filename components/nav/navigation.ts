@@ -4,6 +4,7 @@ import {
   BookOpen,
   Bot,
   Building2,
+  ClipboardList,
   CalendarDays,
   Coins,
   Container,
@@ -88,6 +89,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       },
       { id: "sell", href: "/shopping/sell", icon: Tag },
       { id: "orders", href: "/shopping/my-orders", icon: Receipt },
+      { id: "requests", href: "/demandes", icon: ClipboardList },
       {
         id: "refine",
         href: "/industry/refine",

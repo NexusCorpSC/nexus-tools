@@ -22,6 +22,7 @@ export const REPORT_TARGET_TYPES = [
   "blueprint",
   "shop",
   "listing",
+  "request",
 ] as const;
 
 export type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
@@ -108,6 +109,8 @@ export const REPORT_ACTIONS_BY_TARGET: Record<
   // modération classe, ou retire de la vue publique.
   shop: ["dismiss", "delete"],
   listing: ["dismiss", "delete"],
+  // Une demande ne se corrige que par son auteur : la modération la masque.
+  request: ["dismiss", "delete"],
 };
 
 /** En plus de la décision, envers l'auteur du contenu en cause. */
@@ -132,6 +135,7 @@ export const MASKABLE_TARGETS: readonly ReportTargetType[] = [
   "org",
   "shop",
   "listing",
+  "request",
 ];
 
 export const REPORTS_PER_DAY = 10;

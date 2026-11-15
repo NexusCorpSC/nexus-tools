@@ -25,6 +25,7 @@ import { registerNoteTools } from "./tools/notes";
 import { registerParcelTools } from "./tools/parcels";
 import { registerPlayerTools } from "./tools/players";
 import { registerRefiningTools } from "./tools/refining";
+import { registerRequestTools } from "./tools/requests";
 import { registerSearchTools } from "./tools/search";
 import { registerSharingTools } from "./tools/sharing";
 import { registerSocialTools } from "./tools/social";
@@ -54,6 +55,7 @@ export function registerNexusServer(mcp: McpServer) {
   registerTimelineTools(server);
   registerMarketplaceReadTools(server);
   registerMarketplacePersonalTools(server);
+  registerRequestTools(server);
   registerInventoryTools(server);
   registerParcelTools(server);
   registerRefiningTools(server);
@@ -91,5 +93,5 @@ export const MCP_INSTRUCTIONS =
   "For the lore of the 'Verse (history, people, companies, species, systems), use search_lore, get_lore_article and get_star_system: " +
   "they hold RSI's Galactapedia and starmap, in English. " +
   "For CIG's official in-game events (live, upcoming, past, their rewards, guide and known bugs), use search_official_events and get_official_event. " +
-  "Personal tools (inventory, parcels, refining orders, position markers, private places, friends and organizations, events and planned sessions, owned blueprints, reputations, notepad, sharing, contributions, marketplace orders…) need the user to sign in to their Nexus account; " +
+  "Personal tools (inventory, parcels, refining orders, position markers, private places, friends and organizations, events and planned sessions, owned blueprints, reputations, notepad, sharing, contributions, marketplace orders, the request board…) need the user to sign in to their Nexus account; " +
   "every change they make is shown to the user for confirmation first, and contributions go to community review unless the user is a trusted contributor.";

@@ -82,6 +82,10 @@
           "label": "Mes commandes",
           "description": "Suivre achats et livraisons"
         },
+        "requests": {
+          "label": "Demandes",
+          "description": "Ce que vos amis et vos orgas cherchent"
+        },
         "refine": {
           "label": "Raffinage",
           "description": "Ordres de travail en raffinerie"
@@ -926,7 +930,8 @@
       "openCargo": "Ajouter à la feuille de cargo"
     },
     "proposeItem": "Proposer un objet",
-    "suggestEdit": "Proposer une correction"
+    "suggestEdit": "Proposer une correction",
+    "requestIt": "Demander"
   },
   "Places": {
     "home": "Accueil",
@@ -3309,7 +3314,8 @@
       "item": "Signaler cet objet",
       "org": "Signaler cette organisation",
       "shop": "Signaler ce magasin",
-      "listing": "Signaler cette annonce"
+      "listing": "Signaler cette annonce",
+      "request": "Signaler cette demande"
     },
     "types": {
       "place": "Lieu",
@@ -3319,7 +3325,8 @@
       "org": "Organisation",
       "blueprint": "Blueprint",
       "shop": "Magasin",
-      "listing": "Annonce"
+      "listing": "Annonce",
+      "request": "Demande"
     },
     "subtitle": "{name} · un modérateur examine chaque signalement",
     "question": "Quel est le problème ?",
@@ -3840,7 +3847,9 @@
       "reputation:read": "lire vos réputations auprès des factions",
       "reputation:write": "modifier vos réputations auprès des factions",
       "notes:read": "lire votre bloc-notes",
-      "notes:write": "écrire dans votre bloc-notes"
+      "notes:write": "écrire dans votre bloc-notes",
+      "requests:read": "lire le tableau des demandes, vos demandes et vos offres",
+      "requests:write": "publier et gérer vos demandes, faire des offres et négocier"
     },
     "warning": "Une application autorisée agit en votre nom. Vous pourrez retirer cet accès à tout moment dans vos paramètres.",
     "website": "Site de l'application",
@@ -4105,6 +4114,14 @@
         "update_refining_job": "Modification de l'ordre de raffinage",
         "collect_refining_job": "Collecte de l'ordre de raffinage",
         "delete_refining_job": "Retrait de l'ordre de raffinage",
+        "search_requests": "Lecture du tableau des demandes",
+        "get_request": "Lecture de la demande",
+        "my_requests": "Lecture de vos demandes et offres",
+        "create_request": "Publication de la demande",
+        "update_request": "Modification de la demande",
+        "offer_request": "Envoi de l'offre",
+        "offer_message": "Envoi du message",
+        "offer_action": "Mise à jour de l'offre",
         "sell_lot": "Mise en vente du lot",
         "contribute_item_edit": "Proposition de correction d'objet",
         "contribute_place_create": "Proposition de lieu",
@@ -4980,6 +4997,218 @@
         "cancel": "Annuler",
         "add": "{count, plural, =0 {Ajouter} one {Ajouter # contrat} other {Ajouter # contrats}}"
       }
+    }
+  },
+  "Requests": {
+    "title": "Tableau des demandes",
+    "subtitle": "Ce que vos amis, vos orgas et la communauté cherchent. Répondez « J'en ai » et négociez en privé.",
+    "publish": "+ Publier une demande",
+    "backToBoard": "Retour au tableau",
+    "iHaveIt": "J'en ai",
+    "negotiable": "à négocier",
+    "unitShort": "u.",
+    "cancel": "Annuler",
+    "sending": "Envoi…",
+    "loading": "Chargement…",
+    "tabs": {
+      "label": "Vues du tableau",
+      "board": "Tableau",
+      "mine": "Mes demandes",
+      "offers": "Mes offres"
+    },
+    "filters": {
+      "search": "Rechercher un objet, un matériau…",
+      "all": "Tout",
+      "audience": {
+        "friends": "Amis",
+        "orgs": "Mes orgas",
+        "public": "Public"
+      },
+      "kind": {
+        "resource": "Matériaux",
+        "item": "Objets",
+        "vehicle": "Vaisseaux"
+      },
+      "supply": "Je peux fournir"
+    },
+    "kinds": {
+      "resource": "Matériau",
+      "item": "Objet",
+      "weapon": "Arme",
+      "vehicle": "Vaisseau",
+      "other": "Saisie libre"
+    },
+    "audience": {
+      "friends": "Amis",
+      "org": "Orga",
+      "public": "Public"
+    },
+    "requestStatus": {
+      "OPEN": "Ouverte",
+      "FILLED": "Pourvue",
+      "EXPIRED": "Expirée",
+      "CLOSED": "Clôturée"
+    },
+    "offerStatus": {
+      "NEW": "Nouvelle",
+      "KEPT": "Retenue",
+      "RECEIVED": "Reçue",
+      "DECLINED": "Déclinée",
+      "WITHDRAWN": "Retirée"
+    },
+    "offerStatusReceived": "Reçu {quantity}",
+    "fields": {
+      "quantity": "Quantité",
+      "requested": "Demandé",
+      "quality": "Qualité",
+      "pricePer": "Prix / {unit}",
+      "pricePerUnit": "Prix / u."
+    },
+    "progress": "{received} reçus sur {quantity}",
+    "remaining": "Reste <b>{quantity}</b>",
+    "remainingPlain": "reste {quantity}",
+    "receivedRemaining": "Reçu {received} · reste {remaining} · {offers, plural, =0 {aucune offre en cours} one {# offre en cours} other {# offres en cours}}",
+    "pickupAt": "Remise {place}",
+    "expires": "expire {when}",
+    "youHave": "Vous en avez <b>{quantity}{quality}</b>",
+    "youHaveAt": "Vous en avez <b>{quantity}{quality}</b> à {place}",
+    "offerCount": "{count, plural, one {# offre} other {# offres}}",
+    "openMine": "Voir mes offres reçues",
+    "openMyOffer": "Voir mon offre",
+    "emptyBoard": "Aucune demande ouverte ici pour l'instant.",
+    "emptyBoardCta": "Publier la première",
+    "emptyMine": "Vous n'avez publié aucune demande ces derniers jours.",
+    "emptyOffers": "Vous n'avez fait aucune offre ces derniers jours.",
+    "moreResults": "{shown} demandes affichées sur {total} : affinez la recherche pour voir les autres.",
+    "tradeInGame": "L'échange se fait en jeu : Nexus garde seulement la trace de ce qui reste à trouver.",
+    "offers": {
+      "label": "Offres",
+      "title": "{count, plural, =0 {Offres} one {# offre} other {# offres}}",
+      "mine": "Mon offre",
+      "emptyMine": "Aucune offre pour l'instant. Vos amis et vos orgas ont été prévenus.",
+      "emptyOther": "Vous n'avez pas encore répondu à cette demande.",
+      "to": "pour {name}"
+    },
+    "offer": {
+      "title": "Proposer à {name} · {item}",
+      "priceEach": "{price} aUEC / {unit}",
+      "fromInventory": "Depuis mon inventaire",
+      "belowMinimum": "Sous le minimum demandé",
+      "noLot": "Sans lot",
+      "noLotHint": "Je n'ai pas encore la marchandise",
+      "quantity": "Quantité proposée",
+      "quality": "Qualité",
+      "message": "Message",
+      "messagePlaceholder": "Dispo ce soir, je peux livrer…",
+      "send": "Envoyer l'offre"
+    },
+    "thread": {
+      "label": "Conversation",
+      "yourOffer": "Votre offre",
+      "you": "Vous",
+      "lotAt": "Lot de l'inventaire à {place}",
+      "priceProposal": "Prix proposé : <b>{price} aUEC / {unit}</b>",
+      "write": "Écrire un message…",
+      "send": "Envoyer"
+    },
+    "events": {
+      "NEW": "Offre envoyée par {name}",
+      "KEPT": "Offre retenue par {name}",
+      "RECEIVED": "{name} a reçu {quantity}",
+      "DECLINED": "Offre déclinée par {name}",
+      "WITHDRAWN": "Offre retirée par {name}"
+    },
+    "actions": {
+      "price": "Proposer un prix",
+      "proposePrice": "Proposer",
+      "keep": "Retenir l'offre",
+      "receive": "Reçu",
+      "decline": "Décliner",
+      "withdraw": "Retirer mon offre"
+    },
+    "receive": {
+      "title": "Reçu de {name}",
+      "subtitle": "La quantité reçue est déduite de ce qui reste à trouver.",
+      "quantity": "Quantité reçue",
+      "store": "Ajouter à mon inventaire",
+      "where": "Lieu de rangement",
+      "confirm": "Marquer reçu"
+    },
+    "owner": {
+      "edit": "Modifier",
+      "extend": "Prolonger",
+      "extendBy": "Prolonger de",
+      "close": "Clôturer",
+      "closeConfirm": "Clôturer la demande ?",
+      "closeYes": "Oui, clôturer"
+    },
+    "form": {
+      "title": "Publier une demande",
+      "editTitle": "Modifier la demande",
+      "subtitle": "Vos amis et vos orgas la voient sur le tableau et sont prévenus. Ceux qui en ont vous font une offre, puis vous négociez en privé.",
+      "what": "Ce que je cherche",
+      "whatPlaceholder": "Riccite, FS-9 LMG, Cutlass Black…",
+      "whatHint": "Un objet du catalogue ou un texte libre.",
+      "catalogKind": "{kind} du catalogue",
+      "freeText": "Pas dans le catalogue : la demande garde ce nom.",
+      "unit": "Unité",
+      "units": "Unités",
+      "minQuality": "Qualité minimale",
+      "minQualityPlaceholder": "sur 1000",
+      "pickup": "Lieu de remise",
+      "pickupPlaceholder": "Station, ville, avant-poste…",
+      "clearPickup": "Retirer le lieu",
+      "priceHint": "Vide : « à négocier ».",
+      "audience": "Visible par",
+      "myFriends": "Mes amis",
+      "audienceHint": "Vos amis et les membres des orgas cochées la voient et sont prévenus. Public : tout joueur connecté.",
+      "expiresIn": "Expire dans",
+      "days": "{count, plural, one {# jour} other {# jours}}",
+      "note": "Note",
+      "notePlaceholder": "Pour quoi, quand, si vous pouvez venir chercher…",
+      "optional": "facultatif",
+      "publish": "Publier",
+      "save": "Enregistrer"
+    },
+    "errors": {
+      "generic": "Ça n'a pas marché. Réessayez.",
+      "load": "La demande n'a pas pu être lue.",
+      "name": "Dites ce que vous cherchez.",
+      "quantity": "Indiquez une quantité supérieure à zéro.",
+      "wholeQuantity": "Des objets se comptent en nombre entier.",
+      "audience": "Choisissez qui voit la demande : amis, orgas ou public.",
+      "location": "Choisissez où ranger ce que vous recevez.",
+      "invalid": "Un champ n'est pas valide. Vérifiez la saisie.",
+      "notFound": "Cette demande n'existe plus ou ne vous est pas visible.",
+      "notAllowed": "Ce n'est plus possible : l'offre a changé entre-temps.",
+      "tooManyOpen": "Vous avez déjà 20 demandes ouvertes. Clôturez-en une avant d'en publier une autre.",
+      "tooManyOffers": "Vous avez envoyé 30 offres aujourd'hui. Réessayez demain.",
+      "alreadyOffered": "Vous avez déjà une offre en cours sur cette demande.",
+      "ownRequest": "Vous ne pouvez pas répondre à votre propre demande.",
+      "closed": "Cette demande n'est plus ouverte.",
+      "notMember": "Vous n'êtes pas membre d'une des orgas choisies."
+    },
+    "bell": {
+      "label": "Demandes",
+      "labelUnseen": "Demandes, {count} nouvelles",
+      "title": "Demandes",
+      "openBoard": "Ouvrir le tableau",
+      "loading": "Chargement…",
+      "error": "Impossible de charger l'activité.",
+      "empty": "Rien de neuf sur vos demandes et vos offres.",
+      "request": "<b>{name}</b> cherche {summary}",
+      "requestOrg": "<b>{name}</b> ({org}) cherche {summary}",
+      "offer": "<b>{name}</b> propose {summary}",
+      "message": "<b>{name}</b> vous a écrit · {summary}",
+      "price": "<b>{name}</b> propose {price} aUEC · {summary}",
+      "status": {
+        "NEW": "<b>{name}</b> a fait une offre · {summary}",
+        "KEPT": "<b>{name}</b> a retenu votre offre · {summary}",
+        "RECEIVED": "<b>{name}</b> a reçu votre livraison · {summary}",
+        "DECLINED": "<b>{name}</b> a décliné votre offre · {summary}",
+        "WITHDRAWN": "<b>{name}</b> a retiré son offre · {summary}"
+      },
+      "alerts": "Me prévenir des nouvelles demandes de mes amis et de mes orgas"
     }
   }
 }

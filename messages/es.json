@@ -82,6 +82,10 @@
           "label": "Mis pedidos",
           "description": "Seguir compras y entregas"
         },
+        "requests": {
+          "label": "Peticiones",
+          "description": "Lo que buscan tus amigos y tus orgs"
+        },
         "refine": {
           "label": "Refinado",
           "description": "Órdenes de trabajo en la refinería"
@@ -926,7 +930,8 @@
       "openCargo": "Añadir a la hoja de carga"
     },
     "proposeItem": "Proponer un objeto",
-    "suggestEdit": "Proponer una corrección"
+    "suggestEdit": "Proponer una corrección",
+    "requestIt": "Pedir"
   },
   "Places": {
     "home": "Inicio",
@@ -3271,7 +3276,8 @@
       "item": "Reportar este objeto",
       "org": "Reportar esta organización",
       "shop": "Denunciar esta tienda",
-      "listing": "Denunciar este anuncio"
+      "listing": "Denunciar este anuncio",
+      "request": "Denunciar esta petición"
     },
     "types": {
       "place": "Lugar",
@@ -3281,7 +3287,8 @@
       "org": "Organización",
       "blueprint": "Blueprint",
       "shop": "Tienda",
-      "listing": "Anuncio"
+      "listing": "Anuncio",
+      "request": "Petición"
     },
     "subtitle": "{name} · un moderador revisa cada reporte",
     "question": "¿Cuál es el problema?",
@@ -3802,7 +3809,9 @@
       "reputation:read": "leer tus reputaciones con las facciones",
       "reputation:write": "modificar tus reputaciones con las facciones",
       "notes:read": "leer tu bloc de notas",
-      "notes:write": "escribir en tu bloc de notas"
+      "notes:write": "escribir en tu bloc de notas",
+      "requests:read": "leer el tablón de peticiones, tus peticiones y tus ofertas",
+      "requests:write": "publicar y gestionar tus peticiones, hacer ofertas y negociar"
     },
     "warning": "Una aplicación autorizada actúa en tu nombre. Puedes retirar este acceso en cualquier momento en tus ajustes.",
     "website": "Sitio de la aplicación",
@@ -4067,6 +4076,14 @@
         "update_refining_job": "Modificación de la orden de refinado",
         "collect_refining_job": "Recogida de la orden de refinado",
         "delete_refining_job": "Retirada de la orden de refinado",
+        "search_requests": "Lectura del tablón de peticiones",
+        "get_request": "Lectura de la petición",
+        "my_requests": "Lectura de tus peticiones y ofertas",
+        "create_request": "Publicación de la petición",
+        "update_request": "Modificación de la petición",
+        "offer_request": "Envío de la oferta",
+        "offer_message": "Envío del mensaje",
+        "offer_action": "Actualización de la oferta",
         "sell_lot": "Puesta en venta del lote",
         "contribute_item_edit": "Propuesta de corrección de objeto",
         "contribute_place_create": "Propuesta de lugar",
@@ -4942,6 +4959,218 @@
         "cancel": "Cancelar",
         "add": "{count, plural, =0 {Añadir} one {Añadir # contrato} other {Añadir # contratos}}"
       }
+    }
+  },
+  "Requests": {
+    "title": "Tablón de peticiones",
+    "subtitle": "Lo que buscan tus amigos, tus orgs y la comunidad. Responde «Lo tengo» y negocia en privado.",
+    "publish": "+ Publicar una petición",
+    "backToBoard": "Volver al tablón",
+    "iHaveIt": "Lo tengo",
+    "negotiable": "a negociar",
+    "unitShort": "ud.",
+    "cancel": "Cancelar",
+    "sending": "Enviando…",
+    "loading": "Cargando…",
+    "tabs": {
+      "label": "Vistas del tablón",
+      "board": "Tablón",
+      "mine": "Mis peticiones",
+      "offers": "Mis ofertas"
+    },
+    "filters": {
+      "search": "Buscar un objeto, un material…",
+      "all": "Todo",
+      "audience": {
+        "friends": "Amigos",
+        "orgs": "Mis orgs",
+        "public": "Público"
+      },
+      "kind": {
+        "resource": "Materiales",
+        "item": "Objetos",
+        "vehicle": "Naves"
+      },
+      "supply": "Puedo proveer"
+    },
+    "kinds": {
+      "resource": "Material",
+      "item": "Objeto",
+      "weapon": "Arma",
+      "vehicle": "Nave",
+      "other": "Texto libre"
+    },
+    "audience": {
+      "friends": "Amigos",
+      "org": "Org",
+      "public": "Público"
+    },
+    "requestStatus": {
+      "OPEN": "Abierta",
+      "FILLED": "Cubierta",
+      "EXPIRED": "Caducada",
+      "CLOSED": "Cerrada"
+    },
+    "offerStatus": {
+      "NEW": "Nueva",
+      "KEPT": "Retenida",
+      "RECEIVED": "Recibida",
+      "DECLINED": "Rechazada",
+      "WITHDRAWN": "Retirada"
+    },
+    "offerStatusReceived": "Recibido {quantity}",
+    "fields": {
+      "quantity": "Cantidad",
+      "requested": "Pedido",
+      "quality": "Calidad",
+      "pricePer": "Precio / {unit}",
+      "pricePerUnit": "Precio / ud."
+    },
+    "progress": "{received} recibidos de {quantity}",
+    "remaining": "Faltan <b>{quantity}</b>",
+    "remainingPlain": "faltan {quantity}",
+    "receivedRemaining": "Recibido {received} · faltan {remaining} · {offers, plural, =0 {ninguna oferta en curso} one {# oferta en curso} other {# ofertas en curso}}",
+    "pickupAt": "Entrega en {place}",
+    "expires": "caduca {when}",
+    "youHave": "Tienes <b>{quantity}{quality}</b>",
+    "youHaveAt": "Tienes <b>{quantity}{quality}</b> en {place}",
+    "offerCount": "{count, plural, one {# oferta} other {# ofertas}}",
+    "openMine": "Ver las ofertas recibidas",
+    "openMyOffer": "Ver mi oferta",
+    "emptyBoard": "Todavía no hay peticiones abiertas aquí.",
+    "emptyBoardCta": "Publicar la primera",
+    "emptyMine": "No has publicado ninguna petición estos días.",
+    "emptyOffers": "No has hecho ninguna oferta estos días.",
+    "moreResults": "Se muestran {shown} de {total} peticiones: afina la búsqueda para ver las demás.",
+    "tradeInGame": "El intercambio se hace en el juego: Nexus solo lleva la cuenta de lo que falta.",
+    "offers": {
+      "label": "Ofertas",
+      "title": "{count, plural, =0 {Ofertas} one {# oferta} other {# ofertas}}",
+      "mine": "Mi oferta",
+      "emptyMine": "Todavía no hay ofertas. Tus amigos y tus orgs han sido avisados.",
+      "emptyOther": "Todavía no has respondido a esta petición.",
+      "to": "para {name}"
+    },
+    "offer": {
+      "title": "Ofrecer a {name} · {item}",
+      "priceEach": "{price} aUEC / {unit}",
+      "fromInventory": "Desde mi inventario",
+      "belowMinimum": "Por debajo del mínimo pedido",
+      "noLot": "Sin lote",
+      "noLotHint": "Todavía no tengo la mercancía",
+      "quantity": "Cantidad ofrecida",
+      "quality": "Calidad",
+      "message": "Mensaje",
+      "messagePlaceholder": "Disponible esta noche, puedo entregar…",
+      "send": "Enviar la oferta"
+    },
+    "thread": {
+      "label": "Conversación",
+      "yourOffer": "Tu oferta",
+      "you": "Tú",
+      "lotAt": "Lote del inventario en {place}",
+      "priceProposal": "Precio propuesto: <b>{price} aUEC / {unit}</b>",
+      "write": "Escribir un mensaje…",
+      "send": "Enviar"
+    },
+    "events": {
+      "NEW": "Oferta enviada por {name}",
+      "KEPT": "Oferta retenida por {name}",
+      "RECEIVED": "{name} recibió {quantity}",
+      "DECLINED": "Oferta rechazada por {name}",
+      "WITHDRAWN": "Oferta retirada por {name}"
+    },
+    "actions": {
+      "price": "Proponer un precio",
+      "proposePrice": "Proponer",
+      "keep": "Retener la oferta",
+      "receive": "Recibido",
+      "decline": "Rechazar",
+      "withdraw": "Retirar mi oferta"
+    },
+    "receive": {
+      "title": "Recibido de {name}",
+      "subtitle": "La cantidad recibida se descuenta de lo que falta.",
+      "quantity": "Cantidad recibida",
+      "store": "Añadir a mi inventario",
+      "where": "Lugar de almacenamiento",
+      "confirm": "Marcar recibido"
+    },
+    "owner": {
+      "edit": "Modificar",
+      "extend": "Prolongar",
+      "extendBy": "Prolongar",
+      "close": "Cerrar",
+      "closeConfirm": "¿Cerrar la petición?",
+      "closeYes": "Sí, cerrar"
+    },
+    "form": {
+      "title": "Publicar una petición",
+      "editTitle": "Modificar la petición",
+      "subtitle": "Tus amigos y tus orgs la ven en el tablón y reciben un aviso. Quien lo tenga te hace una oferta y negociáis en privado.",
+      "what": "Lo que busco",
+      "whatPlaceholder": "Riccite, FS-9 LMG, Cutlass Black…",
+      "whatHint": "Un objeto del catálogo o un texto libre.",
+      "catalogKind": "{kind} del catálogo",
+      "freeText": "No está en el catálogo: la petición conserva este nombre.",
+      "unit": "Unidad",
+      "units": "Unidades",
+      "minQuality": "Calidad mínima",
+      "minQualityPlaceholder": "sobre 1000",
+      "pickup": "Lugar de entrega",
+      "pickupPlaceholder": "Estación, ciudad, puesto avanzado…",
+      "clearPickup": "Quitar el lugar",
+      "priceHint": "Vacío: «a negociar».",
+      "audience": "Visible para",
+      "myFriends": "Mis amigos",
+      "audienceHint": "Tus amigos y los miembros de las orgs marcadas la ven y reciben un aviso. Público: cualquier jugador conectado.",
+      "expiresIn": "Caduca en",
+      "days": "{count, plural, one {# día} other {# días}}",
+      "note": "Nota",
+      "notePlaceholder": "Para qué, cuándo, si puedes ir a buscarlo…",
+      "optional": "opcional",
+      "publish": "Publicar",
+      "save": "Guardar"
+    },
+    "errors": {
+      "generic": "No ha funcionado. Inténtalo de nuevo.",
+      "load": "No se pudo leer la petición.",
+      "name": "Indica lo que buscas.",
+      "quantity": "Indica una cantidad mayor que cero.",
+      "wholeQuantity": "Los objetos se cuentan en números enteros.",
+      "audience": "Elige quién ve la petición: amigos, orgs o público.",
+      "location": "Elige dónde guardar lo que recibes.",
+      "invalid": "Un campo no es válido. Revisa lo que has escrito.",
+      "notFound": "Esta petición ya no existe o no es visible para ti.",
+      "notAllowed": "Ya no es posible: la oferta ha cambiado mientras tanto.",
+      "tooManyOpen": "Ya tienes 20 peticiones abiertas. Cierra una antes de publicar otra.",
+      "tooManyOffers": "Has enviado 30 ofertas hoy. Inténtalo mañana.",
+      "alreadyOffered": "Ya tienes una oferta en curso en esta petición.",
+      "ownRequest": "No puedes responder a tu propia petición.",
+      "closed": "Esta petición ya no está abierta.",
+      "notMember": "No eres miembro de una de las orgs elegidas."
+    },
+    "bell": {
+      "label": "Peticiones",
+      "labelUnseen": "Peticiones, {count} nuevas",
+      "title": "Peticiones",
+      "openBoard": "Abrir el tablón",
+      "loading": "Cargando…",
+      "error": "No se pudo cargar la actividad.",
+      "empty": "Nada nuevo en tus peticiones y ofertas.",
+      "request": "<b>{name}</b> busca {summary}",
+      "requestOrg": "<b>{name}</b> ({org}) busca {summary}",
+      "offer": "<b>{name}</b> ofrece {summary}",
+      "message": "<b>{name}</b> te ha escrito · {summary}",
+      "price": "<b>{name}</b> propone {price} aUEC · {summary}",
+      "status": {
+        "NEW": "<b>{name}</b> ha hecho una oferta · {summary}",
+        "KEPT": "<b>{name}</b> ha retenido tu oferta · {summary}",
+        "RECEIVED": "<b>{name}</b> ha recibido tu entrega · {summary}",
+        "DECLINED": "<b>{name}</b> ha rechazado tu oferta · {summary}",
+        "WITHDRAWN": "<b>{name}</b> ha retirado su oferta · {summary}"
+      },
+      "alerts": "Avisarme de las nuevas peticiones de mis amigos y mis orgs"
     }
   }
 }

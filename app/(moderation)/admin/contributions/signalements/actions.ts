@@ -62,6 +62,7 @@ export async function resolveReportAction(
     ) {
       revalidatePath("/shopping");
     }
+    if (detail.report.target.type === "request") revalidatePath("/demandes");
   }
   return { ok: true };
 }

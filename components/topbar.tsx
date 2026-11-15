@@ -17,6 +17,8 @@ import { getMyBadge } from "@/lib/gamification";
 import { countCartItems } from "@/lib/cart";
 import { countUnseenInvitations } from "@/lib/shares";
 import { InvitationsBell } from "@/components/invitations-bell";
+import { RequestsBell } from "@/components/requests-bell";
+import { countUnseenNotices } from "@/lib/player-requests";
 
 const userNavigation = [
   { name: "myProfile", href: "/profile" },
@@ -61,14 +63,16 @@ export default async function Topbar() {
         .findOne({ _id: new ObjectId(session?.user?.id) })
     : null;
 
-  const [friendsPlaying, badge, cartCount, unseenInvitations] = user
-    ? await Promise.all([
-        countFriendsPlaying(user._id),
-        getMyBadge(user._id),
-        countCartItems(user._id),
-        countUnseenInvitations(String(user._id)),
-      ])
-    : [0, null, 0, 0];
+  const [friendsPlaying, badge, cartCount, unseenInvitations, unseenRequests] =
+    user
+      ? await Promise.all([
+          countFriendsPlaying(user._id),
+          getMyBadge(user._id),
+          countCartItems(user._id),
+          countUnseenInvitations(String(user._id)),
+          countUnseenNotices(user._id),
+        ])
+      : [0, null, 0, 0, 0];
 
   return (
     <header className="relative z-40 border-b border-[#9ED0FF]/15 bg-gray-800">
@@ -155,6 +159,15 @@ export default async function Topbar() {
 
             {/* Scratch pad, opens a side panel from the right */}
             <ScratchPadPanel />
+
+            {/* La barre est pleine sous 1600 px : la cloche n'y vient qu'avec du neuf,
+                le tableau reste dans le menu Économie. */}
+            <RequestsBell
+              initialUnseen={unseenRequests}
+              className={
+                unseenRequests > 0 ? iconButton : `${iconButton} max-[1600px]:hidden`
+              }
+            />
 
             <InvitationsBell
               initialUnseen={unseenInvitations}
