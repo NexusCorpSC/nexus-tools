@@ -12,8 +12,9 @@ import type { ChatUIMessage } from "@/lib/chat/conversations";
  * réponse, que `applyGameToolOutputs` reporte sur l'historique.
  *
  * Seule l'app les reçoit (`gameTools: true` dans la requête) : le site n'a pas
- * de jeu à lire. Une action sans retour (éjection, autodestruction…) n'est
- * déclenchée qu'après le « oui » du joueur, demandé par l'app.
+ * de jeu à lire. Une action à fort impact (éjection, autodestruction, puissance,
+ * quantum, train, portes…) n'est déclenchée qu'après le « oui » du joueur,
+ * demandé par l'app.
  *
  * Les noms doivent rester ceux de l'app.
  */
@@ -42,7 +43,7 @@ export const gameTools = {
   }),
   game_trigger_action: tool({
     description:
-      "Trigger one game action in Star Citizen on the player's PC, by its exact technical name from game_list_actions, only when the player asks for it. Actions that cannot be undone (eject, self-destruct, emergency exit) are shown to the player for confirmation first: call the tool directly. Status `declinedByPlayer`: do not try again unless asked.",
+      "Trigger one game action in Star Citizen on the player's PC, by its exact technical name from game_list_actions, only when the player asks for it. High-impact actions (eject, self-destruct, emergency exit, power, thrusters or shields off, quantum drive, landing gear, opening or unlocking every door, G-safe or proximity assist off) are shown to the player for confirmation first: call the tool directly. Status `declinedByPlayer`: do not try again unless asked.",
     inputSchema: z.object({
       action: z.string().min(1).max(120),
       holdSeconds: z
