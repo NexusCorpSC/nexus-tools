@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   altitudeAt,
-  decodeAltitude,
+  loadAltitude,
   formatDistance,
   formatLatLon,
   groundDistance,
@@ -101,6 +101,10 @@ export function PlanetMap({
   }, [measuring]);
   const [adding, setAdding] = useState<Spot | null>(null);
   const [copied, setCopied] = useState(false);
+  /** L'altitude se charge après la carte : sans elle, pas de marqueur posé au sol. */
+  const [altitudeStatus, setAltitudeStatus] = useState<
+    "loading" | "ready" | "failed"
+  >("loading");
 
   const counts = useMemo(
     () => ({
@@ -214,19 +218,16 @@ export function PlanetMap({
       setReady(true);
 
       // L'altitude arrive après : la carte s'affiche sans l'attendre.
-      const image = new Image();
-      image.crossOrigin = "anonymous";
-      image.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = manifest.altitude.width;
-        canvas.height = manifest.altitude.height;
-        const context = canvas.getContext("2d", { willReadFrequently: true });
-        if (!context) return;
-        context.drawImage(image, 0, 0);
-        const data = context.getImageData(0, 0, canvas.width, canvas.height);
-        altitude.current = decodeAltitude(data.data, manifest);
-      };
-      image.src = planetMapUrl(baseUrl, manifest.altitude.url);
+      loadAltitude(planetMapUrl(baseUrl, manifest.altitude.url), manifest)
+        .then((grid) => {
+          if (cancelled) return;
+          altitude.current = grid;
+          setAltitudeStatus("ready");
+        })
+        .catch((error) => {
+          console.error("cannot load the altitude map", error);
+          if (!cancelled) setAltitudeStatus("failed");
+        });
     })();
     return () => {
       cancelled = true;
@@ -295,6 +296,7 @@ export function PlanetMap({
           );
           return;
         }
+        setAdding(null);
         setSelected(point);
       });
       marker.addTo(group);
@@ -359,15 +361,13 @@ export function PlanetMap({
   };
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(window.location.href).catch(() => null);
+    if (!(await copyText(window.location.href))) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const copyCoordinates = async (spot: Spot) => {
-    await navigator.clipboard
-      .writeText(`${spot.lat.toFixed(4)}, ${spot.lon.toFixed(4)}`)
-      .catch(() => null);
+    await copyText(`${spot.lat.toFixed(4)}, ${spot.lon.toFixed(4)}`);
     setMenu(null);
   };
 
@@ -587,11 +587,22 @@ export function PlanetMap({
               <button
                 type="button"
                 role="menuitem"
+                disabled={altitudeStatus !== "ready"}
+                title={
+                  altitudeStatus === "ready"
+                    ? undefined
+                    : t(
+                        altitudeStatus === "failed"
+                          ? "altitudeFailed"
+                          : "altitudeLoading",
+                      )
+                }
                 onClick={() => {
+                  setSelected(null);
                   setAdding(menu);
                   setMenu(null);
                 }}
-                className="rounded-md bg-[#7ff0d0]/12 px-2.5 py-1.5 text-left text-[13px] font-medium text-[#7ff0d0] hover:bg-[#7ff0d0]/20"
+                className="rounded-md bg-[#7ff0d0]/12 px-2.5 py-1.5 text-left text-[13px] font-medium text-[#7ff0d0] hover:bg-[#7ff0d0]/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("addMarker")}
               </button>
@@ -620,6 +631,9 @@ export function PlanetMap({
             spot={adding}
             slug={manifest.slug}
             radius={manifest.radius}
+            altitudeOf={(spot) =>
+              altitude.current ? altitudeAt(altitude.current, spot) : null
+            }
             onClose={() => setAdding(null)}
             onSaved={() => {
               setAdding(null);
@@ -635,7 +649,7 @@ export function PlanetMap({
             <span className="font-mono text-[#ffc76a]">
               {t("distance", {
                 distance: formatDistance(distance.metres, locale),
-                heading: Math.round(distance.heading),
+                heading: Math.round(distance.heading) % 360,
               })}
             </span>
           ) : measuring ? (
@@ -661,16 +675,30 @@ export function PlanetMap({
 }
 
 /** Poser un marqueur au point cliqué, à l'altitude du sol lue sur la carte. */
+/** Copie un texte ; `false` quand le presse-papiers refuse ou n'existe pas (HTTP). */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (!navigator.clipboard?.writeText) return false;
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function AddMarkerForm({
   spot,
   slug,
   radius,
+  altitudeOf,
   onClose,
   onSaved,
 }: {
   spot: Spot;
   slug: string;
   radius: number;
+  /** L'altitude du sol lue sur la carte ; `null` tant qu'elle n'est pas chargée. */
+  altitudeOf: (spot: LatLon) => number | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -685,11 +713,14 @@ function AddMarkerForm({
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    // Jamais au rayon nu : sans le relief, le marqueur serait sous le sol.
+    const alt = altitudeOf(spot);
+    if (alt === null) {
+      setError(t("altitudeLoading"));
+      return;
+    }
     startTransition(async () => {
-      const position = {
-        body: slug,
-        ...pointOfGeo(spot, spot.alt ?? 0, radius),
-      };
+      const position = { body: slug, ...pointOfGeo(spot, alt, radius) };
       const response = await fetch("/api/marqueurs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

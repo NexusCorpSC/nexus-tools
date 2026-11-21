@@ -1398,7 +1398,9 @@
     "cancel": "Cancel",
     "save": "Add",
     "hint": "Scroll to zoom · Drag to move",
-    "hintSignedIn": "Right-click to drop a marker · Scroll to zoom"
+    "hintSignedIn": "Right-click to drop a marker · Scroll to zoom",
+    "altitudeLoading": "The ground altitude is still loading: try again in a moment.",
+    "altitudeFailed": "The ground altitude could not be loaded: a marker cannot be placed on the ground."
   },
   "Shopping": {
     "home": "Home",

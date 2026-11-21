@@ -145,7 +145,9 @@ export default async function PlacePage({
           session?.user?.id,
         )
       : [];
-  const mapView = mapViewOf(lat, lon, z);
+  const mapView = planetMap
+    ? mapViewOf(lat, lon, z, planetMap.manifest.tiles.maxNativeZoom + 3)
+    : undefined;
 
   const [media, myPending, soldItems, missions, lore] =
     tab === "apercu"
@@ -562,24 +564,28 @@ export default async function PlacePage({
   );
 }
 
-/** La vue d'une carte partagée par son adresse, si elle tient debout. */
-function mapViewOf(lat?: string, lon?: string, z?: string) {
-  const view = { lat: Number(lat), lon: Number(lon), zoom: Number(z) };
+/**
+ * La vue d'une carte partagée par son adresse. Le centre compte plus que le
+ * zoom : un zoom absent ou hors bornes est ramené dans celles de la carte,
+ * sans perdre l'endroit partagé.
+ */
+function mapViewOf(lat?: string, lon?: string, z?: string, maxZoom = 8) {
+  const center = { lat: Number(lat), lon: Number(lon) };
   if (
     !lat ||
     !lon ||
-    !z ||
-    !Number.isFinite(view.lat) ||
-    !Number.isFinite(view.lon) ||
-    !Number.isInteger(view.zoom) ||
-    Math.abs(view.lat) > 90 ||
-    Math.abs(view.lon) > 180 ||
-    view.zoom < 0 ||
-    view.zoom > 8
+    !Number.isFinite(center.lat) ||
+    !Number.isFinite(center.lon) ||
+    Math.abs(center.lat) > 90 ||
+    Math.abs(center.lon) > 180
   ) {
     return undefined;
   }
-  return view;
+  const zoom = Math.round(Number(z));
+  return {
+    ...center,
+    zoom: Number.isFinite(zoom) ? Math.min(maxZoom, Math.max(0, zoom)) : 1,
+  };
 }
 
 function PointsChip({ points }: { points: number }) {

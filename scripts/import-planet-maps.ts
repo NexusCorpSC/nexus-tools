@@ -9,7 +9,7 @@
  * Ce ne sont que nos rendus : aucun fichier du jeu n'en fait partie.
  *
  * Chaque corps est envoyé dans le blob storage sous
- * `planet-maps/<build>/<slug>/`, puis la collection `planetMaps` pointe ce
+ * `planet-maps/<build>/<slug>/<révision>/`, puis la collection `planetMaps` pointe ce
  * dossier. Un nouveau build s'ajoute à côté de l'ancien ; la bascule se fait
  * à la fin, corps par corps, et revenir en arrière revient à relancer l'import
  * de l'ancien dossier. Idempotent : un fichier déjà là est réécrit.
@@ -17,6 +17,7 @@
  * Demande `BLOB_READ_WRITE_TOKEN` et `MONGODB_URI`.
  */
 
+import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { put } from "@vercel/blob";
@@ -107,7 +108,14 @@ async function main() {
       (file) => file !== "manifest.json",
     );
     files.push("manifest.json");
-    const prefix = `planet-maps/${manifest.build}/${slug}`;
+    // Une révision tirée du contenu : un export corrigé va dans un autre
+    // dossier, et les caches d'un an ne servent jamais d'anciennes tuiles.
+    const hash = createHash("sha256");
+    for (const file of ["manifest.json", "altitude.png", manifest.texture]) {
+      hash.update(await readFile(path.join(root, file)));
+    }
+    const revision = hash.digest("hex").slice(0, 10);
+    const prefix = `planet-maps/${manifest.build}/${slug}/${revision}`;
     console.log(`${slug} : ${files.length} fichiers → ${prefix}/`);
     if (options.dryRun) continue;
 
@@ -120,7 +128,7 @@ async function main() {
         allowOverwrite: true,
         contentType:
           CONTENT_TYPES[path.extname(file)] ?? "application/octet-stream",
-        // Un build ne change jamais : un nouveau va dans un autre dossier.
+        // Un dossier ne change jamais : un nouvel export va dans une autre révision.
         cacheControlMaxAge: 60 * 60 * 24 * 365,
       });
       if (file === "manifest.json") {

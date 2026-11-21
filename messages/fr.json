@@ -1393,7 +1393,9 @@
     "cancel": "Annuler",
     "save": "Ajouter",
     "hint": "Molette pour zoomer · Glisser pour se déplacer",
-    "hintSignedIn": "Clic droit pour poser un marqueur · Molette pour zoomer"
+    "hintSignedIn": "Clic droit pour poser un marqueur · Molette pour zoomer",
+    "altitudeLoading": "L'altitude du sol se charge encore : réessayez dans un instant.",
+    "altitudeFailed": "L'altitude du sol n'a pas pu être chargée : impossible de poser un marqueur au sol."
   },
   "Industry": {
     "home": "Accueil",

@@ -390,7 +390,10 @@ export function createStarMap({
   // ── Étoiles, une par système ──
   const starWorld = new Map<StarMapSystem, THREE.Vector3>();
   const meshes: THREE.Object3D[] = [];
-  /** La sphère de chaque planète et lune, pour lui poser sa vraie texture. */
+  /**
+   * La sphère des corps qui ont une texture réelle, laissée sans rotation :
+   * les lieux au sol sont posés dans le repère du corps, la texture aussi.
+   */
   const bodies = new Map<string, THREE.Mesh>();
   let disposed = false;
   const sphere = track(new THREE.SphereGeometry(1, 72, 48));
@@ -477,7 +480,14 @@ export function createStarMap({
       ),
     );
     // L'axe penche un peu, l'anneau avec ; la longitude varie d'un corps à l'autre.
-    mesh.rotation.set(0, seed * 0.6, ((look.tilt ?? 0) * Math.PI) / 180);
+    // Un corps qui recevra sa vraie texture reste dans le repère de ses lieux
+    // dès le départ : il ne bascule pas quand la texture arrive. Un corps à
+    // anneau garde son allure : il n'a pas de carte (géantes gazeuses).
+    if (textures?.[place.slug] && !look.ring) {
+      bodies.set(place.slug, mesh);
+    } else {
+      mesh.rotation.set(0, seed * 0.6, ((look.tilt ?? 0) * Math.PI) / 180);
+    }
     if (look.ring) {
       const { inner, outer, color, opacity = 0.6 } = look.ring;
       const ring = new THREE.Mesh(
@@ -508,7 +518,6 @@ export function createStarMap({
     mesh.userData.slug = place.slug;
     scene.add(mesh);
     meshes.push(mesh);
-    bodies.set(place.slug, mesh);
   }
 
   // ── Les vraies textures, chargées quand on s'approche d'un corps ──
@@ -541,8 +550,6 @@ export function createStarMap({
           },
         }),
       );
-      // Les lieux au sol sont posés dans le repère du corps : la sphère n'y tourne plus.
-      mesh.rotation.set(0, 0, 0);
     });
   };
 

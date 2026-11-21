@@ -1393,7 +1393,9 @@
     "cancel": "Cancelar",
     "save": "Añadir",
     "hint": "Rueda para acercar · Arrastra para moverte",
-    "hintSignedIn": "Clic derecho para poner un marcador · Rueda para acercar"
+    "hintSignedIn": "Clic derecho para poner un marcador · Rueda para acercar",
+    "altitudeLoading": "La altitud del suelo aún se está cargando: inténtalo de nuevo en un momento.",
+    "altitudeFailed": "No se pudo cargar la altitud del suelo: no se puede poner un marcador en el suelo."
   },
   "Industry": {
     "home": "Inicio",

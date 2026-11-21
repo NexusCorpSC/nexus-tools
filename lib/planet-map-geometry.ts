@@ -100,7 +100,7 @@ export type AltitudeGrid = {
 };
 
 export function decodeAltitude(
-  rgba: Uint8ClampedArray,
+  rgba: Uint8ClampedArray | Uint8Array,
   manifest: PlanetMapManifest,
 ): AltitudeGrid {
   const { width, height, min, max } = manifest.altitude;
@@ -109,6 +109,33 @@ export function decodeAltitude(
     values[i] = (rgba[i * 4] << 8) | rgba[i * 4 + 1];
   }
   return { width, height, min, max, values };
+}
+
+/**
+ * Charge et décode la carte d'altitude. Le PNG passe par `createImageBitmap`
+ * sans conversion de couleur ni alpha prémultiplié : un `<img>` dessiné dans
+ * un canvas peut subir la gestion des couleurs du navigateur, qui changerait
+ * les octets et donc les altitudes.
+ */
+export async function loadAltitude(
+  url: string,
+  manifest: PlanetMapManifest,
+): Promise<AltitudeGrid> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`altitude: HTTP ${response.status}`);
+  const bitmap = await createImageBitmap(await response.blob(), {
+    colorSpaceConversion: "none",
+    premultiplyAlpha: "none",
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) throw new Error("altitude: pas de contexte 2D");
+  context.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  return decodeAltitude(data, manifest);
 }
 
 /** L'altitude du sol, en mètres, au plus proche pixel. */
@@ -124,12 +151,14 @@ export function altitudeAt(grid: AltitudeGrid, { lat, lon }: LatLon): number {
 
 /** `12,48° N · 31,07° E`, pour un humain. */
 export function formatLatLon({ lat, lon }: LatLon, locale = "fr-FR"): string {
+  // L'ouest est « O » en français et en espagnol, « W » ailleurs.
+  const west = /^(fr|es)/i.test(locale) ? "O" : "W";
   const number = (value: number) =>
     Math.abs(value).toLocaleString(locale, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-  return `${number(lat)}° ${lat >= 0 ? "N" : "S"} · ${number(lon)}° ${lon >= 0 ? "E" : "O"}`;
+  return `${number(lat)}° ${lat >= 0 ? "N" : "S"} · ${number(lon)}° ${lon >= 0 ? "E" : west}`;
 }
 
 /** `184 km`, `620 m`. */

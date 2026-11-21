@@ -417,6 +417,15 @@ async function ensureGameLocations(database: Db) {
     { name: "gameLocations_browse" },
   );
   await places.createIndex({ services: 1 }, { name: "gameLocations_services" });
+  // Les lieux posés sur un corps : ce que la carte de surface affiche.
+  await places.createIndex(
+    { "position.body": 1 },
+    { name: "gameLocations_position_body", sparse: true },
+  );
+  // Une carte de surface par corps, retrouvée par son slug.
+  await database
+    .collection("planetMaps")
+    .createIndex({ slug: 1 }, { unique: true, name: "planetMaps_slug_unique" });
   // Qui emprunte un plan à ce lieu ? La question est posée avant chaque
   // suppression et chaque enregistrement de plans, pas seulement à l'affichage.
   await places.createIndex(

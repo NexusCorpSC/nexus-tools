@@ -2,13 +2,10 @@ import "server-only";
 
 import db from "@/lib/db";
 import { MARKER_COLOR, PRIVATE_MARKER_COLOR } from "@/lib/star-map-layout";
-import {
-  getStarMapMarkers,
-  getStarMapPlaces,
-  getStarMapPrivatePlaces,
-} from "@/lib/star-map";
+import { getStarMapMarkers, getStarMapPrivatePlaces } from "@/lib/star-map";
 import { geoOfPoint, planetMapUrl } from "@/lib/planet-map-geometry";
 import type { StarMapPlace } from "@/lib/star-map-layout";
+import type { Place, PlacePosition } from "@/types/places";
 import type {
   PlanetMap,
   PlanetMapManifest,
@@ -98,13 +95,37 @@ function pointOf(
  * marqueurs (ceux qu'il voit, partagés compris). Les mêmes sources que la
  * Star Map, filtrées sur ce corps.
  */
+/**
+ * Les lieux publics posés sur ce corps, et eux seuls : une requête sur la
+ * position, plutôt que tout le catalogue des trois systèmes filtré ensuite.
+ */
+async function placesOnBody(slug: string): Promise<StarMapPlace[]> {
+  const docs = await db
+    .db()
+    .collection<Place>("gameLocations")
+    .find(
+      { "position.body": slug, privacy: { $exists: false } },
+      { projection: { _id: 0, slug: 1, name: 1, type: 1, position: 1 } },
+    )
+    .toArray();
+  return docs.map((doc) => {
+    const position = doc.position as PlacePosition;
+    return {
+      slug: doc.slug,
+      name: doc.name,
+      type: doc.type,
+      at: { body: position.body, x: position.x, y: position.y, z: position.z },
+    };
+  });
+}
+
 export async function getPlanetMapPoints(
   slug: string,
   radius: number,
   userId?: string,
 ): Promise<PlanetMapPoint[]> {
   const [places, privatePlaces, markers] = await Promise.all([
-    getStarMapPlaces(),
+    placesOnBody(slug),
     userId ? getStarMapPrivatePlaces(userId) : [],
     userId ? getStarMapMarkers(userId) : [],
   ]);
