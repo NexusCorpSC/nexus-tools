@@ -55,8 +55,8 @@ export function isMarkerColor(value: unknown): value is MarkerColor {
   return (MARKER_COLORS as readonly unknown[]).includes(value);
 }
 
-/** D'où vient la position : le NPS de l'app, ou une ligne collée. */
-export const MARKER_SOURCES = ["showlocation", "screen", "paste"] as const;
+/** D'où vient la position : le NPS de l'app, une ligne collée, ou un clic sur une carte de surface. */
+export const MARKER_SOURCES = ["showlocation", "screen", "paste", "map"] as const;
 
 export type MarkerSource = (typeof MARKER_SOURCES)[number];
 

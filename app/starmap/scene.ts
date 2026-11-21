@@ -42,6 +42,11 @@ type Options = {
   onSelect: (slug: string | null) => void;
   /** Un clic sur un joueur, par son id. */
   onPlayer: (id: string) => void;
+  /**
+   * La texture réelle des corps qui ont une carte de surface, par slug :
+   * longitude −180° à gauche, dans le repère du NPS.
+   */
+  textures?: Record<string, string>;
 };
 
 /** Une couleur prise telle quelle, sans conversion : les shaders écrivent en sRGB. */
@@ -83,6 +88,28 @@ void main(){
 
 const BODY_VERTEX = /* glsl */ `varying vec3 vN; varying vec3 vP; varying vec3 vW;
 void main(){ vP = position; vN = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`;
+
+/**
+ * Un corps dont on a extrait le relief : sa texture, éclairée comme les
+ * autres. Les UV de `SphereGeometry` tombent juste sur la carte : u = 0 à
+ * la longitude −180°, puisque `toScene` envoie (x, y, z) du corps sur
+ * (x, z, −y) de la scène.
+ */
+const TEXTURED_VERTEX = /* glsl */ `varying vec3 vN; varying vec3 vW; varying vec2 vUv;
+void main(){ vUv = uv; vN = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`;
+
+const TEXTURED_FRAGMENT = /* glsl */ `
+uniform sampler2D map; uniform vec3 starPos; uniform vec3 starCol; uniform vec3 atmo;
+varying vec3 vN; varying vec3 vW; varying vec2 vUv;
+void main(){
+  vec3 col = texture2D(map, vUv).rgb;
+  vec3 N = normalize(vN); vec3 L = normalize(starPos - vW); vec3 Vd = normalize(cameraPosition - vW);
+  float d = dot(N,L); float diff = smoothstep(-0.08, 0.6, d);
+  vec3 lit = col * (0.06 + 1.0*diff*starCol + 0.14*max(dot(N,Vd),0.0));
+  float fr = pow(1.0 - max(dot(N,Vd),0.0), 3.0);
+  lit += atmo * fr * (0.15 + 1.1*smoothstep(-0.3,0.5,d));
+  gl_FragColor = vec4(lit, 1.0);
+}`;
 
 const BODY_FRAGMENT =
   NOISE +
@@ -211,6 +238,7 @@ export function createStarMap({
   typeLabel,
   onSelect,
   onPlayer,
+  textures,
 }: Options): StarMapScene {
   const V = THREE.Vector3;
   const world = (place: LaidOutPlace) => new V(...place.world!);
@@ -362,6 +390,9 @@ export function createStarMap({
   // ── Étoiles, une par système ──
   const starWorld = new Map<StarMapSystem, THREE.Vector3>();
   const meshes: THREE.Object3D[] = [];
+  /** La sphère de chaque planète et lune, pour lui poser sa vraie texture. */
+  const bodies = new Map<string, THREE.Mesh>();
+  let disposed = false;
   const sphere = track(new THREE.SphereGeometry(1, 72, 48));
   for (const system of STAR_MAP_SYSTEMS) {
     const look = SYSTEM_LOOK[system];
@@ -477,7 +508,43 @@ export function createStarMap({
     mesh.userData.slug = place.slug;
     scene.add(mesh);
     meshes.push(mesh);
+    bodies.set(place.slug, mesh);
   }
+
+  // ── Les vraies textures, chargées quand on s'approche d'un corps ──
+  const textured = new Set<string>();
+  const loader = new THREE.TextureLoader();
+  const dressBody = (slug: string | null) => {
+    const url = slug ? textures?.[slug] : undefined;
+    const mesh = slug ? bodies.get(slug) : undefined;
+    if (!slug || !url || !mesh || textured.has(slug)) return;
+    textured.add(slug);
+    loader.load(url, (texture) => {
+      if (disposed) {
+        texture.dispose();
+        return;
+      }
+      // La texture est en sRGB, comme ce que les shaders écrivent : rien à convertir.
+      texture.colorSpace = THREE.NoColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      track(texture);
+      const previous = mesh.material as THREE.ShaderMaterial;
+      mesh.material = track(
+        new THREE.ShaderMaterial({
+          vertexShader: TEXTURED_VERTEX,
+          fragmentShader: TEXTURED_FRAGMENT,
+          uniforms: {
+            map: { value: texture },
+            starPos: previous.uniforms.starPos,
+            starCol: previous.uniforms.starCol,
+            atmo: previous.uniforms.atmo,
+          },
+        }),
+      );
+      // Les lieux au sol sont posés dans le repère du corps : la sphère n'y tourne plus.
+      mesh.rotation.set(0, 0, 0);
+    });
+  };
 
   // ── Stations : un octaèdre qui luit ──
   const spinning: THREE.Object3D[] = [];
@@ -836,6 +903,10 @@ export function createStarMap({
 
   function focus(slug: string | null, instant = false) {
     focusSlug = slug && places.has(slug) ? slug : null;
+    // Regarder un lieu au sol, c'est aussi regarder son corps.
+    let body = focusSlug ? places.get(focusSlug) : undefined;
+    while (body && !BODY_TYPES.has(body.type)) body = get(body.parentSlug);
+    dressBody(body?.slug ?? null);
     const place = focusSlug ? places.get(focusSlug)! : undefined;
     const shown = place ? drawn(place) : undefined;
     const view = viewFor(shown);
@@ -1227,6 +1298,7 @@ export function createStarMap({
       resize();
     },
     dispose() {
+      disposed = true;
       cancelAnimationFrame(frame);
       observer.disconnect();
       canvas.removeEventListener("pointerdown", onDown);

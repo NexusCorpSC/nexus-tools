@@ -1010,6 +1010,9 @@
     "tabServices": "Services",
     "tabShops": "Shops",
     "tabPlan": "Plan",
+    "tabMap": "Map",
+    "mapTitle": "Surface map",
+    "mapRelief": "Relief from {min} to {max} m",
     "descriptionTitle": "Description",
     "noDescription": "Nobody has described this location yet.",
     "containedTitle": "Locations inside",
@@ -1357,6 +1360,45 @@
       "longitude": "Longitude",
       "altitude": "Altitude"
     }
+  },
+  "PlanetMap": {
+    "show": "Show",
+    "layers": {
+      "places": "Places",
+      "private": "Private places",
+      "markers": "My markers",
+      "contours": "Contour lines",
+      "grid": "Grid"
+    },
+    "measure": "Measure",
+    "measureFrom": "Measure from here",
+    "measureFirst": "Click the starting point",
+    "measureSecond": "Click the end point",
+    "distance": "{distance} · heading {heading}°",
+    "copyLink": "Copy link",
+    "copied": "Link copied",
+    "view3d": "View in 3D",
+    "mapLabel": "Surface map of {name}",
+    "loading": "Loading the map…",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Show the whole body",
+    "kinds": {
+      "place": "Place",
+      "private": "Private place",
+      "marker": "Marker"
+    },
+    "openPlace": "Place page",
+    "openMarkers": "My markers",
+    "close": "Close",
+    "menuLabel": "Actions on this point",
+    "addMarker": "Add a marker here",
+    "copyCoordinates": "Copy coordinates",
+    "addMarkerHint": "Placed on the ground, at the altitude read from the map. You can file it in a collection from the Markers page.",
+    "cancel": "Cancel",
+    "save": "Add",
+    "hint": "Scroll to zoom · Drag to move",
+    "hintSignedIn": "Right-click to drop a marker · Scroll to zoom"
   },
   "Shopping": {
     "home": "Home",
@@ -4381,6 +4423,7 @@
     "unplaced": "No position on the map: it shows from the place that contains it.",
     "up": "Go up",
     "openPlace": "Place page",
+    "surfaceMap": "Map",
     "yourItems": "Your items here",
     "lotsSummary": "{lots, plural, one {# lot} other {# lots}} · {places, plural, one {# place} other {# places}}",
     "signInHint": "Sign in to see the items of your inventory stored here.",
