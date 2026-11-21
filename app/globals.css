@@ -234,3 +234,32 @@
      (le micro pendant l'écoute) ne l'efface pas. */
   filter: drop-shadow(0 0 12px rgb(58 160 220 / 0.55));
 }
+
+/* Les cartes de surface (`components/planet-map`) : Leaflet sur le fond de la
+   Star Map, et les points posés en `divIcon`, un rond et son nom. */
+.planet-map.leaflet-container {
+  background: #030912;
+  font-family: inherit;
+}
+.planet-map-point {
+  position: relative;
+}
+.planet-map-point-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% -50%;
+  box-shadow: 0 0 0 2px rgb(9 47 73 / 0.85);
+}
+.planet-map-point-label {
+  position: absolute;
+  left: 9px;
+  top: 0;
+  translate: 0 -50%;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1;
+  text-shadow:
+    0 1px 2px rgb(0 0 0 / 0.95),
+    0 0 6px rgb(0 0 0 / 0.75);
+}

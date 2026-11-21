@@ -157,6 +157,7 @@ export function StarMap({
   initialPlace,
   players: initialPlayers,
   sharing: initialSharing,
+  planetMaps,
 }: {
   places: StarMapPlace[];
   /** `null` : personne n'est connecté. */
@@ -165,6 +166,8 @@ export function StarMap({
   /** Les joueurs en jeu que je vois ; `null` : personne n'est connecté. */
   players: PlayerInGame[] | null;
   sharing: MyPositionSharing | null;
+  /** La texture de chaque corps qui a une carte de surface, par slug. */
+  planetMaps: Record<string, string>;
 }) {
   const t = useTranslations("StarMap");
   const tPlaces = useTranslations("Places");
@@ -366,6 +369,7 @@ export function StarMap({
           typeLabel,
           onSelect: select,
           onPlayer,
+          textures: planetMaps,
         });
         setReady(true);
       })
@@ -376,7 +380,7 @@ export function StarMap({
       scene.current = null;
       setReady(false);
     };
-  }, [places, typeLabel, select, onPlayer]);
+  }, [places, typeLabel, select, onPlayer, planetMaps]);
 
   useEffect(() => {
     if (ready) scene.current?.setPlayers(scenePlayers, playerId);
@@ -896,6 +900,14 @@ export function StarMap({
                 >
                   {current.marker ? t("openMarkers") : t("openPlace")}
                 </Link>
+                {planetMaps[current.slug] && (
+                  <Link
+                    href={`/lieux/${current.slug}?onglet=carte`}
+                    className="rounded-md border border-[#9ED0FF]/50 bg-[#9ED0FF]/15 px-2.5 py-1 text-xs font-semibold hover:bg-[#9ED0FF]/25"
+                  >
+                    {t("surfaceMap")}
+                  </Link>
+                )}
               </div>
             )}
           </div>

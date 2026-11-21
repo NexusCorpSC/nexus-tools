@@ -9,6 +9,7 @@ import {
   getStarMapPlaces,
   getStarMapPrivatePlaces,
 } from "@/lib/star-map";
+import { listPlanetMapTextures } from "@/lib/planet-maps";
 import { StarMap } from "./star-map";
 
 export const metadata: Metadata = {
@@ -32,7 +33,7 @@ export default async function StarMapPage({
     auth.api.getSession({ headers: await headers() }),
   ]);
   const userId = session ? new ObjectId(session.user.id) : null;
-  const [places, privatePlaces, markers, inventory, players, sharing] =
+  const [places, privatePlaces, markers, inventory, players, sharing, maps] =
     await Promise.all([
       getStarMapPlaces(),
       session ? getStarMapPrivatePlaces(session.user.id) : Promise.resolve([]),
@@ -40,6 +41,7 @@ export default async function StarMapPage({
       session ? getStarMapInventory(session.user.id) : Promise.resolve(null),
       userId ? visiblePlayers(userId) : Promise.resolve(null),
       userId ? getMyPositionSharing(userId) : Promise.resolve(null),
+      listPlanetMapTextures(),
     ]);
 
   return (
@@ -49,6 +51,7 @@ export default async function StarMapPage({
       initialPlace={place}
       players={players}
       sharing={sharing}
+      planetMaps={maps}
     />
   );
 }

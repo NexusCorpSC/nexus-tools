@@ -32,6 +32,8 @@ import { ConfirmBlock } from "@/components/confirm-block";
 import { getPrivatePlace } from "@/lib/private-places";
 import { markInvitationsSeen } from "@/lib/shares";
 import { PrivatePlaceView } from "../prives/private-place-view";
+import { getPlanetMap, getPlanetMapPoints } from "@/lib/planet-maps";
+import { PlanetMapLoader } from "@/components/planet-map/planet-map-loader";
 import {
   PlaceBreadcrumb,
   PlaceEmpty,
@@ -41,7 +43,7 @@ import {
   ServiceChips,
 } from "./sections";
 
-const TABS = ["apercu", "services", "magasins", "plan"] as const;
+const TABS = ["apercu", "services", "magasins", "plan", "carte"] as const;
 type Tab = (typeof TABS)[number];
 
 export async function generateMetadata({
@@ -79,11 +81,18 @@ export default async function PlacePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ onglet?: string; lieu?: string; plan?: string }>;
+  searchParams: Promise<{
+    onglet?: string;
+    lieu?: string;
+    plan?: string;
+    lat?: string;
+    lon?: string;
+    z?: string;
+  }>;
 }) {
   const t = await getTranslations("Places");
   const { slug } = await params;
-  const { onglet, lieu, plan } = await searchParams;
+  const { onglet, lieu, plan, lat, lon, z } = await searchParams;
   const place = await getPlaceDetails(slug);
 
   if (!place) {
@@ -119,7 +128,26 @@ export default async function PlacePage({
   // n'en demande aucune. On ne lit donc ici que « y a-t-il quelqu'un », et
   // c'est l'API qui dira, à l'ouverture du dialogue, ce que ce quelqu'un peut.
   const session = await auth.api.getSession({ headers: await headers() });
-  const tab: Tab = TABS.includes(onglet as Tab) ? (onglet as Tab) : "apercu";
+  // Une carte de surface n'existe que pour une planète ou une lune dont on a extrait le relief.
+  const planetMap =
+    place.type === "planet" || place.type === "moon"
+      ? await getPlanetMap(place.slug)
+      : null;
+  const requested: Tab = TABS.includes(onglet as Tab)
+    ? (onglet as Tab)
+    : "apercu";
+  const tab: Tab = requested === "carte" && !planetMap ? "apercu" : requested;
+  const mapPoints =
+    tab === "carte" && planetMap
+      ? await getPlanetMapPoints(
+          place.slug,
+          planetMap.manifest.radius,
+          session?.user?.id,
+        )
+      : [];
+  const mapView = planetMap
+    ? mapViewOf(lat, lon, z, planetMap.manifest.tiles.maxNativeZoom + 3)
+    : undefined;
 
   const [media, myPending, soldItems, missions, lore] =
     tab === "apercu"
@@ -182,6 +210,7 @@ export default async function PlacePage({
     { key: "services", label: t("tabServices"), count: services.length },
     { key: "magasins", label: t("tabShops"), count: place.shops.length },
     { key: "plan", label: t("tabPlan"), count: place.planCount },
+    ...(planetMap ? [{ key: "carte" as const, label: t("tabMap") }] : []),
   ];
 
   return (
@@ -501,6 +530,27 @@ export default async function PlacePage({
         </div>
       )}
 
+      {tab === "carte" && planetMap && (
+        <div>
+          <SectionTitle
+            aside={t("mapRelief", {
+              min: planetMap.manifest.reliefMin,
+              max: planetMap.manifest.reliefMax,
+            })}
+          >
+            {t("mapTitle")}
+          </SectionTitle>
+          <PlanetMapLoader
+            map={planetMap}
+            points={mapPoints}
+            bodyName={place.name}
+            signedIn={Boolean(session?.user)}
+            starMapHref={`/starmap?place=${place.slug}`}
+            initialView={mapView}
+          />
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#9ED0FF]/15 pt-4">
         <ListLink
           href="/lieux"
@@ -512,6 +562,30 @@ export default async function PlacePage({
       </div>
     </div>
   );
+}
+
+/**
+ * La vue d'une carte partagée par son adresse. Le centre compte plus que le
+ * zoom : un zoom absent ou hors bornes est ramené dans celles de la carte,
+ * sans perdre l'endroit partagé.
+ */
+function mapViewOf(lat?: string, lon?: string, z?: string, maxZoom = 8) {
+  const center = { lat: Number(lat), lon: Number(lon) };
+  if (
+    !lat ||
+    !lon ||
+    !Number.isFinite(center.lat) ||
+    !Number.isFinite(center.lon) ||
+    Math.abs(center.lat) > 90 ||
+    Math.abs(center.lon) > 180
+  ) {
+    return undefined;
+  }
+  const zoom = Math.round(Number(z));
+  return {
+    ...center,
+    zoom: Number.isFinite(zoom) ? Math.min(maxZoom, Math.max(0, zoom)) : 1,
+  };
 }
 
 function PointsChip({ points }: { points: number }) {
