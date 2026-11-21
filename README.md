@@ -1,362 +1,141 @@
-# Development
-
-## Setup
-
-- Pull mongo image through podman
-
-```bash
-podman pull docker.io/library/mongo
-```
-
-- Start a mongodb database, as a one-node replica set
-
-```bash
-podman run --name mongo -d -p 27017:27017 mongo --replSet rs0
-podman exec mongo mongosh --eval "rs.initiate()"
-```
-
-> Un replica set plutôt qu'un `mongod` seul : c'est ce que le flux
-> d'événements (`/api/events`, voir plus bas) demande pour écouter les
-> écritures. Un `mongod` seul marche encore — le flux se rabat alors sur une
-> lecture par seconde — mais ce n'est pas ce qui tourne en production.
-
-### Environment variables
-
-Create a `.env.local` file and add the environment variables.
-
-```bash
-touch .env.local
-```
-
-```
-BETTER_AUTH_SECRET="" # openssl rand -base64 32
-MONGODB_URI="mongodb://localhost:27017/?directConnection=true" # MongoDB connection string (directConnection: rs.initiate() advertises the container's hostname, which the host cannot resolve)
-RESEND_API_KEY="CONSOLE" # Display signin OTP in console. Replace by Resend API Key to send real emails.
-BLOB_READ_WRITE_TOKEN="" # Blob read/write token for vercel storage
-DISCORD_CLIENT_ID=""
-DISCORD_CLIENT_SECRET=""
-ANTHROPIC_API_KEY="" # Nexus Chat (Claude). Without it the chat answers an error; access stays managed in /admin/chat.
-```
-
-## Run
-
-- Create the indexes (once per database, and again after a deployment that adds one)
-
-```bash
-npm run ensure:indexes
-```
-
-> Tous les index de la base sont déclarés dans `scripts/ensure-indexes.ts`,
-> et nulle part ailleurs : le code de l'application ne crée aucun index au
-> démarrage. Un `createIndex` par premier appel d'un processus, c'est une
-> commande de plus par instance démarrée — et sur Vercel, autant d'instances
-> que de réveils. Le script est idempotent, et porte la migration de l'index
-> des membres d'escouade (unique → simple) pour les bases écrites par une
-> version antérieure.
-
-- Start dev server
-
-```bash
-npm run dev
-```
-
-## Build & Commits
-
-Build the app with:
-
-```bash
-npm run build
-```
-
-> Dev server doesn't run full analysis and type cheking. Run build to detect build issues.
-
-## Escouades
-
-`/squads` tient l'état d'une escouade en temps réel — qui est prêt, qui est à
-terre, qui tient quel rôle, l'annonce du chef — et le raid qui en regroupe
-plusieurs. C'est la même escouade que Nexus App affiche par-dessus le jeu :
-la page et la superposition écrivent sur les mêmes routes, `/api/squads` et ses
-sous-routes, et lisent la même vue sur le flux d'événements (`/api/events`,
-sujet `squad`, voir plus bas) — la page ne tient le flux que tant que l'onglet
-est visible.
-
-La page est pensée pour un téléphone d'abord : une seule colonne, les deux
-états d'une ligne (prêt, à terre) en boutons pleine hauteur, le reste derrière
-le menu de la ligne, et les feuilles de gestion (rôles, raid) qui montent du
-bas de l'écran. Plus large, la vue de raid passe sur deux colonnes et rien
-d'autre ne bouge.
-
-Un joueur est dans une escouade, sauf l'organisateur d'un raid, qui en ouvre
-d'autres depuis « Gérer le raid » et les mène jusqu'à passer la main : la page
-en regarde une à la fois (un sélecteur à côté du titre), et sur la vue de raid
-toutes celles dont il est membre se manipulent. Côté API, chaque route accepte
-`?squad=<id>` pour dire laquelle elle vise ; sans lui, la plus ancienne des
-appartenances.
-
-**Ready check.** Le chef d'une escouade ou un de ses lieutenants demande à
-l'escouade de se déclarer prête (`POST /api/squads/ready-check`) ; celui qui
-commande l'escouade meneuse le demande à tout le raid
-(`POST /api/squads/raid/ready-check`). Dans les deux cas, chaque membre
-concerné repasse « non prêt » dans la même écriture que celle qui pose le
-marqueur (`readyCheck` : un identifiant frais, l'heure, et qui l'a demandé)
-sur l'escouade ou sur le raid. Rien d'autre n'est stocké : qui a répondu, c'est
-la liste elle-même. Le flux d'événements porte la vue mise à jour à chacun ;
-un client qui y voit un `readyCheck` qu'il ne connaissait pas affiche une
-notification avec un bouton « Prêt », qui n'est rien d'autre que le `PATCH` de
-sa propre ligne.
-
-**Annonces.** Chaque écriture d'une annonce — celle d'une escouade
-(`PATCH /api/squads/announcements`) comme celle du raid (`PATCH /api/squads/raid`)
-— pose `announcedAt`, même quand le texte n'a pas changé : c'est ainsi que
-Nexus App **renvoie** une annonce, et c'est ce tampon, pas le texte, qu'il
-compare pour sonner. La page n'enregistre donc pas un texte laissé intact.
-
-## Connexion de Nexus App
-
-Nexus App n'a pas de formulaire de connexion : il ouvre `/desktop/connect` dans
-le navigateur et attend sur un port de la boucle locale (redirection loopback,
-RFC 8252). Le code vit dans `lib/desktop-auth.ts` et
-`app/desktop/connect/page.tsx`.
-
-```
-GET /desktop/connect?port=<1024-65535>&state=<16-128 car.>&challenge=<S256>
-  non connecté → /login?callbackUrl=<cette URL>, qui y revient
-  connecté     → 302 http://127.0.0.1:<port>/callback?code=<code>&state=<state>
-
-POST /api/auth/desktop/exchange   { code, verifier }
-  200  Set-Cookie: <session better-auth>   { id, name, email, image }
-  400  code inconnu, expiré, déjà utilisé, ou verifier qui ne correspond pas
-```
-
-- **Le code est à usage unique et vit deux minutes.** Il est stocké haché dans
-  la table de vérification de better-auth, et supprimé au premier échange,
-  réussi ou non.
-- **PKCE (RFC 7636).** `challenge` est le SHA-256 en base64url d'un secret que
-  l'application garde et ne donne qu'à l'échange : un autre programme qui
-  intercepterait la redirection n'aurait que le code.
-- **La redirection ne vise que `127.0.0.1`** : un lien vers la page ne peut
-  envoyer le code que sur la machine de celui qui clique.
-- **L'échange crée une session propre à l'application**, distincte de celle du
-  navigateur : se déconnecter de l'une ne déconnecte pas l'autre.
-
-## Flux d'événements
-
-`GET /api/events` tient **une connexion par client** (Server-Sent Events) et y
-pousse tout ce que ce client suit : l'escouade, le bloc-notes, et demain les
-notifications. C'est ce qui remplace l'interrogation toutes les deux secondes
-que faisaient la page `/squads` et la superposition de Nexus App — N membres ×
-une requête toutes les 2 s, chacune coûtant une lecture de session et une à
-trois requêtes Mongo, pour un état qui ne change que quelques fois par minute.
-
-```
-GET /api/events?topics=squad,note&squad=<id>
-  topics : sous-ensemble de {squad, note}, tout par défaut
-  squad  : paramètre du sujet squad, même sens que sur GET /api/squads
-Accept: text/event-stream
-Cookie: <session better-auth>
-
-200  Content-Type: text/event-stream
-
-retry: 1000
-event: squad.view   id: squad:<empreinte>   data: <SquadView>   ← instantané à la connexion
-event: note         id: note:<empreinte>    data: <Note>        ← instantané à la connexion
-: ping                                                           ← toutes les 20 s
-event: squad.view / event: note                                  ← à chaque changement
-event: bye          data: {"reason":"rollover"}                  ← ~20 s avant maxDuration
-```
-
-- **Chaque sujet renvoie son instantané à chaque connexion.** Pas de
-  `Last-Event-ID` : un seul identifiant ne peut pas décrire l'état de
-  plusieurs sujets, et un instantané par sujet toutes les quelques minutes ne
-  vaut pas un protocole de reprise. Un événement de sujet n'est émis que si son
-  empreinte (`sha1` du JSON) change.
-- **La fonction est bornée.** Sur Vercel elle vit au plus `maxDuration`
-  (300 s, ce qui demande Fluid compute) : peu avant, le serveur dit `bye` et
-  ferme, le client se reconnecte aussitôt et reçoit de nouveaux instantanés.
-- **401** : le client s'arrête. **404** (serveur pas encore déployé) : Nexus
-  App retombe sur `GET /api/squads` toutes les 10 s tant que la superposition
-  d'escouade est visible, et re-sonde `/api/events` toutes les cinq minutes.
-- **Ordre entre pushes et écritures**, côté clients : un push dont
-  `squad.version` est strictement inférieur à celui affiché pour la même
-  escouade est ignoré ; pendant une écriture en vol, les pushes sont retenus et
-  le dernier est appliqué une fois la réponse de l'écriture posée. Pour la note,
-  l'éditeur adopte la révision reçue sauf brouillon non enregistré ou
-  sauvegarde en cours.
-
-### Comment le serveur sait qu'il y a du nouveau
-
-Sur Vercel, la fonction qui traite une écriture n'est pas celle qui tient le
-flux : rien ne peut passer en mémoire de l'une à l'autre. C'est la base qui
-diffuse. `lib/events/hub.ts` ouvre **un seul change stream par processus** —
-pas un par connexion — sur les collections des sujets, et fait le routage en
-mémoire : chaque sujet tient, par utilisateur connecté, l'index des documents
-dont sa vue dépend (son escouade, les sous-escouades du raid, ses
-appartenances, le raid) et dit quels utilisateurs un événement concerne. Une
-suppression n'a pas de document : elle est attrapée par son `_id`, et c'est
-justement ce qui permet à un départ d'escouade de se voir. Les rafales sont
-lissées (50 ms) avant une relecture par sujet, et un push ne part que si la vue
-a changé.
-
-Un change stream demande un replica set. Quand la base n'en est pas un (le
-`mongod` seul du poste de développement), le premier curseur échoue en le
-disant, et le concentrateur se rabat pour la durée du processus sur un
-**ticker** : une lecture projetée par sujet et par seconde pour les utilisateurs
-connectés, comparée à la précédente. Plus lent d'une seconde, mais toujours une
-requête par sujet par seconde quel que soit le nombre de connectés. Un curseur
-qui échoue trois fois de suite pour une autre raison — un palier, un rôle —
-mène au même repli, avec le code et le message de l'erreur dans les journaux,
-plutôt qu'à des réessais sans fin pendant lesquels rien ne serait poussé.
-
-Le concentrateur s'ouvre avec le premier abonné et se ferme cinq secondes après
-le dernier : une instance qui ne sert que des écritures n'ouvre jamais de
-curseur.
-
-### Ajouter un sujet
-
-Écrire un `Topic` (`lib/events/topic.ts`) : sa collection, sa lecture
-(`snapshot`), ce qu'il indexe par utilisateur (`index`), qui un événement
-concerne (`affected`) et sa version ticker (`tick`) ; l'inscrire dans `TOPICS`
-(`lib/events/hub.ts`) et dans `EVENT_TOPICS` / `EVENT_NAMES`
-(`types/events.ts`). Côté site, `useEventStream` (`lib/use-event-stream.ts`)
-le reçoit ; côté Nexus App, Rust ignore les événements qu'il ne connaît pas,
-jusqu'à ce qu'on lui dise à quelle fenêtre les remettre.
-
-## Import du catalogue d'objets
-
-Les objets, armes, véhicules et ressources de `/items` peuvent être importés
-depuis les sources publiques du jeu :
-
-```bash
-npm run import:catalogue -- rsi              # vaisseaux (matrice officielle RSI + points de vente Fleetyards)
-npm run import:catalogue -- scwiki           # armes, armures, accessoires, composants (Star Citizen Wiki, en français)
-npm run import:catalogue -- uex              # ressources et cours par comptoir (UEX Corp)
-npm run import:catalogue -- all --update     # tout, en rafraîchissant les objets déjà importés
-npm run import:catalogue -- link             # relie seulement les emplacements aux fiches, sans importer
-```
-
-Options utiles : `--dry-run` (n'écrit rien), `--limit N`, `--filter texte`,
-`--types WeaponPersonal,Char_Armor_Helmet` (types du wiki), `--no-fleetyards`,
-`--mirror-images` (recopie les images dans le blob storage, `BLOB_READ_WRITE_TOKEN`
-requis ; sinon les fiches pointent vers les images de la source).
-
-Chaque objet importé porte sa provenance : relancer l'import ne crée jamais de
-doublon. Sans `--update`, un objet déjà présent est laissé tel quel ; avec, la
-source rafraîchit ce qu'elle connaît (caractéristiques, image, emports, cours…)
-en gardant ce qu'un administrateur a ajouté à la main — et une description ou
-une provenance réécrites ne sont jamais écrasées.
-
-Les points d'emport, composants et accessoires sont **appariés par nom** aux
-fiches du catalogue : un emplacement qui nomme un objet sans pointer vers sa
-fiche renvoie vers la fiche du même nom, sur la page comme dans le formulaire
-d'administration (le script relie après chaque import, dans l'ordre que l'on
-veut : vaisseaux d'abord ou armes d'abord). En retour, chaque fiche d'arme ou
-de composant liste les vaisseaux qui l'embarquent d'origine. Les montures,
-tourelles et racks de missiles que la matrice RSI nomme sur les vaisseaux
-s'importent avec `scwiki --types Turret,MissileLauncher`.
-
-> Le script lit `MONGODB_URI` dans `.env.local`. Il s'exécute hors de Next
-> (`tsx`) : aucune permission applicative n'est vérifiée, réservez-le aux
-> opérateurs.
-
-## Import des blueprints, factions et missions
-
-Les blueprints de `/crafting`, les factions et les missions de `/missions`
-viennent de l'[API du Star Citizen Wiki](https://api.star-citizen.wiki).
-[scmdb.net](https://scmdb.net) reste branché en secours (`--source scmdb`) :
-les deux partagent les GUID des blueprints, tirés des fichiers du jeu.
-
-```bash
-npm run import:game-data -- all --dry-run    # le rapport de ce qui changerait, sans rien écrire
-npm run import:game-data -- all              # dernière version LIVE : blueprints, factions, missions, réputations
-npm run import:game-data -- reputations      # seulement la liste des factions de /reps
-npm run import:game-data -- images           # illustrations des blueprints qui n'en ont pas
-```
-
-Le wiki est lu par ses listes, à 200 lignes par page : une cinquantaine de
-requêtes pour tout. La recette complète d'un blueprint n'est qu'à son détail ;
-elle n'est demandée que pour les blueprints nouveaux ou dont les ingrédients
-ont changé (`--refresh-recipes` pour toutes les redemander).
-
-Ce que le wiki n'a pas :
-
-- **Le montant de la récompense** de beaucoup de missions : une mission déjà
-  en base garde le sien.
-- **Le type de mission du jeu** (Mercenary, Delivery…) : sa liste n'a que la
-  famille de la mission (Security, Hauling…), qui sert de type. La catégorie
-  (career, story, event) reste celle déjà en base.
-- **La sous-catégorie des blueprints** : une fiche garde la sienne.
-- **Certains titres** que le jeu remplit à l'affichage
-  (`[Contractor|BountyTitle]`) : ils ne remplacent pas le titre en base et ne
-  créent pas de mission.
-
-**Réputations.** La liste des factions de /reps (document `configuration` de
-clé `reputations`) suit les factions du wiki qui ont un barème de réputation,
-lu au détail de chacune (une quarantaine de requêtes). Une faction est
-retrouvée par son GUID, sinon par son nom ; ses rangs sont remplacés par ceux
-du jeu, et les réputations déjà saisies par les joueurs suivent les factions,
-carrières et rangs renommés (un rang que le jeu n'a plus devient le rang
-retrouvé juste en dessous). Le wiki ne donne qu'un barème par faction : les
-autres pistes viennent des missions, qui disent quelle réputation elles font
-monter (Security chez Eckhart Security, dont le barème est `Standing`). Le
-wiki n'a pas le barème de ces pistes : chacune prend celui de la liste dont
-les rangs sont ceux que ses missions demandent (Security de Northrock,
-Bounty Hunting de MicroTech Protection Services). Une piste sans barème
-reconnu (Courier, Hired Muscle) est seulement signalée au rapport : saisir
-son barème à la main pour une faction suffit pour que l'import suivant
-l'ajoute aux autres. Les carrières saisies à la main restent, comme le
-standing (Hostile, Neutral, Ally), que le wiki ne donne pas. Rien n'est
-supprimé : une faction qui disparaît du wiki est marquée `removedInVersion`.
-
-Le wiki regroupe aussi les variantes d'une mission sous une seule fiche, là où
-les premiers imports (scmdb) en faisaient plusieurs : au passage au wiki, ces
-fiches sont fusionnées et leurs liens redirigent vers la mission qui les
-regroupe.
-
-`--blueprints-source` et `--missions-source` choisissent la source de chaque
-partie.
-
-Options utiles : `--version 4.10.1-LIVE.12660092` (une version précise),
-`--dir dossier` (avec scmdb, des fichiers `merged-<V>.json` et
-`crafting_blueprints-<V>.json` déjà téléchargés), `--mirror-images` (avec
-`images`, recopie dans le blob storage), `--allow-mass-removal`.
-
-Les fichiers de scmdb sont gardés dans `.cache/game-data/scmdb/` : un second
-import ne les retélécharge pas.
-
-Ce que l'import garantit :
-
-- **Un blueprint est suivi par son GUID**, une mission par ses identifiants de
-  contrat et ses noms techniques, jamais par leur nom. Quand le jeu renomme un
-  blueprint, sa fiche est mise à jour : son `_id` ne change pas, les joueurs
-  qui le possèdent le gardent, et l'ancien slug redirige vers le nouveau. Les
-  homonymes (quatre refroidisseurs « Cryo-Star SL ») ont chacun leur fiche.
-- **Rien n'est supprimé.** Ce qui disparaît du jeu est marqué
-  `removedInVersion` : la mission sort des listes mais sa page reste, avec un
-  avertissement ; une mission que la source a fusionnée dans une autre
-  redirige vers elle.
-- **Les saisies des administrateurs sont gardées** : nom, description, slug,
-  image, statistiques, et le texte « Obtention » dès qu'il n'est plus celui que
-  l'import avait écrit.
-- **La source est vérifiée avant toute écriture.** Un champ renommé par la
-  source, une réponse qui n'est plus du JSON, ou un import qui retirerait d'un
-  coup plus de 20 % du catalogue arrêtent l'import sans rien toucher.
-
-Une fiche d'objet du catalogue importée du wiki retrouve aussi ses blueprints
-par l'identifiant d'entité du jeu, quel que soit leur nom.
-
-Le premier passage rattache les fiches des anciens imports à leur GUID grâce à
-l'export qui leur a servi (`assets/blueprints.json` et `assets/missions.json`,
-lus automatiquement s'ils sont là). Lancer ensuite `npm run ensure:indexes`.
-Une fiche absente de cet export (créée à la main ou par un autre script) est
-rattachée par son nom actuel dans la source.
-
-Si un import a créé une seconde fiche à côté d'une fiche sans GUID (le
-rapport les signale comme doublons), `merge:blueprints` les réunit dans
-l'ancienne : possessions des joueurs, missions et objets liés suivent, et le
-slug de la fiche importée redirige.
-
-```bash
-npm run merge:blueprints                 # les paires trouvées, sans rien écrire
-npm run merge:blueprints -- --apply      # fusionner
-npm run import:game-data -- all          # régénérer les textes d'obtention
-```
+<div align="center">
+
+<img src="public/nexus_logo_square.png" alt="Nexus" width="96" />
+
+# Nexus Tools
+
+**La boîte à outils communautaire de Star Citizen.**
+Votre inventaire, la Star Map, la marketplace entre joueurs, vos évènements
+d'orga et un assistant qui connaît le 'Verse, au même endroit.
+
+[**Ouvrir Nexus Tools**](https://tools.services.nexus) ·
+[Télécharger Nexus App](https://github.com/NexusCorpSC/nexus-app/releases/latest) ·
+[Discord](https://tools.services.nexus/discord)
+
+</div>
+
+![La Star Map 3D, autour de Crusader](docs/images/starmap-crusader.png)
+
+Nexus Tools est un site gratuit, fait par des joueurs pour des joueurs. La
+base de données (objets, blueprints, missions, lieux, lore) se consulte sans
+compte ; connectez-vous avec un e-mail, Discord ou une passkey pour tenir votre
+inventaire, vendre, organiser des sorties et retrouver vos amis sur la carte.
+
+Le site est disponible en français, en anglais et en espagnol.
+
+## Ce que vous pouvez faire
+
+### Savoir où sont vos affaires
+
+- **Inventaire personnel** : ajoutez un objet en quelques touches, rangez-le
+  par lieu et par lot, avec quantité, qualité et notes. La recherche de lieu
+  connaît toutes les stations, villes et avant-postes du jeu.
+- **Inventaire d'organisation** : partagez un stock avec votre orga et voyez
+  qui possède quel blueprint.
+- **Colis entre joueurs** : préparez un colis, donnez le code au destinataire ;
+  les objets passent dans son inventaire quand il l'accepte.
+- **Raffinage** : suivez vos ordres de raffinage, soyez prévenu à la fin, et
+  versez le résultat dans l'inventaire d'un clic.
+
+### Explorer le 'Verse
+
+![Vue d'ensemble de la Star Map : Stanton, Pyro et Nyx](docs/images/starmap-verse.png)
+
+- **Star Map 3D** de Stanton, Pyro et Nyx : zoomez d'un système à une planète
+  puis à une station, et voyez ce que vous y avez stocké.
+- **Lieux** : la fiche de chaque station, ville ou avant-poste, avec photos et
+  coordonnées ajoutées par la communauté. Créez aussi vos **lieux privés**
+  (votre base, une cache), pour vous ou votre orga.
+- **Marqueurs de position** : collez la sortie de `/showlocation` pour marquer
+  un point, rangez vos marqueurs en collections et partagez-les.
+- **Lore** : la Galactapedia et la starmap de RSI, consultables et
+  recherchables.
+
+![Marqueurs de position sur Daymar](docs/images/marqueurs.png)
+
+### Trouver une info de jeu
+
+- **Objets, armes, armures, vaisseaux, ressources**, avec caractéristiques et
+  points de vente.
+- **Blueprints** : la recette, où l'obtenir, et la liste de ceux que vous
+  possédez.
+- **Missions, factions et réputations** : ce que demande une mission, ce
+  qu'elle rapporte, et où vous en êtes avec chaque faction.
+- **Évènements officiels** de CIG : la frise des évènements passés, en cours
+  et à venir, leurs récompenses, un guide communautaire et les bugs connus.
+
+### Acheter, vendre, demander
+
+![Une annonce de la marketplace](docs/images/marketplace.png)
+
+- **Marketplace** : tout joueur connecté peut ouvrir son magasin. Achat direct
+  avec quantité et lieu de remise, panier sur plusieurs magasins, suivi de
+  commande avec messagerie. Vendez directement depuis votre inventaire.
+- **Tableau des demandes** : « j'ai besoin de 20 SCU de Quantainium » ; les
+  autres joueurs font une offre, vous négociez en privé.
+
+![Le tableau des demandes](docs/images/demandes.png)
+
+### Jouer ensemble
+
+![Le calendrier des évènements](docs/images/evenements.png)
+
+- **Organisations** : membres, inventaire commun, blueprints de l'orga,
+  présence en jeu.
+- **Évènements** d'orga ou personnels : calendrier, inscriptions, escouades,
+  partage par lien ou avec un joueur précis.
+- **Escouades en temps réel** : qui est prêt, qui est à terre, annonces du
+  chef, ready check, raids de plusieurs escouades. Pensé pour le téléphone.
+- **Amis et position** : partagez votre position depuis Nexus App, vos amis
+  vous voient sur la Star Map et peuvent vous rejoindre.
+
+![Les amis sur la Star Map](docs/images/starmap-amis.png)
+
+### Demander à Nexus Chat
+
+<img src="docs/images/nexus-chat.png" alt="Nexus Chat dans le panneau latéral" width="420" align="right" />
+
+Un assistant (Claude) qui cherche pour vous dans Nexus Tools et agit sur votre
+compte : « je cherche 20 SCU de Laranite », « range ce Quantainium à Lorville »,
+« commande chez Sadaryx ». Toute action est d'abord affichée pour que vous la
+confirmiez. Il s'ouvre dans un panneau sur chaque page, et se pilote à la voix
+dans Nexus App.
+
+L'accès est ouvert par un administrateur.
+
+<br clear="right" />
+
+### Enrichir la base
+
+Une coordonnée manquante, une photo de lieu, un conseil de mission : tout le
+monde peut **contribuer**. Les propositions sont relues par la communauté, et
+chaque contribution acceptée fait monter votre niveau et le classement.
+
+## Nexus App, l'application de bureau
+
+[Nexus App](https://github.com/NexusCorpSC/nexus-app) apporte Nexus Tools
+par-dessus le jeu, sous Windows : recherche par raccourci, superpositions
+(escouade, NPS, bloc-notes, cargo, Nexus Chat), capture d'écran qui remplit
+l'inventaire, positionnement NPS et notifications. Elle utilise le même compte
+que le site.
+
+[Télécharger la dernière version](https://github.com/NexusCorpSC/nexus-app/releases/latest)
+
+## Pour les développeurs et les assistants IA
+
+- **Serveur MCP** : branchez Claude ou un autre assistant sur
+  `https://tools.services.nexus/mcp` pour qu'il consulte la base et gère votre
+  compte. Mode d'emploi sur [/developers](https://tools.services.nexus/developers).
+- **Contribuer au code** : la documentation technique (installation locale,
+  variables d'environnement, scripts d'import, architecture) est dans
+  [docs/](docs/README.md).
+
+## Communauté
+
+Une question, un bug, une idée ? Rejoignez-nous sur
+[Discord](https://tools.services.nexus/discord) ou ouvrez une issue sur ce
+dépôt.
+
+Fait par la communauté Nexus Corporation. Ni approuvé, ni affilié à Cloud
+Imperium. Les images et assets de Star Citizen appartiennent à Cloud Imperium
+Games.
