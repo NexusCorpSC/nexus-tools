@@ -114,9 +114,23 @@ export function hasConfirmedWrite(message: ChatUIMessage | undefined): boolean {
     message?.parts.some(
       (part) =>
         isToolUIPart(part) &&
-        "approval" in part &&
-        part.approval?.approved === true,
+        (("approval" in part && part.approval?.approved === true) ||
+          isTriggeredGameAction(part)),
     ) ?? false
+  );
+}
+
+/**
+ * Une action de jeu que l'app a déclenchée et que le jeu a prise
+ * (`lib/chat/game-tools.ts`) : la rejouer la referait, ou annulerait une
+ * bascule.
+ */
+function isTriggeredGameAction(part: ChatUIMessage["parts"][number]): boolean {
+  return (
+    part.type === "tool-game_trigger_action" &&
+    "state" in part &&
+    part.state === "output-available" &&
+    (part.output as { status?: unknown } | null)?.status === "ok"
   );
 }
 
