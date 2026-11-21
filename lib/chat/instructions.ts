@@ -18,12 +18,15 @@ export function chatInstructions({
   locale,
   playerName,
   voice = false,
+  extra,
 }: {
   serverInstructions?: string;
   locale: string;
   playerName: string;
   /** Le joueur parle au chat : la réponse sera lue à voix haute. */
   voice?: boolean;
+  /** Des consignes de plus, propres au client (les outils du jeu de l'app). */
+  extra?: string;
 }): string {
   const language = LANGUAGES[locale] ?? LANGUAGES.fr;
   return [
@@ -37,6 +40,7 @@ export function chatInstructions({
     voice
       ? "The player is talking to you by voice, often while playing, and your answer will be read aloud. Answer in one to three short spoken sentences, in plain text: no Markdown, no tables, no lists, no links or URLs, no emoji. Say numbers and units the way a person would say them. Tool calls, links and confirmation cards are still shown on screen: mention them briefly instead of reading them."
       : "",
+    extra ?? "",
     serverInstructions ? `About the tools: ${serverInstructions}` : "",
   ]
     .filter(Boolean)
