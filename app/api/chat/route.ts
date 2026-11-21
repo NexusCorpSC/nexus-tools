@@ -40,6 +40,11 @@ import {
   chatStopRequested,
   releaseChatLock,
 } from "@/lib/chat/lock";
+import {
+  applyGameToolOutputs,
+  GAME_TOOLS_INSTRUCTIONS,
+  gameTools,
+} from "@/lib/chat/game-tools";
 import { openChatTools } from "@/lib/chat/mcp";
 import {
   stepCostMicros,
@@ -57,12 +62,15 @@ import {
  * Une réponse de Nexus Chat, en flux (protocole UI de l'AI SDK, `useChat`).
  * Sert le site et l'app de bureau, qui envoient le cookie de session.
  *
- * Body: { id, message, voice? }
+ * Body: { id, message, voice?, gameTools? }
  * - `id` : la conversation (créée au premier message) ;
  * - `message` : le nouveau message du joueur, ou le dernier message de
- *   l'assistant avec les réponses du joueur aux confirmations ;
+ *   l'assistant avec les réponses du joueur aux confirmations, ou celles de
+ *   l'app aux outils du jeu ;
  * - `voice` : le joueur parle au chat (question dictée, réponse lue à voix
- *   haute) : la réponse est faite pour l'oral.
+ *   haute) : la réponse est faite pour l'oral ;
+ * - `gameTools` : la requête vient de l'app de bureau, qui répond elle-même
+ *   aux outils du jeu (`lib/chat/game-tools.ts`).
  *
  * L'historique vient de la base, pas du client : seul le texte d'un nouveau
  * message, ou la réponse (oui / non) à une confirmation en attente, est pris
@@ -143,8 +151,9 @@ function applyApprovals(
 
 /**
  * La conversation telle que la requête la prolonge : l'historique de la
- * base, plus le nouveau message du joueur ou ses réponses aux
- * confirmations. `null` si la requête ne prolonge rien.
+ * base, plus le nouveau message du joueur, ses réponses aux confirmations ou
+ * les réponses de l'app aux outils du jeu. `null` si la requête ne prolonge
+ * rien.
  */
 function extend(
   history: ChatUIMessage[],
@@ -153,8 +162,13 @@ function extend(
   const text = userText(message);
   if (text === null) {
     const last = history.at(-1);
-    const answered = last ? applyApprovals(last, message) : null;
-    return answered ? [...history.slice(0, -1), answered] : null;
+    if (!last) return null;
+    // Les deux peuvent venir ensemble : une étape qui appelle un outil du
+    // jeu et une écriture à confirmer.
+    const approved = applyApprovals(last, message);
+    const answered = applyGameToolOutputs(approved ?? last, message);
+    const extended = answered ?? approved;
+    return extended ? [...history.slice(0, -1), extended] : null;
   }
   // Un nouvel essai d'un message déjà envoyé (après une erreur, ou
   // « Réessayer ») reprend la conversation à ce message… sauf si la réponse
@@ -183,7 +197,12 @@ export async function POST(request: Request) {
   if (!session?.user) return error("unauthorized", 401);
   const userId = new ObjectId(session.user.id);
 
-  let body: { id?: unknown; message?: unknown; voice?: unknown };
+  let body: {
+    id?: unknown;
+    message?: unknown;
+    voice?: unknown;
+    gameTools?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -217,6 +236,7 @@ export async function POST(request: Request) {
       id,
       message,
       voice: body.voice === true,
+      withGameTools: body.gameTools === true,
       settings,
       lock,
       onStream: () => {
@@ -250,6 +270,7 @@ async function respond({
   id,
   message,
   voice,
+  withGameTools,
   settings,
   lock,
   onStream,
@@ -259,6 +280,8 @@ async function respond({
   id: string;
   message: ChatUIMessage;
   voice: boolean;
+  /** L'app de bureau : elle répond aux outils du jeu. */
+  withGameTools: boolean;
   settings: ChatSettings;
   lock: string;
   /** Le flux part : c'est lui qui rendra le verrou, à sa fin. */
@@ -295,7 +318,10 @@ async function respond({
     console.error({ message: "Nexus Chat: MCP tools unavailable", cause });
     return error("unavailable", 503);
   }
-  const { client, tools, approval } = chat;
+  const { client, approval } = chat;
+  const tools: ToolSet = withGameTools
+    ? { ...chat.tools, ...gameTools }
+    : chat.tools;
 
   try {
     const modelMessages = await convertToModelMessages(modelWindow(messages), {
@@ -332,6 +358,7 @@ async function respond({
         locale,
         playerName: userName,
         voice,
+        extra: withGameTools ? GAME_TOOLS_INSTRUCTIONS : undefined,
       }),
       messages: modelMessages,
       tools,
