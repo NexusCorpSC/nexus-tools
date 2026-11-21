@@ -76,3 +76,6 @@ export type PlanetMapPoint = {
   /** Un lieu privé d'organisation, un marqueur partagé : à qui. */
   org?: string;
 };
+
+/** `GET /api/lieux/<slug>/carte` : la carte et ce qui s'y pose, pour l'app. */
+export type PlanetMapResponse = PlanetMap & { points: PlanetMapPoint[] };

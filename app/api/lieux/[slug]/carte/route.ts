@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sessionUser } from "@/app/api/lieux/prives/errors";
 import { getPlanetMap, getPlanetMapPoints } from "@/lib/planet-maps";
+import type { PlanetMapResponse } from "@/types/planet-maps";
 
 /**
  * GET /api/lieux/<slug>/carte
@@ -20,5 +21,5 @@ export async function GET(
   }
   const user = await sessionUser();
   const points = await getPlanetMapPoints(slug, map.manifest.radius, user?.id);
-  return NextResponse.json({ ...map, points });
+  return NextResponse.json<PlanetMapResponse>({ ...map, points });
 }
