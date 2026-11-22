@@ -362,7 +362,7 @@ function fetchJson(url: string): Promise<unknown> {
 }
 
 /** Lance `tasks` avec au plus `limit` en cours à la fois, dans l'ordre. */
-async function pool<T>(
+export async function pool<T>(
   tasks: (() => Promise<T>)[],
   limit = CONCURRENCY,
 ): Promise<T[]> {
@@ -400,6 +400,16 @@ function readPage(raw: unknown, address: string): Page {
     );
   }
   return { data: raw.data, lastPage: raw.meta.last_page };
+}
+
+/** Le détail d'une fiche (`missions/<uuid>`…), tel que l'API le renvoie. */
+export async function detail(
+  endpoint: string,
+  params: Record<string, string>,
+  stats: WikiStats,
+): Promise<unknown> {
+  stats.requests += 1;
+  return fetchJson(url(endpoint, params));
 }
 
 /** Toutes les lignes d'une liste : la première page dit combien il y en a. */

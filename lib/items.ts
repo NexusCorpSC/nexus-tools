@@ -4,6 +4,7 @@ import type { Document } from "bson";
 import type { UpdateFilter } from "mongodb";
 import db from "@/lib/db";
 import { buildComparisonGroups } from "@/lib/item-comparison";
+import { getWikeloTradesForItem } from "@/lib/wikelo";
 import {
   ITEM_PAGE_SIZE,
   MAX_COMPARE_ITEMS,
@@ -1058,6 +1059,7 @@ export async function getItemDetails(
     [hardpoints, components, attachments],
     weaponComparison,
     mountedOn,
+    wikelo,
   ] = await Promise.all([
     getBlueprintsForItem(item),
     getBlueprintsConsuming(item.name),
@@ -1070,6 +1072,7 @@ export async function getItemDetails(
     ),
     getWeaponComparison(item),
     getMountedOn(item),
+    getWikeloTradesForItem(item),
   ]);
 
   return {
@@ -1085,6 +1088,7 @@ export async function getItemDetails(
     weaponProfile: weaponComparison.profile,
     weaponPeers: weaponComparison.peers,
     mountedOn,
+    wikelo,
   };
 }
 

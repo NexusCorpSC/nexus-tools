@@ -4190,6 +4190,7 @@
         "search_lore": "Recherche dans la Galactapedia",
         "get_lore_article": "Lecture d'un article de la Galactapedia",
         "get_star_system": "Lecture de la starmap",
+        "search_wikelo_trades": "Recherche dans les échanges de Wikelo",
         "identify_radar_signature": "Identification d'une signature radar",
         "search_official_events": "Recherche dans les évènements officiels",
         "get_official_event": "Lecture de l'évènement officiel",
@@ -5356,6 +5357,25 @@
       "me": "ma position",
       "halo": "anneau clair : l'Aaron Halo"
     }
+  },
+  "Wikelo": {
+    "itemTitle": "Échange chez Wikelo",
+    "itemHint": "Wikelo, le marchand banu de l'Emporium, donne cet objet si vous lui apportez ce qu'il demande. Les noms sont ceux du jeu, en anglais.",
+    "wantedTitle": "{count, plural, one {Demandé par Wikelo (# échange)} other {Demandé par Wikelo (# échanges)}}",
+    "wantedHint": "Wikelo accepte cet objet en échange de :",
+    "blueprintTitle": "Échange chez Wikelo",
+    "blueprintHint": "Wikelo, le marchand banu de l'Emporium, donne ce blueprint avec l'objet si vous lui apportez ce qu'il demande. Les noms sont ceux du jeu, en anglais.",
+    "bring": "À apporter",
+    "receive": "Reçu",
+    "blueprint": "Blueprint :",
+    "chance": "{percent} % de chance",
+    "randomReward": "{count, plural, one {Une récompense} other {Une récompense au hasard parmi #}}",
+    "onceOnly": "Une seule fois",
+    "reputation": "+{count} de réputation",
+    "units": "{count} ×",
+    "scu": "{count} SCU",
+    "missionLink": "Voir le contrat",
+    "source": "Données du jeu {version}, via l'API du Star Citizen Wiki."
   },
   "QuantumRoute": {
     "home": "Accueil",

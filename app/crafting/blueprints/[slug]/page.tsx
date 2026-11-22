@@ -1,4 +1,6 @@
 import { getBlueprintBySlug } from "@/lib/crafting";
+import { getWikeloTradesForBlueprint } from "@/lib/wikelo";
+import { BlueprintWikeloSection } from "@/components/wikelo-trades";
 import { ListLink } from "@/components/list-link";
 import { formatCraftingTime } from "@/lib/crafting-time";
 import { getTranslations } from "next-intl/server";
@@ -91,6 +93,8 @@ export default async function BlueprintDetailPage({
     );
   }
 
+  const wikeloTrades = await getWikeloTradesForBlueprint(blueprint.slug);
+
   return (
     <div className="m-2 mx-auto max-w-4xl space-y-6 rounded-2xl border border-[#9ED0FF]/15 bg-[#0B3A5A]/60 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
       <Breadcrumb>
@@ -165,6 +169,11 @@ export default async function BlueprintDetailPage({
           />
         </div>
       )}
+
+      <BlueprintWikeloSection
+        blueprintSlug={blueprint.slug}
+        trades={wikeloTrades}
+      />
 
       {/* Tier & Crafting time */}
       <div className="flex flex-wrap gap-6">

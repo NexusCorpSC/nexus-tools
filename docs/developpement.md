@@ -109,7 +109,7 @@ npm run mcp:smoke                 # essai du serveur MCP (MCP_URL=https://… po
 | `dev`, `build`, `start`, `lint` | Next.js (le build reconstruit d'abord les vues MCP, `mcp:views`) |
 | `ensure:indexes` | crée ou met à jour tous les index de la base |
 | `import:catalogue` | objets, armes, véhicules, ressources (RSI, Star Citizen Wiki, UEX), voir [imports.md](imports.md) |
-| `import:game-data` | blueprints, factions, missions, réputations, lore, voir [imports.md](imports.md) |
+| `import:game-data` | blueprints, factions, missions, réputations, lore, échanges de Wikelo, voir [imports.md](imports.md) |
 | `merge:blueprints` | réunit des blueprints en double, voir [imports.md](imports.md) |
 | `import:places` | catalogue des lieux du 'verse |
 | `import:place-images` | photos de couverture des lieux |
