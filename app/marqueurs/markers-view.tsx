@@ -6,6 +6,7 @@ import { useFormatter, useNow, useTranslations } from "next-intl";
 import {
   MapIcon,
   MapPinIcon,
+  PaperAirplaneIcon,
   PencilSquareIcon,
   PlusIcon,
   UserGroupIcon,
@@ -489,7 +490,16 @@ export function MarkersView({
                     >
                       {format.relativeTime(new Date(marker.createdAt), now)}
                     </time>
-                    <span className="ml-auto flex w-[4.625rem] shrink-0 justify-end gap-1.5">
+                    <span className="ml-auto flex w-[6.75rem] shrink-0 justify-end gap-1.5">
+                      <Button asChild variant="outline" size="icon-sm">
+                        <Link
+                          href={`/saut-quantique?marker=${encodeURIComponent(marker.id)}`}
+                          aria-label={t("goTo", { name: marker.name })}
+                          title={t("goTo", { name: marker.name })}
+                        >
+                          <PaperAirplaneIcon className="size-4" />
+                        </Link>
+                      </Button>
                       <Button asChild variant="outline" size="icon-sm">
                         <Link
                           href={`/starmap?place=${encodeURIComponent(`marqueur-${marker.id}`)}`}

@@ -54,6 +54,10 @@
           "label": "Star Map",
           "description": "Stanton, Pyro et Nyx en 3D"
         },
+        "quantumJump": {
+          "label": "Saut quantique vers un point",
+          "description": "Où couper le saut pour approcher un point sans balise"
+        },
         "missions": {
           "label": "Missions",
           "description": "Contrats, objectifs et récompenses"
@@ -4281,7 +4285,8 @@
         "list_my_contributions": "Lecture de vos contributions",
         "list_missing": "Lecture de ce qui manque au catalogue",
         "get_leaderboard": "Lecture du classement des contributeurs",
-        "plan_aaron_halo_route": "Calcul d'un saut vers l'Aaron Halo"
+        "plan_aaron_halo_route": "Calcul d'un saut vers l'Aaron Halo",
+        "plan_quantum_route": "Calcul d'un saut quantique vers un point"
       }
     },
     "errors": {
@@ -4797,7 +4802,8 @@
     "guests": "{count, plural, one {# invité} other {# invités}}",
     "shareCollection": "Inviter des joueurs sur la collection {name}",
     "leaveCollection": "Ne plus voir la collection {name}",
-    "leaveError": "La collection n'a pas pu être retirée. Réessayez."
+    "leaveError": "La collection n'a pas pu être retirée. Réessayez.",
+    "goTo": "Y aller : saut quantique vers {name}"
   },
   "Timeline": {
     "home": "Accueil",
@@ -5349,6 +5355,61 @@
       "cut": "où couper",
       "me": "ma position",
       "halo": "anneau clair : l'Aaron Halo"
+    }
+  },
+  "QuantumRoute": {
+    "home": "Accueil",
+    "title": "Saut quantique vers un point",
+    "description": "Un marqueur, un lieu ou des coordonnées n'ont pas de balise de saut. On cherche le saut dont la ligne droite passe le plus près du point, et la distance restante où le couper : il ne reste qu'à finir au NPS.",
+    "desktopHint": "Dans Nexus App, la même aide tient dans la superposition Navigation quantique (Ctrl+Maj+A), qui part de votre position.",
+    "targetLabel": "Où aller",
+    "modes": {
+      "marker": "Marqueur",
+      "place": "Lieu",
+      "coordinates": "Coordonnées"
+    },
+    "marker": "Marqueur",
+    "pickMarker": "Choisissez un marqueur",
+    "noMarkers": "Vous n'avez pas encore de marqueur.",
+    "markersSignIn": "Connectez-vous pour viser vos marqueurs.",
+    "place": "Lieu",
+    "pickPlace": "Choisissez un lieu relevé",
+    "system": "Système",
+    "coordinates": "Coordonnées du système, en mètres",
+    "coordinatesHint": "Collez la ligne de /showlocation, ou trois nombres x y z.",
+    "coordinatesInvalid": "Collez la ligne « Coordinates: x:… y:… z:… » ou trois nombres séparés par des espaces.",
+    "from": "Départ",
+    "anyFrom": "La meilleure paire de balises",
+    "candidates": "Les meilleurs trajets",
+    "cutAtShort": "couper à {distance}",
+    "fullJump": "aller jusqu'au bout",
+    "loading": "Chargement des corps et des balises…",
+    "loadFailed": "Les corps et les balises n'ont pas pu être chargés. Rechargez la page.",
+    "noTarget": "Choisissez où aller.",
+    "routeLine": "{from} → {to}, {length}",
+    "cutAt": "Coupez le saut quand il reste, jusqu'à {to} :",
+    "goToEnd": "Sautez vers {to} et allez jusqu'au bout.",
+    "expected": "Vous sortirez à environ {error} de la cible (la ligne passe à {offset}).",
+    "goFirst": "Rendez-vous d'abord à {from}, puis préparez le saut.",
+    "noRoute": "Aucun trajet dégagé ne mène près de ce point.",
+    "noRouteFrom": "Aucun trajet dégagé depuis {from} ne mène près de ce point. Essayez la meilleure paire de balises.",
+    "surface": {
+      "intro": "Ce point est près du sol de {body} (altitude {altitude}) : le corps barre toute ligne droite, on n'y coupe pas de saut.",
+      "jumpTo": "Sautez vers {place}, à {distance} du point, puis finissez en vol.",
+      "other": "ou {place}, à {distance}",
+      "jumpToBody": "Sautez vers {body} : il restera au moins {distance} depuis les marqueurs orbitaux.",
+      "finish": "Le NPS de Nexus App vous guide sur les derniers kilomètres."
+    },
+    "howTitle": "En jeu",
+    "how1": "Rendez-vous au départ, préparez le saut quantique vers l'arrivée et lancez-le.",
+    "how2": "Surveillez la distance restante au centre du HUD et coupez le saut quand elle atteint la valeur donnée.",
+    "how3": "Finissez au NPS : relevez /showlocation et volez vers la cible.",
+    "precision": "L'écart donné ajoute à la ligne une coupe à la main précise à {share} % de la distance restante, au plus {max} : couper près de l'arrivée est plus précis.",
+    "obstacles": "Les trajets qui passent dans une planète, une lune ou l'étoile sont écartés, avec une marge de 20 % autour du sol (estimation). Positions de starmap.space et des relevés des joueurs.",
+    "mapLabel": "Le système vu de dessus, avec la cible, le trajet et où en sortir",
+    "legend": {
+      "target": "la cible",
+      "exit": "où couper"
     }
   }
 }
