@@ -84,6 +84,12 @@ export default async function AdminPage() {
               </Button>
 
               <Button asChild>
+                <Link href="/admin/radar-signatures" className="w-full">
+                  Gérer les signatures radar
+                </Link>
+              </Button>
+
+              <Button asChild>
                 <Link href="/admin/chat" className="w-full">
                   Gérer Nexus Chat
                   {chatRequests > 0 && (

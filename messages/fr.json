@@ -94,6 +94,10 @@
           "label": "Cargo",
           "description": "Chargement et capacité des vaisseaux"
         },
+        "radar": {
+          "label": "Scanner radar",
+          "description": "Ce que cache une signature radar"
+        },
         "inventory": {
           "label": "Inventaire",
           "description": "Vos objets, rangés par lieu"
@@ -1401,7 +1405,8 @@
     "home": "Accueil",
     "industry": "Industrie",
     "refine": "Raffinage",
-    "cargo": "Cargo"
+    "cargo": "Cargo",
+    "radar": "Scanner radar"
   },
   "Shopping": {
     "home": "Accueil",
@@ -2361,6 +2366,31 @@
     "removeByMission": "Supprimer par mission :",
     "bulkDeleteTitle": "Supprimer « {value} » ?",
     "bulkDeleteDescription": "{count, plural, one {# ligne sera supprimée de la feuille de route.} other {# lignes seront supprimées de la feuille de route.}}"
+  },
+  "Radar": {
+    "home": "Accueil",
+    "industry": "Industrie",
+    "title": "Scanner de signature radar",
+    "description": "Saisissez la signature radar affichée par le scan du jeu : le scanner la compare aux signatures connues des minerais, astéroïdes et épaves, et dit combien d'éléments la composent.",
+    "desktopHint": "Dans Nexus App, le scanner lit lui-même la signature à l'écran, dans une superposition par-dessus le jeu.",
+    "inputLabel": "Signature lue",
+    "invalid": "Saisissez la valeur affichée, en chiffres.",
+    "matches": "Ce que peut être {value}",
+    "noMatch": "Aucune signature connue ne donne exactement cette valeur.",
+    "approximate": "Les plus proches",
+    "base": "base {value}",
+    "difference": "écart {value}",
+    "count": "{count, plural, one {# élément} other {# éléments}}",
+    "howItWorks": "Une grappe de N rochers du même type affiche N fois la signature d'un seul. Les valeurs suivent le dernier patch connu ; un patch du jeu peut les changer.",
+    "reference": "Signatures connues",
+    "categories": {
+      "ship": "Minerais (vaisseau)",
+      "asteroid": "Astéroïdes",
+      "salvage": "Récupération",
+      "roc": "Gisements ROC",
+      "fps": "Gisements à la main",
+      "other": "Autres"
+    }
   },
   "Inventory": {
     "title": "Inventaire",
@@ -4144,6 +4174,7 @@
         "search_lore": "Recherche dans la Galactapedia",
         "get_lore_article": "Lecture d'un article de la Galactapedia",
         "get_star_system": "Lecture de la starmap",
+        "identify_radar_signature": "Identification d'une signature radar",
         "search_official_events": "Recherche dans les évènements officiels",
         "get_official_event": "Lecture de l'évènement officiel",
         "list_official_event_bugs": "Lecture des bugs de l'évènement",

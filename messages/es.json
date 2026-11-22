@@ -94,6 +94,10 @@
           "label": "Cargo",
           "description": "Carga y capacidad de las naves"
         },
+        "radar": {
+          "label": "Escáner de radar",
+          "description": "Lo que oculta una firma de radar"
+        },
         "inventory": {
           "label": "Inventario",
           "description": "Tus objetos, ordenados por lugar"
@@ -1401,7 +1405,8 @@
     "home": "Inicio",
     "industry": "Industria",
     "refine": "Refinado",
-    "cargo": "Cargo"
+    "cargo": "Cargo",
+    "radar": "Escáner de radar"
   },
   "Shopping": {
     "home": "Inicio",
@@ -2323,6 +2328,31 @@
     "removeByMission": "Eliminar por misión:",
     "bulkDeleteTitle": "¿Eliminar «{value}»?",
     "bulkDeleteDescription": "{count, plural, one {# línea se eliminará de la hoja de ruta.} other {# líneas se eliminarán de la hoja de ruta.}}"
+  },
+  "Radar": {
+    "home": "Inicio",
+    "industry": "Industria",
+    "title": "Escáner de firma de radar",
+    "description": "Escribe la firma de radar que muestra el escaneo del juego: el escáner la compara con las firmas conocidas de minerales, asteroides y restos, y dice cuántos elementos la forman.",
+    "desktopHint": "En Nexus App, el escáner lee la firma en la pantalla por sí mismo, en una superposición sobre el juego.",
+    "inputLabel": "Firma leída",
+    "invalid": "Escribe el valor mostrado, en cifras.",
+    "matches": "Lo que puede ser {value}",
+    "noMatch": "Ninguna firma conocida da exactamente este valor.",
+    "approximate": "Las más cercanas",
+    "base": "base {value}",
+    "difference": "diferencia {value}",
+    "count": "{count, plural, one {# elemento} other {# elementos}}",
+    "howItWorks": "Un grupo de N rocas del mismo tipo muestra N veces la firma de una sola. Los valores siguen el último parche conocido; un parche del juego puede cambiarlos.",
+    "reference": "Firmas conocidas",
+    "categories": {
+      "ship": "Minerales (nave)",
+      "asteroid": "Asteroides",
+      "salvage": "Recuperación",
+      "roc": "Yacimientos ROC",
+      "fps": "Yacimientos a mano",
+      "other": "Otros"
+    }
   },
   "Inventory": {
     "title": "Inventario",
@@ -4106,6 +4136,7 @@
         "search_lore": "Búsqueda en la Galactapedia",
         "get_lore_article": "Lectura de un artículo de la Galactapedia",
         "get_star_system": "Lectura del mapa estelar",
+        "identify_radar_signature": "Identificación de una firma de radar",
         "search_official_events": "Búsqueda en los eventos oficiales",
         "get_official_event": "Lectura del evento oficial",
         "list_official_event_bugs": "Lectura de los bugs del evento",

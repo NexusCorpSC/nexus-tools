@@ -513,6 +513,18 @@ async function ensureCargoShips(database: Db) {
     .createIndex({ id: 1 }, { unique: true, name: "cargoShips_id_unique" });
 }
 
+// ─── Signatures radar ─────────────────────────────────────────────────────────
+
+/** L'id est la clé que toute autre opération vise. */
+async function ensureRadarSignatures(database: Db) {
+  await database
+    .collection("radarSignatures")
+    .createIndex(
+      { id: 1 },
+      { unique: true, name: "radarSignatures_id_unique" },
+    );
+}
+
 // ─── Colis ────────────────────────────────────────────────────────────────────
 
 /**
@@ -799,6 +811,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["lore", ensureLore],
   ["markers", ensureMarkers],
   ["cargoShips", ensureCargoShips],
+  ["radarSignatures", ensureRadarSignatures],
   ["parcels", ensureParcels],
   ["refiningJobs", ensureRefiningJobs],
   ["friends", ensureFriends],
