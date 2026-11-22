@@ -17,6 +17,7 @@ import { registerLoreTools } from "./tools/lore";
 import { registerWikeloTools } from "./tools/wikelo";
 import { registerRadarTools } from "./tools/radar";
 import { registerAaronHaloTools } from "./tools/aaron-halo";
+import { registerQuantumRouteTools } from "./tools/quantum-route";
 import { registerMarketplaceReadTools } from "./tools/marketplace";
 import { registerMarketplacePersonalTools } from "./tools/marketplace-personal";
 import { registerPlaceTools } from "./tools/places";
@@ -58,6 +59,7 @@ export function registerNexusServer(mcp: McpServer) {
   registerWikeloTools(server);
   registerRadarTools(server);
   registerAaronHaloTools(server);
+  registerQuantumRouteTools(server);
   registerTimelineTools(server);
   registerMarketplaceReadTools(server);
   registerMarketplacePersonalTools(server);
@@ -101,6 +103,6 @@ export const MCP_INSTRUCTIONS =
   "For CIG's official in-game events (live, upcoming, past, their rewards, guide and known bugs), use search_official_events and get_official_event. " +
   "For Wikelo's trades (the Banu trader of the Wikelo Emporium: what he asks for, the items, ships and blueprints he gives), use search_wikelo_trades; get_item and get_blueprint_by_slug also list them. " +
   "To tell what a radar signature (RS) read on the in-game scan is (ore, asteroid, wreck, and how many rocks), use identify_radar_signature. " +
-  "To get into a band of the Aaron Halo (Stanton's asteroid belt, no quantum beacon), use plan_aaron_halo_route: it gives the remaining distance at which to cut the jump. " +
+  "To get into a band of the Aaron Halo (Stanton's asteroid belt, no quantum beacon), use plan_aaron_halo_route: it gives the remaining distance at which to cut the jump. To get close to any other point with no beacon (a marker, a recorded place, coordinates), use plan_quantum_route. " +
   "Personal tools (inventory, parcels, refining orders, position markers, private places, friends and organizations, events and planned sessions, owned blueprints, reputations, notepad, sharing, contributions, marketplace orders, the request board…) need the user to sign in to their Nexus account; " +
   "every change they make is shown to the user for confirmation first, and contributions go to community review unless the user is a trusted contributor.";

@@ -42,6 +42,11 @@ Le site est disponible en français, en anglais et en espagnol.
 - **Navigation vers l'Aaron Halo** : choisissez un départ et une bande, et
   sachez à quelle distance restante couper le saut quantique pour tomber
   dedans.
+- **Saut quantique vers un point** (`/saut-quantique`) : pour un marqueur, un
+  lieu ou des coordonnées sans balise, le saut dont la ligne passe le plus près
+  et la distance restante où le couper ; les trajets qui traversent une planète
+  sont écartés, et un point au sol mène au lieu le plus proche sur le corps.
+  « Y aller » sur chaque marqueur.
 
 ### Explorer le 'Verse
 

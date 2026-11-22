@@ -54,6 +54,10 @@
           "label": "Star Map",
           "description": "Stanton, Pyro and Nyx in 3D"
         },
+        "quantumJump": {
+          "label": "Quantum jump to a point",
+          "description": "Where to cut the jump to reach a point with no beacon"
+        },
         "missions": {
           "label": "Missions",
           "description": "Contracts, objectives and rewards"
@@ -4283,7 +4287,8 @@
         "list_my_contributions": "Reading your contributions",
         "list_missing": "Reading what's missing in the catalog",
         "get_leaderboard": "Reading the contributor leaderboard",
-        "plan_aaron_halo_route": "Planning a jump into the Aaron Halo"
+        "plan_aaron_halo_route": "Planning a jump into the Aaron Halo",
+        "plan_quantum_route": "Planning a quantum jump to a point"
       }
     },
     "errors": {
@@ -4799,7 +4804,8 @@
     "guests": "{count, plural, one {# guest} other {# guests}}",
     "shareCollection": "Invite players to the {name} collection",
     "leaveCollection": "Stop seeing the {name} collection",
-    "leaveError": "The collection couldn't be removed. Try again."
+    "leaveError": "The collection couldn't be removed. Try again.",
+    "goTo": "Go there: quantum jump to {name}"
   },
   "Timeline": {
     "home": "Home",
@@ -5371,5 +5377,60 @@
     "scu": "{count} SCU",
     "missionLink": "See the contract",
     "source": "Game data {version}, via the Star Citizen Wiki API."
+  },
+  "QuantumRoute": {
+    "home": "Home",
+    "title": "Quantum jump to a point",
+    "description": "A marker, a place or coordinates have no quantum beacon. We look for the jump whose straight line passes closest to the point, and the remaining distance at which to cut it: then finish with the NPS.",
+    "desktopHint": "In Nexus App, the same help sits in the Quantum navigation overlay (Ctrl+Shift+A), starting from your position.",
+    "targetLabel": "Where to",
+    "modes": {
+      "marker": "Marker",
+      "place": "Place",
+      "coordinates": "Coordinates"
+    },
+    "marker": "Marker",
+    "pickMarker": "Pick a marker",
+    "noMarkers": "You have no marker yet.",
+    "markersSignIn": "Sign in to aim at your markers.",
+    "place": "Place",
+    "pickPlace": "Pick a recorded place",
+    "system": "System",
+    "coordinates": "System coordinates, in metres",
+    "coordinatesHint": "Paste the /showlocation line, or three numbers x y z.",
+    "coordinatesInvalid": "Paste the “Coordinates: x:… y:… z:…” line or three numbers separated by spaces.",
+    "from": "Departure",
+    "anyFrom": "The best pair of beacons",
+    "candidates": "The best routes",
+    "cutAtShort": "cut at {distance}",
+    "fullJump": "go all the way",
+    "loading": "Loading bodies and beacons…",
+    "loadFailed": "Bodies and beacons could not be loaded. Reload the page.",
+    "noTarget": "Pick where to go.",
+    "routeLine": "{from} → {to}, {length}",
+    "cutAt": "Cut the jump when the distance left to {to} reads:",
+    "goToEnd": "Jump to {to} and go all the way.",
+    "expected": "You will drop about {error} from the target (the line passes {offset} away).",
+    "goFirst": "First go to {from}, then spool the jump.",
+    "noRoute": "No clear route leads near this point.",
+    "noRouteFrom": "No clear route from {from} leads near this point. Try the best pair of beacons.",
+    "surface": {
+      "intro": "This point is near the ground of {body} (altitude {altitude}): the body blocks any straight line, so no jump is cut there.",
+      "jumpTo": "Jump to {place}, {distance} from the point, then finish flying.",
+      "other": "or {place}, {distance} away",
+      "jumpToBody": "Jump to {body}: at least {distance} will be left from the orbital markers.",
+      "finish": "The NPS of Nexus App guides you over the last kilometres."
+    },
+    "howTitle": "In game",
+    "how1": "Go to the departure, spool the quantum jump to the destination and engage it.",
+    "how2": "Watch the remaining distance in the middle of the HUD and cut the jump when it reaches the given value.",
+    "how3": "Finish with the NPS: read /showlocation and fly to the target.",
+    "precision": "The given offset adds to the line a hand cut accurate to {share}% of the remaining distance, at most {max}: cutting near the destination is more accurate.",
+    "obstacles": "Routes through a planet, a moon or the star are left out, with a 20% margin above the ground (an estimate). Positions from starmap.space and player surveys.",
+    "mapLabel": "The system from above, with the target, the route and where to drop",
+    "legend": {
+      "target": "the target",
+      "exit": "where to cut"
+    }
   }
 }
