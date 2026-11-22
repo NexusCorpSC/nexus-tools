@@ -105,6 +105,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      url: "https://tools.services.nexus/industry/aaron-halo",
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
       url: "https://tools.services.nexus/reps",
       lastModified: new Date(),
       changeFrequency: "monthly",

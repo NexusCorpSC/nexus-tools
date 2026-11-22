@@ -149,6 +149,10 @@
         "timeline": {
           "label": "Eventos oficiales",
           "description": "Lo que CIG organiza en el juego, con guías de la comunidad"
+        },
+        "aaronHalo": {
+          "label": "Aaron Halo",
+          "description": "Dónde cortar el salto para caer en una banda"
         }
       }
     },
@@ -1406,7 +1410,8 @@
     "industry": "Industria",
     "refine": "Refinado",
     "cargo": "Cargo",
-    "radar": "Escáner de radar"
+    "radar": "Escáner de radar",
+    "aaronHalo": "Aaron Halo"
   },
   "Shopping": {
     "home": "Inicio",
@@ -4237,7 +4242,8 @@
         "confirm_data": "Confirmación del dato",
         "list_my_contributions": "Lectura de tus contribuciones",
         "list_missing": "Lectura de lo que falta en el catálogo",
-        "get_leaderboard": "Lectura de la clasificación de contribuidores"
+        "get_leaderboard": "Lectura de la clasificación de contribuidores",
+        "plan_aaron_halo_route": "Cálculo de un salto al Aaron Halo"
       }
     },
     "errors": {
@@ -5256,6 +5262,55 @@
         "WITHDRAWN": "<b>{name}</b> ha retirado su oferta · {summary}"
       },
       "alerts": "Avisarme de las nuevas peticiones de mis amigos y mis orgs"
+    }
+  },
+  "AaronHalo": {
+    "home": "Inicio",
+    "industry": "Industria",
+    "title": "Navegación al Aaron Halo",
+    "description": "El halo no tiene baliza de salto: se entra cortando un salto cuántico entre dos puntos cuya ruta lo atraviesa. Elige la salida y la banda, y corta el salto cuando el HUD muestre la distancia restante indicada.",
+    "desktopHint": "En Nexus App, la misma ayuda cabe en una superposición sobre el juego, y el NPS te dice en qué banda estás.",
+    "from": "Salida",
+    "to": "Llegada",
+    "bestTo": "La ventana más amplia",
+    "swap": "Intercambiar salida y llegada",
+    "bandLabel": "Banda objetivo",
+    "bandDensity": "Densidad medida: {density} %",
+    "candidates": "Llegadas que atraviesan la banda {band} desde {from}",
+    "noCandidate": "Ninguna ruta desde {from} atraviesa la banda {band}. Prueba otra salida.",
+    "cutAtShort": "cortar a {distance}",
+    "routeLine": "{from} → {to}, {length}",
+    "cutAt": "Corta el salto cuando la distancia restante hasta {to} (banda {band}) sea:",
+    "window": {
+      "narrow": "ventana estrecha, {width}",
+      "normal": "ventana de {width}",
+      "wide": "ventana amplia, {width}"
+    },
+    "between": "entre {enter} y {exit} restantes",
+    "twice": "La ruta atraviesa esta banda dos veces: se indica el cruce más amplio.",
+    "travelled": "La banda se alcanza tras {distance} de salto.",
+    "noCrossing": "La ruta {from} → {to} no atraviesa la banda {band}. Elige otra llegada de la lista.",
+    "allBands": "Todas las bandas de esta ruta",
+    "table": {
+      "band": "Banda",
+      "cut": "Cortar a",
+      "window": "Ventana"
+    },
+    "whereAmI": "¿Dónde estoy? Pega la línea de /showlocation",
+    "whereInvalid": "Pega la línea «Coordinates: x:… y:… z:…» que copia /showlocation.",
+    "inBand": "Estás en la banda {band}, a {distance} del centro del sistema.",
+    "beforeBand": "Estás a {gap} antes de la banda {band} (a {distance} del centro): sigue hacia fuera.",
+    "afterBand": "Estás a {gap} más allá de la banda {band} (a {distance} del centro): vuelve hacia dentro.",
+    "howTitle": "En el juego",
+    "how1": "Prepara el salto cuántico hacia {to} y lánzalo.",
+    "how2": "Vigila la distancia restante en el centro del HUD y corta el salto cuando llegue al valor indicado: la ventana dice cuánto margen tienes.",
+    "how3": "¿Demasiado tarde? Vuelve un poco hacia la salida y lanza de nuevo el salto a la misma llegada: mientras sigas en la línea de la ruta, la distancia de corte no cambia.",
+    "source": "Bandas según las mediciones de densidad de la comunidad (parche 4.x), posiciones de starmap.space. Un parche puede mover las bandas: compruébalo allí con /showlocation.",
+    "mapLabel": "El sistema Stanton visto desde arriba, con el halo, la banda objetivo y la ruta",
+    "legend": {
+      "cut": "dónde cortar",
+      "me": "mi posición",
+      "halo": "anillo claro: el Aaron Halo"
     }
   }
 }
