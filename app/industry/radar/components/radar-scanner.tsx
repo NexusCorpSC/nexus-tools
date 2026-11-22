@@ -3,10 +3,13 @@
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
+import { useUrlFilters } from "@/lib/list-url";
 import {
   RADAR_CATEGORIES,
+  RADAR_CONTEXTS,
   identifyRadarSignature,
   parseRadarReading,
+  type RadarContext,
   type RadarMatch,
   type RadarSignature,
 } from "@/lib/radar";
@@ -41,14 +44,58 @@ function MatchRow({
   );
 }
 
+function ContextPicker({
+  value,
+  onChange,
+}: {
+  value: RadarContext;
+  onChange: (context: RadarContext) => void;
+}) {
+  const t = useTranslations("Radar");
+  return (
+    <div className="space-y-1">
+      <span className="text-sm font-medium text-[#CCE7FF]">
+        {t("contextLabel")}
+      </span>
+      <div
+        role="radiogroup"
+        aria-label={t("contextLabel")}
+        className="flex flex-wrap gap-1"
+      >
+        {RADAR_CONTEXTS.map((context) => (
+          <button
+            key={context}
+            type="button"
+            role="radio"
+            aria-checked={value === context}
+            onClick={() => onChange(context)}
+            className={`rounded-md border px-3 py-1 text-sm transition-colors ${
+              value === context
+                ? "border-[#9ED0FF]/60 bg-[#9ED0FF]/20 text-[#F2F7FC]"
+                : "border-[#9ED0FF]/15 text-[#9ED0FF]/80 hover:bg-[#9ED0FF]/10"
+            }`}
+          >
+            {t(`contexts.${context}`)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function RadarScanner({
   signatures,
+  initialContext,
 }: {
   signatures: RadarSignature[];
+  initialContext: RadarContext;
 }) {
   const t = useTranslations("Radar");
   const locale = useLocale();
   const [text, setText] = useState("");
+  const [context, setContext] = useState<RadarContext>(initialContext);
+
+  useUrlFilters({ context: context === "all" ? null : context });
 
   const format = useMemo(() => {
     const formatter = new Intl.NumberFormat(locale);
@@ -57,7 +104,9 @@ export default function RadarScanner({
 
   const reading = parseRadarReading(text);
   const result =
-    reading === null ? null : identifyRadarSignature(reading, signatures);
+    reading === null
+      ? null
+      : identifyRadarSignature(reading, signatures, { context });
 
   const grouped = RADAR_CATEGORIES.map((category) => ({
     category,
@@ -82,6 +131,8 @@ export default function RadarScanner({
             autoFocus
           />
         </label>
+
+        <ContextPicker value={context} onChange={setContext} />
 
         {text.trim() !== "" && reading === null && (
           <p className="text-sm text-amber-300">{t("invalid")}</p>

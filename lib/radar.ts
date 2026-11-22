@@ -154,6 +154,33 @@ export function toRadarSignatureId(name: string): string {
   );
 }
 
+/**
+ * Où l'on scanne : en vaisseau, avec un ROC ou à pied. Le contexte ne cache
+ * rien, il met en tête les signatures qu'on peut y croiser — 4000 est un
+ * astéroïde de type I en vaisseau, un gisement ROC en ROC. « all » garde
+ * l'ordre des catégories.
+ */
+export const RADAR_CONTEXTS = ["all", "ship", "roc", "fps"] as const;
+
+export type RadarContext = (typeof RADAR_CONTEXTS)[number];
+
+export const RADAR_CONTEXT_CATEGORIES: Record<
+  RadarContext,
+  readonly RadarCategory[]
+> = {
+  all: RADAR_CATEGORIES,
+  ship: ["ship", "asteroid", "salvage"],
+  roc: ["roc"],
+  fps: ["fps"],
+};
+
+export function isRadarContext(value: unknown): value is RadarContext {
+  return (
+    typeof value === "string" &&
+    (RADAR_CONTEXTS as readonly string[]).includes(value)
+  );
+}
+
 export function isRadarCategory(value: unknown): value is RadarCategory {
   return (
     typeof value === "string" &&
@@ -183,28 +210,39 @@ const CATEGORY_RANK = new Map(
   RADAR_CATEGORIES.map((category, index) => [category, index]),
 );
 
-function byLikelihood(a: RadarMatch, b: RadarMatch): number {
-  return (
+function byLikelihood(
+  inContext: (match: RadarMatch) => number,
+): (a: RadarMatch, b: RadarMatch) => number {
+  return (a, b) =>
     Math.abs(a.difference) - Math.abs(b.difference) ||
+    // Ce qu'on peut croiser là où l'on scanne, avant le reste.
+    inContext(a) - inContext(b) ||
     // Moins d'éléments pour la même valeur : l'explication la plus simple.
     a.count - b.count ||
     (CATEGORY_RANK.get(a.signature.category) ?? 0) -
       (CATEGORY_RANK.get(b.signature.category) ?? 0) ||
     a.signature.value - b.signature.value ||
-    a.signature.name.localeCompare(b.signature.name)
-  );
+    a.signature.name.localeCompare(b.signature.name);
+}
+
+export interface RadarIdentifyOptions {
+  /** Combien de correspondances garder au plus. */
+  limit?: number;
+  /** Où l'on scanne, pour mettre ses signatures en tête. */
+  context?: RadarContext;
 }
 
 /**
  * Ce que peut être la valeur lue : les signatures dont elle est un multiple
  * (de 1 à {@link MAX_RADAR_CLUSTER} éléments), la grappe la plus petite
  * d'abord ; et, faute de multiple exact, les plus proches à
- * {@link RADAR_APPROXIMATE_RATIO} près.
+ * {@link RADAR_APPROXIMATE_RATIO} près. À écart égal, les signatures du
+ * contexte passent devant les autres.
  */
 export function identifyRadarSignature(
   value: number,
   signatures: readonly RadarSignature[],
-  limit = 6,
+  { limit = 6, context = "all" }: RadarIdentifyOptions = {},
 ): RadarIdentification {
   const reading = Math.round(value);
   const exact: RadarMatch[] = [];
@@ -227,8 +265,12 @@ export function identifyRadarSignature(
     }
   }
 
-  exact.sort(byLikelihood);
-  near.sort(byLikelihood);
+  const preferred = new Set<RadarCategory>(RADAR_CONTEXT_CATEGORIES[context]);
+  const order = byLikelihood((match) =>
+    preferred.has(match.signature.category) ? 0 : 1,
+  );
+  exact.sort(order);
+  near.sort(order);
 
   return {
     value: reading,

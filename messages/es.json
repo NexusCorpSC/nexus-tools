@@ -2344,6 +2344,13 @@
     "difference": "diferencia {value}",
     "count": "{count, plural, one {# elemento} other {# elementos}}",
     "howItWorks": "Un grupo de N rocas del mismo tipo muestra N veces la firma de una sola. Los valores siguen el último parche conocido; un parche del juego puede cambiarlos.",
+    "contextLabel": "¿Dónde escaneas?",
+    "contexts": {
+      "all": "En todas partes",
+      "ship": "Desde una nave",
+      "roc": "Desde un ROC",
+      "fps": "A pie"
+    },
     "reference": "Firmas conocidas",
     "categories": {
       "ship": "Minerales (nave)",

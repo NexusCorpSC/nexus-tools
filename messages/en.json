@@ -2383,6 +2383,13 @@
     "difference": "off by {value}",
     "count": "{count, plural, one {# item} other {# items}}",
     "howItWorks": "A cluster of N rocks of the same type shows N times the signature of one. Values follow the latest known patch; a game patch can change them.",
+    "contextLabel": "Where are you scanning?",
+    "contexts": {
+      "all": "Anywhere",
+      "ship": "From a ship",
+      "roc": "From a ROC",
+      "fps": "On foot"
+    },
     "reference": "Known signatures",
     "categories": {
       "ship": "Ores (ship)",

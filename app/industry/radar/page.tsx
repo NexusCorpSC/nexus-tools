@@ -8,6 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { isRadarContext } from "@/lib/radar";
 import { getRadarSignatures } from "@/lib/radar-signatures";
 import RadarScanner from "./components/radar-scanner";
 
@@ -23,7 +24,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RadarPage() {
+export default async function RadarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ context?: string | string[] }>;
+}) {
+  const { context } = await searchParams;
   const t = await getTranslations("Radar");
   const signatures = await getRadarSignatures();
 
@@ -51,7 +57,10 @@ export default async function RadarPage() {
         <p className="mt-1 text-xs text-[#9ED0FF]/60">{t("desktopHint")}</p>
       </div>
 
-      <RadarScanner signatures={signatures} />
+      <RadarScanner
+        signatures={signatures}
+        initialContext={isRadarContext(context) ? context : "all"}
+      />
     </div>
   );
 }

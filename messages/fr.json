@@ -2382,6 +2382,13 @@
     "difference": "écart {value}",
     "count": "{count, plural, one {# élément} other {# éléments}}",
     "howItWorks": "Une grappe de N rochers du même type affiche N fois la signature d'un seul. Les valeurs suivent le dernier patch connu ; un patch du jeu peut les changer.",
+    "contextLabel": "Où scannez-vous ?",
+    "contexts": {
+      "all": "Partout",
+      "ship": "En vaisseau",
+      "roc": "En ROC",
+      "fps": "À pied"
+    },
     "reference": "Signatures connues",
     "categories": {
       "ship": "Minerais (vaisseau)",

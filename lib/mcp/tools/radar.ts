@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import {
   MAX_RADAR_READING,
+  RADAR_CONTEXTS,
   identifyRadarSignature,
   type RadarMatch,
 } from "@/lib/radar";
@@ -49,7 +50,7 @@ export function registerRadarTools(server: McpServer) {
     {
       title: "Identify a radar signature",
       description:
-        "Tell what a radar signature (RS) shown by the in-game scan can be: the known ore, asteroid, salvage or deposit signatures it is a multiple of, and how many rocks or panels make it up (a cluster of N rocks shows N times the base). Exact matches come first, the smallest cluster first; with none, the closest within 1%. Call it without value to list every known signature. Values follow the latest known patch.",
+        "Tell what a radar signature (RS) shown by the in-game scan can be: the known ore, asteroid, salvage or deposit signatures it is a multiple of, and how many rocks or panels make it up (a cluster of N rocks shows N times the base). Exact matches come first, the smallest cluster first; with none, the closest within 1%. Pass context (ship, roc or fps) when you know how the player is scanning, so what they can meet there comes first: 4000 is an I-type asteroid from a ship, a ROC deposit from a ROC. Call it without value to list every known signature. Values follow the latest known patch.",
       inputSchema: z.object({
         value: z
           .number()
@@ -59,6 +60,12 @@ export function registerRadarTools(server: McpServer) {
           .optional()
           .describe(
             "The signature read on the scan, e.g. 12680. Omit to list the known signatures",
+          ),
+        context: z
+          .enum(RADAR_CONTEXTS)
+          .optional()
+          .describe(
+            "How the player scans: ship (ship mining, asteroids, salvage), roc (ROC deposits), fps (hand mining), or all (default)",
           ),
       }),
       outputSchema: z.looseObject({
@@ -79,7 +86,7 @@ export function registerRadarTools(server: McpServer) {
       }),
       annotations: READ_ONLY,
     },
-    async ({ value }) => {
+    async ({ value, context }) => {
       const signatures = await getRadarSignatures();
       const url = siteUrl("/industry/radar");
 
@@ -94,7 +101,7 @@ export function registerRadarTools(server: McpServer) {
         );
       }
 
-      const result = identifyRadarSignature(value, signatures);
+      const result = identifyRadarSignature(value, signatures, { context });
       const matches = result.matches.map(toMatch);
       const approximate = result.approximate.map(toMatch);
       const text =
