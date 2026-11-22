@@ -4,20 +4,12 @@ import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import {
-  MAX_RADAR_READING,
   RADAR_CATEGORIES,
   identifyRadarSignature,
+  parseRadarReading,
   type RadarMatch,
   type RadarSignature,
 } from "@/lib/radar";
-
-/** Les chiffres seuls : « 12 680 », « 12,680 » et « 12680 » se valent. */
-function parseReading(text: string): number | null {
-  const digits = text.replace(/\D/g, "");
-  if (!digits) return null;
-  const value = Number(digits);
-  return value > 0 && value <= MAX_RADAR_READING ? value : null;
-}
 
 function MatchRow({
   match,
@@ -63,7 +55,7 @@ export default function RadarScanner({
     return (value: number) => formatter.format(value);
   }, [locale]);
 
-  const reading = parseReading(text);
+  const reading = parseRadarReading(text);
   const result =
     reading === null ? null : identifyRadarSignature(reading, signatures);
 

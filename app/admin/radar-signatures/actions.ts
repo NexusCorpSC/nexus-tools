@@ -79,8 +79,14 @@ export async function editRadarSignature(formData: FormData) {
   return { success: true };
 }
 
-export async function removeRadarSignature(id: string) {
+export async function removeRadarSignature(id: unknown) {
   await requireAdmin();
+
+  // Une action serveur reçoit n'importe quelle valeur sérialisable : un objet
+  // ici deviendrait un filtre Mongo.
+  if (typeof id !== "string" || !id) {
+    throw new Error("Identifiant de signature manquant");
+  }
 
   await deleteRadarSignature(id);
   revalidateRadar();

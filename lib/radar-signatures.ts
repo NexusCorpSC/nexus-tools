@@ -101,11 +101,21 @@ export function normalizeRadarSignatureInput(
 
 const MAX_ID_ATTEMPTS = 50;
 
-/** Insère sous l'id tiré du nom, ou le suivant libre s'il est déjà pris. */
+/**
+ * Insère sous l'id tiré du nom, ou le suivant libre s'il est déjà pris.
+ *
+ * Sur une base vide, la liste par défaut est importée d'abord : sinon la
+ * première signature ajoutée remplacerait à elle seule toutes les autres
+ * pour le site, l'outil MCP et les apps, qui la gardent en cache.
+ */
 export async function createRadarSignature(
   input: RadarSignatureInput,
 ): Promise<StoredRadarSignature> {
   const { name, category, value } = normalizeRadarSignatureInput(input);
+
+  if ((await collection().estimatedDocumentCount()) === 0) {
+    await seedDefaultRadarSignatures();
+  }
   const base = toRadarSignatureId(name);
   const now = new Date().toISOString();
 

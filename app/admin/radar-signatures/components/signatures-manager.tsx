@@ -226,7 +226,8 @@ export default function SignaturesManager({
           <p className="rounded-lg border border-[#9ED0FF]/20 bg-[#0B3A5A]/40 px-3 py-2 text-sm text-[#9ED0FF]/80">
             Aucune signature enregistrée : le scanner compare pour
             l&apos;instant la liste par défaut (patch 4.10.3). Importez-la pour
-            la corriger ici.
+            la corriger ici ; elle est aussi importée d&apos;office au premier
+            ajout.
           </p>
         )}
 

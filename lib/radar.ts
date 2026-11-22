@@ -49,6 +49,21 @@ export const MAX_RADAR_READING = MAX_RADAR_VALUE * MAX_RADAR_CLUSTER;
  */
 export const RADAR_APPROXIMATE_RATIO = 0.01;
 
+const READING_PATTERN = /^(?:\d+|\d{1,3}(?:[ ,.'\u00a0\u202f]\d{3})+)$/;
+
+/**
+ * Un nombre saisi à la main : des chiffres, avec ou sans séparateurs de
+ * milliers bien placés (« 12 680 », « 12,680 », « 12680 »). `null` pour le
+ * reste — « 12.5 », « -3170 », « 1e4 » — ou hors de 1 à
+ * {@link MAX_RADAR_READING}.
+ */
+export function parseRadarReading(text: string): number | null {
+  const trimmed = text.trim();
+  if (!READING_PATTERN.test(trimmed)) return null;
+  const value = Number(trimmed.replace(/\D/g, ""));
+  return value > 0 && value <= MAX_RADAR_READING ? value : null;
+}
+
 /**
  * Les valeurs connues au patch 4.10.3 (tables de la communauté : Prospector
  * Index, données UEX, et SCMINER, concordantes). Les administrateurs les
