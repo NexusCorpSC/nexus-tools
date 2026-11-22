@@ -11,6 +11,8 @@
  * « à compléter » plutôt qu'avec des sections vides.
  */
 
+import type { ItemWikeloTrades } from "@/types/wikelo";
+
 export const ITEM_KINDS = ["item", "weapon", "vehicle", "resource"] as const;
 
 export type ItemKind = (typeof ITEM_KINDS)[number];
@@ -402,6 +404,8 @@ export type ItemDetails = Item & {
   weaponPeers: WeaponPeer[];
   /** Objets (véhicules, armes) qui embarquent celui-ci dans un emplacement. */
   mountedOn: ItemSummary[];
+  /** Les échanges de Wikelo qui donnent cet objet, et ceux qui le demandent. */
+  wikelo: ItemWikeloTrades;
 };
 
 export type ItemCategoryFacet = {

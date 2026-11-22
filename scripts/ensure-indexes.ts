@@ -382,6 +382,34 @@ async function ensureLore(database: Db) {
   );
 }
 
+// ─── Échanges de Wikelo ───────────────────────────────────────────────────────
+
+/**
+ * Les échanges de Wikelo, importés par `npm run import:game-data -- wikelo`.
+ * Les fiches objet et blueprint les cherchent par uuid ou par nom de ce
+ * qu'ils donnent et demandent (`lib/wikelo.ts`) ; les missions par leurs
+ * identifiants de contrat, pour le lien vers la fiche mission.
+ */
+async function ensureWikelo(database: Db) {
+  const trades = database.collection("wikeloTrades");
+  await trades.createIndex(
+    { wikiId: 1 },
+    { unique: true, name: "wikeloTrades_wikiId_unique" },
+  );
+  for (const field of [
+    "rewardIds",
+    "rewardNames",
+    "requirementIds",
+    "requirementNames",
+    "blueprintGameIds",
+  ]) {
+    await trades.createIndex({ [field]: 1 }, { name: `wikeloTrades_${field}` });
+  }
+  await database
+    .collection("missions")
+    .createIndex({ gameIds: 1 }, { name: "missions_gameIds" });
+}
+
 // ─── Lieux du 'verse ──────────────────────────────────────────────────────────
 
 /**
@@ -809,6 +837,7 @@ const STEPS: [string, (database: Db) => Promise<void>][] = [
   ["gameData", ensureGameData],
   ["gameLocations", ensureGameLocations],
   ["lore", ensureLore],
+  ["wikelo", ensureWikelo],
   ["markers", ensureMarkers],
   ["cargoShips", ensureCargoShips],
   ["radarSignatures", ensureRadarSignatures],

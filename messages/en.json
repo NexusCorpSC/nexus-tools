@@ -4187,6 +4187,7 @@
         "search_lore": "Searching the Galactapedia",
         "get_lore_article": "Reading a Galactapedia article",
         "get_star_system": "Reading the starmap",
+        "search_wikelo_trades": "Searching Wikelo's trades",
         "identify_radar_signature": "Identifying a radar signature",
         "search_official_events": "Searching the official events",
         "get_official_event": "Reading the official event",
@@ -5351,5 +5352,24 @@
       "me": "my position",
       "halo": "light ring: the Aaron Halo"
     }
+  },
+  "Wikelo": {
+    "itemTitle": "Trade with Wikelo",
+    "itemHint": "Wikelo, the Banu trader of the Emporium, gives this item if you bring what he asks for.",
+    "wantedTitle": "{count, plural, one {Wanted by Wikelo (# trade)} other {Wanted by Wikelo (# trades)}}",
+    "wantedHint": "Wikelo takes this item in exchange for:",
+    "blueprintTitle": "Trade with Wikelo",
+    "blueprintHint": "Wikelo, the Banu trader of the Emporium, gives this blueprint along with the item if you bring what he asks for.",
+    "bring": "Bring",
+    "receive": "Receive",
+    "blueprint": "Blueprint:",
+    "chance": "{percent}% chance",
+    "randomReward": "{count, plural, one {One reward} other {One random reward out of #}}",
+    "onceOnly": "Once only",
+    "reputation": "+{count} reputation",
+    "units": "{count} ×",
+    "scu": "{count} SCU",
+    "missionLink": "See the contract",
+    "source": "Game data {version}, via the Star Citizen Wiki API."
   }
 }

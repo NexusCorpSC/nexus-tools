@@ -2,7 +2,7 @@
  * Importe les blueprints, les factions, les missions et les barèmes de
  * réputation du jeu.
  *
- *   npm run import:game-data -- <all|blueprints|missions|reputations|lore|images> [options]
+ *   npm run import:game-data -- <all|blueprints|missions|reputations|lore|wikelo|images> [options]
  *
  *   --source S         la source de tout : `wiki` (défaut, l'API du Star
  *                      Citizen Wiki) ou `scmdb` (les fichiers de scmdb.net)
@@ -63,6 +63,12 @@
  * rattache aux lieux du catalogue. Rien n'y dépend de la version du jeu ;
  * `all` le fait aussi, sauf hors ligne (`--dir`).
  *
+ * `wikelo` importe les échanges de Wikelo, le marchand banu de l'Emporium
+ * (`scripts/game-data/wikelo.ts`), dans `wikeloTrades` : ce qu'il demande, ce
+ * qu'il donne et les blueprints qui viennent avec. Les fiches objet et
+ * blueprint les montrent comme une manière d'obtenir l'objet. `all` le fait
+ * aussi, sauf hors ligne (`--dir`).
+ *
  * `images` est à part, parce qu'il interroge un autre site : il donne une
  * illustration aux blueprints qui n'en ont pas (`scripts/game-data/images.ts`).
  */
@@ -86,6 +92,8 @@ import {
   type WikiStats,
 } from "./game-data/wiki";
 import { loadWikiLore, planLore, type PlaceRef } from "./game-data/lore";
+import { loadWikiWikelo, planWikelo } from "./game-data/wikelo";
+import type { WikeloTrade } from "@/types/wikelo";
 import {
   movePlayerReputations,
   planReputations,
@@ -124,6 +132,7 @@ type Target =
   | "missions"
   | "reputations"
   | "lore"
+  | "wikelo"
   | "images";
 
 type SourceName = GameData["source"];
@@ -142,7 +151,7 @@ type Options = {
 };
 
 const USAGE =
-  "Usage : npm run import:game-data -- <all|blueprints|missions|reputations|lore|images> [--source wiki|scmdb] [--blueprints-source wiki|scmdb] [--missions-source wiki|scmdb] [--version V] [--dir DOSSIER] [--refresh-recipes] [--legacy DOSSIER | --no-legacy] [--allow-mass-removal] [--mirror-images] [--dry-run]";
+  "Usage : npm run import:game-data -- <all|blueprints|missions|reputations|lore|wikelo|images> [--source wiki|scmdb] [--blueprints-source wiki|scmdb] [--missions-source wiki|scmdb] [--version V] [--dir DOSSIER] [--refresh-recipes] [--legacy DOSSIER | --no-legacy] [--allow-mass-removal] [--mirror-images] [--dry-run]";
 
 function parseArgs(argv: string[]): Options {
   const [target, ...rest] = argv;
@@ -153,6 +162,7 @@ function parseArgs(argv: string[]): Options {
       "missions",
       "reputations",
       "lore",
+      "wikelo",
       "images",
     ].includes(target ?? "")
   ) {
@@ -222,7 +232,7 @@ function parseArgs(argv: string[]): Options {
 /** Les sources que la cible demande. */
 function sourcesFor(options: Options): SourceName[] {
   const sources = new Set<SourceName>();
-  if (options.target === "reputations" || options.target === "lore") return [];
+  if (["reputations", "lore", "wikelo"].includes(options.target)) return [];
   if (options.target !== "missions") sources.add(options.blueprintsSource);
   if (options.target !== "blueprints") sources.add(options.missionsSource);
   return [...sources];
@@ -626,6 +636,28 @@ async function planLoreImport(options: Options, stats: WikiStats) {
   return plan;
 }
 
+// ─── Wikelo ───────────────────────────────────────────────────────────────────
+
+async function planWikeloImport(
+  version: string,
+  options: Options,
+  stats: WikiStats,
+) {
+  console.log(
+    `\nWikelo : échanges de l'Emporium, API du Star Citizen Wiki, version ${version}`,
+  );
+  const wikelo = await loadWikiWikelo(version, stats);
+  for (const warning of wikelo.warnings) console.warn(`  ⚠ ${warning}`);
+  console.log(`${wikelo.trades.length} échanges`);
+  const plan = planWikelo(
+    wikelo,
+    await db.db().collection<WikeloTrade>("wikeloTrades").find().toArray(),
+    { allowMassRemoval: options.allowMassRemoval },
+  );
+  printReport("Échanges de Wikelo", plan.report);
+  return { ...plan, version };
+}
+
 // ─── Lancement ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -809,6 +841,24 @@ async function main() {
     );
   }
 
+  const withWikelo =
+    options.target === "wikelo" || (options.target === "all" && !options.dir);
+  let wikelo: Awaited<ReturnType<typeof planWikeloImport>> | undefined;
+  if (withWikelo) {
+    const before = stats.requests;
+    const wikiVersion =
+      loaded.get("wiki")?.version ??
+      reputations?.version ??
+      (await resolveWikiVersion(
+        options.target === "wikelo" ? options.version : undefined,
+        stats,
+      ));
+    wikelo = await planWikeloImport(wikiVersion, options, stats);
+    console.log(
+      `Requêtes à l'API du wiki pour Wikelo : ${stats.requests - before}`,
+    );
+  }
+
   if (options.dryRun) {
     console.log("\nSimulation : rien n'a été écrit.");
     await db.close();
@@ -839,8 +889,17 @@ async function main() {
     );
   }
 
+  if (wikelo) {
+    await write(
+      database.collection("wikeloTrades"),
+      wikelo.inserts,
+      wikelo.updates,
+    );
+  }
+
   const versions = new Set([...loaded.values()].map((data) => data.version));
   if (reputations) versions.add(reputations.version);
+  if (wikelo) versions.add(wikelo.version);
   console.log(
     versions.size > 0
       ? `Terminé : version ${[...versions].join(" / ")} importée.`

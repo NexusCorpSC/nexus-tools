@@ -33,11 +33,10 @@ import type {
   StarmapSensor,
 } from "@/types/lore";
 import {
-  guardRemovals,
   newReport,
   note,
-  sameValue,
-  type DocUpdate,
+  planKeyedCollection,
+  type KeyedChanges,
   type Report,
 } from "./plan";
 import {
@@ -506,86 +505,13 @@ function linkArticles(
 
 type Stored<T> = T & { _id: ObjectId };
 
-export type LoreChanges<T> = {
-  inserts: T[];
-  updates: DocUpdate[];
-};
+export type LoreChanges<T> = KeyedChanges<T>;
 
 export type LorePlan = {
   articles: LoreChanges<LoreArticle>;
   starmap: LoreChanges<StarmapEntry>;
   reports: { articles: Report; starmap: Report };
 };
-
-/** Les champs qui changent entre un document en base et sa nouvelle version. */
-function diff(
-  stored: Record<string, unknown>,
-  next: Record<string, unknown>,
-  keys: string[],
-): { set: Record<string, unknown>; unset: string[] } {
-  const set: Record<string, unknown> = {};
-  const unset: string[] = [];
-  for (const key of keys) {
-    if (sameValue(stored[key], next[key])) continue;
-    if (next[key] === undefined) unset.push(key);
-    else set[key] = next[key];
-  }
-  return { set, unset };
-}
-
-function planCollection<T extends { importedAt: string; removedAt?: string }>(
-  label: string,
-  stored: Stored<T>[],
-  records: (Omit<T, "importedAt" | "removedAt"> & Record<string, unknown>)[],
-  keyOf: (doc: Record<string, unknown>) => string,
-  fields: string[],
-  options: { now: string; allowMassRemoval: boolean },
-  report: Report,
-): LoreChanges<T> {
-  const byKey = new Map(stored.map((doc) => [keyOf(doc), doc]));
-  const inserts: T[] = [];
-  const updates: DocUpdate[] = [];
-  const present = new Set<string>();
-
-  for (const record of records) {
-    const key = keyOf(record);
-    present.add(key);
-    const doc = byKey.get(key);
-    if (!doc) {
-      inserts.push(
-        Object.fromEntries(
-          Object.entries({ ...record, importedAt: options.now }).filter(
-            ([, value]) => value !== undefined,
-          ),
-        ) as T,
-      );
-      note(report, "nouveaux");
-      continue;
-    }
-    const { set, unset } = diff(doc as Record<string, unknown>, record, fields);
-    const back = doc.removedAt !== undefined;
-    if (Object.keys(set).length === 0 && unset.length === 0 && !back) continue;
-    if (back) {
-      unset.push("removedAt");
-      note(report, "revenus", key);
-    } else note(report, "modifiés", key);
-    updates.push({
-      _id: doc._id,
-      set: { ...set, importedAt: options.now },
-      unset,
-    });
-  }
-
-  const active = stored.filter((doc) => doc.removedAt === undefined);
-  const gone = active.filter((doc) => !present.has(keyOf(doc)));
-  if (!options.allowMassRemoval)
-    guardRemovals(label, gone.length, active.length);
-  for (const doc of gone) {
-    updates.push({ _id: doc._id, set: { removedAt: options.now }, unset: [] });
-    note(report, "disparus de la source", keyOf(doc));
-  }
-  return { inserts, updates };
-}
 
 const ARTICLE_FIELDS: (keyof ArticleRecord)[] = [
   "slug",
@@ -648,7 +574,7 @@ export function planLore(
   reports.starmap.counts["rattachés à un article"] = articleLinks.size;
 
   return {
-    articles: planCollection<LoreArticle>(
+    articles: planKeyedCollection<LoreArticle>(
       "Galactapedia",
       stored.articles,
       lore.articles,
@@ -657,7 +583,7 @@ export function planLore(
       { now, allowMassRemoval: options.allowMassRemoval },
       reports.articles,
     ),
-    starmap: planCollection<StarmapEntry>(
+    starmap: planKeyedCollection<StarmapEntry>(
       "Starmap",
       stored.starmap,
       starmap,

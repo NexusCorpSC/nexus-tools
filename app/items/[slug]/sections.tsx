@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { ImageCover } from "@/components/image-cover";
 import { ReportMenu } from "@/components/report-menu";
+import { ItemWikeloSection } from "@/components/wikelo-trades";
 import { KIND_ACCENT } from "@/lib/item-accents";
 import { cn } from "@/lib/utils";
 import { POINTS } from "@/types/contributions";
@@ -530,6 +531,12 @@ export async function CommonSections({
           <p className="mt-2 text-xs text-nexus/70">{t("mountedOnHint")}</p>
         </div>
       )}
+
+      <ItemWikeloSection
+        itemSlug={item.slug}
+        rewards={item.wikelo.rewards}
+        wanted={item.wikelo.wanted}
+      />
 
       {item.obtention && (
         <div>

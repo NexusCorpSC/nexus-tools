@@ -48,6 +48,7 @@ les deux partagent les GUID des blueprints, tirés des fichiers du jeu.
 npm run import:game-data -- all --dry-run    # le rapport de ce qui changerait, sans rien écrire
 npm run import:game-data -- all              # dernière version LIVE : blueprints, factions, missions, réputations
 npm run import:game-data -- reputations      # seulement la liste des factions de /reps
+npm run import:game-data -- wikelo           # seulement les échanges de Wikelo
 npm run import:game-data -- images           # illustrations des blueprints qui n'en ont pas
 ```
 
@@ -85,6 +86,21 @@ son barème à la main pour une faction suffit pour que l'import suivant
 l'ajoute aux autres. Les carrières saisies à la main restent, comme le
 standing (Hostile, Neutral, Ally), que le wiki ne donne pas. Rien n'est
 supprimé : une faction qui disparaît du wiki est marquée `removedInVersion`.
+
+**Échanges de Wikelo.** Les échanges du marchand banu de l'Emporium sont des
+contrats donnés par Wikelo (`filter[mission_giver]=Wikelo`) : la liste en
+donne le résumé, le détail de chaque contrat publié dit ce qu'il faut apporter
+(`hauling_orders`, à l'unité ou en SCU pour une ressource), ce qu'il donne
+(`reward_groups`, un lot ou plusieurs tirés au hasard) et les blueprints qui
+viennent avec, soit environ 70 requêtes. Ils vont dans `wikeloTrades`, suivis
+par l'uuid du contrat ; un échange qui disparaît est marqué `removedAt`. Les
+fiches objet montrent les échanges qui donnent l'objet et ceux qui le
+demandent, les fiches blueprint ceux qui donnent le blueprint : un objet est
+retrouvé par l'uuid du jeu (`source.id` des objets importés du wiki), sinon par
+son nom ; un blueprint par son GUID. Le MCP les expose par
+`search_wikelo_trades`, `get_item` et `get_blueprint_by_slug`. `all` les
+importe aussi (sauf avec `--dir`) ; lancer `npm run ensure:indexes` avant le
+premier import.
 
 Le wiki regroupe aussi les variantes d'une mission sous une seule fiche, là où
 les premiers imports (scmdb) en faisaient plusieurs : au passage au wiki, ces

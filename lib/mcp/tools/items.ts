@@ -111,7 +111,7 @@ export function registerItemTools(server: McpServer) {
     {
       title: "Get an item",
       description:
-        "Full sheet of a catalog item by slug: description, statistics, where to get it, blueprints that craft it or consume it, variants, set, and vehicle/weapon/resource specifics (resource market prices included).",
+        "Full sheet of a catalog item by slug: description, statistics, where to get it, blueprints that craft it or consume it, Wikelo trades that give it or ask for it (field wikelo), variants, set, and vehicle/weapon/resource specifics (resource market prices included).",
       inputSchema: z.object({
         slug: z
           .string()

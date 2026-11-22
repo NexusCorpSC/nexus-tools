@@ -2,7 +2,9 @@ import "server-only";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { getBlueprintBySlug, searchBlueprints } from "@/lib/crafting";
+import { getWikeloTradesForBlueprint } from "@/lib/wikelo";
 import { mdLink, READ_ONLY, siteUrl, toolError, toolResult } from "../format";
+import { wikeloTradeData, wikeloTradeSchema, wikeloTradeText } from "./wikelo";
 
 const blueprintPath = (slug: string) => `/crafting/blueprints/${slug}`;
 
@@ -44,6 +46,10 @@ const blueprintDetails = blueprintSummary.extend({
       }),
     )
     .optional(),
+  wikeloTrades: z
+    .array(wikeloTradeSchema)
+    .optional()
+    .describe("Wikelo trades that give this blueprint"),
 });
 
 export function registerBlueprintTools(server: McpServer) {
@@ -88,7 +94,7 @@ export function registerBlueprintTools(server: McpServer) {
     {
       title: "Get blueprint details by slug",
       description:
-        "Retrieve detailed information about a blueprint, recipe, obtention, statistics, ... using its slug.",
+        "Retrieve detailed information about a blueprint, recipe, obtention, statistics, the Wikelo trades that give it, ... using its slug.",
       inputSchema: z.object({
         slug: z.string().min(1).describe("Slug returned by search_blueprints"),
       }),
@@ -100,6 +106,7 @@ export function registerBlueprintTools(server: McpServer) {
       if (!blueprint) {
         return toolError(`No blueprint found with slug: ${slug}`);
       }
+      const wikeloTrades = await getWikeloTradesForBlueprint(blueprint.slug);
       const details: z.infer<typeof blueprintDetails> = {
         slug: blueprint.slug,
         name: blueprint.name,
@@ -122,7 +129,14 @@ export function registerBlueprintTools(server: McpServer) {
           })),
         })),
         statistics: blueprint.statistics,
+        wikeloTrades: wikeloTrades.length
+          ? wikeloTrades.map(wikeloTradeData)
+          : undefined,
       };
+      const wikelo = wikeloTrades.length
+        ? "\nWikelo trades giving this blueprint:\n" +
+          wikeloTrades.map(wikeloTradeText).join("\n")
+        : "";
       const recipe = details.recipe?.length
         ? "\nRecipe:\n" +
           details.recipe
@@ -143,7 +157,7 @@ export function registerBlueprintTools(server: McpServer) {
         : "";
       return toolResult(
         details,
-        `Blueprint Details:\nName: ${blueprint.name}\nCategory: ${blueprint.category}\nSubcategory: ${blueprint.subcategory}\nObtained from: ${blueprint.obtention || "No information about how to get this blueprint."}\nDescription: ${blueprint.description}${recipe}\nLink with details: ${mdLink(blueprint.name, blueprintPath(blueprint.slug))}\n${blueprint.imageUrl ? `Image: ![${blueprint.name}](${blueprint.imageUrl})` : ""}`,
+        `Blueprint Details:\nName: ${blueprint.name}\nCategory: ${blueprint.category}\nSubcategory: ${blueprint.subcategory}\nObtained from: ${blueprint.obtention || "No information about how to get this blueprint."}\nDescription: ${blueprint.description}${recipe}${wikelo}\nLink with details: ${mdLink(blueprint.name, blueprintPath(blueprint.slug))}\n${blueprint.imageUrl ? `Image: ![${blueprint.name}](${blueprint.imageUrl})` : ""}`,
       );
     },
   );
