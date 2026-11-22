@@ -149,6 +149,10 @@
         "timeline": {
           "label": "Official events",
           "description": "What CIG runs in game, with community guides"
+        },
+        "aaronHalo": {
+          "label": "Aaron Halo",
+          "description": "Where to cut the jump to land in a band"
         }
       }
     },
@@ -160,7 +164,8 @@
     "industry": "Industry",
     "refine": "Refining",
     "cargo": "Cargo",
-    "radar": "Radar scanner"
+    "radar": "Radar scanner",
+    "aaronHalo": "Aaron Halo"
   },
   "HomePage": {
     "title": "Welcome!",
@@ -4276,7 +4281,8 @@
         "confirm_data": "Confirming the data",
         "list_my_contributions": "Reading your contributions",
         "list_missing": "Reading what's missing in the catalog",
-        "get_leaderboard": "Reading the contributor leaderboard"
+        "get_leaderboard": "Reading the contributor leaderboard",
+        "plan_aaron_halo_route": "Planning a jump into the Aaron Halo"
       }
     },
     "errors": {
@@ -5295,6 +5301,55 @@
         "WITHDRAWN": "<b>{name}</b> withdrew their offer · {summary}"
       },
       "alerts": "Tell me about new requests from my friends and orgs"
+    }
+  },
+  "AaronHalo": {
+    "home": "Home",
+    "industry": "Industry",
+    "title": "Aaron Halo navigation",
+    "description": "The halo has no quantum beacon: you get in by cutting a quantum jump between two points whose route crosses it. Pick the departure and the band, then cut the jump when the HUD shows the remaining distance given.",
+    "desktopHint": "In Nexus App, the same help fits in an overlay over the game, and the NPS tells you which band you are in.",
+    "from": "Departure",
+    "to": "Destination",
+    "bestTo": "Widest window",
+    "swap": "Swap departure and destination",
+    "bandLabel": "Target band",
+    "bandDensity": "Surveyed density: {density}%",
+    "candidates": "Destinations crossing band {band} from {from}",
+    "noCandidate": "No route from {from} crosses band {band}. Try another departure.",
+    "cutAtShort": "cut at {distance}",
+    "routeLine": "{from} → {to}, {length}",
+    "cutAt": "Cut the jump when the distance left to {to} (band {band}) reads:",
+    "window": {
+      "narrow": "narrow window, {width}",
+      "normal": "{width} window",
+      "wide": "wide window, {width}"
+    },
+    "between": "between {enter} and {exit} left",
+    "twice": "This route crosses the band twice: the widest crossing is shown.",
+    "travelled": "The band is reached after {distance} of travel.",
+    "noCrossing": "The {from} → {to} route does not cross band {band}. Pick another destination from the list.",
+    "allBands": "Every band on this route",
+    "table": {
+      "band": "Band",
+      "cut": "Cut at",
+      "window": "Window"
+    },
+    "whereAmI": "Where am I? Paste the /showlocation line",
+    "whereInvalid": "Paste the “Coordinates: x:… y:… z:…” line that /showlocation copies.",
+    "inBand": "You are in band {band}, {distance} from the centre of the system.",
+    "beforeBand": "You are {gap} short of band {band} ({distance} from the centre): keep going outwards.",
+    "afterBand": "You are {gap} past band {band} ({distance} from the centre): head back inwards.",
+    "howTitle": "In game",
+    "how1": "Spool the quantum jump to {to} and engage.",
+    "how2": "Watch the remaining distance in the middle of the HUD and cut the jump when it reaches the value given: the window tells you how much margin you have.",
+    "how3": "Too late? Head back a little towards the departure, then jump to the same destination again: as long as you stay on the route's line, the cut distance does not change.",
+    "source": "Bands from the community's density surveys (patch 4.x), positions from starmap.space. A patch can move the bands: check on site with /showlocation.",
+    "mapLabel": "The Stanton system seen from above, with the halo, the target band and the route",
+    "legend": {
+      "cut": "where to cut",
+      "me": "my position",
+      "halo": "light ring: the Aaron Halo"
     }
   }
 }

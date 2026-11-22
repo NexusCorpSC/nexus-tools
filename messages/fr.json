@@ -149,6 +149,10 @@
         "timeline": {
           "label": "Évènements officiels",
           "description": "Ce que CIG organise en jeu, avec les guides de la communauté"
+        },
+        "aaronHalo": {
+          "label": "Aaron Halo",
+          "description": "Où couper le saut pour tomber dans une bande"
         }
       }
     },
@@ -1406,7 +1410,8 @@
     "industry": "Industrie",
     "refine": "Raffinage",
     "cargo": "Cargo",
-    "radar": "Scanner radar"
+    "radar": "Scanner radar",
+    "aaronHalo": "Aaron Halo"
   },
   "Shopping": {
     "home": "Accueil",
@@ -4275,7 +4280,8 @@
         "confirm_data": "Confirmation de la donnée",
         "list_my_contributions": "Lecture de vos contributions",
         "list_missing": "Lecture de ce qui manque au catalogue",
-        "get_leaderboard": "Lecture du classement des contributeurs"
+        "get_leaderboard": "Lecture du classement des contributeurs",
+        "plan_aaron_halo_route": "Calcul d'un saut vers l'Aaron Halo"
       }
     },
     "errors": {
@@ -5294,6 +5300,55 @@
         "WITHDRAWN": "<b>{name}</b> a retiré son offre · {summary}"
       },
       "alerts": "Me prévenir des nouvelles demandes de mes amis et de mes orgas"
+    }
+  },
+  "AaronHalo": {
+    "home": "Accueil",
+    "industry": "Industrie",
+    "title": "Navigation vers l'Aaron Halo",
+    "description": "Le halo n'a pas de balise de saut : on y entre en coupant un saut quantique entre deux points qui le traversent. Choisissez le départ et la bande, puis coupez le saut quand le HUD affiche la distance restante donnée.",
+    "desktopHint": "Dans Nexus App, la même aide tient dans une superposition par-dessus le jeu, et le NPS dit dans quelle bande vous êtes.",
+    "from": "Départ",
+    "to": "Arrivée",
+    "bestTo": "La plus large fenêtre",
+    "swap": "Inverser le départ et l'arrivée",
+    "bandLabel": "Bande visée",
+    "bandDensity": "Densité relevée : {density} %",
+    "candidates": "Arrivées qui traversent la bande {band} depuis {from}",
+    "noCandidate": "Aucun trajet depuis {from} ne traverse la bande {band}. Essayez un autre départ.",
+    "cutAtShort": "couper à {distance}",
+    "routeLine": "{from} → {to}, {length}",
+    "cutAt": "Coupez le saut quand il reste, jusqu'à {to} (bande {band}) :",
+    "window": {
+      "narrow": "fenêtre étroite, {width}",
+      "normal": "fenêtre de {width}",
+      "wide": "large fenêtre, {width}"
+    },
+    "between": "entre {enter} et {exit} restants",
+    "twice": "Le trajet traverse cette bande deux fois : c'est la traversée la plus large qui est donnée.",
+    "travelled": "La bande est atteinte après {distance} de saut.",
+    "noCrossing": "Le trajet {from} → {to} ne traverse pas la bande {band}. Choisissez une autre arrivée dans la liste.",
+    "allBands": "Toutes les bandes de ce trajet",
+    "table": {
+      "band": "Bande",
+      "cut": "Couper à",
+      "window": "Fenêtre"
+    },
+    "whereAmI": "Où suis-je ? Collez la ligne de /showlocation",
+    "whereInvalid": "Collez la ligne « Coordinates: x:… y:… z:… » que copie /showlocation.",
+    "inBand": "Vous êtes dans la bande {band}, à {distance} du centre du système.",
+    "beforeBand": "Vous êtes à {gap} avant la bande {band} (à {distance} du centre) : continuez vers l'extérieur.",
+    "afterBand": "Vous êtes à {gap} au-delà de la bande {band} (à {distance} du centre) : revenez vers l'intérieur.",
+    "howTitle": "En jeu",
+    "how1": "Préparez le saut quantique vers {to} et lancez-le.",
+    "how2": "Surveillez la distance restante au centre du HUD et coupez le saut quand elle atteint la valeur donnée : la fenêtre dit combien de marge vous avez.",
+    "how3": "Trop tard ? Revenez un peu vers le départ, puis relancez le saut vers la même arrivée : tant que vous restez sur la ligne du trajet, la distance où couper ne change pas.",
+    "source": "Bandes d'après les relevés de densité de la communauté (patch 4.x), positions de starmap.space. Un patch peut déplacer les bandes : vérifiez sur place avec /showlocation.",
+    "mapLabel": "Le système Stanton vu de dessus, avec le halo, la bande visée et le trajet",
+    "legend": {
+      "cut": "où couper",
+      "me": "ma position",
+      "halo": "anneau clair : l'Aaron Halo"
     }
   }
 }

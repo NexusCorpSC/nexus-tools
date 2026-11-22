@@ -39,6 +39,9 @@ Le site est disponible en français, en anglais et en espagnol.
 - **Scanner de signature radar** : saisissez la signature qu'affiche le scan
   et voyez quel minerai, astéroïde ou épave elle désigne, et combien de
   rochers la composent.
+- **Navigation vers l'Aaron Halo** : choisissez un départ et une bande, et
+  sachez à quelle distance restante couper le saut quantique pour tomber
+  dedans.
 
 ### Explorer le 'Verse
 
@@ -118,7 +121,7 @@ chaque contribution acceptée fait monter votre niveau et le classement.
 
 [Nexus App](https://github.com/NexusCorpSC/nexus-app) apporte Nexus Tools
 par-dessus le jeu, sous Windows : recherche par raccourci, superpositions
-(escouade, NPS, scanner radar, bloc-notes, cargo, Nexus Chat), capture d'écran qui remplit
+(escouade, NPS, scanner radar, Aaron Halo, bloc-notes, cargo, Nexus Chat), capture d'écran qui remplit
 l'inventaire, positionnement NPS et notifications. Elle utilise le même compte
 que le site.
 

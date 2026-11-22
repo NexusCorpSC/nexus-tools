@@ -20,6 +20,7 @@ import {
   Package,
   Receipt,
   Rocket,
+  Route,
   Send,
   Sparkles,
   Star,
@@ -100,6 +101,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       },
       { id: "cargo", href: "/industry/cargo", icon: Container },
       { id: "radar", href: "/industry/radar", icon: Radar },
+      { id: "aaronHalo", href: "/industry/aaron-halo", icon: Route },
     ],
   },
   {
