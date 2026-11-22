@@ -94,6 +94,10 @@
           "label": "Cargo",
           "description": "Ship loading and capacity"
         },
+        "radar": {
+          "label": "Radar scanner",
+          "description": "What a radar signature hides"
+        },
         "inventory": {
           "label": "Inventory",
           "description": "Your items, by location"
@@ -155,7 +159,8 @@
     "home": "Home",
     "industry": "Industry",
     "refine": "Refining",
-    "cargo": "Cargo"
+    "cargo": "Cargo",
+    "radar": "Radar scanner"
   },
   "HomePage": {
     "title": "Welcome!",
@@ -2363,6 +2368,38 @@
     "bulkDeleteTitle": "Delete “{value}”?",
     "bulkDeleteDescription": "{count, plural, one {# line will be removed from the route sheet.} other {# lines will be removed from the route sheet.}}"
   },
+  "Radar": {
+    "home": "Home",
+    "industry": "Industry",
+    "title": "Radar signature scanner",
+    "description": "Type the radar signature the game's scan shows: the scanner compares it with the known signatures of ores, asteroids and wrecks, and tells how many items make it up.",
+    "desktopHint": "In Nexus App, the scanner reads the signature off the screen itself, in an overlay over the game.",
+    "inputLabel": "Signature read",
+    "invalid": "Type the value shown, in digits.",
+    "matches": "What {value} can be",
+    "noMatch": "No known signature gives exactly this value.",
+    "approximate": "Closest",
+    "base": "base {value}",
+    "difference": "off by {value}",
+    "count": "{count, plural, one {# item} other {# items}}",
+    "howItWorks": "A cluster of N rocks of the same type shows N times the signature of one. Values follow the latest known patch; a game patch can change them.",
+    "contextLabel": "Where are you scanning?",
+    "contexts": {
+      "all": "Anywhere",
+      "ship": "From a ship",
+      "roc": "From a ROC",
+      "fps": "On foot"
+    },
+    "reference": "Known signatures",
+    "categories": {
+      "ship": "Ores (ship)",
+      "asteroid": "Asteroids",
+      "salvage": "Salvage",
+      "roc": "ROC deposits",
+      "fps": "Hand-mining deposits",
+      "other": "Other"
+    }
+  },
   "Inventory": {
     "title": "Inventory",
     "header": "Manage your items across different storage locations.",
@@ -4145,6 +4182,7 @@
         "search_lore": "Searching the Galactapedia",
         "get_lore_article": "Reading a Galactapedia article",
         "get_star_system": "Reading the starmap",
+        "identify_radar_signature": "Identifying a radar signature",
         "search_official_events": "Searching the official events",
         "get_official_event": "Reading the official event",
         "list_official_event_bugs": "Reading the event's bugs",

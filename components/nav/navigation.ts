@@ -27,6 +27,7 @@ import {
   Tag,
   Trophy,
   Puzzle as PuzzleIcon,
+  Radar,
   User,
   UserRound,
   Users,
@@ -98,6 +99,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
         alsoMatches: ["/industry"],
       },
       { id: "cargo", href: "/industry/cargo", icon: Container },
+      { id: "radar", href: "/industry/radar", icon: Radar },
     ],
   },
   {

@@ -14,6 +14,7 @@ import { registerPlanDraftTools } from "./tools/plan-drafts";
 import { registerPlanFormatResource } from "./plan-format";
 import { registerItemTools } from "./tools/items";
 import { registerLoreTools } from "./tools/lore";
+import { registerRadarTools } from "./tools/radar";
 import { registerMarketplaceReadTools } from "./tools/marketplace";
 import { registerMarketplacePersonalTools } from "./tools/marketplace-personal";
 import { registerPlaceTools } from "./tools/places";
@@ -52,6 +53,7 @@ export function registerNexusServer(mcp: McpServer) {
   registerPlaceTools(server);
   registerPrivatePlaceTools(server);
   registerLoreTools(server);
+  registerRadarTools(server);
   registerTimelineTools(server);
   registerMarketplaceReadTools(server);
   registerMarketplacePersonalTools(server);
@@ -93,5 +95,6 @@ export const MCP_INSTRUCTIONS =
   "For the lore of the 'Verse (history, people, companies, species, systems), use search_lore, get_lore_article and get_star_system: " +
   "they hold RSI's Galactapedia and starmap, in English. " +
   "For CIG's official in-game events (live, upcoming, past, their rewards, guide and known bugs), use search_official_events and get_official_event. " +
+  "To tell what a radar signature (RS) read on the in-game scan is (ore, asteroid, wreck, and how many rocks), use identify_radar_signature. " +
   "Personal tools (inventory, parcels, refining orders, position markers, private places, friends and organizations, events and planned sessions, owned blueprints, reputations, notepad, sharing, contributions, marketplace orders, the request board…) need the user to sign in to their Nexus account; " +
   "every change they make is shown to the user for confirmation first, and contributions go to community review unless the user is a trusted contributor.";

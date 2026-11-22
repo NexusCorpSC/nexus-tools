@@ -46,6 +46,9 @@ export default function IndustryPage() {
         <Button asChild>
           <Link href="/industry/cargo">{t("cargo")}</Link>
         </Button>
+        <Button asChild>
+          <Link href="/industry/radar">{t("radar")}</Link>
+        </Button>
       </div>
     </div>
   );
