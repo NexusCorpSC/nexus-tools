@@ -46,7 +46,9 @@ export default async function AaronHaloPage({
   const t = await getTranslations("AaronHalo");
 
   const from = findHaloPoint(one(params.from))?.id ?? "arc-l1";
-  const to = findHaloPoint(one(params.to))?.id ?? null;
+  const askedTo = findHaloPoint(one(params.to))?.id ?? null;
+  // Une arrivée égale au départ ne fait pas de trajet : on la laisse choisir.
+  const to = askedTo === from ? null : askedTo;
   const asked = Number(one(params.band));
   const band = DEFAULT_HALO_BANDS.some((entry) => entry.id === asked)
     ? asked

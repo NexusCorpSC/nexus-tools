@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUrlFilters } from "@/lib/list-url";
 import { parseShowLocation } from "@/lib/nps-geometry";
 import {
+  DEFAULT_HALO_BAND,
   DEFAULT_HALO_BANDS,
   HALO_POINTS,
   findHaloPoint,
@@ -165,7 +166,10 @@ export default function HaloNavigator({
   }, [locale]);
 
   const from = findHaloPoint(fromId) ?? HALO_POINTS[0];
-  const band = bands.find((one) => one.id === bandId) ?? bands[0];
+  const band =
+    bands.find((one) => one.id === bandId) ??
+    bands.find((one) => one.id === DEFAULT_HALO_BAND) ??
+    bands[0];
   const candidates = useMemo(
     () => haloBandRoutes(from, band.id, HALO_POINTS, bands),
     [from, band, bands],
