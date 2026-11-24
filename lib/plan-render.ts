@@ -25,6 +25,7 @@ import {
 } from "@/lib/plan-symbols";
 import { polygonCentroid, rotatePoint } from "@/lib/plan-geometry";
 import type {
+  DoorKind,
   DrawnPlacePlan,
   PlacePlanMarker,
   PlanLabel,
@@ -54,7 +55,23 @@ export const PLAN_THEME = {
   corridor: "rgba(22, 57, 79, 0.55)",
   accent: "#F2B441",
   access: "#4FD98A",
+  /**
+   * Les portes. De la couleur du mur, elles disparaissaient dedans : on ne
+   * voyait plus par où entrer. Bleu pour une porte, violet pour un sas ou une
+   * porte à carte, les teintes `sky` et `violet` de l'encre des plans.
+   */
+  door: "#6FB6F0",
+  airlock: "#B08CF0",
 } as const;
+
+/** La couleur d'une porte selon sa nature ; une ouverture évide le mur. */
+export function doorFill(
+  kind: DoorKind,
+  theme: PlanTheme = PLAN_THEME,
+): string {
+  if (kind === "opening") return theme.field;
+  return kind === "airlock" ? theme.airlock : theme.door;
+}
 
 export type PlanTheme = typeof PLAN_THEME;
 
@@ -360,7 +377,7 @@ export function renderLevelBody(
 
   for (const door of level.doors) {
     // Une ouverture n'est pas une porte : elle évide le mur, elle ne le remplit pas.
-    const fill = door.kind === "opening" ? theme.field : theme.wall;
+    const fill = doorFill(door.kind, theme);
     out +=
       `<rect x="${n(door.x)}" y="${n(door.y)}" width="${n(door.w)}" height="${n(door.h)}"` +
       ` fill="${fill}"${spin(door.rot, door.x + door.w / 2, door.y + door.h / 2)} />`;
@@ -669,7 +686,14 @@ export function plateLegend(
   return [...used].map((glyph) => ({
     glyph,
     label: labels[glyph] ?? glyph,
-    color: glyph === "objective" ? PLAN_INK_COLORS.amber : undefined,
+    color:
+      glyph === "objective"
+        ? PLAN_INK_COLORS.amber
+        : glyph === "airlock"
+          ? PLAN_THEME.airlock
+          : glyph === "door" || glyph === "doubleDoor"
+            ? PLAN_THEME.door
+            : undefined,
   }));
 }
 
