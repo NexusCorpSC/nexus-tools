@@ -155,3 +155,33 @@ npm run merge:blueprints                 # les paires trouvées, sans rien écri
 npm run merge:blueprints -- --apply      # fusionner
 npm run import:game-data -- all          # régénérer les textes d'obtention
 ```
+
+## Import des avant-postes extraits des fichiers du jeu
+
+Les avant-postes de Nyx I, leur position et leur plan viennent d'un export
+fait hors ligne sur un poste qui a le jeu (`export_nexus.py`, à côté des outils
+qui lisent le `Data.p4k`). Le fichier `*.nexus.json` décrit un corps, ses
+secteurs, ses groupes d'avant-postes et les avant-postes, parents d'abord ;
+chaque avant-poste porte sa position dans le repère du corps et ses plans
+dessinés (le bâtiment principal niveau par niveau, et une vue générale avec
+les tourelles et les tours de garde). Ce ne sont que nos relevés : aucun
+fichier du jeu n'en fait partie.
+
+```bash
+npm run import:outposts -- nyx-i-outposts.nexus.json --offline --previews ./apercus   # sans base : vérifie, mesure, rend les aperçus
+npm run import:outposts -- nyx-i-outposts.nexus.json --dry-run                       # ce qui changerait en base
+npm run import:outposts -- nyx-i-outposts.nexus.json                                 # import, aperçus envoyés au blob storage
+npm run clean:blobs -- --apply                                                       # ensuite, les anciens aperçus
+```
+
+- **Arborescence** : corps › secteurs › groupes › avant-postes. Secteurs et
+  groupes sont des lieux de type `region`.
+- **Provenance** `game-files`, avec l'identifiant du jeu : relancer l'import
+  met à jour les mêmes fiches. La description, l'image, les services et les
+  astuces posés par quelqu'un restent.
+- **Position** marquée `game-files`. Une position relevée par un joueur n'est
+  jamais remplacée, et `import:star-map` ne touche pas celles-ci.
+- **Plans** remplacés tant que personne ne les a retouchés (empreinte
+  `source.plansHash`) ; un plan modifié à la main est gardé.
+- **Un lieu importé que le jeu n'a plus est supprimé**, au besoin avec un plan
+  retouché. Les lieux créés à la main qu'il contenait remontent à son parent.

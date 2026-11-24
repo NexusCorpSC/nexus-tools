@@ -20,6 +20,7 @@
     "import:celestial-bodies": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-celestial-bodies.ts",
     "import:star-map": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-star-map.ts",
     "import:planet-maps": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-planet-maps.ts",
+    "import:outposts": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-outposts.ts",
     "mcp:smoke": "tsx scripts/mcp-smoke.ts",
     "mcp:smoke:seed": "tsx --env-file-if-exists=.env.local scripts/mcp-smoke-seed.ts",
     "mcp:views": "vite build --config mcp-views/vite.config.ts"

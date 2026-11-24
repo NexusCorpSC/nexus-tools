@@ -989,6 +989,7 @@
       "outpost": "Avant-poste",
       "spaceport": "Spatioport",
       "district": "Quartier",
+      "region": "Région",
       "building": "Bâtiment",
       "shop": "Magasin"
     },
@@ -4496,6 +4497,7 @@
       "station": "Stations",
       "outpost": "Avant-postes",
       "district": "Quartiers",
+      "region": "Régions",
       "building": "Bâtiments",
       "shop": "Magasins",
       "star": "Systèmes",

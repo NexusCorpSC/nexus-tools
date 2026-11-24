@@ -996,6 +996,7 @@
       "outpost": "Outpost",
       "spaceport": "Spaceport",
       "district": "District",
+      "region": "Region",
       "building": "Building",
       "shop": "Shop"
     },
@@ -4497,6 +4498,7 @@
       "station": "Stations",
       "outpost": "Outposts",
       "district": "Districts",
+      "region": "Regions",
       "building": "Buildings",
       "shop": "Shops",
       "star": "Systems",

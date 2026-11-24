@@ -26,6 +26,11 @@ export const PLACE_TYPES = [
   "outpost",
   "spaceport",
   "district",
+  /**
+   * Un découpage du terrain qui ne se visite pas pour lui-même : les secteurs
+   * et les groupes d'avant-postes de Nyx I, tels que le jeu les range.
+   */
+  "region",
   "building",
   "shop",
 ] as const;
@@ -64,7 +69,11 @@ export function isPlaceService(value: string): value is PlaceService {
 }
 
 /** D'où vient une fiche importée. Saisie à la main : pas de provenance. */
-export const PLACE_SOURCES = ["curated", "missions-json"] as const;
+export const PLACE_SOURCES = [
+  "curated",
+  "missions-json",
+  "game-files",
+] as const;
 
 export type PlaceSourceName = (typeof PLACE_SOURCES)[number];
 
@@ -72,6 +81,12 @@ export type PlaceSource = {
   name: PlaceSourceName;
   id: string;
   importedAt?: string;
+  /**
+   * L'empreinte des plans tels que l'import les a écrits (`import:outposts`).
+   * Tant que les plans du lieu y répondent, personne ne les a retouchés et le
+   * prochain import peut les remplacer ; sinon, ils sont gardés.
+   */
+  plansHash?: string;
 };
 
 export const PLACE_SORTS = ["name", "children", "plans"] as const;
@@ -591,10 +606,11 @@ export type PlacePosition = {
   y: number;
   z: number;
   /**
-   * Posée par `import:star-map` plutôt que relevée en jeu. Une correction la
-   * remplace par un relevé, sans cette marque, que l'import ne touche plus.
+   * Posée par un import plutôt que relevée en jeu : `import:star-map`
+   * (`starmap.space`) ou `import:outposts` (`game-files`). Une correction la
+   * remplace par un relevé, sans cette marque, qu'aucun import ne touche plus.
    */
-  source?: "starmap.space";
+  source?: "starmap.space" | "game-files";
 };
 
 /** Ce que le NPS doit savoir d'une planète ou d'une lune. */
