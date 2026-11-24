@@ -42,6 +42,7 @@ const GROUP_ORDER = [
   "city",
   "spaceport",
   "station",
+  "region",
   "outpost",
   "district",
   "building",

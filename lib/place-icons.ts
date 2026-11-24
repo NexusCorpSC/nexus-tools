@@ -38,6 +38,7 @@ export const PLACE_TYPE_ICON: Record<PlaceType, Icon> = {
   outpost: HomeModernIcon,
   spaceport: PaperAirplaneIcon,
   district: BuildingOfficeIcon,
+  region: MapIcon,
   building: BuildingLibraryIcon,
   shop: BuildingStorefrontIcon,
 };
