@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { useImageViewport } from "@/app/lieux/use-image-viewport";
 import {
   PLAN_THEME,
+  doorFill,
   planLabel,
   roomLabel,
   stairs,
@@ -1406,7 +1407,7 @@ export function DrawnPlanEditor({
                   style={{
                     ...roomBox(door),
                     background:
-                      door.kind === "opening" ? "#061E2F" : PLAN_THEME.wall,
+                      door.kind === "opening" ? "#061E2F" : doorFill(door.kind),
                     outline:
                       selection?.kind === "door" && selection.id === door.id
                         ? `2px solid ${PLAN_THEME.accent}`
